@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GoalType {
+  HEALTHY_LIFESTYLE
+  IMPROVE_FITNESS
+  BUILD_MUSCLE
+  IMPROVE_ENDURANCE
+  REDUCE_WEIGHT
+}
+
+enum GoalImpactMode {
+  NUTRITION_ONLY
+  NUTRITION_AND_TRAINING
+}
+
+enum DietType {
+  NONE
+  OMNIVORE
+  VEGETARIAN
+  VEGAN
+  PESCATARIAN
+  KETO
+  LOW_CARB
+  MEDITERRANEAN
+  HALAL
+  KOSHER
+}
+
+enum ActivityLevel {
+  LOW
+  LIGHT
+  MODERATE
+  HIGH
+  ATHLETE
+}
+
+enum SportType {
+  RUNNING
+  CYCLING
+  GYM
+  STRENGTH
+  HIIT
+  YOGA
+  SWIMMING
+  WALKING
+  TEAM_SPORT
+  OTHER
+}
+
+enum IntensityLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum PlanStatus {
+  READY
+  FALLBACK
+}
+
+enum DailyReadinessLevel {
+  RECOVER
+  MAINTAIN
+  PUSH
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String
+  firstName          String?
+  lastName           String?
+  timezone           String   @default("UTC")
+  locale             String   @default("en")
+  isMinor            Boolean  @default(false)
+  safeMode           Boolean  @default(false)
+  privacyConsentedAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  profile       Profile?
+  goal          Goal?
+  nutritionPref NutritionPreference?
+  schedules     TrainingScheduleItem[]
+  dailyPlans    DailyPlan[]
+
+  @@index([createdAt])
+}
+
+model Profile {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  gender        String?
+  dateOfBirth   DateTime
+  heightCm      Float
+  weightKg      Float
+  activityLevel ActivityLevel
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dateOfBirth])
+}
+
+model Goal {
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  goalType           GoalType
+  targetWeightKg     Float?
+  targetTimelineDays Int?
+  impactMode         GoalImpactMode?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NutritionPreference {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  dietType    DietType @default(NONE)
+  mealsPerDay Int
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allergies      Allergy[]
+  excludedFoods  ExcludedFood[]
+  preferredFoods PreferredFood[]
+}
+
+model Allergy {
+  id                    String @id @default(cuid())
+  nutritionPreferenceId String
+  name                  String
+
+  nutritionPreference NutritionPreference @relation(fields: [nutritionPreferenceId], references: [id], onDelete: Cascade)
+
+  @@index([nutritionPreferenceId])
+}
+
+model ExcludedFood {
+  id                    String @id @default(cuid())
+  nutritionPreferenceId String
+  name                  String
+
+  nutritionPreference NutritionPreference @relation(fields: [nutritionPreferenceId], references: [id], onDelete: Cascade)
+
+  @@index([nutritionPreferenceId])
+}
+
+model PreferredFood {
+  id                    String @id @default(cuid())
+  nutritionPreferenceId String
+  name                  String
+
+  nutritionPreference NutritionPreference @relation(fields: [nutritionPreferenceId], references: [id], onDelete: Cascade)
+
+  @@index([nutritionPreferenceId])
+}
+
+model TrainingScheduleItem {
+  id              String         @id @default(cuid())
+  userId          String
+  dayOfWeek       Int
+  localTime       String
+  sportType       SportType
+  durationMinutes Int
+  intensity       IntensityLevel
+  description     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
+}
+
+model DailyPlan {
+  id             String              @id @default(cuid())
+  userId         String
+  planLocalDate  String
+  planTimezone   String
+  status         PlanStatus
+  readinessLevel DailyReadinessLevel
+  planJson       Json
+  createdByAi    Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, planLocalDate, planTimezone])
+  @@index([userId, createdAt])
+}
