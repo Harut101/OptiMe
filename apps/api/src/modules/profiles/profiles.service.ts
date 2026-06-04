@@ -1,14 +1,18 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { SafetyService } from '../safety/safety.service';
 import { UpsertProfileDto } from './dto/upsert-profile.dto';
 
 @Injectable()
 export class ProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly safetyService: SafetyService
+  ) {}
 
   async upsertProfile(userId: string, dto: UpsertProfileDto) {
-    const derived = this.deriveAgeSafety(dto.dateOfBirth);
+    const derived = this.safetyService.deriveAgeSafety(dto.dateOfBirth);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
@@ -54,33 +58,5 @@ export class ProfilesService {
     });
 
     return result;
-  }
-
-  private deriveAgeSafety(dateOfBirth: Date) {
-    if (Number.isNaN(dateOfBirth.getTime())) {
-      throw new BadRequestException('dateOfBirth must be a valid date.');
-    }
-
-    const now = new Date();
-
-    if (dateOfBirth > now) {
-      throw new BadRequestException('dateOfBirth must be in the past.');
-    }
-
-    let age = now.getUTCFullYear() - dateOfBirth.getUTCFullYear();
-    const monthDelta = now.getUTCMonth() - dateOfBirth.getUTCMonth();
-    const hasBirthdayPassed =
-      monthDelta > 0 || (monthDelta === 0 && now.getUTCDate() >= dateOfBirth.getUTCDate());
-
-    if (!hasBirthdayPassed) {
-      age -= 1;
-    }
-
-    const isMinor = age < 18;
-
-    return {
-      isMinor,
-      safeMode: isMinor
-    };
   }
 }

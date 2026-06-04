@@ -1,10 +1,23 @@
 import type {
   ActivityLevel,
+  DailyPlanResponse,
+  DailyPlanFeedbackResponse,
   DietType,
   GoalImpactMode,
   GoalType,
   IntensityLevel,
+  PlanFeedbackRating,
+  PlanFeedbackTag,
+  SubmitDailyPlanFeedbackRequest,
   SportType
+} from '@optime/shared-types';
+
+export type {
+  DailyPlanFeedbackResponse,
+  DailyPlanResponse,
+  PlanFeedbackRating,
+  PlanFeedbackTag,
+  SubmitDailyPlanFeedbackRequest
 } from '@optime/shared-types';
 
 export interface UserDto {
@@ -71,60 +84,3 @@ export interface TrainingScheduleItem {
 }
 
 export type TrainingScheduleItemRequest = Omit<TrainingScheduleItem, 'id'>;
-
-export interface DailyPlanResponse {
-  planId: string;
-  status: 'READY' | 'FALLBACK';
-  readinessLevel: 'RECOVER' | 'MAINTAIN' | 'PUSH';
-  planLocalDate: string;
-  planTimezone: string;
-  plan: MockDailyPlanPayload;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MockDailyPlanPayload {
-  status: 'READY' | 'FALLBACK';
-  readinessLevel: 'RECOVER' | 'MAINTAIN' | 'PUSH';
-  planLocalDate: string;
-  planTimezone: string;
-  plan: {
-    summary: string;
-    calorieGuidance: {
-      targetCalories: number | null;
-      reason: string;
-    };
-    macroGuidance: {
-      proteinGrams: number | null;
-      carbsGrams: number | null;
-      fatsGrams: number | null;
-    };
-    meals: Array<{
-      mealName: string;
-      timing: string;
-      foods: Array<{
-        name: string;
-        portion: string;
-        notes: string;
-      }>;
-      approxCalories: number | null;
-      notes: string;
-    }>;
-    hydration: {
-      targetLiters: number;
-      timingNotes: string;
-    };
-    trainingRecommendation: {
-      mode: 'RECOVER' | 'MAINTAIN' | 'PUSH';
-      summary: string;
-      intensity: string;
-      durationMinutes: number;
-    };
-    recoveryRecommendation: {
-      summary: string;
-      actions: string[];
-    };
-    coachExplanation: string;
-    warnings: string[];
-  };
-}

@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { SafetyService } from '../safety/safety.service';
 import { CreateTrainingScheduleItemDto } from './dto/create-training-schedule-item.dto';
 import { UpdateTrainingScheduleItemDto } from './dto/update-training-schedule-item.dto';
 
 @Injectable()
 export class TrainingScheduleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly safetyService: SafetyService
+  ) {}
 
   listItems(userId: string) {
     return this.prisma.trainingScheduleItem.findMany({
@@ -16,6 +20,8 @@ export class TrainingScheduleService {
   }
 
   createItem(userId: string, dto: CreateTrainingScheduleItemDto) {
+    this.safetyService.validateTrainingScheduleItem(dto);
+
     return this.prisma.trainingScheduleItem.create({
       data: {
         userId,
@@ -30,7 +36,12 @@ export class TrainingScheduleService {
   }
 
   async updateItem(userId: string, itemId: string, dto: UpdateTrainingScheduleItemDto) {
-    await this.ensureItemBelongsToUser(userId, itemId);
+    const existingItem = await this.ensureItemBelongsToUser(userId, itemId);
+    this.safetyService.validateTrainingScheduleItem({
+      durationMinutes: dto.durationMinutes ?? existingItem.durationMinutes,
+      intensity: dto.intensity ?? existingItem.intensity,
+      description: dto.description ?? existingItem.description
+    });
 
     return this.prisma.trainingScheduleItem.update({
       where: { id: itemId },
@@ -50,12 +61,13 @@ export class TrainingScheduleService {
       where: {
         id: itemId,
         userId
-      },
-      select: { id: true }
+      }
     });
 
     if (!item) {
       throw new NotFoundException('Training schedule item not found.');
     }
+
+    return item;
   }
 }

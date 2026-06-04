@@ -46,7 +46,7 @@ export default function TodayScreen() {
     );
   }
 
-  const plan = today.data?.plan.plan;
+  const plan = today.data?.plan;
 
   return (
     <Screen>
@@ -70,34 +70,34 @@ export default function TodayScreen() {
               <Text style={styles.badgeText}>{today.data.readinessLevel}</Text>
             </View>
             {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
-            <Text variant="heading">{plan.summary}</Text>
-            <Text variant="muted">{plan.coachExplanation}</Text>
+            <Text variant="heading">{plan.summary.title}</Text>
+            <Text variant="muted">{plan.summary.message}</Text>
+            {today.data.status === 'FALLBACK' || plan.safety.adjustedForSafety ? (
+              <Text variant="muted">This plan was adjusted to keep today safe and manageable.</Text>
+            ) : null}
             <Text variant="muted">Updated {formatUpdatedAt(today.data.updatedAt)}</Text>
           </Card>
 
           <Card>
             <Text variant="label">Nutrition</Text>
-            <Text variant="body">{displayReason(plan.calorieGuidance.reason)}</Text>
+            <Text variant="body">{plan.nutrition.calorieGuidance.notes}</Text>
+            <Text variant="muted">{plan.nutrition.macroGuidance.notes}</Text>
             <Text variant="muted">
-              Protein {valueOrDash(plan.macroGuidance.proteinGrams)}g - Carbs{' '}
-              {valueOrDash(plan.macroGuidance.carbsGrams)}g - Fats{' '}
-              {valueOrDash(plan.macroGuidance.fatsGrams)}g
+              Protein: {plan.nutrition.macroGuidance.protein} - Carbs:{' '}
+              {plan.nutrition.macroGuidance.carbs} - Fat: {plan.nutrition.macroGuidance.fat}
             </Text>
           </Card>
 
           <Card>
             <Text variant="label">Training</Text>
-            <Text variant="body">{plan.trainingRecommendation.summary}</Text>
-            <Text variant="muted">
-              {plan.trainingRecommendation.intensity.toLowerCase()} -{' '}
-              {plan.trainingRecommendation.durationMinutes} min
-            </Text>
+            <Text variant="body">{plan.training.recommendation}</Text>
+            <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
           </Card>
 
           <Card>
             <Text variant="label">Recovery</Text>
-            <Text variant="body">{plan.recoveryRecommendation.summary}</Text>
-            <Text variant="muted">{plan.hydration.timingNotes}</Text>
+            <Text variant="body">{plan.recovery.recommendation}</Text>
+            <Text variant="muted">{plan.nutrition.hydration.guidance}</Text>
           </Card>
 
           <Button title="View plan details" onPress={() => router.push('/plan-details')} />
@@ -113,23 +113,11 @@ export default function TodayScreen() {
   );
 }
 
-function valueOrDash(value: number | null) {
-  return value === null ? '-' : value;
-}
-
 function formatUpdatedAt(value: string) {
   return new Date(value).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit'
   });
-}
-
-function displayReason(reason: string) {
-  if (reason === 'This Sprint 1 mock target is a placeholder until personalized planning is added.') {
-    return 'A balanced target for steady energy today.';
-  }
-
-  return reason;
 }
 
 const styles = StyleSheet.create({

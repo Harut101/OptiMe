@@ -71,6 +71,21 @@ enum DailyReadinessLevel {
   PUSH
 }
 
+enum PlanFeedbackRating {
+  HELPFUL
+  NOT_HELPFUL
+}
+
+enum PlanFeedbackTag {
+  TOO_MUCH_FOOD
+  TOO_LITTLE_FOOD
+  TRAINING_TOO_HARD
+  TRAINING_TOO_EASY
+  FELT_GOOD
+  LOW_ENERGY
+  RECOVERY_NEEDED
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -90,6 +105,7 @@ model User {
   nutritionPref NutritionPreference?
   schedules     TrainingScheduleItem[]
   dailyPlans    DailyPlan[]
+  planFeedback  DailyPlanFeedback[]
 
   @@index([createdAt])
 }
@@ -198,7 +214,26 @@ model DailyPlan {
   updatedAt      DateTime            @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback DailyPlanFeedback[]
 
   @@unique([userId, planLocalDate, planTimezone])
   @@index([userId, createdAt])
+}
+
+model DailyPlanFeedback {
+  id          String              @id @default(cuid())
+  userId      String
+  dailyPlanId String
+  rating      PlanFeedbackRating?
+  tags        PlanFeedbackTag[]
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPlan DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dailyPlanId])
+  @@index([userId, createdAt])
+  @@index([dailyPlanId])
 }

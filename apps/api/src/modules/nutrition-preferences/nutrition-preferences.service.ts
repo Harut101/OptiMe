@@ -1,16 +1,26 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { SafetyService } from '../safety/safety.service';
 import { UpsertNutritionPreferencesDto } from './dto/upsert-nutrition-preferences.dto';
 
 @Injectable()
 export class NutritionPreferencesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly safetyService: SafetyService
+  ) {}
 
   async upsertPreferences(userId: string, dto: UpsertNutritionPreferencesDto) {
     const allergies = this.normalizeList(dto.allergies);
     const excludedFoods = this.normalizeList(dto.excludedFoods);
     const preferredFoods = this.normalizeList(dto.preferredFoods);
+
+    this.safetyService.validateNutritionPreferences({
+      allergies,
+      excludedFoods,
+      preferredFoods
+    });
 
     return this.prisma.$transaction(async (tx) => {
       const preference = await tx.nutritionPreference.upsert({

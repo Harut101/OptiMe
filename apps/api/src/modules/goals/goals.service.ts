@@ -1,30 +1,52 @@
 import { Injectable } from '@nestjs/common';
-import { GoalType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { SafetyService } from '../safety/safety.service';
 import { UpsertGoalDto } from './dto/upsert-goal.dto';
 
 @Injectable()
 export class GoalsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly safetyService: SafetyService
+  ) {}
 
-  upsertGoal(userId: string, dto: UpsertGoalDto) {
-    const isWeightLossGoal = dto.goalType === GoalType.REDUCE_WEIGHT;
+  async upsertGoal(userId: string, dto: UpsertGoalDto) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: {
+        isMinor: true,
+        profile: {
+          select: {
+            weightKg: true
+          }
+        }
+      }
+    });
+
+    const safeGoal = this.safetyService.validateGoal({
+      goalType: dto.goalType,
+      targetWeightKg: dto.targetWeightKg,
+      targetTimelineDays: dto.targetTimelineDays,
+      impactMode: dto.impactMode,
+      currentWeightKg: user.profile?.weightKg,
+      isMinor: user.isMinor
+    });
 
     return this.prisma.goal.upsert({
       where: { userId },
       update: {
-        goalType: dto.goalType,
-        targetWeightKg: isWeightLossGoal ? dto.targetWeightKg : null,
-        targetTimelineDays: isWeightLossGoal ? dto.targetTimelineDays : null,
-        impactMode: isWeightLossGoal ? dto.impactMode : null
+        goalType: safeGoal.goalType,
+        targetWeightKg: safeGoal.targetWeightKg,
+        targetTimelineDays: safeGoal.targetTimelineDays,
+        impactMode: safeGoal.impactMode
       },
       create: {
         userId,
-        goalType: dto.goalType,
-        targetWeightKg: isWeightLossGoal ? dto.targetWeightKg : null,
-        targetTimelineDays: isWeightLossGoal ? dto.targetTimelineDays : null,
-        impactMode: isWeightLossGoal ? dto.impactMode : null
+        goalType: safeGoal.goalType,
+        targetWeightKg: safeGoal.targetWeightKg,
+        targetTimelineDays: safeGoal.targetTimelineDays,
+        impactMode: safeGoal.impactMode
       }
     });
   }

@@ -82,3 +82,114 @@ export const trainingScheduleItemSchema = z.object({
 export const generateDailyPlanSchema = z.object({
   forceRegenerate: z.boolean().optional()
 });
+
+export const dailyPlanReadinessSchema = z.enum(['PUSH', 'MAINTAIN', 'RECOVER']);
+export const dailyPlanStatusSchema = z.enum(['READY', 'FALLBACK']);
+
+export const dailyPlanJsonSchema = z.object({
+  schemaVersion: z.literal('sprint-2.v1'),
+  generatedAt: z.string().datetime(),
+  mockVersion: z.number().int().min(0),
+  safety: z.object({
+    safeMode: z.boolean(),
+    adjustedForSafety: z.boolean(),
+    reasons: z.array(z.string())
+  }),
+  summary: z.object({
+    title: z.string(),
+    message: z.string(),
+    readiness: dailyPlanReadinessSchema
+  }),
+  nutrition: z.object({
+    calorieGuidance: z.object({
+      label: z.string(),
+      notes: z.string()
+    }),
+    macroGuidance: z.object({
+      protein: z.string(),
+      carbs: z.string(),
+      fat: z.string(),
+      notes: z.string()
+    }),
+    meals: z.array(
+      z.object({
+        name: z.string(),
+        purpose: z.string(),
+        foods: z.array(
+          z.object({
+            name: z.string(),
+            portion: z.string(),
+            notes: z.string().optional()
+          })
+        )
+      })
+    ),
+    hydration: z.object({
+      guidance: z.string(),
+      notes: z.string().optional()
+    })
+  }),
+  training: z.object({
+    recommendation: z.string(),
+    intensity: z.enum(['REST', 'LIGHT', 'MODERATE', 'HARD']),
+    notes: z.string()
+  }),
+  recovery: z.object({
+    recommendation: z.string(),
+    sleepTip: z.string().optional(),
+    mobilityTip: z.string().optional()
+  }),
+  reminders: z.array(z.string()),
+  debug: z
+    .object({
+      provider: z.enum(['mock', 'openai', 'fallback']),
+      generatedBy: z.enum([
+        'MockAiProviderService',
+        'OpenAiProviderService',
+        'SafeFallbackPlanFactory'
+      ]),
+      fallbackReason: z.string().optional()
+    })
+    .optional()
+});
+
+export const dailyPlanResponseSchema = z.object({
+  id: z.string(),
+  planLocalDate: z.string(),
+  planTimezone: z.string(),
+  status: dailyPlanStatusSchema,
+  readinessLevel: dailyPlanReadinessSchema,
+  updatedAt: z.string(),
+  plan: dailyPlanJsonSchema
+});
+
+export const planFeedbackRatingSchema = z.enum(['HELPFUL', 'NOT_HELPFUL']);
+export const planFeedbackTagSchema = z.enum([
+  'TOO_MUCH_FOOD',
+  'TOO_LITTLE_FOOD',
+  'TRAINING_TOO_HARD',
+  'TRAINING_TOO_EASY',
+  'FELT_GOOD',
+  'LOW_ENERGY',
+  'RECOVERY_NEEDED'
+]);
+
+export const dailyPlanHistoryResponseSchema = z.object({
+  items: z.array(dailyPlanResponseSchema)
+});
+
+export const submitDailyPlanFeedbackSchema = z.object({
+  rating: planFeedbackRatingSchema.optional(),
+  tags: z.array(planFeedbackTagSchema).max(7).optional(),
+  notes: z.string().max(500).optional()
+});
+
+export const dailyPlanFeedbackResponseSchema = z.object({
+  id: z.string(),
+  dailyPlanId: z.string(),
+  rating: planFeedbackRatingSchema.nullable(),
+  tags: z.array(planFeedbackTagSchema),
+  notes: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string()
+});

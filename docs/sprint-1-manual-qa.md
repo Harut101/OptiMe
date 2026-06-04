@@ -1,4 +1,4 @@
-# Sprint 1 Manual QA Checklist
+# Manual QA Checklist
 
 Use a physical iPhone with Expo Go and the backend running locally.
 
@@ -16,7 +16,7 @@ Use a physical iPhone with Expo Go and the backend running locally.
   ```
 - Start Expo:
   ```powershell
-  pnpm --filter @optime/mobile start -- --clear
+  pnpm --filter @optime/mobile start:lan -- --clear
   ```
 
 ## Auth
@@ -49,12 +49,40 @@ Use a physical iPhone with Expo Go and the backend running locally.
 - Confirm the button changes to Refreshing.
 - Confirm `Plan refreshed` appears.
 - Confirm the Updated time changes.
+- Confirm fallback plans show supportive safety-adjusted copy if triggered.
 
 ## Plan Details
 
 - Tap View plan details.
-- Confirm meals, hydration, and recovery actions appear.
+- Confirm meals, hydration, recovery, and reminders appear.
 - Confirm the back label is Today or Back, not `(tabs)`.
+
+## Feedback
+
+- Open Plan Details.
+- Select Helpful.
+- Select one tag such as Felt good.
+- Tap Send feedback.
+- Confirm `Thanks for the feedback` appears.
+- Change to Not helpful and select Low energy.
+- Send again and confirm the app still succeeds.
+
+## Safety Behavior
+
+- Create an adult profile with weight `90kg`.
+- Try goal `REDUCE_WEIGHT`, target `80kg`, timeline `60 days`.
+- Confirm the backend rejects it with supportive copy.
+- Try goal `REDUCE_WEIGHT`, target `85kg`, timeline `60 days`.
+- Confirm it is allowed.
+- Create or test a minor profile.
+- Try an aggressive weight-loss goal.
+- Confirm it is converted to safe wellness behavior.
+- Add nutrition preferences where a preferred food duplicates an allergy.
+- Confirm the backend rejects it.
+- Add high-intensity training longer than 120 minutes.
+- Confirm the backend rejects it.
+- Add high-intensity training with description mentioning dizziness or pain.
+- Confirm the backend rejects it.
 
 ## Error Checks
 
@@ -69,3 +97,4 @@ Use a physical iPhone with Expo Go and the backend running locally.
 - No WHOOP UI appears.
 - No AI Coach chat appears.
 - No weekly reports or analytics appear.
+- No OpenAI or external AI setup is required.
