@@ -101,6 +101,37 @@ Mock plan:
 - `planJson.debug.provider = "mock"`
 - `planJson.debug.generatedBy = "MockAiProviderService"`
 
+## AI Operation Log Checks
+
+Sprint 3 Batch 5 records one `AiOperationLog` row for each daily plan generation attempt.
+
+For a successful OpenAI daily plan, check the latest `AiOperationLog` row:
+
+- `feature = DAILY_PLAN`
+- `provider = OPENAI`
+- `model = OPENAI_DEFAULT_MODEL`
+- `status = SUCCESS`
+- `latencyMs` is non-negative
+- `retryCount = 0` unless Safety Agent retry was used
+- `safetyAgentEnabled = true` when OpenAI Safety Agent is enabled
+- `safetyAgentProvider = openai` when OpenAI Safety Agent is enabled
+- `safetyAgentApproved = true` when reviewed and approved
+- `fallbackReason` is empty
+- `errorReason` is empty
+
+For fallback plans:
+
+- `status = FALLBACK`
+- `fallbackReason` contains the safe reason code or safety message
+- `errorReason` remains empty unless generation threw unexpectedly
+
+For unexpected generation errors:
+
+- `status = ERROR`
+- `errorReason` contains a safe internal reason code
+
+The table must never contain prompts, full plan JSON, full profiles, passwords, API keys, raw OpenAI responses, tokens, or sensitive notes. It is observability only. It is not a `UsageLedger`, subscription system, entitlement guard, or billing enforcement mechanism.
+
 ## Common Fallback Reasons
 
 - `openai_auth_error`: invalid or unauthorized API key.

@@ -172,6 +172,24 @@ Future AI providers must not bypass:
 
 ## AI Safety Agent Boundary
 
-Sprint 3 introduces a separate Safety Agent boundary for future semantic review. It is disabled by default in Batch 4.1 and uses a mock provider only.
+Sprint 3 adds a separate Safety Agent boundary for semantic review after deterministic safety passes.
 
-The Safety Agent may later review tone, unsafe implications, medical-diagnosis language, body-shaming language, and semantic conflicts with `safeMode`. It must not replace deterministic hard rules for allergies, excluded foods, minors, dangerous goals, schema validation, or training boundaries.
+The Safety Agent can review:
+
+- unsafe implications
+- medical-diagnosis language
+- body-shaming or guilt language
+- unsafe diet or training advice
+- semantic conflicts with `safeMode`
+- tone that is not supportive or health-focused
+
+It must not replace deterministic hard rules for allergies, excluded foods, minors, dangerous goals, schema validation, or training boundaries.
+
+The Safety Agent is disabled by default:
+
+```env
+SAFETY_AGENT_ENABLED=false
+SAFETY_AGENT_PROVIDER=mock
+```
+
+When enabled with OpenAI, it runs after `SafetyService`. If it rejects an OpenAI-generated plan with actionable `requiredChanges`, the backend may retry OpenAI generation once with concise safety feedback. Deterministic safety failures skip the Safety Agent and fallback immediately.

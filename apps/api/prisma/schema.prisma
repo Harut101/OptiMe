@@ -86,6 +86,21 @@ enum PlanFeedbackTag {
   RECOVERY_NEEDED
 }
 
+enum AiOperationFeature {
+  DAILY_PLAN
+}
+
+enum AiOperationProvider {
+  MOCK
+  OPENAI
+}
+
+enum AiOperationStatus {
+  SUCCESS
+  FALLBACK
+  ERROR
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -106,6 +121,7 @@ model User {
   schedules     TrainingScheduleItem[]
   dailyPlans    DailyPlan[]
   planFeedback  DailyPlanFeedback[]
+  aiOperationLogs AiOperationLog[]
 
   @@index([createdAt])
 }
@@ -236,4 +252,28 @@ model DailyPlanFeedback {
   @@unique([userId, dailyPlanId])
   @@index([userId, createdAt])
   @@index([dailyPlanId])
+}
+
+model AiOperationLog {
+  id                  String              @id @default(cuid())
+  userId              String
+  feature             AiOperationFeature
+  provider            AiOperationProvider
+  model               String?
+  status              AiOperationStatus
+  latencyMs           Int
+  retryCount          Int                 @default(0)
+  safetyAgentEnabled  Boolean             @default(false)
+  safetyAgentProvider String?
+  safetyAgentApproved Boolean?
+  fallbackReason      String?
+  errorReason         String?
+  createdAt           DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([feature, createdAt])
+  @@index([provider, createdAt])
+  @@index([status, createdAt])
 }

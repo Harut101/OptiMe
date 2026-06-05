@@ -1,5 +1,7 @@
 import request from 'supertest';
+import { AiOperationFeature, AiOperationProvider, AiOperationStatus } from '@prisma/client';
 
+import { AiOperationLogsService } from '../src/modules/ai-operation-logs/ai-operation-logs.service';
 import { AI_PROVIDER } from '../src/modules/ai/ai-provider.token';
 import { OPENAI_CLIENT_FACTORY } from '../src/modules/ai/open-ai-client.factory';
 import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-plan-food-name-normalizer';
@@ -248,6 +250,107 @@ describe('Sprint 1 backend vertical slice', () => {
 
     expect(regenerated.body.id).toBe(first.body.id);
     expect(JSON.stringify(regenerated.body.plan)).toContain('Second');
+  });
+
+  it('creates a safe AI operation log for successful mock daily plan generation', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'OperationLog');
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const logs = await ctx.prisma.aiOperationLog.findMany({
+      where: { userId: user.user.id }
+    });
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      userId: user.user.id,
+      feature: AiOperationFeature.DAILY_PLAN,
+      provider: AiOperationProvider.MOCK,
+      model: null,
+      status: AiOperationStatus.SUCCESS,
+      retryCount: 0,
+      safetyAgentEnabled: false,
+      safetyAgentProvider: 'mock',
+      safetyAgentApproved: null,
+      fallbackReason: null,
+      errorReason: null
+    });
+    expect(logs[0].latencyMs).toBeGreaterThanOrEqual(0);
+    expect(logs[0]).not.toHaveProperty('prompt');
+    expect(logs[0]).not.toHaveProperty('planJson');
+    expect(logs[0]).not.toHaveProperty('profile');
+    expect(logs[0]).not.toHaveProperty('passwordHash');
+    expect(logs[0]).not.toHaveProperty('apiKey');
+    expect(logs[0]).not.toHaveProperty('rawResponse');
+  });
+
+  it('records fallback reason in AI operation log for fallback generation', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'OperationFallback');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/nutrition-preferences')
+      .set(authHeader(user.accessToken))
+      .send({
+        dietType: 'NONE',
+        mealsPerDay: 3,
+        allergies: ['Greek yogurt'],
+        excludedFoods: [],
+        preferredFoods: ['rice']
+      })
+      .expect(200);
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const log = await ctx.prisma.aiOperationLog.findFirstOrThrow({
+      where: { userId: user.user.id }
+    });
+
+    expect(plan.body.status).toBe('FALLBACK');
+    expect(log.status).toBe(AiOperationStatus.FALLBACK);
+    expect(log.fallbackReason).toContain('conflicts with your allergies');
+    expect(log.errorReason).toBeNull();
+  });
+
+  it('does not break daily plan generation when AI operation logging fails', async () => {
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AiOperationLogsService,
+          value: {
+            record: async () => {
+              throw new Error('Logging database unavailable');
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'operation-log-fails@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'LogFails');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('READY');
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
   });
 
   it('converts under-18 weight-loss goals to a safe wellness goal', async () => {
@@ -1441,6 +1544,23 @@ describe('Sprint 1 backend vertical slice', () => {
         riskLevel: 'medium',
         reasons: ['Training wording is too aggressive.'],
         requiredChanges: ['Use gentler training wording.']
+      });
+
+      const operationLog = await customCtx.prisma.aiOperationLog.findFirstOrThrow({
+        where: { userId: user.user.id }
+      });
+
+      expect(operationLog).toMatchObject({
+        feature: AiOperationFeature.DAILY_PLAN,
+        provider: AiOperationProvider.OPENAI,
+        model: 'test-openai-model',
+        status: AiOperationStatus.SUCCESS,
+        retryCount: 1,
+        safetyAgentEnabled: true,
+        safetyAgentProvider: 'openai',
+        safetyAgentApproved: true,
+        fallbackReason: null,
+        errorReason: null
       });
     } finally {
       await cleanupDatabase(customCtx.prisma);

@@ -61,7 +61,7 @@ It does not:
 - run in mock mode
 - expose OpenAI config to mobile
 - bypass `SafetyService`
-- write AI interaction logs yet
+- write prompts, raw responses, full profiles, or full plans to logs
 
 ## Provider Selection
 
@@ -140,6 +140,47 @@ OPENAI_MAX_OUTPUT_TOKENS=4000
 
 These are lightweight provider guards only. They are not a full `UsageLedger` or entitlement system.
 
+## AI Operation Logs
+
+Sprint 3 Batch 5 adds `AiOperationLog` for minimal internal observability.
+
+Purpose:
+
+- Monitor daily plan provider behavior.
+- Track READY/FALLBACK/ERROR outcomes.
+- Track latency and retry count.
+- Track Safety Agent enabled/provider/approval metadata.
+- Track safe fallback or error reason codes.
+
+Logged fields:
+
+- `userId`
+- `feature = DAILY_PLAN`
+- `provider = MOCK | OPENAI`
+- `model`
+- `status = SUCCESS | FALLBACK | ERROR`
+- `latencyMs`
+- `retryCount`
+- `safetyAgentEnabled`
+- `safetyAgentProvider`
+- `safetyAgentApproved`
+- `fallbackReason`
+- `errorReason`
+- `createdAt`
+
+Never log:
+
+- Full prompts.
+- Full `DailyPlanJson`.
+- Full profile data.
+- Password hashes.
+- API keys.
+- Raw OpenAI responses.
+- Auth tokens.
+- Sensitive notes.
+
+If `AiOperationLog` writes fail, daily plan generation must continue. These logs are observability only, not billing, subscription, entitlement, or usage-limit enforcement.
+
 ## OpenAI Provider Rules
 
 The OpenAI provider must:
@@ -155,6 +196,5 @@ The OpenAI provider must:
 ## Not Yet Implemented
 
 - Model routing.
-- AI request logging.
 - Usage ledger.
-- Safety Agent.
+- Subscription or entitlement enforcement.

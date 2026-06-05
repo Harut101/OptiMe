@@ -69,8 +69,23 @@ type DailyPlanJson = {
     mobilityTip?: string;
   };
   reminders: string[];
+  debug?: {
+    provider: "mock" | "openai" | "fallback";
+    generatedBy: string;
+    fallbackReason?: string;
+    safetyAgent?: {
+      enabled: boolean;
+      provider: "mock" | "openai";
+      approved?: boolean;
+      riskLevel?: "low" | "medium" | "high";
+      retryUsed?: boolean;
+      retryResult?: "approved" | "rejected" | "failed" | "not_used";
+    };
+  };
 };
 ```
+
+`debug` is internal development metadata. Mobile must not render it.
 
 ## Food Name Contract
 

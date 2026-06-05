@@ -1,7 +1,16 @@
 import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { DailyReadinessLevel, PlanStatus, Prisma } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import {
+  AiOperationFeature,
+  AiOperationProvider,
+  AiOperationStatus,
+  DailyReadinessLevel,
+  PlanStatus,
+  Prisma
+} from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
 import { AiProvider, GenerateDailyPlanSafetyFeedback } from '../ai/ai-provider.interface';
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
@@ -33,7 +42,9 @@ export class DailyPlansService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
     private readonly safetyService: SafetyService,
+    private readonly aiOperationLogs: AiOperationLogsService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -87,97 +98,115 @@ export class DailyPlansService {
       return this.toResponse(existingPlan);
     }
 
-    this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
-    const blockedFoods = {
-      allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
-      excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
-    };
-    const providerPlanResult = await this.generateProviderPlanOrFallback({
-      user,
-      planLocalDate,
-      planTimezone
-    });
-    let safePlanResult = await this.validateProviderPlan({
-      providerPlan: providerPlanResult.planJson,
-      blockedFoods,
-      planLocalDate,
-      planTimezone,
-      user,
-      forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK,
-      allowSafetyRetry: this.canUseSafetyFeedbackRetry(providerPlanResult.status)
-    });
+    const operationStartedAt = Date.now();
 
-    if (safePlanResult.safetyRetryRequest) {
-      this.logger.log(
-        `safety retry triggered=true; reasonCount=${safePlanResult.safetyRetryRequest.reasons.length}`
-      );
-      this.logger.log('safety retry generation started');
-      const retryProviderPlanResult = await this.generateProviderPlanOrFallback({
+    try {
+      this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
+      const blockedFoods = {
+        allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
+        excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
+      };
+      const providerPlanResult = await this.generateProviderPlanOrFallback({
         user,
         planLocalDate,
-        planTimezone,
-        safetyFeedback: safePlanResult.safetyRetryRequest
+        planTimezone
       });
-
-      safePlanResult = await this.validateProviderPlan({
-        providerPlan: retryProviderPlanResult.planJson,
+      let safePlanResult = await this.validateProviderPlan({
+        providerPlan: providerPlanResult.planJson,
         blockedFoods,
         planLocalDate,
         planTimezone,
         user,
-        forcedFallback: retryProviderPlanResult.status === PlanStatus.FALLBACK,
-        allowSafetyRetry: false,
-        safetyRetryUsed: true
+        forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK,
+        allowSafetyRetry: this.canUseSafetyFeedbackRetry(providerPlanResult.status)
       });
 
-      if (retryProviderPlanResult.status === PlanStatus.FALLBACK) {
-        const retryFallbackReason =
-          this.getFallbackReason(retryProviderPlanResult.planJson) === 'schema_validation_failed'
-            ? 'safety_agent_retry_invalid_output'
-            : 'safety_agent_retry_failed';
-        safePlanResult = {
-          status: PlanStatus.FALLBACK,
-          planJson: this.createSafetyAgentFallback({
-            planLocalDate,
-            planTimezone,
-            fallbackReason: retryFallbackReason,
-            retryUsed: true,
-            retryResult: 'failed'
-          }).planJson
-        };
-      }
-    } else {
-      this.logger.log('safety retry triggered=false');
-    }
-    const planJson = safePlanResult.planJson as Prisma.JsonObject;
-    const status = safePlanResult.status;
-    this.logger.log(
-      `daily plan generation completed; fallback used: ${status === PlanStatus.FALLBACK}; final status=${status}`
-    );
-
-    const plan = existingPlan
-      ? await this.prisma.dailyPlan.update({
-          where: { id: existingPlan.id },
-          data: {
-            status,
-            readinessLevel: DailyReadinessLevel.MAINTAIN,
-            planJson,
-            createdByAi: false
-          }
-        })
-      : await this.prisma.dailyPlan.create({
-          data: {
-            userId,
-            planLocalDate,
-            planTimezone,
-            status,
-            readinessLevel: DailyReadinessLevel.MAINTAIN,
-            planJson,
-            createdByAi: false
-          }
+      if (safePlanResult.safetyRetryRequest) {
+        this.logger.log(
+          `safety retry triggered=true; reasonCount=${safePlanResult.safetyRetryRequest.reasons.length}`
+        );
+        this.logger.log('safety retry generation started');
+        const retryProviderPlanResult = await this.generateProviderPlanOrFallback({
+          user,
+          planLocalDate,
+          planTimezone,
+          safetyFeedback: safePlanResult.safetyRetryRequest
         });
 
-    return this.toResponse(plan);
+        safePlanResult = await this.validateProviderPlan({
+          providerPlan: retryProviderPlanResult.planJson,
+          blockedFoods,
+          planLocalDate,
+          planTimezone,
+          user,
+          forcedFallback: retryProviderPlanResult.status === PlanStatus.FALLBACK,
+          allowSafetyRetry: false,
+          safetyRetryUsed: true
+        });
+
+        if (retryProviderPlanResult.status === PlanStatus.FALLBACK) {
+          const retryFallbackReason =
+            this.getFallbackReason(retryProviderPlanResult.planJson) === 'schema_validation_failed'
+              ? 'safety_agent_retry_invalid_output'
+              : 'safety_agent_retry_failed';
+          safePlanResult = {
+            status: PlanStatus.FALLBACK,
+            planJson: this.createSafetyAgentFallback({
+              planLocalDate,
+              planTimezone,
+              fallbackReason: retryFallbackReason,
+              retryUsed: true,
+              retryResult: 'failed'
+            }).planJson
+          };
+        }
+      } else {
+        this.logger.log('safety retry triggered=false');
+      }
+      const planJson = safePlanResult.planJson as Prisma.JsonObject;
+      const status = safePlanResult.status;
+      this.logger.log(
+        `daily plan generation completed; fallback used: ${status === PlanStatus.FALLBACK}; final status=${status}`
+      );
+
+      const plan = existingPlan
+        ? await this.prisma.dailyPlan.update({
+            where: { id: existingPlan.id },
+            data: {
+              status,
+              readinessLevel: DailyReadinessLevel.MAINTAIN,
+              planJson,
+              createdByAi: false
+            }
+          })
+        : await this.prisma.dailyPlan.create({
+            data: {
+              userId,
+              planLocalDate,
+              planTimezone,
+              status,
+              readinessLevel: DailyReadinessLevel.MAINTAIN,
+              planJson,
+              createdByAi: false
+            }
+          });
+
+      await this.recordDailyPlanAiOperation({
+        userId,
+        status,
+        planJson: safePlanResult.planJson,
+        latencyMs: Date.now() - operationStartedAt
+      });
+
+      return this.toResponse(plan);
+    } catch (error) {
+      await this.recordDailyPlanAiOperationError({
+        userId,
+        latencyMs: Date.now() - operationStartedAt,
+        error
+      });
+      throw error;
+    }
   }
 
   async submitFeedback(userId: string, dailyPlanId: string, dto: SubmitDailyPlanFeedbackDto) {
@@ -699,6 +728,95 @@ export class DailyPlansService {
   private getFallbackReason(planJson: unknown) {
     const debug = (planJson as { debug?: { fallbackReason?: unknown } })?.debug;
     return typeof debug?.fallbackReason === 'string' ? debug.fallbackReason : undefined;
+  }
+
+  private async recordDailyPlanAiOperation(input: {
+    userId: string;
+    status: PlanStatus;
+    planJson: DailyPlanJson;
+    latencyMs: number;
+  }) {
+    await this.recordAiOperationSafely({
+      userId: input.userId,
+      feature: AiOperationFeature.DAILY_PLAN,
+      provider: this.getAiOperationProvider(),
+      model: this.getAiOperationModel(),
+      status:
+        input.status === PlanStatus.READY
+          ? AiOperationStatus.SUCCESS
+          : AiOperationStatus.FALLBACK,
+      latencyMs: input.latencyMs,
+      retryCount: this.getSafetyRetryUsed(input.planJson) ? 1 : 0,
+      safetyAgentEnabled: this.safetyAgentConfig.enabled,
+      safetyAgentProvider: this.safetyAgentConfig.provider,
+      safetyAgentApproved: this.getSafetyAgentApproved(input.planJson),
+      fallbackReason: this.getFallbackReason(input.planJson) ?? null,
+      errorReason: null
+    });
+  }
+
+  private async recordDailyPlanAiOperationError(input: {
+    userId: string;
+    latencyMs: number;
+    error: unknown;
+  }) {
+    await this.recordAiOperationSafely({
+      userId: input.userId,
+      feature: AiOperationFeature.DAILY_PLAN,
+      provider: this.getAiOperationProvider(),
+      model: this.getAiOperationModel(),
+      status: AiOperationStatus.ERROR,
+      latencyMs: input.latencyMs,
+      retryCount: 0,
+      safetyAgentEnabled: this.safetyAgentConfig.enabled,
+      safetyAgentProvider: this.safetyAgentConfig.provider,
+      safetyAgentApproved: null,
+      fallbackReason: null,
+      errorReason: this.getSafeAiOperationErrorReason(input.error)
+    });
+  }
+
+  private async recordAiOperationSafely(
+    input: Parameters<AiOperationLogsService['record']>[0]
+  ) {
+    try {
+      await this.aiOperationLogs.record(input);
+    } catch {
+      this.logger.warn('AI operation log write failed; daily plan generation continued.');
+    }
+  }
+
+  private getAiOperationProvider() {
+    return this.getProviderDebugName() === 'openai'
+      ? AiOperationProvider.OPENAI
+      : AiOperationProvider.MOCK;
+  }
+
+  private getAiOperationModel() {
+    return this.getProviderDebugName() === 'openai'
+      ? this.configService.get<string>('OPENAI_DEFAULT_MODEL') ?? null
+      : null;
+  }
+
+  private getSafetyAgentApproved(planJson: DailyPlanJson) {
+    const approved = planJson.debug?.safetyAgent?.approved;
+    return typeof approved === 'boolean' ? approved : null;
+  }
+
+  private getSafetyRetryUsed(planJson: DailyPlanJson) {
+    return planJson.debug?.safetyAgent?.retryUsed === true;
+  }
+
+  private getSafeAiOperationErrorReason(error: unknown) {
+    if (error instanceof OpenAiProviderError) {
+      return error.fallbackReason;
+    }
+
+    if (error instanceof SafetyAgentError) {
+      return error.fallbackReason;
+    }
+
+    return 'daily_plan_generation_error';
   }
 
   private toResponse(plan: {
