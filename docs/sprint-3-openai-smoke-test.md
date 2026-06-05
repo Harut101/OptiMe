@@ -196,10 +196,55 @@ If Safety Agent rejects or fails, the plan should be `FALLBACK` with one of:
 - `safety_agent_rejected`
 - `safety_agent_invalid_review`
 - `safety_agent_unavailable`
+- `safety_agent_retry_rejected`
+- `safety_agent_retry_failed`
+- `safety_agent_retry_invalid_output`
 
 Deterministic SafetyService still runs first. Allergy, excluded food, minor, dangerous-goal, schema, and training boundary failures should fallback before the Safety Agent is called.
 
-Retry with safety feedback is deferred to Batch 4.4.
+## Retry With Safety Feedback
+
+When `AI_PROVIDER=openai` and OpenAI Safety Agent is enabled, a Safety Agent rejection can trigger one OpenAI daily plan retry.
+
+Retry happens only when:
+
+- OpenAI generated the original daily plan.
+- The plan passed schema validation.
+- Food name normalization completed.
+- Deterministic `SafetyService` passed.
+- Safety Agent rejected the plan.
+- `requiredChanges` contains actionable items.
+
+Retry does not happen for deterministic safety failures, schema failures before Safety Agent review, mock provider output, disabled Safety Agent, unavailable Safety Agent, invalid Safety Agent reviews, or an existing fallback plan.
+
+Expected successful retry logs:
+
+```text
+SafetyAgent rejected plan; safety retry available=true; reasonCount=...
+safety retry triggered=true; reasonCount=...
+safety retry generation started
+OpenAI request started; retryAttempt=false; model=...
+OpenAI response received; retryAttempt=false; model=...
+OpenAI schema validation passed
+SafetyService passed: true
+SafetyAgent review completed; provider=openai; approved=true; riskLevel=low; reasonCount=0
+retry SafetyAgent approved=true
+daily plan generation completed; fallback used: false; final status=READY
+```
+
+In DBeaver, a READY plan produced after retry should include:
+
+- `planJson.debug.provider = "openai"`
+- `planJson.debug.safetyAgent.enabled = true`
+- `planJson.debug.safetyAgent.provider = "openai"`
+- `planJson.debug.safetyAgent.retryUsed = true`
+- `planJson.debug.safetyAgent.retryResult = "approved"`
+
+If retry fails, check:
+
+- `safety_agent_retry_rejected`: regenerated plan was still rejected by Safety Agent.
+- `safety_agent_retry_failed`: retry provider or Safety Agent failed.
+- `safety_agent_retry_invalid_output`: retry output could not be validated as a safe `DailyPlanJson`.
 
 ## Expected Result
 

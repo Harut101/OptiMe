@@ -207,9 +207,11 @@ export class OpenAiProviderService implements AiProvider {
       'Respect safeMode rules for minors: balanced meals, hydration, sleep, recovery, healthy movement, and consistency.',
       'Never include foods listed as allergies or excluded foods.',
       retry
-        ? 'This is a retry. Be stricter: every required field must be present and valid.'
+        ? 'This is a retry. Be stricter: every required field must be present and valid. If safety feedback is present in the user context, regenerate the complete DailyPlanJson while fixing every listed issue. Do not return partial edits.'
         : 'Generate one practical daily plan.'
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   private buildPlanningContext(input: GenerateDailyPlanInput) {
@@ -247,7 +249,16 @@ export class OpenAiProviderService implements AiProvider {
         excludedFoodsArePreferenceBlocks: input.nutritionPreference?.excludedFoods ?? [],
         mayMentionRestrictedFoodsOnlyToSayTheyAreAvoided: true,
         safeMode: input.safeMode
-      }
+      },
+      safetyFeedback: input.safetyFeedback
+        ? {
+            riskLevel: input.safetyFeedback.riskLevel,
+            reasons: input.safetyFeedback.reasons,
+            requiredChanges: input.safetyFeedback.requiredChanges,
+            instruction:
+              'Regenerate the complete plan while addressing these safety review findings.'
+          }
+        : undefined
     };
   }
 

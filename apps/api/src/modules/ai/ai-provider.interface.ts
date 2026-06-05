@@ -9,6 +9,12 @@ import {
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 
+export interface GenerateDailyPlanSafetyFeedback {
+  riskLevel: 'low' | 'medium' | 'high';
+  reasons: string[];
+  requiredChanges: string[];
+}
+
 export interface GenerateDailyPlanInput {
   user: {
     id: string;
@@ -49,6 +55,7 @@ export interface GenerateDailyPlanInput {
   safeMode: boolean;
   planLocalDate: string;
   planTimezone: string;
+  safetyFeedback?: GenerateDailyPlanSafetyFeedback;
 }
 
 export interface AiProvider {

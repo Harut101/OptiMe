@@ -1010,7 +1010,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .expect(201);
 
       expect(plan.body.status).toBe('READY');
-      expect(plan.body.plan.debug.safetyAgent).toEqual({
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
         provider: 'mock',
         approved: true,
@@ -1138,7 +1138,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('FALLBACK');
       expect(plan.body.plan.debug.fallbackReason).toBe(expectedReason);
-      expect(plan.body.plan.debug.safetyAgent).toEqual({
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
         provider: 'mock',
         ...expectedDebug
@@ -1234,7 +1234,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .expect(201);
 
       expect(plan.body.status).toBe('READY');
-      expect(plan.body.plan.debug.safetyAgent).toEqual({
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
         provider: 'openai',
         approved: true,
@@ -1362,6 +1362,254 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.status).toBe('FALLBACK');
       expect(plan.body.plan.debug.safetyAgent).toBeUndefined();
       expect(requests).toHaveLength(0);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreSafetyAgentEnv(undefined, undefined);
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('retries OpenAI daily plan once with SafetyAgent feedback and saves READY when retry passes', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const firstPlan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'RetrySafety',
+      isMinor: false
+    });
+    const retriedPlan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'RetrySafetyFixed',
+      isMinor: false
+    });
+
+    const customCtx = await createOpenAiDailyAndSafetyAgentModeTestApp({
+      responses: [
+        () => ({ output_text: JSON.stringify(firstPlan) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: false,
+            riskLevel: 'medium',
+            reasons: ['Training wording is too aggressive.'],
+            requiredChanges: ['Use gentler training wording.'],
+            safeUserMessage: 'Choose a safer plan today.'
+          })
+        }),
+        () => ({ output_text: JSON.stringify(retriedPlan) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: true,
+            riskLevel: 'low',
+            reasons: [],
+            requiredChanges: [],
+            safeUserMessage: ''
+          })
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'safety-retry-ready@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'RetrySafety');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('READY');
+      expect(plan.body.plan.debug.provider).toBe('openai');
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
+        enabled: true,
+        provider: 'openai',
+        approved: true,
+        riskLevel: 'low',
+        retryUsed: true,
+        retryResult: 'approved'
+      });
+      expect(requests).toHaveLength(4);
+      const retryRequestInput = requests[2].input as Array<{ content?: string }>;
+      const retryContext = JSON.parse(retryRequestInput[1].content ?? '{}') as {
+        safetyFeedback?: unknown;
+      };
+      expect(retryContext.safetyFeedback).toMatchObject({
+        riskLevel: 'medium',
+        reasons: ['Training wording is too aggressive.'],
+        requiredChanges: ['Use gentler training wording.']
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreSafetyAgentEnv(undefined, undefined);
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('saves FALLBACK when SafetyAgent rejects the retried OpenAI plan', async () => {
+    const planJson = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'RetryRejected',
+      isMinor: false
+    });
+    const customCtx = await createOpenAiDailyAndSafetyAgentModeTestApp({
+      responses: [
+        () => ({ output_text: JSON.stringify(planJson) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: false,
+            riskLevel: 'medium',
+            reasons: ['Tone is too forceful.'],
+            requiredChanges: ['Use softer tone.'],
+            safeUserMessage: 'Choose a safer plan today.'
+          })
+        }),
+        () => ({ output_text: JSON.stringify(planJson) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: false,
+            riskLevel: 'medium',
+            reasons: ['Tone is still too forceful.'],
+            requiredChanges: ['Use softer tone.'],
+            safeUserMessage: 'Choose a safer plan today.'
+          })
+        })
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'safety-retry-rejected@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'RetryRejected');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_rejected');
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
+        enabled: true,
+        provider: 'openai',
+        approved: false,
+        riskLevel: 'medium',
+        retryUsed: true,
+        retryResult: 'rejected'
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreSafetyAgentEnv(undefined, undefined);
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('saves FALLBACK when retry OpenAI generation fails', async () => {
+    const planJson = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'RetryFailed',
+      isMinor: false
+    });
+    const customCtx = await createOpenAiDailyAndSafetyAgentModeTestApp({
+      responses: [
+        () => ({ output_text: JSON.stringify(planJson) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: false,
+            riskLevel: 'medium',
+            reasons: ['Plan needs safer wording.'],
+            requiredChanges: ['Use safer wording.'],
+            safeUserMessage: 'Choose a safer plan today.'
+          })
+        }),
+        () => ({ throw: { name: 'APIConnectionTimeoutError', message: 'Request timeout', code: 'ETIMEDOUT' } }),
+        () => ({ throw: { name: 'APIConnectionTimeoutError', message: 'Request timeout', code: 'ETIMEDOUT' } })
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'safety-retry-failed@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'RetryFailed');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_failed');
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
+        enabled: true,
+        provider: 'openai',
+        retryUsed: true,
+        retryResult: 'failed'
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreSafetyAgentEnv(undefined, undefined);
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('saves FALLBACK when retry OpenAI generation returns invalid structured output', async () => {
+    const planJson = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'RetryInvalidOutput',
+      isMinor: false
+    });
+    const invalidDailyPlan = {
+      summary: {
+        title: 'Incomplete retry plan'
+      }
+    };
+    const customCtx = await createOpenAiDailyAndSafetyAgentModeTestApp({
+      responses: [
+        () => ({ output_text: JSON.stringify(planJson) }),
+        () => ({
+          output_text: JSON.stringify({
+            approved: false,
+            riskLevel: 'medium',
+            reasons: ['Plan needs safer wording.'],
+            requiredChanges: ['Use safer wording.'],
+            safeUserMessage: 'Choose a safer plan today.'
+          })
+        }),
+        () => ({ output_text: JSON.stringify(invalidDailyPlan) }),
+        () => ({ output_text: JSON.stringify(invalidDailyPlan) })
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'safety-retry-invalid@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'RetryInvalidOutput');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_invalid_output');
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
+        enabled: true,
+        provider: 'openai',
+        retryUsed: true,
+        retryResult: 'failed'
+      });
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -2195,6 +2443,43 @@ async function createOpenAiSafetyAgentModeTestApp(options: {
   requests?: Array<Record<string, unknown>>;
 }) {
   delete process.env.AI_PROVIDER;
+  process.env.SAFETY_AGENT_ENABLED = 'true';
+  process.env.SAFETY_AGENT_PROVIDER = 'openai';
+  process.env.OPENAI_API_KEY = 'test-key';
+  process.env.OPENAI_DEFAULT_MODEL = 'test-openai-model';
+
+  let callIndex = 0;
+
+  return createTestApp({
+    providerOverrides: [
+      {
+        token: OPENAI_CLIENT_FACTORY,
+        value: () => ({
+          responses: {
+            create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
+              options.requests?.push(input);
+              const response = options.responses[Math.min(callIndex, options.responses.length - 1)]();
+              callIndex += 1;
+              if ('throw' in response) {
+                throw response.throw;
+              }
+              if (requestOptions?.timeout) {
+                input.requestTimeout = requestOptions.timeout;
+              }
+              return response;
+            }
+          }
+        })
+      }
+    ]
+  });
+}
+
+async function createOpenAiDailyAndSafetyAgentModeTestApp(options: {
+  responses: Array<() => MockOpenAiResponse>;
+  requests?: Array<Record<string, unknown>>;
+}) {
+  process.env.AI_PROVIDER = 'openai';
   process.env.SAFETY_AGENT_ENABLED = 'true';
   process.env.SAFETY_AGENT_PROVIDER = 'openai';
   process.env.OPENAI_API_KEY = 'test-key';

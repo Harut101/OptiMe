@@ -68,7 +68,9 @@ export const dailyPlanJsonSchema = z.object({
           enabled: z.boolean(),
           provider: z.enum(['mock', 'openai']),
           approved: z.boolean().optional(),
-          riskLevel: z.enum(['low', 'medium', 'high']).optional()
+          riskLevel: z.enum(['low', 'medium', 'high']).optional(),
+          retryUsed: z.boolean().optional(),
+          retryResult: z.enum(['approved', 'rejected', 'failed', 'not_used']).optional()
         })
         .optional()
     })

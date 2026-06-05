@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } 
 import { DailyReadinessLevel, PlanStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { AiProvider } from '../ai/ai-provider.interface';
+import { AiProvider, GenerateDailyPlanSafetyFeedback } from '../ai/ai-provider.interface';
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
@@ -20,6 +20,12 @@ import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
+
+interface DailyPlanValidationResult {
+  status: PlanStatus;
+  planJson: DailyPlanJson;
+  safetyRetryRequest?: GenerateDailyPlanSafetyFeedback;
+}
 
 @Injectable()
 export class DailyPlansService {
@@ -91,14 +97,58 @@ export class DailyPlansService {
       planLocalDate,
       planTimezone
     });
-    const safePlanResult = await this.validateProviderPlan({
+    let safePlanResult = await this.validateProviderPlan({
       providerPlan: providerPlanResult.planJson,
       blockedFoods,
       planLocalDate,
       planTimezone,
       user,
-      forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK
+      forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK,
+      allowSafetyRetry: this.canUseSafetyFeedbackRetry(providerPlanResult.status)
     });
+
+    if (safePlanResult.safetyRetryRequest) {
+      this.logger.log(
+        `safety retry triggered=true; reasonCount=${safePlanResult.safetyRetryRequest.reasons.length}`
+      );
+      this.logger.log('safety retry generation started');
+      const retryProviderPlanResult = await this.generateProviderPlanOrFallback({
+        user,
+        planLocalDate,
+        planTimezone,
+        safetyFeedback: safePlanResult.safetyRetryRequest
+      });
+
+      safePlanResult = await this.validateProviderPlan({
+        providerPlan: retryProviderPlanResult.planJson,
+        blockedFoods,
+        planLocalDate,
+        planTimezone,
+        user,
+        forcedFallback: retryProviderPlanResult.status === PlanStatus.FALLBACK,
+        allowSafetyRetry: false,
+        safetyRetryUsed: true
+      });
+
+      if (retryProviderPlanResult.status === PlanStatus.FALLBACK) {
+        const retryFallbackReason =
+          this.getFallbackReason(retryProviderPlanResult.planJson) === 'schema_validation_failed'
+            ? 'safety_agent_retry_invalid_output'
+            : 'safety_agent_retry_failed';
+        safePlanResult = {
+          status: PlanStatus.FALLBACK,
+          planJson: this.createSafetyAgentFallback({
+            planLocalDate,
+            planTimezone,
+            fallbackReason: retryFallbackReason,
+            retryUsed: true,
+            retryResult: 'failed'
+          }).planJson
+        };
+      }
+    } else {
+      this.logger.log('safety retry triggered=false');
+    }
     const planJson = safePlanResult.planJson as Prisma.JsonObject;
     const status = safePlanResult.status;
     this.logger.log(
@@ -280,6 +330,7 @@ export class DailyPlansService {
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
     planLocalDate: string;
     planTimezone: string;
+    safetyFeedback?: GenerateDailyPlanSafetyFeedback;
   }) {
     try {
       this.logger.log(`provider called: ${this.getProviderDebugName()}`);
@@ -306,7 +357,8 @@ export class DailyPlansService {
         trainingSchedule: input.user.schedules,
         safeMode: input.user.safeMode,
         planLocalDate: input.planLocalDate,
-        planTimezone: input.planTimezone
+        planTimezone: input.planTimezone,
+        safetyFeedback: input.safetyFeedback
       });
 
       return {
@@ -337,18 +389,31 @@ export class DailyPlansService {
     planTimezone: string;
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
     forcedFallback?: boolean;
-  }) {
+    allowSafetyRetry?: boolean;
+    safetyRetryUsed?: boolean;
+  }): DailyPlanValidationResult | Promise<DailyPlanValidationResult> {
     const parsedPlan = dailyPlanJsonSchema.safeParse(input.providerPlan);
 
     if (!parsedPlan.success) {
       this.logger.warn('schema validation passed: false; fallback used: true');
+      const fallbackPlan = createSafeFallbackPlan({
+        planLocalDate: input.planLocalDate,
+        planTimezone: input.planTimezone,
+        reasons: [
+          input.safetyRetryUsed
+            ? 'safety_agent_retry_invalid_output'
+            : 'The generated plan could not be safely validated.'
+        ]
+      });
+
       return {
         status: PlanStatus.FALLBACK,
-        planJson: createSafeFallbackPlan({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          reasons: ['The generated plan could not be safely validated.']
-        })
+        planJson: input.safetyRetryUsed
+          ? this.withSafetyAgentDebug(fallbackPlan, {
+              retryUsed: true,
+              retryResult: 'failed'
+            })
+          : fallbackPlan
       };
     }
 
@@ -398,7 +463,9 @@ export class DailyPlansService {
       user: input.user,
       blockedFoods: input.blockedFoods,
       planLocalDate: input.planLocalDate,
-      planTimezone: input.planTimezone
+      planTimezone: input.planTimezone,
+      allowSafetyRetry: Boolean(input.allowSafetyRetry),
+      retryUsed: Boolean(input.safetyRetryUsed)
     });
   }
 
@@ -408,7 +475,9 @@ export class DailyPlansService {
     blockedFoods: { allergies: string[]; excludedFoods: string[] };
     planLocalDate: string;
     planTimezone: string;
-  }) {
+    allowSafetyRetry: boolean;
+    retryUsed: boolean;
+  }): Promise<DailyPlanValidationResult> {
     this.logger.log(
       `SafetyAgent enabled=${this.safetyAgentConfig.enabled}; provider=${this.safetyAgentConfig.provider}`
     );
@@ -416,7 +485,12 @@ export class DailyPlansService {
     if (!this.safetyAgentConfig.enabled) {
       return {
         status: PlanStatus.READY,
-        planJson: input.planJson
+        planJson: input.retryUsed
+          ? this.withSafetyAgentDebug(input.planJson, {
+              retryUsed: true,
+              retryResult: 'approved'
+            })
+          : input.planJson
       };
     }
 
@@ -448,21 +522,55 @@ export class DailyPlansService {
       );
 
       if (!parsedReview.data.approved) {
-        this.logger.warn('fallback used: true; fallback reason=safety_agent_rejected');
+        if (
+          input.allowSafetyRetry &&
+          parsedReview.data.requiredChanges.some((change) => change.trim().length > 0)
+        ) {
+          this.logger.warn(
+            `SafetyAgent rejected plan; safety retry available=true; reasonCount=${parsedReview.data.reasons.length}`
+          );
+          return {
+            status: PlanStatus.FALLBACK,
+            planJson: this.withSafetyAgentDebug(input.planJson, {
+              approved: false,
+              riskLevel: parsedReview.data.riskLevel,
+              retryUsed: false,
+              retryResult: 'not_used'
+            }),
+            safetyRetryRequest: {
+              riskLevel: parsedReview.data.riskLevel,
+              reasons: parsedReview.data.reasons,
+              requiredChanges: parsedReview.data.requiredChanges
+            }
+          };
+        }
+
+        const fallbackReason = input.retryUsed
+          ? 'safety_agent_retry_rejected'
+          : 'safety_agent_rejected';
+        this.logger.warn(`fallback used: true; fallback reason=${fallbackReason}`);
         return this.createSafetyAgentFallback({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
-          fallbackReason: 'safety_agent_rejected',
+          fallbackReason,
           approved: false,
-          riskLevel: parsedReview.data.riskLevel
+          riskLevel: parsedReview.data.riskLevel,
+          retryUsed: input.retryUsed,
+          retryResult: input.retryUsed ? 'rejected' : 'not_used'
         });
+      }
+
+      if (input.retryUsed) {
+        this.logger.log('retry SafetyAgent approved=true');
       }
 
       return {
         status: PlanStatus.READY,
         planJson: this.withSafetyAgentDebug(input.planJson, {
           approved: true,
-          riskLevel: parsedReview.data.riskLevel
+          riskLevel: parsedReview.data.riskLevel,
+          retryUsed: input.retryUsed,
+          retryResult: input.retryUsed ? 'approved' : 'not_used'
         })
       };
     } catch (error) {
@@ -473,7 +581,9 @@ export class DailyPlansService {
         return this.createSafetyAgentFallback({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
-          fallbackReason: error.fallbackReason
+          fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : error.fallbackReason,
+          retryUsed: input.retryUsed,
+          retryResult: input.retryUsed ? 'failed' : 'not_used'
         });
       }
 
@@ -481,7 +591,9 @@ export class DailyPlansService {
       return this.createSafetyAgentFallback({
         planLocalDate: input.planLocalDate,
         planTimezone: input.planTimezone,
-        fallbackReason: 'safety_agent_unavailable'
+        fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : 'safety_agent_unavailable',
+        retryUsed: input.retryUsed,
+        retryResult: input.retryUsed ? 'failed' : 'not_used'
       });
     }
   }
@@ -518,7 +630,9 @@ export class DailyPlansService {
     fallbackReason: string;
     approved?: boolean;
     riskLevel?: 'low' | 'medium' | 'high';
-  }) {
+    retryUsed?: boolean;
+    retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
+  }): DailyPlanValidationResult {
     return {
       status: PlanStatus.FALLBACK,
       planJson: this.withSafetyAgentDebug(
@@ -529,7 +643,9 @@ export class DailyPlansService {
         }),
         {
           approved: input.approved,
-          riskLevel: input.riskLevel
+          riskLevel: input.riskLevel,
+          retryUsed: input.retryUsed,
+          retryResult: input.retryResult
         }
       )
     };
@@ -540,6 +656,8 @@ export class DailyPlansService {
     review?: {
       approved?: boolean;
       riskLevel?: 'low' | 'medium' | 'high';
+      retryUsed?: boolean;
+      retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
     }
   ): DailyPlanJson {
     if (!planJson.debug) {
@@ -550,7 +668,9 @@ export class DailyPlansService {
       enabled: this.safetyAgentConfig.enabled,
       provider: this.safetyAgentConfig.provider,
       ...(review?.approved !== undefined ? { approved: review.approved } : {}),
-      ...(review?.riskLevel !== undefined ? { riskLevel: review.riskLevel } : {})
+      ...(review?.riskLevel !== undefined ? { riskLevel: review.riskLevel } : {}),
+      ...(review?.retryUsed !== undefined ? { retryUsed: review.retryUsed } : {}),
+      ...(review?.retryResult !== undefined ? { retryResult: review.retryResult } : {})
     };
 
     return {
@@ -566,6 +686,19 @@ export class DailyPlansService {
 
   private getProviderDebugName() {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
+  }
+
+  private canUseSafetyFeedbackRetry(providerStatus: PlanStatus) {
+    return (
+      providerStatus === PlanStatus.READY &&
+      this.getProviderDebugName() === 'openai' &&
+      this.safetyAgentConfig.enabled
+    );
+  }
+
+  private getFallbackReason(planJson: unknown) {
+    const debug = (planJson as { debug?: { fallbackReason?: unknown } })?.debug;
+    return typeof debug?.fallbackReason === 'string' ? debug.fallbackReason : undefined;
   }
 
   private toResponse(plan: {

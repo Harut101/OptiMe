@@ -149,6 +149,75 @@ Fallback reasons:
 
 Retry with safety feedback is intentionally deferred to Batch 4.4. In Batch 4.3, Safety Agent rejection saves fallback.
 
+## Batch 4.4 Retry With Safety Feedback
+
+Batch 4.4 adds one retry when an OpenAI-generated daily plan passes deterministic safety but fails semantic Safety Agent review.
+
+Retry is intentionally narrow. It runs only when all are true:
+
+- `AI_PROVIDER=openai`.
+- `SAFETY_AGENT_ENABLED=true`.
+- The daily plan provider is `OpenAiProviderService`.
+- `DailyPlanJson` schema validation passed.
+- Food name normalization completed.
+- Deterministic `SafetyService` passed.
+- Safety Agent reviewed the plan and rejected it.
+- `SafetyAgentReview.requiredChanges` contains actionable items.
+
+Retry does not run when:
+
+- Deterministic `SafetyService` fails.
+- Schema validation fails before Safety Agent review.
+- Provider is mock.
+- Safety Agent is disabled.
+- Safety Agent is unavailable or throws.
+- Safety Agent returns an invalid review.
+- The provider already returned fallback.
+
+Retry behavior:
+
+- The first rejected Safety Agent review is converted into concise `safetyFeedback`.
+- `safetyFeedback` includes only `riskLevel`, `reasons`, and `requiredChanges`.
+- `OpenAiProviderService` regenerates a complete `DailyPlanJson`; it does not patch partial fields.
+- The regenerated plan runs through metadata normalization, food name normalization, schema validation, deterministic `SafetyService`, and Safety Agent review again.
+- If the second Safety Agent review approves, the plan is saved as `READY`.
+- If the second review rejects, fails, or the retry output is invalid, the plan is saved as `FALLBACK`.
+
+Additional fallback reasons:
+
+- `safety_agent_retry_rejected`
+- `safety_agent_retry_failed`
+- `safety_agent_retry_invalid_output`
+
+Debug metadata may include:
+
+```json
+{
+  "safetyAgent": {
+    "enabled": true,
+    "provider": "openai",
+    "approved": true,
+    "riskLevel": "low",
+    "retryUsed": true,
+    "retryResult": "approved"
+  }
+}
+```
+
+`retryResult` can be `approved`, `rejected`, `failed`, or `not_used`. Mobile must not render debug metadata.
+
+Expected retry logs:
+
+```text
+SafetyAgent rejected plan; safety retry available=true; reasonCount=...
+safety retry triggered=true; reasonCount=...
+safety retry generation started
+retry SafetyAgent approved=true
+daily plan generation completed; fallback used: false; final status=READY
+```
+
+Do not log full prompts, full plans, full profiles, API keys, tokens, or raw OpenAI responses.
+
 ## SafetyAgentReview
 
 ```ts
@@ -186,6 +255,6 @@ Do not log:
 - auth tokens.
 - full generated plans.
 
-## Future Batch 4.2
+## Future Work
 
-Batch 4.2 should integrate the mock Safety Agent into `DailyPlansService` behind `SAFETY_AGENT_ENABLED`. With the default `false`, runtime behavior should remain unchanged.
+Future work can improve Safety Agent cost controls and persistence, but should not replace deterministic hard safety rules.
