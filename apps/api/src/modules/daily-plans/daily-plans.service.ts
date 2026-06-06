@@ -32,6 +32,8 @@ import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
+import { SelectedProtocols } from '../protocol/protocol.types';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
@@ -68,6 +70,7 @@ export class DailyPlansService {
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
+    private readonly protocolSelector: ProtocolSelectorService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -129,7 +132,7 @@ export class DailyPlansService {
     try {
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
-      const personalizationContext = await this.buildPersonalizationContext(userId, planQualityMode);
+      const personalizationContext = await this.buildPersonalizationContext(user, planQualityMode);
       const blockedFoods = {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
@@ -197,7 +200,11 @@ export class DailyPlansService {
       }
       safePlanResult = {
         ...safePlanResult,
-        planJson: this.withPlanQualityModeDebug(safePlanResult.planJson, planQualityMode)
+        planJson: this.withPlanDebugContext(
+          safePlanResult.planJson,
+          planQualityMode,
+          personalizationContext.selectedProtocols
+        )
       };
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
       const status = safePlanResult.status;
@@ -346,6 +353,16 @@ export class DailyPlansService {
             description: true
           },
           orderBy: [{ dayOfWeek: 'asc' }, { localTime: 'asc' }]
+        },
+        trainingPreference: {
+          select: {
+            targetMuscleGroups: true,
+            trainingOutcome: true,
+            equipment: true,
+            trainingLevel: true,
+            limitationsOrPainAreas: true,
+            preferredTrainingDays: true
+          }
         }
       }
     });
@@ -818,14 +835,16 @@ export class DailyPlansService {
         generatedBy: planJson.debug.generatedBy,
         ...(planJson.debug.fallbackReason ? { fallbackReason: planJson.debug.fallbackReason } : {}),
         ...(planJson.debug.planQualityMode ? { planQualityMode: planJson.debug.planQualityMode } : {}),
+        ...(planJson.debug.protocols ? { protocols: planJson.debug.protocols } : {}),
         safetyAgent: safetyAgentDebug
       }
     };
   }
 
-  private withPlanQualityModeDebug(
+  private withPlanDebugContext(
     planJson: DailyPlanJson,
-    planQualityMode: PlanQualityMode
+    planQualityMode: PlanQualityMode,
+    selectedProtocols?: SelectedProtocols
   ): DailyPlanJson {
     if (!planJson.debug) {
       return planJson;
@@ -835,7 +854,16 @@ export class DailyPlansService {
       ...planJson,
       debug: {
         ...planJson.debug,
-        planQualityMode
+        planQualityMode,
+        ...(selectedProtocols
+          ? {
+              protocols: {
+                nutritionProtocolId: selectedProtocols.nutritionProtocol.id,
+                trainingProtocolId: selectedProtocols.trainingProtocol.id,
+                recoveryProtocolId: selectedProtocols.recoveryProtocol.id
+              }
+            }
+          : {})
       }
     };
   }
@@ -858,14 +886,42 @@ export class DailyPlansService {
   }
 
   private async buildPersonalizationContext(
-    userId: string,
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>,
     planQualityMode: PlanQualityMode
   ): Promise<GenerateDailyPlanPersonalizationContext> {
+    const checkInSummary = await this.checkInsService.getRecentSummary(user.id);
+    const trainingPreference = user.trainingPreference;
+    const selectedProtocols = this.protocolSelector.select({
+      profile: user.profile,
+      goal: user.goal,
+      safeMode: user.safeMode,
+      isMinor: user.isMinor,
+      noTrainingPlanned: user.noTrainingPlanned,
+      trainingSchedule: user.schedules,
+      trainingPreference,
+      checkInSummary,
+      planQualityMode
+    });
     const baseContext: GenerateDailyPlanPersonalizationContext = {
       mode: planQualityMode,
       contextLevel: this.getContextLevel(planQualityMode),
       guidance: this.getPersonalizationGuidance(planQualityMode),
-      trainingPersonalization: this.getTrainingPersonalizationContext(planQualityMode)
+      ...(trainingPreference
+        ? {
+            trainingPreference: {
+              targetMuscleGroups: trainingPreference.targetMuscleGroups,
+              trainingOutcome: trainingPreference.trainingOutcome,
+              equipment: trainingPreference.equipment,
+              trainingLevel: trainingPreference.trainingLevel,
+              limitationsOrPainAreas: trainingPreference.limitationsOrPainAreas,
+              preferredTrainingDays: trainingPreference.preferredTrainingDays,
+              limitationsAreSafetySensitive: trainingPreference.limitationsOrPainAreas.length > 0
+            }
+          }
+        : {}),
+      trainingPersonalization: this.getTrainingPersonalizationContext(planQualityMode),
+      selectedProtocols,
+      checkInSummary
     };
 
     if (planQualityMode === PlanQualityMode.BASIC) {
@@ -874,9 +930,9 @@ export class DailyPlansService {
 
     const feedbackLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
     const historyLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
-    const [recentFeedback, recentPlans, checkInSummary] = await Promise.all([
+    const [recentFeedback, recentPlans] = await Promise.all([
       this.prisma.dailyPlanFeedback.findMany({
-        where: { userId },
+        where: { userId: user.id },
         orderBy: { updatedAt: 'desc' },
         take: feedbackLimit,
         select: {
@@ -885,15 +941,14 @@ export class DailyPlansService {
         }
       }),
       this.prisma.dailyPlan.findMany({
-        where: { userId },
+        where: { userId: user.id },
         orderBy: { updatedAt: 'desc' },
         take: historyLimit,
         select: {
           status: true,
           readinessLevel: true
         }
-      }),
-      this.checkInsService.getRecentSummary(userId)
+      })
     ]);
 
     return {
@@ -911,8 +966,7 @@ export class DailyPlansService {
         recentPlanCount: recentPlans.length,
         readinessLevels: [...new Set(recentPlans.map((plan) => plan.readinessLevel))],
         fallbackCount: recentPlans.filter((plan) => plan.status === PlanStatus.FALLBACK).length
-      },
-      checkInSummary
+      }
     };
   }
 

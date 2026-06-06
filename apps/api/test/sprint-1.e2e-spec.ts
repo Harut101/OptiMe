@@ -4,6 +4,7 @@ import {
   AiOperationProvider,
   AiOperationStatus,
   DailyCheckInType,
+  GoalType,
   PlanQualityMode,
   PregnancyStatus,
   ProgressiveProfilePromptKey,
@@ -12,6 +13,10 @@ import {
   SubscriptionPlan,
   SubscriptionProvider,
   SubscriptionStatus,
+  TargetMuscleGroup,
+  TrainingEquipment,
+  TrainingLevel,
+  TrainingOutcome,
   UsageFeature,
   UsagePeriodType
 } from '@prisma/client';
@@ -24,6 +29,8 @@ import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-pl
 import { dailyPlanJsonSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { createMockDailyPlan } from '../src/modules/daily-plans/templates/mock-daily-plan.factory';
 import { FeatureAccessService } from '../src/modules/entitlements/feature-access.service';
+import { ProtocolSelectorService } from '../src/modules/protocol/protocol-selector.service';
+import { ProtocolSelectionInput } from '../src/modules/protocol/protocol.types';
 import { SafetyService } from '../src/modules/safety/safety.service';
 import { SafetyAgent } from '../src/modules/safety-agent/safety-agent.interface';
 import { safetyAgentReviewSchema } from '../src/modules/safety-agent/safety-agent-review.schema';
@@ -934,6 +941,443 @@ describe('Sprint 1 backend vertical slice', () => {
 
     expect(firstPrompt?.status).toBe(ProgressiveProfilePromptStatus.ANSWERED);
     expect(secondPrompt).toBeNull();
+  });
+
+  it('requires auth for training preferences', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/training-preferences').expect(401);
+  });
+
+  it('returns empty training preference defaults when none exist', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-empty@example.com');
+
+    const response = await request(ctx.app.getHttpServer())
+      .get('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(response.body).toEqual({
+      targetMuscleGroups: [],
+      trainingOutcome: null,
+      equipment: [],
+      trainingLevel: null,
+      limitationsOrPainAreas: [],
+      preferredTrainingDays: []
+    });
+  });
+
+  it('creates and updates optional training preferences', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-upsert@example.com');
+
+    const created = await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({
+        targetMuscleGroups: [TargetMuscleGroup.CORE, TargetMuscleGroup.LEGS],
+        trainingOutcome: TrainingOutcome.STRENGTH,
+        equipment: [TrainingEquipment.DUMBBELLS, TrainingEquipment.BODYWEIGHT],
+        trainingLevel: TrainingLevel.BEGINNER,
+        limitationsOrPainAreas: ['knee discomfort'],
+        preferredTrainingDays: [1, 3, 5]
+      })
+      .expect(200);
+
+    expect(created.body).toMatchObject({
+      targetMuscleGroups: [TargetMuscleGroup.CORE, TargetMuscleGroup.LEGS],
+      trainingOutcome: TrainingOutcome.STRENGTH,
+      equipment: [TrainingEquipment.DUMBBELLS, TrainingEquipment.BODYWEIGHT],
+      trainingLevel: TrainingLevel.BEGINNER,
+      limitationsOrPainAreas: ['knee discomfort'],
+      preferredTrainingDays: [1, 3, 5]
+    });
+
+    const updated = await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({
+        trainingLevel: TrainingLevel.INTERMEDIATE,
+        preferredTrainingDays: []
+      })
+      .expect(200);
+
+    expect(updated.body.trainingLevel).toBe(TrainingLevel.INTERMEDIATE);
+    expect(updated.body.preferredTrainingDays).toEqual([]);
+    expect(updated.body.targetMuscleGroups).toEqual([
+      TargetMuscleGroup.CORE,
+      TargetMuscleGroup.LEGS
+    ]);
+  });
+
+  it('validates training preference enum values and preferred training days', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-validation@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ targetMuscleGroups: ['NOT_A_MUSCLE'] })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ equipment: ['ROCKET_SHOES'] })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ trainingLevel: 'ELITE' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ preferredTrainingDays: [0, 7] })
+      .expect(400);
+  });
+
+  it('limits limitations or pain areas length', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-limitations@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ limitationsOrPainAreas: Array.from({ length: 21 }, (_, index) => `area-${index}`) })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ limitationsOrPainAreas: ['x'.repeat(121)] })
+      .expect(400);
+  });
+
+  it('keeps training preferences scoped to the authenticated user', async () => {
+    const firstUser = await registerTestUser(ctx.app, 'training-pref-one@example.com');
+    const secondUser = await registerTestUser(ctx.app, 'training-pref-two@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(firstUser.accessToken))
+      .send({
+        targetMuscleGroups: [TargetMuscleGroup.BACK],
+        equipment: [TrainingEquipment.GYM]
+      })
+      .expect(200);
+
+    const secondResponse = await request(ctx.app.getHttpServer())
+      .get('/v1/training-preferences')
+      .set(authHeader(secondUser.accessToken))
+      .expect(200);
+
+    expect(secondResponse.body.targetMuscleGroups).toEqual([]);
+    expect(secondResponse.body.equipment).toEqual([]);
+  });
+
+  it('saves training preferences from progressive prompts', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-prompts@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.TARGET_MUSCLE_GROUPS}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: [TargetMuscleGroup.CORE, TargetMuscleGroup.GLUTES] })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.EQUIPMENT}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: [TrainingEquipment.HOME, TrainingEquipment.BODYWEIGHT] })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.TRAINING_LEVEL}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: TrainingLevel.BEGINNER })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: ['shoulder discomfort'] })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.TRAINING_OUTCOME}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: TrainingOutcome.MOBILITY })
+      .expect(201);
+
+    const response = await request(ctx.app.getHttpServer())
+      .get('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      targetMuscleGroups: [TargetMuscleGroup.CORE, TargetMuscleGroup.GLUTES],
+      equipment: [TrainingEquipment.HOME, TrainingEquipment.BODYWEIGHT],
+      trainingLevel: TrainingLevel.BEGINNER,
+      limitationsOrPainAreas: ['shoulder discomfort'],
+      trainingOutcome: TrainingOutcome.MOBILITY
+    });
+  });
+
+  it('does not block first plan generation when training preferences are missing', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-optional@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'TrainingOptional');
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.canGenerateFirstPlan).toBe(true);
+
+    const preferences = await request(ctx.app.getHttpServer())
+      .get('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(preferences.body).toMatchObject({
+      targetMuscleGroups: [],
+      equipment: [],
+      limitationsOrPainAreas: []
+    });
+  });
+
+  it('adds training preferences to daily plan personalization context when available', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'training-pref-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'TrainingContext');
+
+      await request(customCtx.app.getHttpServer())
+        .put('/v1/training-preferences')
+        .set(authHeader(user.accessToken))
+        .send({
+          targetMuscleGroups: [TargetMuscleGroup.FULL_BODY],
+          trainingOutcome: TrainingOutcome.GENERAL_FITNESS,
+          equipment: [TrainingEquipment.BODYWEIGHT],
+          trainingLevel: TrainingLevel.BEGINNER,
+          limitationsOrPainAreas: ['ankle discomfort']
+        })
+        .expect(200);
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(capturedInputs[0]?.personalizationContext.trainingPreference).toMatchObject({
+        targetMuscleGroups: [TargetMuscleGroup.FULL_BODY],
+        trainingOutcome: TrainingOutcome.GENERAL_FITNESS,
+        equipment: [TrainingEquipment.BODYWEIGHT],
+        trainingLevel: TrainingLevel.BEGINNER,
+        limitationsOrPainAreas: ['ankle discomfort'],
+        limitationsAreSafetySensitive: true
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('selects deterministic protocols from safety, goal, training preference, and check-in context', () => {
+    const selector = ctx.app.get(ProtocolSelectorService);
+
+    expect(
+      selector.select(baseProtocolInput({ isMinor: true, safeMode: true })).nutritionProtocol.id
+    ).toBe('UNDER_18_SAFE');
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          profile: { pregnancyStatus: PregnancyStatus.PREGNANT }
+        })
+      )
+    ).toMatchObject({
+      nutritionProtocol: { id: 'PREGNANCY_POSTPARTUM_SAFE' },
+      recoveryProtocol: { id: 'PREGNANCY_POSTPARTUM_CONSERVATIVE' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          trainingPreference: {
+            trainingOutcome: TrainingOutcome.GENERAL_FITNESS,
+            equipment: [],
+            trainingLevel: null,
+            limitationsOrPainAreas: ['knee discomfort']
+          }
+        })
+      )
+    ).toMatchObject({
+      trainingProtocol: { id: 'CONSERVATIVE_PAIN_LIMITATION' },
+      recoveryProtocol: { id: 'PAIN_OR_DISCOMFORT' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          checkInSummary: {
+            recentAverageTiredness: 2,
+            painOrDiscomfortReported: true,
+            highTirednessReported: false,
+            conservativeTrainingRecommended: true
+          }
+        })
+      ).trainingProtocol.id
+    ).toBe('CONSERVATIVE_PAIN_LIMITATION');
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          checkInSummary: {
+            recentAverageTiredness: 5,
+            painOrDiscomfortReported: false,
+            highTirednessReported: true,
+            conservativeTrainingRecommended: false
+          }
+        })
+      )
+    ).toMatchObject({
+      nutritionProtocol: { id: 'RECOVERY_DAY' },
+      trainingProtocol: { id: 'RECOVERY' },
+      recoveryProtocol: { id: 'HIGH_TIREDNESS' }
+    });
+
+    expect(
+      selector.select(baseProtocolInput({ noTrainingPlanned: true, trainingSchedule: [] }))
+    ).toMatchObject({
+      trainingProtocol: { id: 'NO_TRAINING_PLANNED' },
+      recoveryProtocol: { id: 'REST_DAY' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          goal: {
+            goalType: GoalType.BUILD_MUSCLE,
+            targetWeightKg: null,
+            targetTimelineDays: null,
+            impactMode: null
+          },
+          trainingPreference: {
+            trainingOutcome: TrainingOutcome.MUSCLE_GROWTH,
+            equipment: [TrainingEquipment.GYM],
+            trainingLevel: TrainingLevel.INTERMEDIATE,
+            limitationsOrPainAreas: []
+          }
+        })
+      )
+    ).toMatchObject({
+      nutritionProtocol: { id: 'MUSCLE_GAIN' },
+      trainingProtocol: { id: 'MUSCLE_GROWTH' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          goal: {
+            goalType: GoalType.REDUCE_WEIGHT,
+            targetWeightKg: 75,
+            targetTimelineDays: 90,
+            impactMode: null
+          }
+        })
+      ).nutritionProtocol.id
+    ).toBe('SAFE_WEIGHT_LOSS');
+  });
+
+  it('uses PlanQualityMode for protocol detail reasons without changing safety protocol selection', () => {
+    const selector = ctx.app.get(ProtocolSelectorService);
+    const basic = selector.select(baseProtocolInput({ planQualityMode: PlanQualityMode.BASIC }));
+    const adaptive = selector.select(baseProtocolInput({ planQualityMode: PlanQualityMode.ADAPTIVE }));
+
+    expect(adaptive.nutritionProtocol.id).toBe(basic.nutritionProtocol.id);
+    expect(adaptive.trainingProtocol.id).toBe(basic.trainingProtocol.id);
+    expect(adaptive.recoveryProtocol.id).toBe(basic.recoveryProtocol.id);
+    expect(basic.selectionReasons.some((reason) => reason.includes('PlanQualityMode BASIC'))).toBe(true);
+    expect(adaptive.selectionReasons.some((reason) => reason.includes('PlanQualityMode ADAPTIVE'))).toBe(true);
+  });
+
+  it('passes selected protocols to AiProvider input and stores safe protocol debug IDs', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'protocol-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'ProtocolContext');
+
+      await request(customCtx.app.getHttpServer())
+        .put('/v1/training-preferences')
+        .set(authHeader(user.accessToken))
+        .send({
+          trainingOutcome: TrainingOutcome.MUSCLE_GROWTH,
+          equipment: [TrainingEquipment.GYM],
+          trainingLevel: TrainingLevel.INTERMEDIATE
+        })
+        .expect(200);
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(capturedInputs[0]?.personalizationContext.selectedProtocols).toMatchObject({
+        trainingProtocol: { id: 'MUSCLE_GROWTH' },
+        recoveryProtocol: { id: 'NORMAL_RECOVERY' }
+      });
+      expect(plan.body.plan.debug.protocols).toEqual({
+        nutritionProtocolId: 'MUSCLE_GAIN',
+        trainingProtocolId: 'MUSCLE_GROWTH',
+        recoveryProtocolId: 'NORMAL_RECOVERY'
+      });
+      expect(plan.body.plan.debug.protocols.nutritionProtocol).toBeUndefined();
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
   });
 
   it('supports training schedule CRUD for the authenticated user', async () => {
@@ -2533,7 +2977,7 @@ describe('Sprint 1 backend vertical slice', () => {
         'We used a reliable safe plan today because the generated plan could not be fully verified.'
       );
       expect(JSON.stringify(plan.body.plan)).toContain('could not be safely validated');
-      expect(plan.body.plan.debug).toEqual({
+      expect(plan.body.plan.debug).toMatchObject({
         provider: 'fallback',
         generatedBy: 'SafeFallbackPlanFactory',
         fallbackReason: 'The generated plan could not be safely validated.',
@@ -2567,7 +3011,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
-      expect(plan.body.plan.debug).toEqual({
+      expect(plan.body.plan.debug).toMatchObject({
         provider: 'mock',
         generatedBy: 'MockAiProviderService',
         planQualityMode: 'BASIC'
@@ -3444,7 +3888,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
-      expect(plan.body.plan.debug).toEqual({
+      expect(plan.body.plan.debug).toMatchObject({
         provider: 'openai',
         generatedBy: 'OpenAiProviderService',
         planQualityMode: 'BASIC'
@@ -3932,7 +4376,7 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.generatedAt).toBeTruthy();
       expect(plan.body.plan.mockVersion).toBe(0);
-      expect(plan.body.plan.debug).toEqual({
+      expect(plan.body.plan.debug).toMatchObject({
         provider: 'openai',
         generatedBy: 'OpenAiProviderService',
         planQualityMode: 'BASIC'
@@ -4000,7 +4444,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('FALLBACK');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
-      expect(plan.body.plan.debug).toEqual({
+      expect(plan.body.plan.debug).toMatchObject({
         provider: 'fallback',
         generatedBy: 'SafeFallbackPlanFactory',
         fallbackReason: 'json_parse_failed',
@@ -4456,6 +4900,42 @@ function daysFromNow(days: number) {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() + days);
   return date;
+}
+
+function baseProtocolInput(overrides: Partial<ProtocolSelectionInput> = {}): ProtocolSelectionInput {
+  return {
+    profile: { pregnancyStatus: PregnancyStatus.UNKNOWN },
+    goal: {
+      goalType: GoalType.IMPROVE_FITNESS,
+      targetWeightKg: null,
+      targetTimelineDays: null,
+      impactMode: null
+    },
+    safeMode: false,
+    isMinor: false,
+    noTrainingPlanned: false,
+    trainingSchedule: [
+      {
+        durationMinutes: 30,
+        intensity: 'MODERATE',
+        description: 'Easy run'
+      }
+    ],
+    trainingPreference: {
+      trainingOutcome: TrainingOutcome.GENERAL_FITNESS,
+      equipment: [TrainingEquipment.GYM],
+      trainingLevel: TrainingLevel.INTERMEDIATE,
+      limitationsOrPainAreas: []
+    },
+    checkInSummary: {
+      recentAverageTiredness: 2,
+      painOrDiscomfortReported: false,
+      highTirednessReported: false,
+      conservativeTrainingRecommended: false
+    },
+    planQualityMode: PlanQualityMode.PERSONALIZED,
+    ...overrides
+  };
 }
 
 function createTestSubscription(

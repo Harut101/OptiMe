@@ -48,18 +48,20 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 - Add `TrainingPreference` Prisma model.
 - Add DTOs, service, controller, and endpoints.
 - Integrate training preference answers with progressive prompts.
+- Expose a minimal training preference summary to planning context.
 - Add tests.
 
 ### Batch 3
 
-- Add `ProtocolSelectorService`.
-- Produce deterministic protocol output.
+- Add `ProtocolModule` and `ProtocolSelectorService`.
+- Produce deterministic nutrition, training, and recovery protocol output.
 - Use check-ins for conservative or recovery-oriented protocol selection.
+- Pass selected protocols into `AiProvider` context.
+- Store safe protocol IDs in debug metadata.
 - Add tests.
 
 ### Batch 4
 
-- Integrate protocols into `AiProvider` input.
 - Add optional `training.exercises` schema.
 - Add `SafetyService` and Safety Agent exercise checks.
 - Add tests.
@@ -84,8 +86,10 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 - `limitationsOrPainAreas` is prioritized as safety-sensitive context.
 - Training preferences can be saved and read by the backend.
 - Progressive prompts can collect training preferences without lengthening Stage 1.
+- Batch 2 does not add `ProtocolSelectorService`; that belongs to Batch 3.
 - Protocols are selected deterministically from user context, goals, schedule, check-ins, and safety state.
-- OpenAI receives protocol context and customizes it instead of planning from scratch.
+- OpenAI receives protocol context and can customize it instead of planning from scratch.
+- DailyPlan debug metadata stores protocol IDs only, not full private context.
 - Optional exercise recommendations validate when present.
 - Existing mobile screens still work when exercises are missing.
 - Safety remains equal across all tiers.

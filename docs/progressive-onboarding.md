@@ -229,7 +229,16 @@ Prompt answer behavior:
 - `EXCLUDED_FOODS` merges into excluded foods.
 - `DIET_TYPE` updates nutrition preference diet type.
 - `MEALS_PER_DAY` updates nutrition preference meals per day.
-- Training and lifestyle prompt answers are stored as prompt answers only for now.
+- `TARGET_MUSCLE_GROUPS` updates training preference target muscle groups.
+- `TRAINING_OUTCOME` updates training preference training outcome.
+- `EQUIPMENT` updates training preference equipment.
+- `TRAINING_LEVEL` updates training preference training level.
+- `LIMITATIONS_OR_PAIN_AREAS` updates training preference limitations or pain areas.
+- Cooking time, meal prep, and meal timing answers are stored as prompt answers only for now.
+
+Training preference prompts remain optional. Missing training preferences do not block Stage 1 or first plan generation.
+
+`LIMITATIONS_OR_PAIN_AREAS` is safety-sensitive and should stay early in the progressive prompt order.
 
 Current prompt priority:
 

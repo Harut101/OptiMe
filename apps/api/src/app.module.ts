@@ -10,7 +10,9 @@ import { NutritionPreferencesModule } from './modules/nutrition-preferences/nutr
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ProgressiveProfileModule } from './modules/progressive-profile/progressive-profile.module';
+import { ProtocolModule } from './modules/protocol/protocol.module';
 import { SafetyAgentModule } from './modules/safety-agent/safety-agent.module';
+import { TrainingPreferencesModule } from './modules/training-preferences/training-preferences.module';
 import { TrainingScheduleModule } from './modules/training-schedule/training-schedule.module';
 import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
@@ -29,7 +31,9 @@ import { PrismaModule } from './prisma/prisma.module';
     GoalsModule,
     NutritionPreferencesModule,
     TrainingScheduleModule,
+    TrainingPreferencesModule,
     ProgressiveProfileModule,
+    ProtocolModule,
     OnboardingModule,
     SafetyAgentModule,
     UsageModule,

@@ -73,6 +73,13 @@ export const dailyPlanJsonSchema = z.object({
         'SafeFallbackPlanFactory'
       ]),
       planQualityMode: z.enum(['BASIC', 'PERSONALIZED', 'ADAPTIVE']).optional(),
+      protocols: z
+        .object({
+          nutritionProtocolId: z.string(),
+          trainingProtocolId: z.string(),
+          recoveryProtocolId: z.string()
+        })
+        .optional(),
       fallbackReason: z.string().optional(),
       safetyAgent: z
         .object({

@@ -3,10 +3,15 @@ import {
   DietType,
   Prisma,
   ProgressiveProfilePromptKey,
-  ProgressiveProfilePromptStatus
+  ProgressiveProfilePromptStatus,
+  TargetMuscleGroup,
+  TrainingEquipment,
+  TrainingLevel,
+  TrainingOutcome
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { TrainingPreferencesService } from '../training-preferences/training-preferences.service';
 import {
   getProgressivePromptDefinition,
   progressivePromptDefinitions
@@ -21,9 +26,20 @@ type NutritionSummary = {
   excludedFoods?: Array<{ name: string }>;
 };
 
+type TrainingPreferenceSummary = {
+  targetMuscleGroups: TargetMuscleGroup[];
+  trainingOutcome: TrainingOutcome | null;
+  equipment: TrainingEquipment[];
+  trainingLevel: TrainingLevel | null;
+  limitationsOrPainAreas: string[];
+};
+
 @Injectable()
 export class ProgressiveProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly trainingPreferencesService: TrainingPreferencesService
+  ) {}
 
   async getNextPrompt(userId: string) {
     const summary = await this.getProgressiveProfileSummary(userId);
@@ -52,7 +68,7 @@ export class ProgressiveProfileService {
   }
 
   async getProgressiveProfileSummary(userId: string) {
-    const [nutritionPref, promptStates] = await Promise.all([
+    const [nutritionPref, trainingPreference, promptStates] = await Promise.all([
       this.prisma.nutritionPreference.findUnique({
         where: { userId },
         select: {
@@ -60,6 +76,16 @@ export class ProgressiveProfileService {
           mealsPerDay: true,
           preferredFoods: { select: { name: true } },
           excludedFoods: { select: { name: true } }
+        }
+      }),
+      this.prisma.trainingPreference.findUnique({
+        where: { userId },
+        select: {
+          targetMuscleGroups: true,
+          trainingOutcome: true,
+          equipment: true,
+          trainingLevel: true,
+          limitationsOrPainAreas: true
         }
       }),
       this.prisma.userProgressiveProfilePrompt.findMany({
@@ -72,7 +98,11 @@ export class ProgressiveProfileService {
       })
     ]);
 
-    const completedPrompts = this.getCompletedPromptKeys(nutritionPref, promptStates);
+    const completedPrompts = this.getCompletedPromptKeys(
+      nutritionPref,
+      trainingPreference,
+      promptStates
+    );
     const now = new Date();
     const skippedPromptKeys = new Set(
       promptStates
@@ -106,6 +136,7 @@ export class ProgressiveProfileService {
     }
 
     const value = this.validatePromptValue(definition, rawValue);
+    this.validateSafetySensitivePromptValue(promptKey, value);
 
     await this.prisma.$transaction(async (tx) => {
       await this.applyPromptAnswer(tx, userId, promptKey, value);
@@ -181,6 +212,7 @@ export class ProgressiveProfileService {
 
   private getCompletedPromptKeys(
     nutritionPref: NutritionSummary | null,
+    trainingPreference: TrainingPreferenceSummary | null,
     promptStates: Array<{
       promptKey: ProgressiveProfilePromptKey;
       status: ProgressiveProfilePromptStatus;
@@ -206,6 +238,26 @@ export class ProgressiveProfileService {
 
     if (nutritionPref?.mealsPerDay) {
       completed.add(ProgressiveProfilePromptKey.MEALS_PER_DAY);
+    }
+
+    if ((trainingPreference?.limitationsOrPainAreas.length ?? 0) > 0) {
+      completed.add(ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS);
+    }
+
+    if ((trainingPreference?.equipment.length ?? 0) > 0) {
+      completed.add(ProgressiveProfilePromptKey.EQUIPMENT);
+    }
+
+    if (trainingPreference?.trainingLevel) {
+      completed.add(ProgressiveProfilePromptKey.TRAINING_LEVEL);
+    }
+
+    if ((trainingPreference?.targetMuscleGroups.length ?? 0) > 0) {
+      completed.add(ProgressiveProfilePromptKey.TARGET_MUSCLE_GROUPS);
+    }
+
+    if (trainingPreference?.trainingOutcome) {
+      completed.add(ProgressiveProfilePromptKey.TRAINING_OUTCOME);
     }
 
     return [...completed];
@@ -241,6 +293,41 @@ export class ProgressiveProfileService {
       await tx.nutritionPreference.update({
         where: { userId },
         data: { mealsPerDay: value }
+      });
+      return;
+    }
+
+    if (promptKey === ProgressiveProfilePromptKey.TARGET_MUSCLE_GROUPS) {
+      await this.trainingPreferencesService.updatePartial(tx, userId, {
+        targetMuscleGroups: this.asStringList(value) as TargetMuscleGroup[]
+      });
+      return;
+    }
+
+    if (promptKey === ProgressiveProfilePromptKey.TRAINING_OUTCOME && typeof value === 'string') {
+      await this.trainingPreferencesService.updatePartial(tx, userId, {
+        trainingOutcome: value as TrainingOutcome
+      });
+      return;
+    }
+
+    if (promptKey === ProgressiveProfilePromptKey.EQUIPMENT) {
+      await this.trainingPreferencesService.updatePartial(tx, userId, {
+        equipment: this.asStringList(value) as TrainingEquipment[]
+      });
+      return;
+    }
+
+    if (promptKey === ProgressiveProfilePromptKey.TRAINING_LEVEL && typeof value === 'string') {
+      await this.trainingPreferencesService.updatePartial(tx, userId, {
+        trainingLevel: value as TrainingLevel
+      });
+      return;
+    }
+
+    if (promptKey === ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS) {
+      await this.trainingPreferencesService.updatePartial(tx, userId, {
+        limitationsOrPainAreas: this.asStringList(value)
       });
     }
   }
@@ -350,6 +437,21 @@ export class ProgressiveProfileService {
     }
 
     return Math.trunc(value);
+  }
+
+  private validateSafetySensitivePromptValue(
+    promptKey: ProgressiveProfilePromptKey,
+    value: string | string[] | number | boolean
+  ) {
+    if (promptKey !== ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS) {
+      return;
+    }
+
+    const values = this.asStringList(value);
+
+    if (values.length > 20 || values.some((item) => item.length > 120)) {
+      throw new BadRequestException('Please keep limitations or pain areas brief.');
+    }
   }
 
   private asStringList(value: unknown) {

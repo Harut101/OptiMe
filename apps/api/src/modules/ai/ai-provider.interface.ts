@@ -6,10 +6,15 @@ import {
   IntensityLevel,
   PlanQualityMode,
   PregnancyStatus,
-  SportType
+  SportType,
+  TargetMuscleGroup,
+  TrainingEquipment,
+  TrainingLevel,
+  TrainingOutcome
 } from '@prisma/client';
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
+import { SelectedProtocols } from '../protocol/protocol.types';
 
 export interface GenerateDailyPlanSafetyFeedback {
   riskLevel: 'low' | 'medium' | 'high';
@@ -41,12 +46,22 @@ export interface GenerateDailyPlanPersonalizationContext {
     illnessLikeNotesReported: boolean;
     conservativeTrainingRecommended: boolean;
   };
+  trainingPreference?: {
+    targetMuscleGroups: TargetMuscleGroup[];
+    trainingOutcome: TrainingOutcome | null;
+    equipment: TrainingEquipment[];
+    trainingLevel: TrainingLevel | null;
+    limitationsOrPainAreas: string[];
+    preferredTrainingDays: number[];
+    limitationsAreSafetySensitive: boolean;
+  };
   trainingPersonalization: {
     usesSchedule: boolean;
     usesTrainingDescriptions: boolean;
     exerciseDetailLevel: 'simple' | 'sets_reps_rest' | 'adaptive';
     futureSignals: string[];
   };
+  selectedProtocols?: SelectedProtocols;
 }
 
 export interface GenerateDailyPlanInput {

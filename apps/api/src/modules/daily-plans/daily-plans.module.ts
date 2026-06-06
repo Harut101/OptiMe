@@ -5,6 +5,7 @@ import { AiModule } from '../ai/ai.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { ProtocolModule } from '../protocol/protocol.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
 import { UsageModule } from '../usage/usage.module';
@@ -18,6 +19,7 @@ import { DailyPlansService } from './daily-plans.service';
     DailyPlanCheckInsModule,
     EntitlementsModule,
     OnboardingModule,
+    ProtocolModule,
     SafetyModule,
     SafetyAgentModule,
     UsageModule

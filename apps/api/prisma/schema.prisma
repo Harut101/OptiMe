@@ -182,6 +182,39 @@ enum DailyCheckInType {
   EVENING_REFLECTION
 }
 
+enum TrainingOutcome {
+  STRENGTH
+  MUSCLE_GROWTH
+  ENDURANCE
+  MOBILITY
+  GENERAL_FITNESS
+}
+
+enum TrainingLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum TargetMuscleGroup {
+  CHEST
+  BACK
+  LEGS
+  GLUTES
+  CORE
+  SHOULDERS
+  ARMS
+  FULL_BODY
+}
+
+enum TrainingEquipment {
+  GYM
+  HOME
+  DUMBBELLS
+  BODYWEIGHT
+  MACHINES
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -208,6 +241,7 @@ model User {
   usageLedger   UsageLedger[]
   progressiveProfilePrompts UserProgressiveProfilePrompt[]
   dailyPlanCheckIns DailyPlanCheckIn[]
+  trainingPreference TrainingPreference?
 
   @@index([createdAt])
 }
@@ -448,4 +482,19 @@ model DailyPlanCheckIn {
   @@index([userId, createdAt])
   @@index([dailyPlanId, type])
   @@index([userId, dailyPlanId])
+}
+
+model TrainingPreference {
+  id                     String              @id @default(cuid())
+  userId                 String              @unique
+  targetMuscleGroups     TargetMuscleGroup[] @default([])
+  trainingOutcome        TrainingOutcome?
+  equipment              TrainingEquipment[] @default([])
+  trainingLevel          TrainingLevel?
+  limitationsOrPainAreas String[]            @default([])
+  preferredTrainingDays  Int[]               @default([])
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

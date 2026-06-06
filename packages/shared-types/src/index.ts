@@ -42,6 +42,23 @@ export type PregnancyStatus =
   | 'BREASTFEEDING'
   | 'PREFER_NOT_TO_SAY'
   | 'UNKNOWN';
+export type TrainingOutcome =
+  | 'STRENGTH'
+  | 'MUSCLE_GROWTH'
+  | 'ENDURANCE'
+  | 'MOBILITY'
+  | 'GENERAL_FITNESS';
+export type TrainingLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export type TargetMuscleGroup =
+  | 'CHEST'
+  | 'BACK'
+  | 'LEGS'
+  | 'GLUTES'
+  | 'CORE'
+  | 'SHOULDERS'
+  | 'ARMS'
+  | 'FULL_BODY';
+export type TrainingEquipment = 'GYM' | 'HOME' | 'DUMBBELLS' | 'BODYWEIGHT' | 'MACHINES';
 
 export interface RegisterRequest {
   email: string;
@@ -96,6 +113,24 @@ export interface TrainingScheduleItemRequest {
   durationMinutes: number;
   intensity: IntensityLevel;
   description?: string;
+}
+
+export interface UpsertTrainingPreferenceRequest {
+  targetMuscleGroups?: TargetMuscleGroup[];
+  trainingOutcome?: TrainingOutcome | null;
+  equipment?: TrainingEquipment[];
+  trainingLevel?: TrainingLevel | null;
+  limitationsOrPainAreas?: string[];
+  preferredTrainingDays?: number[];
+}
+
+export interface TrainingPreferenceResponse {
+  targetMuscleGroups: TargetMuscleGroup[];
+  trainingOutcome: TrainingOutcome | null;
+  equipment: TrainingEquipment[];
+  trainingLevel: TrainingLevel | null;
+  limitationsOrPainAreas: string[];
+  preferredTrainingDays: number[];
 }
 
 export interface OnboardingProgressivePrompt {
@@ -220,6 +255,11 @@ export interface DailyPlanJson {
       | 'OpenAiProviderService'
       | 'SafeFallbackPlanFactory';
     planQualityMode?: 'BASIC' | 'PERSONALIZED' | 'ADAPTIVE';
+    protocols?: {
+      nutritionProtocolId: string;
+      trainingProtocolId: string;
+      recoveryProtocolId: string;
+    };
     fallbackReason?: string;
     safetyAgent?: {
       enabled: boolean;

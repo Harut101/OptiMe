@@ -147,6 +147,62 @@ Prompt rules:
 - Keep copy supportive and non-medical.
 - Use answers immediately in future plan context when available.
 
+## Backend API
+
+Sprint 6 Batch 2 adds protected endpoints:
+
+- `GET /v1/training-preferences`
+- `PUT /v1/training-preferences`
+
+`GET` returns the current preference row or safe empty defaults:
+
+```json
+{
+  "targetMuscleGroups": [],
+  "trainingOutcome": null,
+  "equipment": [],
+  "trainingLevel": null,
+  "limitationsOrPainAreas": [],
+  "preferredTrainingDays": []
+}
+```
+
+`PUT` upserts preferences. All fields are optional. Omitted fields stay unchanged; arrays sent as `[]` clear that field.
+
+Example:
+
+```json
+{
+  "targetMuscleGroups": ["CORE", "LEGS"],
+  "trainingOutcome": "STRENGTH",
+  "equipment": ["DUMBBELLS", "BODYWEIGHT"],
+  "trainingLevel": "BEGINNER",
+  "limitationsOrPainAreas": ["knee discomfort"],
+  "preferredTrainingDays": [1, 3, 5]
+}
+```
+
+Validation:
+
+- `targetMuscleGroups`: enum array, max 8.
+- `equipment`: enum array, max 5.
+- `trainingOutcome`: enum or `null`.
+- `trainingLevel`: enum or `null`.
+- `limitationsOrPainAreas`: string array, max 20 items, max 120 characters each.
+- `preferredTrainingDays`: integer array, values `0-6`, max 7.
+
+## Progressive Prompt Mapping
+
+Existing progressive prompt keys save into `TrainingPreference`:
+
+- `TARGET_MUSCLE_GROUPS` -> `targetMuscleGroups`
+- `TRAINING_OUTCOME` -> `trainingOutcome`
+- `EQUIPMENT` -> `equipment`
+- `TRAINING_LEVEL` -> `trainingLevel`
+- `LIMITATIONS_OR_PAIN_AREAS` -> `limitationsOrPainAreas`
+
+Answered training preference prompts should not reappear. Skipped prompts keep the existing cooldown behavior.
+
 ## Why Preferences Must Not Block Plan Generation
 
 The user should see value quickly. Missing training preferences should use safe defaults:
@@ -158,3 +214,29 @@ The user should see value quickly. Missing training preferences should use safe 
 - limitations: none reported
 
 Safety-critical signals still override defaults. If a user reports pain, dizziness, illness, exhaustion, or injury, the plan should become more conservative across all tiers.
+
+## Protocol Selection Use
+
+Sprint 6 Batch 3 uses training preferences inside deterministic protocol selection.
+
+Current protocol effects:
+
+- `trainingOutcome=MUSCLE_GROWTH` can select muscle-growth training and muscle-support nutrition.
+- `trainingOutcome=STRENGTH` can select strength training.
+- `trainingOutcome=ENDURANCE` can select endurance training.
+- `trainingOutcome=MOBILITY` can select mobility training.
+- `equipment=HOME` or `BODYWEIGHT` can select home workout guidance.
+- `trainingLevel=BEGINNER` with gym or machines can select beginner gym guidance.
+- `limitationsOrPainAreas` always has safety priority and selects conservative training/recovery.
+
+## Batch Boundary
+
+Sprint 6 Batch 2 stores training preferences and exposes them to planning context.
+Sprint 6 Batch 3 uses them for protocol selection.
+
+Still deferred:
+
+- `training.exercises`
+- mobile training preference UI
+- ExerciseLibrary
+- exercise media

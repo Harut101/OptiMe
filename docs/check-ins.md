@@ -93,7 +93,7 @@ If recent check-ins indicate pain, dizziness, illness, high tiredness, or extrem
 
 ## Sprint 6 Protocol Implications
 
-Sprint 6 should use check-ins to influence deterministic protocol selection before AI generation.
+Sprint 6 Batch 3 uses check-ins to influence deterministic protocol selection before AI generation.
 
 Examples:
 
@@ -102,6 +102,10 @@ Examples:
 - Repeated skipped workouts can reduce intensity, duration, or complexity instead of adding pressure.
 - Completed workouts can support normal or gently progressive guidance when no safety concerns are present.
 - Skipped meals can make nutrition guidance simpler and more practical.
+
+Check-ins influence safety and recovery for all tiers. This is not paywalled.
+
+The protocol selector uses summary flags only. It does not store full private check-in notes in protocol debug metadata.
 
 Do not overbuild analytics yet. Check-ins should influence the next plan context and protocol selection, not create dashboards in Sprint 6.
 

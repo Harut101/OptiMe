@@ -94,6 +94,24 @@ export const trainingIntentSchema = z.object({
   noTrainingPlanned: z.boolean()
 });
 
+export const trainingPreferenceSchema = z.object({
+  targetMuscleGroups: z
+    .array(z.enum(['CHEST', 'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY']))
+    .max(8)
+    .optional(),
+  trainingOutcome: z
+    .enum(['STRENGTH', 'MUSCLE_GROWTH', 'ENDURANCE', 'MOBILITY', 'GENERAL_FITNESS'])
+    .nullable()
+    .optional(),
+  equipment: z
+    .array(z.enum(['GYM', 'HOME', 'DUMBBELLS', 'BODYWEIGHT', 'MACHINES']))
+    .max(5)
+    .optional(),
+  trainingLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).nullable().optional(),
+  limitationsOrPainAreas: z.array(z.string().max(120)).max(20).optional(),
+  preferredTrainingDays: z.array(z.coerce.number().int().min(0).max(6)).max(7).optional()
+});
+
 export const progressivePromptAnswerSchema = z.object({
   value: z.union([
     z.string(),
@@ -183,6 +201,13 @@ export const dailyPlanJsonSchema = z.object({
         'SafeFallbackPlanFactory'
       ]),
       planQualityMode: z.enum(['BASIC', 'PERSONALIZED', 'ADAPTIVE']).optional(),
+      protocols: z
+        .object({
+          nutritionProtocolId: z.string(),
+          trainingProtocolId: z.string(),
+          recoveryProtocolId: z.string()
+        })
+        .optional(),
       fallbackReason: z.string().optional(),
       safetyAgent: z
         .object({
