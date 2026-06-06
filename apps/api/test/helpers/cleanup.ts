@@ -4,8 +4,10 @@ export async function cleanupDatabase(prisma: PrismaService) {
   assertTestDatabase();
 
   await prisma.aiOperationLog.deleteMany();
+  await prisma.usageLedger.deleteMany();
   await prisma.dailyPlanFeedback.deleteMany();
   await prisma.dailyPlan.deleteMany();
+  await prisma.subscription.deleteMany();
   await prisma.trainingScheduleItem.deleteMany();
   await prisma.allergy.deleteMany();
   await prisma.excludedFood.deleteMany();

@@ -20,8 +20,12 @@ export const SUPPORTIVE_SAFETY_MESSAGES = {
   missingProfileForGoal: 'Please complete your profile before setting a weight goal.',
   adultExtremeWeightGoal:
     "Let's choose a steadier goal that supports energy, training, and recovery.",
+  pregnancyWeightGoal:
+    "Let's keep this goal focused on steady energy, recovery, hydration, and balanced habits. For pregnancy, postpartum, or breastfeeding-specific changes, check with a healthcare provider.",
   unsafeTrainingIntensity:
     "Let's keep this session safer by lowering the intensity or shortening the duration.",
+  pregnancyPlanUnsafe:
+    'The generated plan included guidance that is not conservative enough for pregnancy, postpartum, or breastfeeding context.',
   unsafeTrainingDescription:
     'If you feel pain, illness, dizziness, or exhaustion, choose rest or light movement instead of high intensity.',
   foodPreferenceConflict:

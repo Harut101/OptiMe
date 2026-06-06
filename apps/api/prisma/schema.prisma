@@ -101,6 +101,60 @@ enum AiOperationStatus {
   ERROR
 }
 
+enum SubscriptionPlan {
+  FREE
+  PLUS
+  PRO
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  GRACE_PERIOD
+  CANCELED
+  EXPIRED
+  PAST_DUE
+}
+
+enum SubscriptionProvider {
+  APP_STORE
+  GOOGLE_PLAY
+  DEV
+}
+
+enum SubscriptionEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PlanQualityMode {
+  BASIC
+  PERSONALIZED
+  ADAPTIVE
+}
+
+enum PregnancyStatus {
+  NOT_PREGNANT
+  PREGNANT
+  POSTPARTUM
+  BREASTFEEDING
+  PREFER_NOT_TO_SAY
+  UNKNOWN
+}
+
+enum UsagePeriodType {
+  DAILY
+  MONTHLY
+}
+
+enum UsageFeature {
+  DAILY_PLAN_GENERATION
+  DAILY_PLAN_REFRESH
+  AI_DAILY_PLAN_GENERATION
+  AI_SAFETY_AGENT_REVIEW
+  FUTURE_AI_COACH_MESSAGE
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -122,24 +176,28 @@ model User {
   dailyPlans    DailyPlan[]
   planFeedback  DailyPlanFeedback[]
   aiOperationLogs AiOperationLog[]
+  subscriptions Subscription[]
+  usageLedger   UsageLedger[]
 
   @@index([createdAt])
 }
 
 model Profile {
-  id            String        @id @default(cuid())
-  userId        String        @unique
-  gender        String?
-  dateOfBirth   DateTime
-  heightCm      Float
-  weightKg      Float
-  activityLevel ActivityLevel
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  gender          String?
+  pregnancyStatus PregnancyStatus @default(UNKNOWN)
+  dateOfBirth     DateTime
+  heightCm        Float
+  weightKg        Float
+  activityLevel   ActivityLevel
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([dateOfBirth])
+  @@index([pregnancyStatus])
 }
 
 model Goal {
@@ -276,4 +334,48 @@ model AiOperationLog {
   @@index([feature, createdAt])
   @@index([provider, createdAt])
   @@index([status, createdAt])
+}
+
+model Subscription {
+  id                     String                  @id @default(cuid())
+  userId                 String
+  plan                   SubscriptionPlan
+  status                 SubscriptionStatus
+  provider               SubscriptionProvider
+  environment            SubscriptionEnvironment
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  providerTransactionId  String?
+  originalTransactionId  String?
+  providerProductId      String?
+  startsAt               DateTime
+  expiresAt              DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startsAt])
+  @@index([userId, status])
+  @@index([provider, providerSubscriptionId])
+  @@index([originalTransactionId])
+}
+
+model UsageLedger {
+  id          String          @id @default(cuid())
+  userId      String
+  feature     UsageFeature
+  periodType  UsagePeriodType
+  periodStart DateTime
+  count       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature, periodType, periodStart])
+  @@index([userId, periodStart])
+  @@index([feature, periodStart])
+  @@index([userId, feature, periodType, periodStart])
 }

@@ -1,19 +1,35 @@
-import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   AiOperationFeature,
   AiOperationProvider,
   AiOperationStatus,
   DailyReadinessLevel,
+  PlanFeedbackRating,
+  PlanQualityMode,
   PlanStatus,
-  Prisma
+  Prisma,
+  UsageFeature,
+  UsagePeriodType
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
-import { AiProvider, GenerateDailyPlanSafetyFeedback } from '../ai/ai-provider.interface';
+import {
+  AiProvider,
+  GenerateDailyPlanPersonalizationContext,
+  GenerateDailyPlanSafetyFeedback
+} from '../ai/ai-provider.interface';
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
+import { FeatureAccessService } from '../entitlements/feature-access.service';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
@@ -24,6 +40,7 @@ import {
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
+import { UsageGuardService } from '../usage/usage-guard.service';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
@@ -45,6 +62,8 @@ export class DailyPlansService {
     private readonly configService: ConfigService,
     private readonly safetyService: SafetyService,
     private readonly aiOperationLogs: AiOperationLogsService,
+    private readonly featureAccessService: FeatureAccessService,
+    private readonly usageGuardService: UsageGuardService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -98,10 +117,15 @@ export class DailyPlansService {
       return this.toResponse(existingPlan);
     }
 
+    this.assertReadyToGenerate(user);
+    await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate));
+
     const operationStartedAt = Date.now();
 
     try {
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
+      const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
+      const personalizationContext = await this.buildPersonalizationContext(userId, planQualityMode);
       const blockedFoods = {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
@@ -109,7 +133,9 @@ export class DailyPlansService {
       const providerPlanResult = await this.generateProviderPlanOrFallback({
         user,
         planLocalDate,
-        planTimezone
+        planTimezone,
+        planQualityMode,
+        personalizationContext
       });
       let safePlanResult = await this.validateProviderPlan({
         providerPlan: providerPlanResult.planJson,
@@ -130,6 +156,8 @@ export class DailyPlansService {
           user,
           planLocalDate,
           planTimezone,
+          planQualityMode,
+          personalizationContext,
           safetyFeedback: safePlanResult.safetyRetryRequest
         });
 
@@ -163,6 +191,10 @@ export class DailyPlansService {
       } else {
         this.logger.log('safety retry triggered=false');
       }
+      safePlanResult = {
+        ...safePlanResult,
+        planJson: this.withPlanQualityModeDebug(safePlanResult.planJson, planQualityMode)
+      };
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
       const status = safePlanResult.status;
       this.logger.log(
@@ -263,9 +295,11 @@ export class DailyPlansService {
         timezone: true,
         isMinor: true,
         safeMode: true,
+        privacyConsentedAt: true,
         profile: {
           select: {
             gender: true,
+            pregnancyStatus: true,
             dateOfBirth: true,
             heightCm: true,
             weightKg: true,
@@ -355,10 +389,53 @@ export class DailyPlansService {
     return Math.min(Math.max(Math.trunc(parsedLimit), 1), 30);
   }
 
+  private assertReadyToGenerate(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>) {
+    if (
+      !user.privacyConsentedAt ||
+      !user.profile ||
+      !user.goal ||
+      !user.nutritionPref ||
+      user.schedules.length === 0
+    ) {
+      throw new BadRequestException('Please complete onboarding before generating a daily plan.');
+    }
+  }
+
+  private async consumeDailyPlanUsage(userId: string, isRefresh: boolean) {
+    const productFeature = isRefresh
+      ? UsageFeature.DAILY_PLAN_REFRESH
+      : UsageFeature.DAILY_PLAN_GENERATION;
+    const usageChecks: Array<{ feature: UsageFeature; periodType: UsagePeriodType }> = [
+      {
+        feature: productFeature,
+        periodType: UsagePeriodType.DAILY
+      }
+    ];
+
+    if (this.getProviderDebugName() === 'openai') {
+      usageChecks.push({
+        feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
+        periodType: UsagePeriodType.DAILY
+      });
+    }
+
+    await Promise.all(
+      usageChecks.map((check) =>
+        this.usageGuardService.assertCanUse(userId, check.feature, check.periodType)
+      )
+    );
+
+    for (const check of usageChecks) {
+      await this.usageGuardService.checkAndConsume(userId, check.feature, check.periodType);
+    }
+  }
+
   private async generateProviderPlanOrFallback(input: {
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
     planLocalDate: string;
     planTimezone: string;
+    planQualityMode: PlanQualityMode;
+    personalizationContext: GenerateDailyPlanPersonalizationContext;
     safetyFeedback?: GenerateDailyPlanSafetyFeedback;
   }) {
     try {
@@ -387,6 +464,8 @@ export class DailyPlansService {
         safeMode: input.user.safeMode,
         planLocalDate: input.planLocalDate,
         planTimezone: input.planTimezone,
+        planQualityMode: input.planQualityMode,
+        personalizationContext: input.personalizationContext,
         safetyFeedback: input.safetyFeedback
       });
 
@@ -473,6 +552,28 @@ export class DailyPlansService {
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
           reasons: planSafety.reasons
+        })
+      };
+    }
+
+    const pregnancyPlanSafety = this.safetyService.validatePregnancySensitivePlanSafety(
+      normalizedFoodNames.planJson,
+      input.user.profile?.pregnancyStatus
+    );
+
+    if (!pregnancyPlanSafety.passed) {
+      this.logger.warn(
+        [
+          'SafetyService failed',
+          `pregnancy-sensitive conflict at ${pregnancyPlanSafety.matchedPath ?? 'unknown'}; matchedText=${pregnancyPlanSafety.matchedText ?? 'unknown'}`
+        ].join(': ')
+      );
+      return {
+        status: PlanStatus.FALLBACK,
+        planJson: createSafeFallbackPlan({
+          planLocalDate: input.planLocalDate,
+          planTimezone: input.planTimezone,
+          reasons: pregnancyPlanSafety.reasons
         })
       };
     }
@@ -646,6 +747,8 @@ export class DailyPlansService {
       deterministicSafetyContext: {
         safeMode: input.user.safeMode,
         isMinor: input.user.isMinor,
+        gender: input.user.profile?.gender ?? null,
+        pregnancyStatus: input.user.profile?.pregnancyStatus ?? 'UNKNOWN',
         allergies: input.blockedFoods.allergies,
         excludedFoods: input.blockedFoods.excludedFoods,
         deterministicSafetyPassed: true
@@ -708,7 +811,25 @@ export class DailyPlansService {
         provider: planJson.debug.provider,
         generatedBy: planJson.debug.generatedBy,
         ...(planJson.debug.fallbackReason ? { fallbackReason: planJson.debug.fallbackReason } : {}),
+        ...(planJson.debug.planQualityMode ? { planQualityMode: planJson.debug.planQualityMode } : {}),
         safetyAgent: safetyAgentDebug
+      }
+    };
+  }
+
+  private withPlanQualityModeDebug(
+    planJson: DailyPlanJson,
+    planQualityMode: PlanQualityMode
+  ): DailyPlanJson {
+    if (!planJson.debug) {
+      return planJson;
+    }
+
+    return {
+      ...planJson,
+      debug: {
+        ...planJson.debug,
+        planQualityMode
       }
     };
   }
@@ -728,6 +849,158 @@ export class DailyPlansService {
   private getFallbackReason(planJson: unknown) {
     const debug = (planJson as { debug?: { fallbackReason?: unknown } })?.debug;
     return typeof debug?.fallbackReason === 'string' ? debug.fallbackReason : undefined;
+  }
+
+  private async buildPersonalizationContext(
+    userId: string,
+    planQualityMode: PlanQualityMode
+  ): Promise<GenerateDailyPlanPersonalizationContext> {
+    const baseContext: GenerateDailyPlanPersonalizationContext = {
+      mode: planQualityMode,
+      contextLevel: this.getContextLevel(planQualityMode),
+      guidance: this.getPersonalizationGuidance(planQualityMode),
+      trainingPersonalization: this.getTrainingPersonalizationContext(planQualityMode)
+    };
+
+    if (planQualityMode === PlanQualityMode.BASIC) {
+      return baseContext;
+    }
+
+    const feedbackLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
+    const historyLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
+    const [recentFeedback, recentPlans] = await Promise.all([
+      this.prisma.dailyPlanFeedback.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        take: feedbackLimit,
+        select: {
+          rating: true,
+          tags: true
+        }
+      }),
+      this.prisma.dailyPlan.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        take: historyLimit,
+        select: {
+          status: true,
+          readinessLevel: true
+        }
+      })
+    ]);
+
+    return {
+      ...baseContext,
+      feedbackSummary: {
+        helpfulCount: recentFeedback.filter(
+          (feedback) => feedback.rating === PlanFeedbackRating.HELPFUL
+        ).length,
+        notHelpfulCount: recentFeedback.filter(
+          (feedback) => feedback.rating === PlanFeedbackRating.NOT_HELPFUL
+        ).length,
+        commonTags: this.getCommonFeedbackTags(recentFeedback.flatMap((feedback) => feedback.tags))
+      },
+      historySummary: {
+        recentPlanCount: recentPlans.length,
+        readinessLevels: [...new Set(recentPlans.map((plan) => plan.readinessLevel))],
+        fallbackCount: recentPlans.filter((plan) => plan.status === PlanStatus.FALLBACK).length
+      }
+    };
+  }
+
+  private getContextLevel(planQualityMode: PlanQualityMode) {
+    switch (planQualityMode) {
+      case PlanQualityMode.ADAPTIVE:
+        return 'adaptive' as const;
+      case PlanQualityMode.PERSONALIZED:
+        return 'personalized' as const;
+      case PlanQualityMode.BASIC:
+      default:
+        return 'minimal' as const;
+    }
+  }
+
+  private getPersonalizationGuidance(planQualityMode: PlanQualityMode) {
+    switch (planQualityMode) {
+      case PlanQualityMode.ADAPTIVE:
+        return [
+          'Use recent feedback and plan history summaries to adapt the plan.',
+          'Time meals around scheduled training when helpful.',
+          'Use readiness placeholders for future recovery, sleep, strain, and WHOOP signals.',
+          'Make training guidance adaptive without inventing unavailable recovery data.'
+        ];
+      case PlanQualityMode.PERSONALIZED:
+        return [
+          'Use preferences, schedule, goal, and feedback summaries more strongly.',
+          'Make meals and training more specific than BASIC.',
+          'Suggest practical exercises from current schedule and descriptions when safe.'
+        ];
+      case PlanQualityMode.BASIC:
+      default:
+        return [
+          'Keep the plan simple, safe, and practical.',
+          'Use limited context and avoid advanced progression.'
+        ];
+    }
+  }
+
+  private getTrainingPersonalizationContext(planQualityMode: PlanQualityMode) {
+    switch (planQualityMode) {
+      case PlanQualityMode.ADAPTIVE:
+        return {
+          usesSchedule: true,
+          usesTrainingDescriptions: true,
+          exerciseDetailLevel: 'adaptive' as const,
+          futureSignals: [
+            'targetMuscleGroups',
+            'trainingOutcome',
+            'equipment',
+            'trainingLevel',
+            'limitationsOrPainAreas',
+            'whoopRecovery',
+            'whoopSleep',
+            'whoopStrain'
+          ]
+        };
+      case PlanQualityMode.PERSONALIZED:
+        return {
+          usesSchedule: true,
+          usesTrainingDescriptions: true,
+          exerciseDetailLevel: 'sets_reps_rest' as const,
+          futureSignals: [
+            'targetMuscleGroups',
+            'trainingOutcome',
+            'equipment',
+            'trainingLevel',
+            'limitationsOrPainAreas'
+          ]
+        };
+      case PlanQualityMode.BASIC:
+      default:
+        return {
+          usesSchedule: true,
+          usesTrainingDescriptions: false,
+          exerciseDetailLevel: 'simple' as const,
+          futureSignals: [
+            'targetMuscleGroups',
+            'trainingOutcome',
+            'equipment',
+            'trainingLevel',
+            'limitationsOrPainAreas'
+          ]
+        };
+    }
+  }
+
+  private getCommonFeedbackTags(tags: string[]) {
+    const counts = new Map<string, number>();
+
+    tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1));
+
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([tag]) => tag);
   }
 
   private async recordDailyPlanAiOperation(input: {

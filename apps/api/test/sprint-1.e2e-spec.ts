@@ -1,5 +1,17 @@
 import request from 'supertest';
-import { AiOperationFeature, AiOperationProvider, AiOperationStatus } from '@prisma/client';
+import {
+  AiOperationFeature,
+  AiOperationProvider,
+  AiOperationStatus,
+  PlanQualityMode,
+  PregnancyStatus,
+  SubscriptionEnvironment,
+  SubscriptionPlan,
+  SubscriptionProvider,
+  SubscriptionStatus,
+  UsageFeature,
+  UsagePeriodType
+} from '@prisma/client';
 
 import { AiOperationLogsService } from '../src/modules/ai-operation-logs/ai-operation-logs.service';
 import { AI_PROVIDER } from '../src/modules/ai/ai-provider.token';
@@ -7,6 +19,7 @@ import { OPENAI_CLIENT_FACTORY } from '../src/modules/ai/open-ai-client.factory'
 import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-plan-food-name-normalizer';
 import { dailyPlanJsonSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { createMockDailyPlan } from '../src/modules/daily-plans/templates/mock-daily-plan.factory';
+import { FeatureAccessService } from '../src/modules/entitlements/feature-access.service';
 import { SafetyService } from '../src/modules/safety/safety.service';
 import { SafetyAgent } from '../src/modules/safety-agent/safety-agent.interface';
 import { safetyAgentReviewSchema } from '../src/modules/safety-agent/safety-agent-review.schema';
@@ -15,6 +28,9 @@ import {
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
 } from '../src/modules/safety-agent/safety-agent.token';
+import { UsageGuardService } from '../src/modules/usage/usage-guard.service';
+import { UsageLedgerService } from '../src/modules/usage/usage-ledger.service';
+import { UsageLimitExceededException } from '../src/modules/usage/usage-limit-exceeded.exception';
 import { cleanupDatabase } from './helpers/cleanup';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -83,6 +99,436 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(me.body.passwordHash).toBeUndefined();
   });
 
+  it('requires auth for entitlement summary', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/me/entitlements').expect(401);
+  });
+
+  it('resolves no subscription to FREE and BASIC entitlement summary', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toEqual({
+      currentPlan: 'FREE',
+      planQualityMode: 'BASIC',
+      isPremium: false,
+      source: 'default_free',
+      features: expectedFeaturesForPlan('FREE')
+    });
+  });
+
+  it.each([
+    [SubscriptionPlan.PLUS, 'PERSONALIZED'],
+    [SubscriptionPlan.PRO, 'ADAPTIVE']
+  ])('resolves active %s subscription to the expected entitlement summary', async (plan, mode) => {
+    const user = await registerTestUser(ctx.app);
+    const subscription = await createTestSubscription(ctx, user.user.id, {
+      plan,
+      status: SubscriptionStatus.ACTIVE
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toEqual({
+      currentPlan: plan,
+      planQualityMode: mode,
+      isPremium: true,
+      activeSubscriptionId: subscription.id,
+      source: 'subscription',
+      features: expectedFeaturesForPlan(plan)
+    });
+  });
+
+  it('resolves expired subscription to FREE and BASIC', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.EXPIRED,
+      startsAt: daysFromNow(-30),
+      expiresAt: daysFromNow(-1)
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toMatchObject({
+      currentPlan: 'FREE',
+      planQualityMode: 'BASIC',
+      isPremium: false,
+      source: 'default_free',
+      features: expectedFeaturesForPlan('FREE')
+    });
+    expect(entitlements.body.activeSubscriptionId).toBeUndefined();
+  });
+
+  it('keeps canceled subscription active until expiresAt', async () => {
+    const user = await registerTestUser(ctx.app);
+    const subscription = await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.CANCELED,
+      startsAt: daysFromNow(-30),
+      expiresAt: daysFromNow(5),
+      canceledAt: daysFromNow(-1)
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toMatchObject({
+      currentPlan: 'PLUS',
+      planQualityMode: 'PERSONALIZED',
+      isPremium: true,
+      activeSubscriptionId: subscription.id,
+      source: 'subscription',
+      features: expectedFeaturesForPlan('PLUS')
+    });
+  });
+
+  it('resolves canceled subscription after expiresAt to FREE', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.CANCELED,
+      startsAt: daysFromNow(-30),
+      expiresAt: daysFromNow(-1),
+      canceledAt: daysFromNow(-2)
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toMatchObject({
+      currentPlan: 'FREE',
+      planQualityMode: 'BASIC',
+      isPremium: false,
+      source: 'default_free',
+      features: expectedFeaturesForPlan('FREE')
+    });
+  });
+
+  it('resolves overlapping PLUS and PRO subscriptions to PRO', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE,
+      startsAt: daysFromNow(-20),
+      expiresAt: daysFromNow(10)
+    });
+    const proSubscription = await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.ACTIVE,
+      startsAt: daysFromNow(-10),
+      expiresAt: daysFromNow(20)
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toMatchObject({
+      currentPlan: 'PRO',
+      planQualityMode: 'ADAPTIVE',
+      isPremium: true,
+      activeSubscriptionId: proSubscription.id,
+      source: 'subscription',
+      features: expectedFeaturesForPlan('PRO')
+    });
+  });
+
+  it('treats PAST_DUE subscription as FREE for now', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.PAST_DUE,
+      startsAt: daysFromNow(-10),
+      expiresAt: daysFromNow(20)
+    });
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(entitlements.body).toMatchObject({
+      currentPlan: 'FREE',
+      planQualityMode: 'BASIC',
+      isPremium: false,
+      source: 'default_free',
+      features: expectedFeaturesForPlan('FREE')
+    });
+  });
+
+  it('does not let client input influence entitlement response', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const entitlements = await request(ctx.app.getHttpServer())
+      .get('/v1/me/entitlements?currentPlan=PRO&planQualityMode=ADAPTIVE')
+      .set(authHeader(user.accessToken))
+      .send({
+        currentPlan: 'PRO',
+        planQualityMode: 'ADAPTIVE',
+        activeSubscriptionId: 'client-controlled'
+      })
+      .expect(200);
+
+    expect(entitlements.body).toEqual({
+      currentPlan: 'FREE',
+      planQualityMode: 'BASIC',
+      isPremium: false,
+      source: 'default_free',
+      features: expectedFeaturesForPlan('FREE')
+    });
+  });
+
+  it('FeatureAccessService resolves plan quality modes and feature flags by tier', async () => {
+    const featureAccess = ctx.app.get(FeatureAccessService);
+    const freeUser = await registerTestUser(ctx.app, 'feature-free@example.com');
+    const plusUser = await registerTestUser(ctx.app, 'feature-plus@example.com');
+    const proUser = await registerTestUser(ctx.app, 'feature-pro@example.com');
+
+    await createTestSubscription(ctx, plusUser.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
+    await createTestSubscription(ctx, proUser.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.ACTIVE
+    });
+
+    await expect(featureAccess.getPlanQualityMode(freeUser.user.id)).resolves.toBe(
+      PlanQualityMode.BASIC
+    );
+    await expect(featureAccess.getPlanQualityMode(plusUser.user.id)).resolves.toBe(
+      PlanQualityMode.PERSONALIZED
+    );
+    await expect(featureAccess.getPlanQualityMode(proUser.user.id)).resolves.toBe(
+      PlanQualityMode.ADAPTIVE
+    );
+
+    await expect(featureAccess.canGenerateDailyPlan(freeUser.user.id)).resolves.toBe(true);
+    await expect(featureAccess.canRefreshPlan(freeUser.user.id)).resolves.toBe(true);
+    await expect(featureAccess.canUseOpenAIProvider(freeUser.user.id)).resolves.toBe(true);
+    await expect(featureAccess.canUseAdvancedPersonalization(freeUser.user.id)).resolves.toBe(
+      false
+    );
+    await expect(featureAccess.canUseFeedbackPersonalization(plusUser.user.id)).resolves.toBe(
+      true
+    );
+    await expect(featureAccess.canUseWhoop(plusUser.user.id)).resolves.toBe(false);
+    await expect(featureAccess.canUseWhoop(proUser.user.id)).resolves.toBe(true);
+    await expect(featureAccess.canUseAiCoach(proUser.user.id)).resolves.toBe(true);
+  });
+
+  it('tracks usage with unique period rows and concurrency-safe increments', async () => {
+    const user = await registerTestUser(ctx.app);
+    const usageLedger = ctx.app.get(UsageLedgerService);
+    const dailyPeriod = usageLedger.getPeriodStart(
+      UsagePeriodType.DAILY,
+      new Date('2026-06-06T22:00:00.000Z'),
+      'Asia/Yerevan'
+    );
+    const monthlyPeriod = usageLedger.getPeriodStart(
+      UsagePeriodType.MONTHLY,
+      new Date('2026-06-20T12:00:00.000Z'),
+      'UTC'
+    );
+
+    expect(dailyPeriod.toISOString()).toBe('2026-06-07T00:00:00.000Z');
+    expect(monthlyPeriod.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+    await expect(
+      usageLedger.getUsage(
+        user.user.id,
+        UsageFeature.DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(0);
+
+    await usageLedger.incrementUsage(
+      user.user.id,
+      UsageFeature.DAILY_PLAN_GENERATION,
+      UsagePeriodType.DAILY
+    );
+    await usageLedger.incrementUsage(
+      user.user.id,
+      UsageFeature.DAILY_PLAN_GENERATION,
+      UsagePeriodType.DAILY,
+      2
+    );
+
+    await Promise.all(
+      Array.from({ length: 7 }, () =>
+        usageLedger.incrementUsage(
+          user.user.id,
+          UsageFeature.DAILY_PLAN_GENERATION,
+          UsagePeriodType.DAILY
+        )
+      )
+    );
+
+    const rows = await ctx.prisma.usageLedger.findMany({
+      where: {
+        userId: user.user.id,
+        feature: UsageFeature.DAILY_PLAN_GENERATION,
+        periodType: UsagePeriodType.DAILY
+      }
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].count).toBe(10);
+  });
+
+  it('resolves usage limits by backend entitlements and never blocks safety tracking', async () => {
+    const freeUser = await registerTestUser(ctx.app, 'usage-free@example.com');
+    const plusUser = await registerTestUser(ctx.app, 'usage-plus@example.com');
+    const proUser = await registerTestUser(ctx.app, 'usage-pro@example.com');
+    const usageGuard = ctx.app.get(UsageGuardService);
+    await createTestSubscription(ctx, plusUser.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
+    await createTestSubscription(ctx, proUser.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.ACTIVE
+    });
+
+    await expect(
+      usageGuard.getLimit(
+        freeUser.user.id,
+        UsageFeature.DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+    await expect(
+      usageGuard.getLimit(
+        plusUser.user.id,
+        UsageFeature.DAILY_PLAN_REFRESH,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(5);
+    await expect(
+      usageGuard.getLimit(
+        proUser.user.id,
+        UsageFeature.AI_DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(20);
+    await expect(
+      usageGuard.getLimit(
+        freeUser.user.id,
+        UsageFeature.AI_SAFETY_AGENT_REVIEW,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBeNull();
+
+    await usageGuard.assertCanUse(
+      freeUser.user.id,
+      UsageFeature.DAILY_PLAN_REFRESH,
+      UsagePeriodType.DAILY
+    );
+    await usageGuard.consume(
+      freeUser.user.id,
+      UsageFeature.DAILY_PLAN_REFRESH,
+      UsagePeriodType.DAILY
+    );
+    await expect(
+      usageGuard.assertCanUse(
+        freeUser.user.id,
+        UsageFeature.DAILY_PLAN_REFRESH,
+        UsagePeriodType.DAILY
+      )
+    ).rejects.toBeInstanceOf(UsageLimitExceededException);
+
+    await usageGuard.checkAndConsume(
+      freeUser.user.id,
+      UsageFeature.AI_DAILY_PLAN_GENERATION,
+      UsagePeriodType.DAILY
+    );
+    await expect(
+      usageGuard.checkAndConsume(
+        freeUser.user.id,
+        UsageFeature.AI_DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'USAGE_LIMIT_REACHED',
+        feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
+        currentPlan: SubscriptionPlan.FREE,
+        limit: 1,
+        periodType: UsagePeriodType.DAILY,
+        upgradeSuggestion: 'PLUS'
+      })
+    });
+
+    await Promise.all(
+      Array.from({ length: 3 }, () =>
+        usageGuard.checkAndConsume(
+          freeUser.user.id,
+          UsageFeature.AI_SAFETY_AGENT_REVIEW,
+          UsagePeriodType.DAILY
+        )
+      )
+    );
+    await expect(
+      usageGuard.getRemaining(
+        freeUser.user.id,
+        UsageFeature.AI_SAFETY_AGENT_REVIEW,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBeNull();
+  });
+
+  it('returns authenticated usage summary without trusting client plan input', async () => {
+    const user = await registerTestUser(ctx.app, 'usage-summary@example.com');
+
+    await request(ctx.app.getHttpServer()).get('/v1/me/usage').expect(401);
+
+    await ctx.app.get(UsageLedgerService).incrementUsage(
+      user.user.id,
+      UsageFeature.DAILY_PLAN_GENERATION,
+      UsagePeriodType.DAILY
+    );
+
+    const summary = await request(ctx.app.getHttpServer())
+      .get('/v1/me/usage?currentPlan=PRO')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(summary.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          feature: UsageFeature.DAILY_PLAN_GENERATION,
+          periodType: UsagePeriodType.DAILY,
+          count: 1,
+          limit: 1,
+          remaining: 0
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.DAILY_PLAN_REFRESH,
+          periodType: UsagePeriodType.DAILY,
+          count: 0,
+          limit: 1,
+          remaining: 1
+        })
+      ])
+    );
+    expect(summary.body.items).toHaveLength(3);
+    expect(summary.body.items[0].resetAt).toEqual(expect.any(String));
+  });
+
   it('derives isMinor and safeMode from dateOfBirth and rejects client safeMode', async () => {
     const user = await registerTestUser(ctx.app);
 
@@ -114,6 +560,49 @@ describe('Sprint 1 backend vertical slice', () => {
 
     expect(profile.body.user.isMinor).toBe(true);
     expect(profile.body.user.safeMode).toBe(true);
+  });
+
+  it('defaults pregnancyStatus to UNKNOWN and saves optional pregnancy-sensitive statuses', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const defaultProfile = await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'Profile',
+        dateOfBirth: '1990-01-01',
+        heightCm: 170,
+        weightKg: 70,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+
+    expect(defaultProfile.body.profile.pregnancyStatus).toBe(PregnancyStatus.UNKNOWN);
+
+    for (const status of [
+      PregnancyStatus.PREGNANT,
+      PregnancyStatus.POSTPARTUM,
+      PregnancyStatus.BREASTFEEDING
+    ]) {
+      const response = await request(ctx.app.getHttpServer())
+        .put('/v1/profile')
+        .set(authHeader(user.accessToken))
+        .send({
+          firstName: 'Profile',
+          gender: 'female',
+          pregnancyStatus: status,
+          dateOfBirth: '1990-01-01',
+          heightCm: 170,
+          weightKg: 70,
+          activityLevel: 'MODERATE',
+          privacyConsentAccepted: true
+        })
+        .expect(200);
+
+      expect(response.body.profile.pregnancyStatus).toBe(status);
+      expect(response.body.user.safeMode).toBe(false);
+    }
   });
 
   it('saves goals, nutrition preferences, training schedule, and onboarding status', async () => {
@@ -252,6 +741,253 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(JSON.stringify(regenerated.body.plan)).toContain('Second');
   });
 
+  it('consumes generation usage, keeps Today reads free, and blocks a second Free generation attempt', async () => {
+    const user = await registerTestUser(ctx.app, 'usage-generation-integration@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'UsageGenerate');
+
+    const first = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/today')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+
+    await ctx.prisma.dailyPlan.delete({ where: { id: first.body.id } });
+    const blocked = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(429);
+
+    expect(blocked.body).toMatchObject({
+      code: 'USAGE_LIMIT_REACHED',
+      feature: UsageFeature.DAILY_PLAN_GENERATION,
+      currentPlan: SubscriptionPlan.FREE,
+      limit: 1,
+      periodType: UsagePeriodType.DAILY,
+      upgradeSuggestion: 'PLUS'
+    });
+  });
+
+  it('consumes refresh usage and blocks a second Free refresh same day', async () => {
+    const user = await registerTestUser(ctx.app, 'usage-refresh-integration@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'RefreshOne');
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'RefreshTwo',
+        dateOfBirth: '1990-01-01',
+        heightCm: 180,
+        weightKg: 80,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const blocked = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(429);
+
+    expect(blocked.body).toMatchObject({
+      code: 'USAGE_LIMIT_REACHED',
+      feature: UsageFeature.DAILY_PLAN_REFRESH,
+      currentPlan: SubscriptionPlan.FREE,
+      limit: 1,
+      periodType: UsagePeriodType.DAILY,
+      upgradeSuggestion: 'PLUS'
+    });
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.DAILY_PLAN_REFRESH,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+  });
+
+  it('allows Plus and Pro users to generate and refresh above Free limits', async () => {
+    const plusUser = await registerTestUser(ctx.app, 'usage-plus-integration@example.com');
+    const proUser = await registerTestUser(ctx.app, 'usage-pro-integration@example.com');
+    await completeRequiredOnboarding(ctx.app, plusUser.accessToken, 'PlusUsage');
+    await completeRequiredOnboarding(ctx.app, proUser.accessToken, 'ProUsage');
+    await createTestSubscription(ctx, plusUser.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
+    await createTestSubscription(ctx, proUser.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.ACTIVE
+    });
+
+    for (const user of [plusUser, proUser]) {
+      await request(ctx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: false })
+        .expect(201);
+
+      for (const name of ['RefreshA', 'RefreshB']) {
+        await request(ctx.app.getHttpServer())
+          .put('/v1/profile')
+          .set(authHeader(user.accessToken))
+          .send({
+            firstName: name,
+            dateOfBirth: '1990-01-01',
+            heightCm: 180,
+            weightKg: 80,
+            activityLevel: 'MODERATE',
+            privacyConsentAccepted: true
+          })
+          .expect(200);
+
+        await request(ctx.app.getHttpServer())
+          .post('/v1/daily-plans/generate')
+          .set(authHeader(user.accessToken))
+          .send({ forceRegenerate: true })
+          .expect(201);
+      }
+    }
+  });
+
+  it('does not consume usage for auth failures, onboarding updates, or incomplete onboarding', async () => {
+    const user = await registerTestUser(ctx.app, 'usage-no-count@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .send({ forceRegenerate: false })
+      .expect(401);
+    await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'NoCount',
+        dateOfBirth: '1990-01-01',
+        heightCm: 180,
+        weightKg: 80,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(400);
+
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(0);
+  });
+
+  it('updates usage summary after generation and refresh', async () => {
+    const user = await registerTestUser(ctx.app, 'usage-summary-after-actions@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'UsageSummary');
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const summary = await request(ctx.app.getHttpServer())
+      .get('/v1/me/usage')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(summary.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          feature: UsageFeature.DAILY_PLAN_GENERATION,
+          count: 1,
+          remaining: 0
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.DAILY_PLAN_REFRESH,
+          count: 1,
+          remaining: 0
+        })
+      ])
+    );
+  });
+
+  it('returns menu option count by PlanQualityMode while keeping primary meals for mobile', async () => {
+    const freeUser = await registerTestUser(ctx.app, 'menu-basic@example.com');
+    const plusUser = await registerTestUser(ctx.app, 'menu-personalized@example.com');
+    const proUser = await registerTestUser(ctx.app, 'menu-adaptive@example.com');
+
+    await completeRequiredOnboarding(ctx.app, freeUser.accessToken, 'MenuBasic');
+    await completeRequiredOnboarding(ctx.app, plusUser.accessToken, 'MenuPersonalized');
+    await completeRequiredOnboarding(ctx.app, proUser.accessToken, 'MenuAdaptive');
+    await createTestSubscription(ctx, plusUser.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
+    await createTestSubscription(ctx, proUser.user.id, {
+      plan: SubscriptionPlan.PRO,
+      status: SubscriptionStatus.ACTIVE
+    });
+
+    const usersAndExpectedCounts = [
+      [freeUser, 1],
+      [plusUser, 2],
+      [proUser, 3]
+    ] as const;
+
+    for (const [user, expectedCount] of usersAndExpectedCounts) {
+      const plan = await request(ctx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.plan.nutrition.meals.length).toBeGreaterThan(0);
+      expect(plan.body.plan.nutrition.menuOptions).toHaveLength(expectedCount);
+      expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
+    }
+  });
+
   it('creates a safe AI operation log for successful mock daily plan generation', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'OperationLog');
@@ -376,6 +1112,41 @@ describe('Sprint 1 backend vertical slice', () => {
         goalType: 'REDUCE_WEIGHT',
         targetWeightKg: 45,
         targetTimelineDays: 30,
+        impactMode: 'NUTRITION_AND_TRAINING'
+      })
+      .expect(200);
+
+    expect(goal.body.goalType).toBe('HEALTHY_LIFESTYLE');
+    expect(goal.body.targetWeightKg).toBeNull();
+    expect(goal.body.targetTimelineDays).toBeNull();
+    expect(goal.body.impactMode).toBeNull();
+  });
+
+  it('converts pregnancy-sensitive weight-loss goals to a safe wellness goal', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'PregnancySafe',
+        gender: 'female',
+        pregnancyStatus: PregnancyStatus.PREGNANT,
+        dateOfBirth: '1990-01-01',
+        heightCm: 170,
+        weightKg: 90,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+
+    const goal = await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({
+        goalType: 'REDUCE_WEIGHT',
+        targetWeightKg: 85,
+        targetTimelineDays: 60,
         impactMode: 'NUTRITION_AND_TRAINING'
       })
       .expect(200);
@@ -616,6 +1387,185 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
+  it('normalizes and checks restricted foods inside menu options', () => {
+    const plan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'MenuSafety',
+      isMinor: false,
+      planQualityMode: PlanQualityMode.ADAPTIVE
+    });
+
+    plan.nutrition.menuOptions = [
+      {
+        label: 'Safe option',
+        focus: 'Avoidance wording',
+        meals: [
+          {
+            name: 'Lunch',
+            purpose: 'Steady energy',
+            foods: [
+              {
+                name: 'Mixed salad (no avocado)',
+                portion: '1 bowl',
+                notes: 'Prepared simply.'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const normalized = normalizeDailyPlanFoodNames(plan, {
+      allergies: ['avocado'],
+      excludedFoods: []
+    });
+
+    expect(normalized.normalizedPaths).toContain(
+      'nutrition.menuOptions[0].meals[0].foods[0].name'
+    );
+    expect(normalized.planJson.nutrition.menuOptions?.[0].meals[0].foods[0].name).toBe(
+      'Mixed salad'
+    );
+    expect(
+      new SafetyService().validatePlanFoodSafety(normalized.planJson, {
+        allergies: ['avocado'],
+        excludedFoods: []
+      }).passed
+    ).toBe(true);
+
+    const unsafePlan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'MenuConflict',
+      isMinor: false,
+      planQualityMode: PlanQualityMode.ADAPTIVE
+    });
+    unsafePlan.nutrition.menuOptions = [
+      {
+        label: 'Unsafe option',
+        focus: 'Conflict',
+        meals: [
+          {
+            name: 'Lunch',
+            purpose: 'Steady energy',
+            foods: [
+              {
+                name: 'Avocado toast',
+                portion: '1 serving',
+                notes: 'Simple option.'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const result = new SafetyService().validatePlanFoodSafety(unsafePlan, {
+      allergies: ['avocado'],
+      excludedFoods: []
+    });
+
+    expect(result.passed).toBe(false);
+    if (!result.passed) {
+      expect(result.conflicts[0].matchedPath).toBe(
+        'nutrition.menuOptions[0].meals[0].foods[0].name'
+      );
+    }
+  });
+
+  it('applies pregnancy-sensitive plan safety checks without changing non-sensitive profiles', () => {
+    const safetyService = new SafetyService();
+    const plan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'PregnancySafety',
+      isMinor: false
+    });
+
+    plan.nutrition.calorieGuidance.notes = 'Use an aggressive calorie deficit today.';
+    plan.training.recommendation = 'Do a hard high-intensity session while pregnant.';
+
+    expect(
+      safetyService.validatePregnancySensitivePlanSafety(plan, PregnancyStatus.UNKNOWN).passed
+    ).toBe(true);
+    expect(
+      safetyService.validatePregnancySensitivePlanSafety(plan, PregnancyStatus.PREGNANT).passed
+    ).toBe(false);
+    expect(
+      safetyService.validatePregnancySensitivePlanSafety(plan, PregnancyStatus.POSTPARTUM).passed
+    ).toBe(false);
+    expect(
+      safetyService.validatePregnancySensitivePlanSafety(plan, PregnancyStatus.BREASTFEEDING)
+        .passed
+    ).toBe(false);
+  });
+
+  it('falls back when generated training advice is unsafe for pregnancy-sensitive context', async () => {
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async () => {
+              const plan = createMockDailyPlan({
+                planLocalDate: getUtcLocalDate(),
+                planTimezone: 'UTC',
+                firstName: 'PregnancyPlan',
+                isMinor: false
+              });
+
+              plan.training.recommendation =
+                'Because you are pregnant, complete an all-out high-intensity session today.';
+
+              return plan;
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'pregnancy-plan-safety@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'PregnancyPlan');
+      const profile = await request(customCtx.app.getHttpServer())
+        .put('/v1/profile')
+        .set(authHeader(user.accessToken))
+        .send({
+          firstName: 'PregnancyPlan',
+          gender: 'female',
+          pregnancyStatus: PregnancyStatus.PREGNANT,
+          dateOfBirth: '1990-01-01',
+          heightCm: 170,
+          weightKg: 70,
+          activityLevel: 'MODERATE',
+          privacyConsentAccepted: true
+        })
+        .expect(200);
+
+      expect(profile.body.profile.pregnancyStatus).toBe(PregnancyStatus.PREGNANT);
+      await expect(
+        customCtx.prisma.profile.findUniqueOrThrow({
+          where: { userId: user.user.id },
+          select: { pregnancyStatus: true }
+        })
+      ).resolves.toEqual({ pregnancyStatus: PregnancyStatus.PREGNANT });
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(response.body.status).toBe('FALLBACK');
+      expect(response.body.plan.safety.reasons[0]).toContain('pregnancy');
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
   it('persists a safe fallback plan if generated foods conflict with allergies', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'Fallback');
@@ -833,7 +1783,8 @@ describe('Sprint 1 backend vertical slice', () => {
                 planLocalDate: input.planLocalDate,
                 planTimezone: input.planTimezone,
                 firstName: input.user.firstName,
-                isMinor: input.safeMode
+                isMinor: input.safeMode,
+                planQualityMode: PlanQualityMode.BASIC
               }),
               summary: {
                 title: 'Provider seam verified',
@@ -860,6 +1811,99 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.summary.title).toBe('Provider seam verified');
       expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('passes PlanQualityMode and tier-aware personalization context to AiProvider', async () => {
+    const providerInputs: Array<{
+      planQualityMode: PlanQualityMode;
+      personalizationContext: { contextLevel: string; trainingPersonalization: { exerciseDetailLevel: string } };
+    }> = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: {
+              planLocalDate: string;
+              planTimezone: string;
+              user: { firstName: string | null };
+              safeMode: boolean;
+              planQualityMode: PlanQualityMode;
+              personalizationContext: {
+                contextLevel: string;
+                trainingPersonalization: { exerciseDetailLevel: string };
+              };
+            }) => {
+              providerInputs.push({
+                planQualityMode: input.planQualityMode,
+                personalizationContext: input.personalizationContext
+              });
+
+              return createMockDailyPlan({
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                firstName: input.user.firstName,
+                isMinor: input.safeMode,
+                planQualityMode: input.planQualityMode
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const freeUser = await registerTestUser(customCtx.app, 'provider-basic@example.com');
+      const plusUser = await registerTestUser(customCtx.app, 'provider-personalized@example.com');
+      const proUser = await registerTestUser(customCtx.app, 'provider-adaptive@example.com');
+      await completeRequiredOnboarding(customCtx.app, freeUser.accessToken, 'ProviderBasic');
+      await completeRequiredOnboarding(customCtx.app, plusUser.accessToken, 'ProviderPersonalized');
+      await completeRequiredOnboarding(customCtx.app, proUser.accessToken, 'ProviderAdaptive');
+      await createTestSubscription(customCtx, plusUser.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
+      await createTestSubscription(customCtx, proUser.user.id, {
+        plan: SubscriptionPlan.PRO,
+        status: SubscriptionStatus.ACTIVE
+      });
+
+      for (const user of [freeUser, plusUser, proUser]) {
+        await request(customCtx.app.getHttpServer())
+          .post('/v1/daily-plans/generate')
+          .set(authHeader(user.accessToken))
+          .send({ forceRegenerate: true })
+          .expect(201);
+      }
+
+      expect(providerInputs).toMatchObject([
+        {
+          planQualityMode: PlanQualityMode.BASIC,
+          personalizationContext: {
+            contextLevel: 'minimal',
+            trainingPersonalization: { exerciseDetailLevel: 'simple' }
+          }
+        },
+        {
+          planQualityMode: PlanQualityMode.PERSONALIZED,
+          personalizationContext: {
+            contextLevel: 'personalized',
+            trainingPersonalization: { exerciseDetailLevel: 'sets_reps_rest' }
+          }
+        },
+        {
+          planQualityMode: PlanQualityMode.ADAPTIVE,
+          personalizationContext: {
+            contextLevel: 'adaptive',
+            trainingPersonalization: { exerciseDetailLevel: 'adaptive' }
+          }
+        }
+      ]);
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -898,7 +1942,8 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.plan.debug).toEqual({
         provider: 'fallback',
         generatedBy: 'SafeFallbackPlanFactory',
-        fallbackReason: 'The generated plan could not be safely validated.'
+        fallbackReason: 'The generated plan could not be safely validated.',
+        planQualityMode: 'BASIC'
       });
       expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     } finally {
@@ -930,7 +1975,8 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
       expect(plan.body.plan.debug).toEqual({
         provider: 'mock',
-        generatedBy: 'MockAiProviderService'
+        generatedBy: 'MockAiProviderService',
+        planQualityMode: 'BASIC'
       });
       expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     } finally {
@@ -1350,6 +2396,9 @@ describe('Sprint 1 backend vertical slice', () => {
           strict: true
         }
       });
+      const safetyAgentInput = requests[0].input as Array<{ content?: string }>;
+      expect(safetyAgentInput[0].content).toContain('Reject gender-stereotyped');
+      expect(safetyAgentInput[0].content).toContain('If pregnancyStatus is PREGNANT');
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -1803,7 +2852,8 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
       expect(plan.body.plan.debug).toEqual({
         provider: 'openai',
-        generatedBy: 'OpenAiProviderService'
+        generatedBy: 'OpenAiProviderService',
+        planQualityMode: 'BASIC'
       });
       expect(requests).toHaveLength(1);
       expect(requests[0].model).toBe('test-openai-model');
@@ -1821,6 +2871,318 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(JSON.stringify(requests[0].input)).toContain('usePlanLocalDateForTitleAndMessage');
       expect(JSON.stringify(requests[0].input)).toContain('Do not include schemaVersion');
       expect(JSON.stringify(requests[0].input)).toContain('Never derive user-facing dates from generatedAt');
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('OpenAI generation consumes AI usage', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'OpenAiUsage',
+              isMinor: false
+            })
+          )
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-usage@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'OpenAiUsage');
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: false })
+        .expect(201);
+
+      await expect(
+        customCtx.app.get(UsageLedgerService).getUsage(
+          user.user.id,
+          UsageFeature.AI_DAILY_PLAN_GENERATION,
+          UsagePeriodType.DAILY
+        )
+      ).resolves.toBe(1);
+      expect(requests).toHaveLength(1);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('does not call OpenAI when AI_DAILY_PLAN_GENERATION limit is already reached', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'OpenAiBlocked',
+              isMinor: false
+            })
+          )
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-ai-limit@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'OpenAiBlocked');
+      await customCtx.app.get(UsageLedgerService).incrementUsage(
+        user.user.id,
+        UsageFeature.AI_DAILY_PLAN_GENERATION,
+        UsagePeriodType.DAILY
+      );
+
+      const blocked = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: false })
+        .expect(429);
+
+      expect(blocked.body).toMatchObject({
+        code: 'USAGE_LIMIT_REACHED',
+        feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
+        currentPlan: SubscriptionPlan.FREE
+      });
+      expect(requests).toHaveLength(0);
+      await expect(
+        customCtx.app.get(UsageLedgerService).getUsage(
+          user.user.id,
+          UsageFeature.DAILY_PLAN_GENERATION,
+          UsagePeriodType.DAILY
+        )
+      ).resolves.toBe(0);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('counts OpenAI fallback as usage once generation starts', async () => {
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify({ summary: { title: 'Invalid only' } })
+        }),
+        () => ({
+          output_text: JSON.stringify({ summary: { title: 'Still invalid' } })
+        })
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-fallback-counts@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'OpenAiFallbackUsage');
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: false })
+        .expect(201);
+
+      expect(response.body.status).toBe('FALLBACK');
+      await expect(
+        customCtx.app.get(UsageLedgerService).getUsage(
+          user.user.id,
+          UsageFeature.DAILY_PLAN_GENERATION,
+          UsagePeriodType.DAILY
+        )
+      ).resolves.toBe(1);
+      await expect(
+        customCtx.app.get(UsageLedgerService).getUsage(
+          user.user.id,
+          UsageFeature.AI_DAILY_PLAN_GENERATION,
+          UsagePeriodType.DAILY
+        )
+      ).resolves.toBe(1);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('varies OpenAI prompt and planning context by PlanQualityMode', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'BasicOpenAI',
+              isMinor: false
+            })
+          )
+        }),
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'PersonalizedOpenAI',
+              isMinor: false
+            })
+          )
+        }),
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'AdaptiveOpenAI',
+              isMinor: false
+            })
+          )
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const freeUser = await registerTestUser(customCtx.app, 'openai-basic-mode@example.com');
+      const plusUser = await registerTestUser(
+        customCtx.app,
+        'openai-personalized-mode@example.com'
+      );
+      const proUser = await registerTestUser(customCtx.app, 'openai-adaptive-mode@example.com');
+      await completeRequiredOnboarding(customCtx.app, freeUser.accessToken, 'BasicOpenAI');
+      await completeRequiredOnboarding(customCtx.app, plusUser.accessToken, 'PersonalizedOpenAI');
+      await completeRequiredOnboarding(customCtx.app, proUser.accessToken, 'AdaptiveOpenAI');
+      await createTestSubscription(customCtx, plusUser.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
+      await createTestSubscription(customCtx, proUser.user.id, {
+        plan: SubscriptionPlan.PRO,
+        status: SubscriptionStatus.ACTIVE
+      });
+
+      for (const user of [freeUser, plusUser, proUser]) {
+        await request(customCtx.app.getHttpServer())
+          .post('/v1/daily-plans/generate')
+          .set(authHeader(user.accessToken))
+          .send({ forceRegenerate: true })
+          .expect(201);
+      }
+
+      expect(requests).toHaveLength(3);
+      const parsedRequests = requests.map(parseOpenAiPlanningRequest);
+
+      expect(parsedRequests[0].system).toContain('PlanQualityMode is BASIC');
+      expect(parsedRequests[0].system).toContain('Return exactly 1 nutrition.menuOptions');
+      expect(parsedRequests[0].context.planQualityMode).toBe('BASIC');
+      expect(parsedRequests[0].context.personalizationContext.contextLevel).toBe('minimal');
+      expect(
+        parsedRequests[0].context.personalizationContext.trainingPersonalization.exerciseDetailLevel
+      ).toBe('simple');
+
+      expect(parsedRequests[1].system).toContain('PlanQualityMode is PERSONALIZED');
+      expect(parsedRequests[1].system).toContain('Return exactly 2 nutrition.menuOptions');
+      expect(parsedRequests[1].system).toContain('sets, reps, and rest');
+      expect(parsedRequests[1].context.planQualityMode).toBe('PERSONALIZED');
+      expect(parsedRequests[1].context.personalizationContext.contextLevel).toBe('personalized');
+      expect(
+        parsedRequests[1].context.personalizationContext.trainingPersonalization.exerciseDetailLevel
+      ).toBe('sets_reps_rest');
+
+      expect(parsedRequests[2].system).toContain('PlanQualityMode is ADAPTIVE');
+      expect(parsedRequests[2].system).toContain('Return exactly 3 nutrition.menuOptions');
+      expect(parsedRequests[2].system).toContain('readiness placeholders');
+      expect(parsedRequests[2].context.planQualityMode).toBe('ADAPTIVE');
+      expect(parsedRequests[2].context.personalizationContext.contextLevel).toBe('adaptive');
+      expect(
+        parsedRequests[2].context.personalizationContext.trainingPersonalization.futureSignals
+      ).toContain('whoopRecovery');
+      expect(
+        parsedRequests[2].context.personalizationContext.trainingPersonalization.exerciseDetailLevel
+      ).toBe('adaptive');
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
+  it('passes gender and pregnancyStatus as careful safety context to OpenAI planning', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'PregnancyOpenAI',
+              isMinor: false,
+              planQualityMode: PlanQualityMode.BASIC
+            })
+          )
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-pregnancy-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'PregnancyOpenAI');
+      await request(customCtx.app.getHttpServer())
+        .put('/v1/profile')
+        .set(authHeader(user.accessToken))
+        .send({
+          firstName: 'PregnancyOpenAI',
+          gender: 'female',
+          pregnancyStatus: PregnancyStatus.PREGNANT,
+          dateOfBirth: '1990-01-01',
+          heightCm: 170,
+          weightKg: 70,
+          activityLevel: 'MODERATE',
+          privacyConsentAccepted: true
+        })
+        .expect(200);
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const parsedRequest = parseOpenAiPlanningRequest(requests[0]);
+
+      expect(parsedRequest.system).toContain('do not stereotype nutrition or training by gender');
+      expect(parsedRequest.system).toContain('Do not assume pregnancy');
+      expect(parsedRequest.system).toContain('If pregnancyStatus is PREGNANT');
+      expect(parsedRequest.context.profile?.gender).toBe('female');
+      expect(parsedRequest.context.profile?.pregnancyStatus).toBe(PregnancyStatus.PREGNANT);
+      expect(parsedRequest.context.safetyConstraints.pregnancyStatus).toBe(
+        PregnancyStatus.PREGNANT
+      );
+      expect(
+        parsedRequest.context.safetyConstraints
+          .pregnancySensitiveStatusRequiresConservativeGuidance
+      ).toBe(true);
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -1978,7 +3340,8 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.plan.mockVersion).toBe(0);
       expect(plan.body.plan.debug).toEqual({
         provider: 'openai',
-        generatedBy: 'OpenAiProviderService'
+        generatedBy: 'OpenAiProviderService',
+        planQualityMode: 'BASIC'
       });
       expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     } finally {
@@ -2046,7 +3409,8 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.plan.debug).toEqual({
         provider: 'fallback',
         generatedBy: 'SafeFallbackPlanFactory',
-        fallbackReason: 'json_parse_failed'
+        fallbackReason: 'json_parse_failed',
+        planQualityMode: 'BASIC'
       });
     } finally {
       await cleanupDatabase(customCtx.prisma);
@@ -2453,6 +3817,88 @@ async function completeRequiredOnboarding(app: TestApp['app'], token: string, fi
       description: 'Easy run'
     })
     .expect(201);
+}
+
+function daysFromNow(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date;
+}
+
+function createTestSubscription(
+  ctx: TestApp,
+  userId: string,
+  overrides: {
+    plan: SubscriptionPlan;
+    status: SubscriptionStatus;
+    startsAt?: Date;
+    expiresAt?: Date | null;
+    canceledAt?: Date | null;
+  }
+) {
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return ctx.prisma.subscription.create({
+    data: {
+      userId,
+      plan: overrides.plan,
+      status: overrides.status,
+      provider: SubscriptionProvider.DEV,
+      environment: SubscriptionEnvironment.SANDBOX,
+      providerCustomerId: `dev-customer-${uniqueSuffix}`,
+      providerSubscriptionId: `dev-subscription-${uniqueSuffix}`,
+      providerTransactionId: `dev-transaction-${uniqueSuffix}`,
+      originalTransactionId: `dev-original-${uniqueSuffix}`,
+      providerProductId: `dev-${overrides.plan.toLowerCase()}`,
+      startsAt: overrides.startsAt ?? daysFromNow(-1),
+      expiresAt: overrides.expiresAt === undefined ? daysFromNow(30) : overrides.expiresAt,
+      canceledAt: overrides.canceledAt ?? null
+    }
+  });
+}
+
+function expectedFeaturesForPlan(plan: SubscriptionPlan | 'FREE' | 'PLUS' | 'PRO') {
+  const isPlusOrPro = plan === 'PLUS' || plan === 'PRO';
+  const isPro = plan === 'PRO';
+
+  return {
+    canGenerateDailyPlan: true,
+    canRefreshPlan: true,
+    canUseOpenAIProvider: true,
+    canUseAdvancedPersonalization: isPlusOrPro,
+    canUseFeedbackPersonalization: isPlusOrPro,
+    canViewHistory: true,
+    canSubmitFeedback: true,
+    canUseWeeklyReports: isPlusOrPro,
+    canUseWhoop: isPro,
+    canUseAiCoach: isPro
+  };
+}
+
+function parseOpenAiPlanningRequest(requestInput: Record<string, unknown>) {
+  const input = requestInput.input as Array<{ content?: string }>;
+
+  return {
+    system: input[0].content ?? '',
+      context: JSON.parse(input[1].content ?? '{}') as {
+      planQualityMode?: string;
+      profile?: {
+        gender?: string | null;
+        pregnancyStatus?: string;
+      } | null;
+      safetyConstraints: {
+        pregnancyStatus?: string;
+        pregnancySensitiveStatusRequiresConservativeGuidance?: boolean;
+      };
+      personalizationContext: {
+        contextLevel: string;
+        trainingPersonalization: {
+          exerciseDetailLevel: string;
+          futureSignals: string[];
+        };
+      };
+    }
+  };
 }
 
 function getUtcLocalDate() {

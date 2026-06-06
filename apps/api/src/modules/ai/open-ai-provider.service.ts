@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PlanQualityMode } from '@prisma/client';
 
 import {
   DailyPlanJson,
@@ -68,7 +69,7 @@ export class OpenAiProviderService implements AiProvider {
           input: [
             {
               role: 'system',
-              content: this.buildSystemInstructions(retry)
+              content: this.buildSystemInstructions(input, retry)
             },
             {
               role: 'user',
@@ -88,7 +89,7 @@ export class OpenAiProviderService implements AiProvider {
       );
 
       this.logger.log(`OpenAI response received; retryAttempt=${retry}; model=${model}`);
-      return this.parseAndValidateResponse(response);
+      return this.parseAndValidateResponse(response, input.planQualityMode);
     } catch (error) {
       if (error instanceof OpenAiProviderError) {
         this.logger.warn(
@@ -112,7 +113,10 @@ export class OpenAiProviderService implements AiProvider {
     }
   }
 
-  private parseAndValidateResponse(response: OpenAiResponse): OpenAiAttemptResult {
+  private parseAndValidateResponse(
+    response: OpenAiResponse,
+    planQualityMode: PlanQualityMode
+  ): OpenAiAttemptResult {
     const outputText = this.extractOutputText(response);
     this.logger.log(`OpenAI output_text present: ${Boolean(outputText)}`);
 
@@ -135,7 +139,7 @@ export class OpenAiProviderService implements AiProvider {
       });
     }
 
-    const normalizedJson = this.normalizeBackendOwnedMetadata(parsedJson);
+    const normalizedJson = this.normalizeBackendOwnedMetadata(parsedJson, planQualityMode);
     const parsedPlan = dailyPlanJsonSchema.safeParse(normalizedJson);
 
     if (!parsedPlan.success) {
@@ -159,7 +163,8 @@ export class OpenAiProviderService implements AiProvider {
         ...parsedPlan.data,
         debug: {
           provider: 'openai',
-          generatedBy: 'OpenAiProviderService'
+          generatedBy: 'OpenAiProviderService',
+          planQualityMode
         } as const
       }
     };
@@ -178,7 +183,7 @@ export class OpenAiProviderService implements AiProvider {
     );
   }
 
-  private buildSystemInstructions(retry: boolean) {
+  private buildSystemInstructions(input: GenerateDailyPlanInput, retry: boolean) {
     return [
       'You are a supportive AI wellness planning service.',
       'Return only JSON that matches the provided plan content schema.',
@@ -188,12 +193,18 @@ export class OpenAiProviderService implements AiProvider {
       'Never derive user-facing dates from generatedAt.',
       'Keep copy calm, practical, premium, and safe.',
       'Make the plan specific to the provided goal, nutrition preferences, preferred foods, and training schedule.',
+      'Use gender or sex-related context only as one careful personalization input; do not stereotype nutrition or training by gender.',
+      'Do not say women should avoid strength training, women should eat very little, men should always bulk, or men should always lift heavy.',
+      'Base recommendations on goal, ability, schedule, preferences, feedback, safety, and recovery-aware signals.',
+      'Do not assume pregnancy, postpartum, or breastfeeding status from gender alone.',
       'Keep meals simple, realistic, and easy to understand.',
       'foods[].name must be a clean food or dish name only.',
       'Do not include parenthetical restrictions or allergy/exclusion explanations in foods[].name.',
       'Do not write food names like "Mixed salad (no avocado)", "No-avocado salad", "Avocado-free salad", or "Salad without avocado".',
       'Instead write name: "Mixed salad" and put "Prepared without avocado." in notes.',
       'Allergies and excluded foods must never appear in foods[].name.',
+      'Apply the same food safety and clean food name rules to nutrition.menuOptions[].meals[].foods[].name.',
+      'Every menu option must avoid allergies and excluded foods.',
       'If you need to mention avoided foods, use notes or reminders with safe avoidance language only.',
       'Use preferred foods when they fit, but never include allergies or excluded foods.',
       'When mentioning allergies or excluded foods, be accurate and do not invent restrictions.',
@@ -205,7 +216,10 @@ export class OpenAiProviderService implements AiProvider {
       'Do not recommend extreme dieting, starvation, detoxes, or unsafe calorie restriction.',
       'Do not recommend training through pain, dizziness, illness, fever, exhaustion, or injury.',
       'Respect safeMode rules for minors: balanced meals, hydration, sleep, recovery, healthy movement, and consistency.',
+      'If pregnancyStatus is PREGNANT, POSTPARTUM, or BREASTFEEDING: avoid aggressive weight-loss framing, avoid extreme calorie deficit, avoid unsafe high-intensity recommendations, prefer moderate recovery-aware hydration-aware balanced guidance, and encourage consulting a healthcare provider for personal pregnancy/postpartum/breastfeeding guidance.',
+      'For pregnancy, postpartum, or breastfeeding context, do not provide diagnosis or medical claims.',
       'Never include foods listed as allergies or excluded foods.',
+      this.buildPlanQualityInstructions(input.planQualityMode),
       retry
         ? 'This is a retry. Be stricter: every required field must be present and valid. If safety feedback is present in the user context, regenerate the complete DailyPlanJson while fixing every listed issue. Do not return partial edits.'
         : 'Generate one practical daily plan.'
@@ -214,10 +228,47 @@ export class OpenAiProviderService implements AiProvider {
       .join('\n');
   }
 
+  private buildPlanQualityInstructions(planQualityMode: PlanQualityMode) {
+    switch (planQualityMode) {
+      case PlanQualityMode.ADAPTIVE:
+        return [
+          'PlanQualityMode is ADAPTIVE for Pro adaptive coaching.',
+          'Return exactly 3 nutrition.menuOptions.',
+          'Use menu option focuses such as workout support, recovery/easier digestion, and busy day/simple prep.',
+          'Generate a highly individualized plan using goal, preferences, schedule, history, feedback summaries, and readiness placeholders.',
+          'Include practical meal timing around workouts when training is scheduled.',
+          'Make training recommendations adaptive to goal, recent feedback, schedule, and recovery/readiness placeholders.',
+          'For exercise suggestions, be specific and adaptive, but do not create advanced progression blocks yet.',
+          'Mention future recovery/sleep/strain signals only as placeholders if relevant; do not invent WHOOP data.'
+        ].join('\n');
+      case PlanQualityMode.PERSONALIZED:
+        return [
+          'PlanQualityMode is PERSONALIZED for Plus habit consistency.',
+          'Return exactly 2 nutrition.menuOptions.',
+          'Use menu option focuses such as balanced standard day and quick/simple prep.',
+          'Generate more detailed meals and training than BASIC.',
+          'Use preferred foods, excluded foods, training schedule, goal, and feedback/history summaries when available.',
+          'For training, suggest exercises based on current schedule, description, duration, intensity, and goal.',
+          'Include sets, reps, and rest only when appropriate and safe.'
+        ].join('\n');
+      case PlanQualityMode.BASIC:
+      default:
+        return [
+          'PlanQualityMode is BASIC for Free useful and safe planning.',
+          'Return exactly 1 nutrition.menuOptions item, or one simple primary menu represented consistently in nutrition.meals.',
+          'Generate a simple, practical, safe daily plan with limited context.',
+          'Keep meals straightforward and training guidance easy to follow.',
+          'Include short exercise suggestions only when appropriate; do not include advanced progression.'
+        ].join('\n');
+    }
+  }
+
   private buildPlanningContext(input: GenerateDailyPlanInput) {
     return {
       planLocalDate: input.planLocalDate,
       planTimezone: input.planTimezone,
+      planQualityMode: input.planQualityMode,
+      personalizationContext: input.personalizationContext,
       userFacingDateRule: {
         usePlanLocalDateForTitleAndMessage: true,
         planLocalDate: input.planLocalDate,
@@ -232,6 +283,7 @@ export class OpenAiProviderService implements AiProvider {
       profile: input.profile
         ? {
             gender: input.profile.gender,
+            pregnancyStatus: input.profile.pregnancyStatus,
             heightCm: input.profile.heightCm,
             weightKg: input.profile.weightKg,
             activityLevel: input.profile.activityLevel
@@ -248,7 +300,14 @@ export class OpenAiProviderService implements AiProvider {
         allergiesAreHardSafetyBlocks: input.nutritionPreference?.allergies ?? [],
         excludedFoodsArePreferenceBlocks: input.nutritionPreference?.excludedFoods ?? [],
         mayMentionRestrictedFoodsOnlyToSayTheyAreAvoided: true,
-        safeMode: input.safeMode
+        safeMode: input.safeMode,
+        genderUse: 'careful_personalization_only_no_stereotypes',
+        pregnancyStatus: input.profile?.pregnancyStatus ?? 'UNKNOWN',
+        pregnancySensitiveStatusRequiresConservativeGuidance: [
+          'PREGNANT',
+          'POSTPARTUM',
+          'BREASTFEEDING'
+        ].includes(input.profile?.pregnancyStatus ?? 'UNKNOWN')
       },
       safetyFeedback: input.safetyFeedback
         ? {
@@ -262,7 +321,7 @@ export class OpenAiProviderService implements AiProvider {
     };
   }
 
-  private normalizeBackendOwnedMetadata(value: unknown) {
+  private normalizeBackendOwnedMetadata(value: unknown, planQualityMode: PlanQualityMode) {
     const record = typeof value === 'object' && value !== null && !Array.isArray(value) ? value : {};
     this.logger.log('OpenAI metadata normalized');
 
@@ -273,7 +332,8 @@ export class OpenAiProviderService implements AiProvider {
       mockVersion: 0,
       debug: {
         provider: 'openai',
-        generatedBy: 'OpenAiProviderService'
+        generatedBy: 'OpenAiProviderService',
+        planQualityMode
       }
     };
   }

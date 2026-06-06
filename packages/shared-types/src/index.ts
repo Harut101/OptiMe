@@ -35,6 +35,13 @@ export type SportType =
   | 'TEAM_SPORT'
   | 'OTHER';
 export type IntensityLevel = 'LOW' | 'MODERATE' | 'HIGH';
+export type PregnancyStatus =
+  | 'NOT_PREGNANT'
+  | 'PREGNANT'
+  | 'POSTPARTUM'
+  | 'BREASTFEEDING'
+  | 'PREFER_NOT_TO_SAY'
+  | 'UNKNOWN';
 
 export interface RegisterRequest {
   email: string;
@@ -53,6 +60,7 @@ export interface UpsertProfileRequest {
   firstName?: string;
   lastName?: string;
   gender?: string;
+  pregnancyStatus?: PregnancyStatus;
   dateOfBirth: string;
   heightCm: number;
   weightKg: number;
@@ -99,6 +107,18 @@ export interface DailyPlanFoodItem {
   notes?: string;
 }
 
+export interface DailyPlanMeal {
+  name: string;
+  purpose: string;
+  foods: DailyPlanFoodItem[];
+}
+
+export interface DailyPlanMenuOption {
+  label: string;
+  focus: string;
+  meals: DailyPlanMeal[];
+}
+
 export interface DailyPlanJson {
   schemaVersion: 'sprint-2.v1';
   generatedAt: string;
@@ -124,11 +144,8 @@ export interface DailyPlanJson {
       fat: string;
       notes: string;
     };
-    meals: Array<{
-      name: string;
-      purpose: string;
-      foods: DailyPlanFoodItem[];
-    }>;
+    meals: DailyPlanMeal[];
+    menuOptions?: DailyPlanMenuOption[];
     hydration: {
       guidance: string;
       notes?: string;
@@ -151,7 +168,16 @@ export interface DailyPlanJson {
       | 'MockAiProviderService'
       | 'OpenAiProviderService'
       | 'SafeFallbackPlanFactory';
+    planQualityMode?: 'BASIC' | 'PERSONALIZED' | 'ADAPTIVE';
     fallbackReason?: string;
+    safetyAgent?: {
+      enabled: boolean;
+      provider: 'mock' | 'openai';
+      approved?: boolean;
+      riskLevel?: 'low' | 'medium' | 'high';
+      retryUsed?: boolean;
+      retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
+    };
   };
 }
 

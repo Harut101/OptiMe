@@ -1,4 +1,4 @@
-import { ActivityLevel } from '@prisma/client';
+import { ActivityLevel, PregnancyStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -23,6 +23,10 @@ export class UpsertProfileDto {
   @IsOptional()
   @IsString()
   gender?: string;
+
+  @IsOptional()
+  @IsEnum(PregnancyStatus)
+  pregnancyStatus?: PregnancyStatus;
 
   @Type(() => Date)
   @IsDate()

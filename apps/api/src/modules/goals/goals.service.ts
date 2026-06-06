@@ -18,7 +18,8 @@ export class GoalsService {
         isMinor: true,
         profile: {
           select: {
-            weightKg: true
+            weightKg: true,
+            pregnancyStatus: true
           }
         }
       }
@@ -30,7 +31,8 @@ export class GoalsService {
       targetTimelineDays: dto.targetTimelineDays,
       impactMode: dto.impactMode,
       currentWeightKg: user.profile?.weightKg,
-      isMinor: user.isMinor
+      isMinor: user.isMinor,
+      pregnancyStatus: user.profile?.pregnancyStatus
     });
 
     return this.prisma.goal.upsert({

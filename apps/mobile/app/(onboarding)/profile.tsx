@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Controller, useForm } from 'react-hook-form';
-import { Alert } from 'react-native';
+import { useEffect } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { Alert, StyleSheet, View } from 'react-native';
 import { profileSchema } from '@optime/shared-schemas';
 import { z } from 'zod';
 
@@ -16,6 +17,21 @@ import { useAuthStore } from '@/store/auth-store';
 
 type ProfileForm = z.input<typeof profileSchema>;
 
+const GENDER_OPTIONS = [
+  { label: 'Female', value: 'female' },
+  { label: 'Male', value: 'male' },
+  { label: 'Other', value: 'other' },
+  { label: 'Prefer not to say', value: 'prefer_not_to_say' }
+] as const;
+
+const PREGNANCY_STATUS_OPTIONS = [
+  { label: 'Prefer not to say', value: 'PREFER_NOT_TO_SAY' },
+  { label: 'Not pregnant', value: 'NOT_PREGNANT' },
+  { label: 'Pregnant', value: 'PREGNANT' },
+  { label: 'Postpartum', value: 'POSTPARTUM' },
+  { label: 'Breastfeeding', value: 'BREASTFEEDING' }
+] as const;
+
 export default function ProfileSetupScreen() {
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
@@ -24,7 +40,8 @@ export default function ProfileSetupScreen() {
     defaultValues: {
       firstName: '',
       lastName: '',
-      gender: '',
+      gender: 'prefer_not_to_say',
+      pregnancyStatus: 'PREFER_NOT_TO_SAY',
       dateOfBirth: '',
       heightCm: 170,
       weightKg: 70,
@@ -32,6 +49,14 @@ export default function ProfileSetupScreen() {
       privacyConsentAccepted: true
     }
   });
+  const selectedGender = useWatch({ control: form.control, name: 'gender' });
+  const shouldShowPregnancyStatus = selectedGender === 'female';
+
+  useEffect(() => {
+    if (!shouldShowPregnancyStatus) {
+      form.setValue('pregnancyStatus', 'PREFER_NOT_TO_SAY', { shouldDirty: true });
+    }
+  }, [form, shouldShowPregnancyStatus]);
 
   const mutation = useMutation({
     mutationFn: saveProfile,
@@ -105,6 +130,18 @@ export default function ProfileSetupScreen() {
       />
       <Controller
         control={form.control}
+        name="gender"
+        render={({ field }) => (
+          <SelectChips
+            label="Gender"
+            value={field.value ?? 'prefer_not_to_say'}
+            onChange={field.onChange}
+            options={[...GENDER_OPTIONS]}
+          />
+        )}
+      />
+      <Controller
+        control={form.control}
         name="activityLevel"
         render={({ field }) => (
           <SelectChips
@@ -121,6 +158,30 @@ export default function ProfileSetupScreen() {
         )}
       />
 
+      {shouldShowPregnancyStatus ? (
+        <View style={styles.healthContext}>
+          <View style={styles.healthCopy}>
+            <Text variant="label">Optional health context</Text>
+            <Text variant="heading">Pregnancy / postpartum context</Text>
+            <Text variant="muted">
+              Optional. Used only to keep nutrition and training guidance safer.
+            </Text>
+          </View>
+          <Controller
+            control={form.control}
+            name="pregnancyStatus"
+            render={({ field }) => (
+              <SelectChips
+                label="Choose what fits today"
+                value={field.value ?? 'PREFER_NOT_TO_SAY'}
+                onChange={field.onChange}
+                options={[...PREGNANCY_STATUS_OPTIONS]}
+              />
+            )}
+          />
+        </View>
+      ) : null}
+
       <Button
         title={mutation.isPending ? 'Saving...' : 'Continue'}
         disabled={mutation.isPending}
@@ -129,3 +190,15 @@ export default function ProfileSetupScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  healthContext: {
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#f3f7f5'
+  },
+  healthCopy: {
+    gap: 6
+  }
+});

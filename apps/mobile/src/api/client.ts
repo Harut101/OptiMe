@@ -4,7 +4,8 @@ import { useAuthStore } from '@/store/auth-store';
 export class ApiError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
+    public readonly body?: unknown
   ) {
     super(message);
   }
@@ -42,7 +43,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
           ? errorBody.message.join('\n')
           : 'Something went wrong. Please try again.';
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, errorBody);
   }
 
   if (response.status === 204) {

@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { getUsageSummary } from '@/api/account';
+import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -10,23 +12,41 @@ import { Screen } from '@/components/Screen';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
+import type { UsageFeature, UsageLimitExceededError, UsageSummaryItem } from '@/types/api';
 
 export default function TodayScreen() {
   const queryClient = useQueryClient();
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
+  });
+  const usage = useQuery({
+    queryKey: ['usage-summary'],
+    queryFn: getUsageSummary
   });
   const generate = useMutation({
     mutationFn: (forceRegenerate: boolean) => generateTodayPlan(forceRegenerate),
     onSuccess: async (data, forceRegenerate) => {
       queryClient.setQueryData(['today-plan'], data);
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
+      await queryClient.refetchQueries({ queryKey: ['usage-summary'], type: 'active' });
+      setLimitMessage(null);
       setRefreshMessage(forceRegenerate ? 'Plan refreshed' : 'Plan generated.');
     },
-    onError: (error) => Alert.alert('Plan update failed', error.message)
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+
+      if (usageLimit) {
+        setLimitMessage(formatUsageLimitMessage(usageLimit));
+        return;
+      }
+
+      Alert.alert('Plan update failed', error.message);
+    }
   });
 
   if (today.isLoading) {
@@ -47,6 +67,10 @@ export default function TodayScreen() {
   }
 
   const plan = today.data?.plan;
+  const generationUsage = usage.data?.items.find(
+    (item) => item.feature === 'DAILY_PLAN_GENERATION'
+  );
+  const refreshUsage = usage.data?.items.find((item) => item.feature === 'DAILY_PLAN_REFRESH');
 
   return (
     <Screen>
@@ -56,13 +80,29 @@ export default function TodayScreen() {
         <Text variant="muted">A simple plan for food, training, hydration, and recovery today.</Text>
       </View>
 
+      <UsageStatus
+        isUnavailable={usage.isError}
+        generationUsage={generationUsage}
+        refreshUsage={refreshUsage}
+      />
+
+      {limitMessage ? (
+        <Card>
+          <Text variant="label">Limit reached</Text>
+          <Text variant="body">{limitMessage}</Text>
+          <Text variant="muted">Upgrade options coming soon.</Text>
+        </Card>
+      ) : null}
+
       {!today.data || !plan ? (
-        <StateBlock
-          title="No plan yet"
-          message="Generate a simple plan for food, training, hydration, and recovery today."
-          actionTitle={generate.isPending ? 'Generating...' : 'Generate today plan'}
-          onAction={() => generate.mutate(false)}
-        />
+        <>
+          <StateBlock
+            title="No plan yet"
+            message="Generate a simple plan for food, training, hydration, and recovery today."
+            actionTitle={generate.isPending ? 'Generating...' : 'Generate today plan'}
+            onAction={() => generate.mutate(false)}
+          />
+        </>
       ) : (
         <>
           <Card>
@@ -111,6 +151,93 @@ export default function TodayScreen() {
       )}
     </Screen>
   );
+}
+
+function UsageStatus({
+  isUnavailable,
+  generationUsage,
+  refreshUsage
+}: {
+  isUnavailable: boolean;
+  generationUsage?: UsageSummaryItem;
+  refreshUsage?: UsageSummaryItem;
+}) {
+  if (isUnavailable) {
+    return (
+      <Card>
+        <Text variant="label">Plan usage</Text>
+        <Text variant="muted">Plan details unavailable</Text>
+      </Card>
+    );
+  }
+
+  if (!generationUsage && !refreshUsage) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <Text variant="label">Plan usage</Text>
+      {generationUsage ? (
+        <Text variant="muted">
+          Generations left today: {generationUsage.remaining}
+        </Text>
+      ) : null}
+      {refreshUsage ? (
+        <Text variant="muted">Refreshes left today: {refreshUsage.remaining}</Text>
+      ) : null}
+    </Card>
+  );
+}
+
+function getUsageLimitError(error: Error) {
+  if (!(error instanceof ApiError) || typeof error.body !== 'object' || error.body === null) {
+    return null;
+  }
+
+  const body = error.body as Partial<UsageLimitExceededError>;
+
+  return body.code === 'USAGE_LIMIT_REACHED' ? (body as UsageLimitExceededError) : null;
+}
+
+function formatUsageLimitMessage(error: UsageLimitExceededError) {
+  const action = getUsageFeatureLabel(error.feature);
+  const reset = formatResetAt(error.resetAt);
+
+  return [
+    "You've reached today's limit for this plan.",
+    `Your ${formatPlan(error.currentPlan)} plan includes ${error.limit} ${action} per day.`,
+    reset ? `Try again after ${reset}.` : 'Try again after reset.'
+  ].join(' ');
+}
+
+function getUsageFeatureLabel(feature: UsageFeature) {
+  if (feature === 'DAILY_PLAN_REFRESH') {
+    return 'refresh';
+  }
+
+  if (feature === 'AI_DAILY_PLAN_GENERATION') {
+    return 'AI plan generation';
+  }
+
+  return 'plan generation';
+}
+
+function formatPlan(plan: string) {
+  return plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase();
+}
+
+function formatResetAt(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function formatUpdatedAt(value: string) {

@@ -19,6 +19,16 @@ export const profileSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   gender: z.string().optional(),
+  pregnancyStatus: z
+    .enum([
+      'NOT_PREGNANT',
+      'PREGNANT',
+      'POSTPARTUM',
+      'BREASTFEEDING',
+      'PREFER_NOT_TO_SAY',
+      'UNKNOWN'
+    ])
+    .optional(),
   dateOfBirth: z.string(),
   heightCm: z.coerce.number().min(80).max(260),
   weightKg: z.coerce.number().min(20).max(350),
@@ -86,6 +96,18 @@ export const generateDailyPlanSchema = z.object({
 export const dailyPlanReadinessSchema = z.enum(['PUSH', 'MAINTAIN', 'RECOVER']);
 export const dailyPlanStatusSchema = z.enum(['READY', 'FALLBACK']);
 
+const dailyPlanFoodItemSchema = z.object({
+  name: z.string(),
+  portion: z.string(),
+  notes: z.string().optional()
+});
+
+const dailyPlanMealSchema = z.object({
+  name: z.string(),
+  purpose: z.string(),
+  foods: z.array(dailyPlanFoodItemSchema)
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -111,19 +133,16 @@ export const dailyPlanJsonSchema = z.object({
       fat: z.string(),
       notes: z.string()
     }),
-    meals: z.array(
-      z.object({
-        name: z.string(),
-        purpose: z.string(),
-        foods: z.array(
-          z.object({
-            name: z.string(),
-            portion: z.string(),
-            notes: z.string().optional()
-          })
-        )
-      })
-    ),
+    meals: z.array(dailyPlanMealSchema),
+    menuOptions: z
+      .array(
+        z.object({
+          label: z.string(),
+          focus: z.string(),
+          meals: z.array(dailyPlanMealSchema)
+        })
+      )
+      .optional(),
     hydration: z.object({
       guidance: z.string(),
       notes: z.string().optional()
@@ -148,7 +167,18 @@ export const dailyPlanJsonSchema = z.object({
         'OpenAiProviderService',
         'SafeFallbackPlanFactory'
       ]),
-      fallbackReason: z.string().optional()
+      planQualityMode: z.enum(['BASIC', 'PERSONALIZED', 'ADAPTIVE']).optional(),
+      fallbackReason: z.string().optional(),
+      safetyAgent: z
+        .object({
+          enabled: z.boolean(),
+          provider: z.enum(['mock', 'openai']),
+          approved: z.boolean().optional(),
+          riskLevel: z.enum(['low', 'medium', 'high']).optional(),
+          retryUsed: z.boolean().optional(),
+          retryResult: z.enum(['approved', 'rejected', 'failed', 'not_used']).optional()
+        })
+        .optional()
     })
     .optional()
 });

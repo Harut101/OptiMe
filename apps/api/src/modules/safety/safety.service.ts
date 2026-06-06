@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { GoalImpactMode, GoalType, IntensityLevel } from '@prisma/client';
+import { GoalImpactMode, GoalType, IntensityLevel, PregnancyStatus } from '@prisma/client';
 
 import {
   MAX_SAFE_WEIGHT_LOSS_FRACTION,
@@ -24,6 +24,7 @@ export interface GoalSafetyInput {
   impactMode?: GoalImpactMode;
   currentWeightKg?: number;
   isMinor: boolean;
+  pregnancyStatus?: PregnancyStatus | null;
 }
 
 export interface SafeGoalResult {
@@ -54,6 +55,11 @@ export interface PlanFoodSafetyConflict {
   matchedFoodName?: string;
   matchedPath?: string;
 }
+
+export type PregnancySensitiveStatus = Extract<
+  PregnancyStatus,
+  'PREGNANT' | 'POSTPARTUM' | 'BREASTFEEDING'
+>;
 
 @Injectable()
 export class SafetyService {
@@ -97,7 +103,7 @@ export class SafetyService {
       };
     }
 
-    if (input.isMinor) {
+    if (input.isMinor || this.isPregnancySensitiveStatus(input.pregnancyStatus)) {
       return {
         goalType: MINOR_SAFE_GOAL_TYPE,
         targetWeightKg: null,
@@ -165,6 +171,40 @@ export class SafetyService {
     ) {
       throw new BadRequestException(SUPPORTIVE_SAFETY_MESSAGES.unsafeTrainingDescription);
     }
+  }
+
+  validatePregnancySensitivePlanSafety(
+    planJson: unknown,
+    pregnancyStatus?: PregnancyStatus | null
+  ):
+    | { passed: true; reasons: [] }
+    | { passed: false; reasons: string[]; matchedPath?: string; matchedText?: string } {
+    if (!this.isPregnancySensitiveStatus(pregnancyStatus)) {
+      return { passed: true, reasons: [] };
+    }
+
+    const unsafeMatch = this.findUnsafePregnancyPlanText(planJson);
+
+    if (!unsafeMatch) {
+      return { passed: true, reasons: [] };
+    }
+
+    return {
+      passed: false,
+      reasons: [SUPPORTIVE_SAFETY_MESSAGES.pregnancyPlanUnsafe],
+      matchedPath: unsafeMatch.path,
+      matchedText: unsafeMatch.text
+    };
+  }
+
+  isPregnancySensitiveStatus(
+    pregnancyStatus?: PregnancyStatus | null
+  ): pregnancyStatus is PregnancySensitiveStatus {
+    return (
+      pregnancyStatus === PregnancyStatus.PREGNANT ||
+      pregnancyStatus === PregnancyStatus.POSTPARTUM ||
+      pregnancyStatus === PregnancyStatus.BREASTFEEDING
+    );
   }
 
   validatePlanFoodSafety(
@@ -240,14 +280,53 @@ export class SafetyService {
     const meals = Array.isArray(nutrition.meals) ? nutrition.meals : [];
     const conflicts: PlanFoodSafetyConflict[] = [];
 
+    this.collectMealConflicts(meals, 'nutrition.meals', restrictedFoods, conflicts);
+
+    const menuOptions = Array.isArray(nutrition.menuOptions) ? nutrition.menuOptions : [];
+
+    menuOptions.forEach((option, optionIndex) => {
+      const optionRecord = this.asRecord(option);
+      const optionMeals = Array.isArray(optionRecord.meals) ? optionRecord.meals : [];
+
+      this.collectMealConflicts(
+        optionMeals,
+        `nutrition.menuOptions[${optionIndex}].meals`,
+        restrictedFoods,
+        conflicts
+      );
+    });
+
+    const reminders = Array.isArray(plan.reminders) ? plan.reminders : [];
+
+    reminders.forEach((reminder, index) => {
+      if (typeof reminder === 'string') {
+        conflicts.push(
+          ...this.findConflictsInText(reminder, `reminders[${index}]`, restrictedFoods, false)
+        );
+      }
+    });
+
+    return conflicts;
+  }
+
+  private collectMealConflicts(
+    meals: unknown[],
+    pathPrefix: string,
+    restrictedFoods: Array<{
+      conflictType: FoodConflictType;
+      restrictedFood: string;
+      normalizedFood: string;
+    }>,
+    conflicts: PlanFoodSafetyConflict[]
+  ) {
     meals.forEach((meal, mealIndex) => {
       const mealRecord = this.asRecord(meal);
       const foods = Array.isArray(mealRecord.foods) ? mealRecord.foods : [];
 
       foods.forEach((food, foodIndex) => {
         const foodRecord = this.asRecord(food);
-        const namePath = `nutrition.meals[${mealIndex}].foods[${foodIndex}].name`;
-        const notesPath = `nutrition.meals[${mealIndex}].foods[${foodIndex}].notes`;
+        const namePath = `${pathPrefix}[${mealIndex}].foods[${foodIndex}].name`;
+        const notesPath = `${pathPrefix}[${mealIndex}].foods[${foodIndex}].notes`;
 
         if (typeof foodRecord.name === 'string') {
           conflicts.push(
@@ -262,18 +341,6 @@ export class SafetyService {
         }
       });
     });
-
-    const reminders = Array.isArray(plan.reminders) ? plan.reminders : [];
-
-    reminders.forEach((reminder, index) => {
-      if (typeof reminder === 'string') {
-        conflicts.push(
-          ...this.findConflictsInText(reminder, `reminders[${index}]`, restrictedFoods, false)
-        );
-      }
-    });
-
-    return conflicts;
   }
 
   private findConflictsInText(
@@ -368,6 +435,52 @@ export class SafetyService {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : {};
+  }
+
+  private findUnsafePregnancyPlanText(planJson: unknown) {
+    const plan = this.asRecord(planJson);
+    const checks: Array<{ path: string; value: unknown }> = [
+      { path: 'summary.message', value: this.asRecord(plan.summary).message },
+      { path: 'nutrition.calorieGuidance.notes', value: this.asRecord(this.asRecord(plan.nutrition).calorieGuidance).notes },
+      { path: 'nutrition.macroGuidance.notes', value: this.asRecord(this.asRecord(plan.nutrition).macroGuidance).notes },
+      { path: 'training.recommendation', value: this.asRecord(plan.training).recommendation },
+      { path: 'training.notes', value: this.asRecord(plan.training).notes },
+      { path: 'recovery.recommendation', value: this.asRecord(plan.recovery).recommendation }
+    ];
+
+    const reminders = Array.isArray(plan.reminders) ? plan.reminders : [];
+    reminders.forEach((reminder, index) => {
+      checks.push({ path: `reminders[${index}]`, value: reminder });
+    });
+
+    for (const check of checks) {
+      if (typeof check.value !== 'string') {
+        continue;
+      }
+
+      if (this.hasUnsafePregnancySensitiveLanguage(check.value)) {
+        return { path: check.path, text: this.extractSafeSnippet(check.value) };
+      }
+    }
+
+    return null;
+  }
+
+  private hasUnsafePregnancySensitiveLanguage(text: string) {
+    const unsafePatterns = [
+      /\b(extreme|aggressive|very low|severe)\s+(calorie|caloric|deficit|restriction|diet)/i,
+      /\b(starv(?:e|ing|ation)|skip meals?|detox|cleanse)\b/i,
+      /\b(push through|train through|work through)\s+(pain|exhaustion|dizziness|illness|injury|fatigue)\b/i,
+      /\b(high[-\s]?intensity|hard|all[-\s]?out|max effort|maximum effort)\b.*\b(pregnan\w*|postpartum|breastfeeding|nursing)\b/i,
+      /\b(pregnan\w*|postpartum|breastfeeding|nursing)\b.*\b(high[-\s]?intensity|all[-\s]?out|max effort|maximum effort)\b/i,
+      /\bdiagnos(?:e|is|ed)\b/i
+    ];
+
+    return unsafePatterns.some((pattern) => pattern.test(text));
+  }
+
+  private extractSafeSnippet(text: string) {
+    return text.replace(/\s+/g, ' ').trim().slice(0, 140);
   }
 
   private foodNameConflictsWithBlockedFood(foodName: string, blockedFood: string) {

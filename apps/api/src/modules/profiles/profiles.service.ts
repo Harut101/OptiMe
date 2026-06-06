@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PregnancyStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafetyService } from '../safety/safety.service';
@@ -39,6 +40,7 @@ export class ProfilesService {
         where: { userId },
         update: {
           gender: dto.gender,
+          pregnancyStatus: dto.pregnancyStatus ?? PregnancyStatus.UNKNOWN,
           dateOfBirth: dto.dateOfBirth,
           heightCm: dto.heightCm,
           weightKg: dto.weightKg,
@@ -47,6 +49,7 @@ export class ProfilesService {
         create: {
           userId,
           gender: dto.gender,
+          pregnancyStatus: dto.pregnancyStatus ?? PregnancyStatus.UNKNOWN,
           dateOfBirth: dto.dateOfBirth,
           heightCm: dto.heightCm,
           weightKg: dto.weightKg,

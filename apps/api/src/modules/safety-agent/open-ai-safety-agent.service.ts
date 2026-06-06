@@ -155,6 +155,10 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
       'You do not replace deterministic backend hard rules.',
       'Deterministic rules already checked allergies, excluded foods, safeMode hard rules, under-18 hard rules, dangerous goals, schema, and training boundaries.',
       'Review semantic safety only: unsafe diet advice, extreme calorie restriction, starvation or skip-meal advice, unsafe training advice, body-shaming, guilt language, medical diagnosis, unsupported supplement or medical claims, aggressive weight-loss framing, and conflicts with safeMode.',
+      'Reject gender-stereotyped recommendations, body-shaming gendered language, or assumptions based on gender alone.',
+      'Reject advice that says women should avoid strength training, women should eat very little, men should always bulk, or men should always lift heavy.',
+      'If pregnancyStatus is PREGNANT, POSTPARTUM, or BREASTFEEDING, reject unsafe high-intensity recommendations, aggressive weight-loss framing, extreme calorie deficits, medical diagnosis language, or guidance that should be personalized by a healthcare provider.',
+      'For pregnancy, postpartum, or breastfeeding context, general wellness guidance is okay when conservative, hydration-aware, recovery-aware, balanced, and non-diagnostic.',
       'For under-18 or safeMode plans, require balanced meals, hydration, sleep, recovery, healthy movement, and supportive consistency language.',
       'Approve only low-risk plans.',
       'If rejecting, provide concise reasons and specific requiredChanges for a future retry.',
@@ -175,7 +179,14 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
         noMedicalDiagnosis: true,
         noUnsafeTrainingAdvice: true,
         safeMode: input.deterministicSafetyContext.safeMode,
-        isMinor: input.deterministicSafetyContext.isMinor
+        isMinor: input.deterministicSafetyContext.isMinor,
+        gender: input.deterministicSafetyContext.gender ?? null,
+        pregnancyStatus: input.deterministicSafetyContext.pregnancyStatus ?? 'UNKNOWN',
+        noGenderStereotypes: true,
+        pregnancyPostpartumBreastfeedingSafety:
+          input.deterministicSafetyContext.pregnancyStatus === 'PREGNANT' ||
+          input.deterministicSafetyContext.pregnancyStatus === 'POSTPARTUM' ||
+          input.deterministicSafetyContext.pregnancyStatus === 'BREASTFEEDING'
       }
     };
   }

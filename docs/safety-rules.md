@@ -28,6 +28,46 @@ Rules:
 
 If a minor submits a weight-loss goal, the backend converts it to `HEALTHY_LIFESTYLE` and removes target weight, timeline, and impact mode.
 
+## Gender, Pregnancy, Postpartum, And Breastfeeding Safety
+
+`Profile.gender` is optional and may be used as one careful personalization input. It must not be used to stereotype the user.
+
+Rules:
+
+- Do not assume pregnancy, postpartum, or breastfeeding status from gender alone.
+- Do not say women should avoid strength training.
+- Do not say women should eat very little.
+- Do not say men should always bulk or lift heavy.
+- Base recommendations on goal, ability, schedule, preferences, feedback, and safety context.
+
+`Profile.pregnancyStatus` is optional and privacy-sensitive.
+
+Current statuses:
+
+- `NOT_PREGNANT`
+- `PREGNANT`
+- `POSTPARTUM`
+- `BREASTFEEDING`
+- `PREFER_NOT_TO_SAY`
+- `UNKNOWN`
+
+Only these statuses trigger pregnancy-sensitive safety behavior:
+
+- `PREGNANT`
+- `POSTPARTUM`
+- `BREASTFEEDING`
+
+For pregnancy-sensitive statuses, all tiers receive conservative safety behavior:
+
+- Aggressive weight-loss goals are converted to `HEALTHY_LIFESTYLE`.
+- Extreme calorie restriction language is rejected.
+- Unsafe high-intensity training advice is rejected.
+- Training through pain, dizziness, illness, injury, or exhaustion is rejected.
+- Guidance should be balanced, hydration-aware, recovery-aware, and non-diagnostic.
+- The app should encourage consulting a healthcare provider for personal pregnancy, postpartum, or breastfeeding guidance.
+
+The app must not provide medical diagnosis. Pregnancy, postpartum, and breastfeeding safety is not paywalled.
+
 ## Weight-Loss Goal Safety
 
 Adult weight-loss goals are allowed only when they stay within deterministic safety boundaries.
@@ -179,6 +219,8 @@ The Safety Agent can review:
 - unsafe implications
 - medical-diagnosis language
 - body-shaming or guilt language
+- gender-stereotyped recommendations
+- unsafe pregnancy, postpartum, or breastfeeding recommendations
 - unsafe diet or training advice
 - semantic conflicts with `safeMode`
 - tone that is not supportive or health-focused

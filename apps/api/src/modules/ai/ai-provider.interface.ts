@@ -4,6 +4,8 @@ import {
   GoalImpactMode,
   GoalType,
   IntensityLevel,
+  PlanQualityMode,
+  PregnancyStatus,
   SportType
 } from '@prisma/client';
 
@@ -13,6 +15,28 @@ export interface GenerateDailyPlanSafetyFeedback {
   riskLevel: 'low' | 'medium' | 'high';
   reasons: string[];
   requiredChanges: string[];
+}
+
+export interface GenerateDailyPlanPersonalizationContext {
+  mode: PlanQualityMode;
+  contextLevel: 'minimal' | 'personalized' | 'adaptive';
+  guidance: string[];
+  historySummary?: {
+    recentPlanCount: number;
+    readinessLevels: string[];
+    fallbackCount: number;
+  };
+  feedbackSummary?: {
+    helpfulCount: number;
+    notHelpfulCount: number;
+    commonTags: string[];
+  };
+  trainingPersonalization: {
+    usesSchedule: boolean;
+    usesTrainingDescriptions: boolean;
+    exerciseDetailLevel: 'simple' | 'sets_reps_rest' | 'adaptive';
+    futureSignals: string[];
+  };
 }
 
 export interface GenerateDailyPlanInput {
@@ -25,6 +49,7 @@ export interface GenerateDailyPlanInput {
   };
   profile: {
     gender: string | null;
+    pregnancyStatus: PregnancyStatus;
     dateOfBirth: Date;
     heightCm: number;
     weightKg: number;
@@ -55,6 +80,8 @@ export interface GenerateDailyPlanInput {
   safeMode: boolean;
   planLocalDate: string;
   planTimezone: string;
+  planQualityMode: PlanQualityMode;
+  personalizationContext: GenerateDailyPlanPersonalizationContext;
   safetyFeedback?: GenerateDailyPlanSafetyFeedback;
 }
 

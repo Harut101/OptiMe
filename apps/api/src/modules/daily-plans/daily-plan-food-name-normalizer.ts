@@ -23,7 +23,37 @@ export function normalizeDailyPlanFoodNames(
   }
 
   const normalizedPaths: string[] = [];
-  const meals = planJson.nutrition.meals.map((meal, mealIndex) => ({
+  const meals = normalizeMeals(planJson.nutrition.meals, 'nutrition.meals', restrictedFoods, normalizedPaths);
+  const menuOptions = planJson.nutrition.menuOptions?.map((option, optionIndex) => ({
+    ...option,
+    meals: normalizeMeals(
+      option.meals,
+      `nutrition.menuOptions[${optionIndex}].meals`,
+      restrictedFoods,
+      normalizedPaths
+    )
+  }));
+
+  return {
+    planJson: {
+      ...planJson,
+      nutrition: {
+        ...planJson.nutrition,
+        meals,
+        ...(menuOptions ? { menuOptions } : {})
+      }
+    },
+    normalizedPaths
+  };
+}
+
+function normalizeMeals(
+  meals: DailyPlanJson['nutrition']['meals'],
+  pathPrefix: string,
+  restrictedFoods: string[],
+  normalizedPaths: string[]
+) {
+  return meals.map((meal, mealIndex) => ({
     ...meal,
     foods: meal.foods.map((food, foodIndex) => {
       const normalized = normalizeFoodName(food.name, restrictedFoods);
@@ -32,7 +62,7 @@ export function normalizeDailyPlanFoodNames(
         return food;
       }
 
-      normalizedPaths.push(`nutrition.meals[${mealIndex}].foods[${foodIndex}].name`);
+      normalizedPaths.push(`${pathPrefix}[${mealIndex}].foods[${foodIndex}].name`);
 
       return {
         ...food,
@@ -41,17 +71,6 @@ export function normalizeDailyPlanFoodNames(
       };
     })
   }));
-
-  return {
-    planJson: {
-      ...planJson,
-      nutrition: {
-        ...planJson.nutrition,
-        meals
-      }
-    },
-    normalizedPaths
-  };
 }
 
 function normalizeFoodName(name: string, restrictedFoods: string[]) {

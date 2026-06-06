@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+const foodItemSchema = z.object({
+  name: z.string(),
+  portion: z.string(),
+  notes: z.string().optional()
+});
+
+const mealSchema = z.object({
+  name: z.string(),
+  purpose: z.string(),
+  foods: z.array(foodItemSchema)
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -25,19 +37,16 @@ export const dailyPlanJsonSchema = z.object({
       fat: z.string(),
       notes: z.string()
     }),
-    meals: z.array(
-      z.object({
-        name: z.string(),
-        purpose: z.string(),
-        foods: z.array(
-          z.object({
-            name: z.string(),
-            portion: z.string(),
-            notes: z.string().optional()
-          })
-        )
-      })
-    ),
+    meals: z.array(mealSchema),
+    menuOptions: z
+      .array(
+        z.object({
+          label: z.string(),
+          focus: z.string(),
+          meals: z.array(mealSchema)
+        })
+      )
+      .optional(),
     hydration: z.object({
       guidance: z.string(),
       notes: z.string().optional()
@@ -62,6 +71,7 @@ export const dailyPlanJsonSchema = z.object({
         'OpenAiProviderService',
         'SafeFallbackPlanFactory'
       ]),
+      planQualityMode: z.enum(['BASIC', 'PERSONALIZED', 'ADAPTIVE']).optional(),
       fallbackReason: z.string().optional(),
       safetyAgent: z
         .object({

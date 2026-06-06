@@ -53,6 +53,19 @@ type DailyPlanJson = {
           notes?: string;
       }>;
     }>;
+    menuOptions?: Array<{
+      label: string;
+      focus: string;
+      meals: Array<{
+        name: string;
+        purpose: string;
+        foods: Array<{
+          name: string;
+          portion: string;
+          notes?: string;
+        }>;
+      }>;
+    }>;
     hydration: {
       guidance: string;
       notes?: string;
@@ -87,9 +100,32 @@ type DailyPlanJson = {
 
 `debug` is internal development metadata. Mobile must not render it.
 
+## Nutrition Menu Options
+
+`nutrition.meals` remains the primary recommended menu and is still the field existing mobile screens should render.
+
+`nutrition.menuOptions` is optional and backward-compatible. It allows richer tiers to offer menu choices without breaking the existing Today and Plan Details screens.
+
+Plan quality behavior:
+
+- `BASIC`: one strong, safe menu option. `menuOptions` may contain one option.
+- `PERSONALIZED`: two useful menu options, such as `Balanced standard day` and `Quick/simple prep`.
+- `ADAPTIVE`: three more individualized menu options, such as `Workout support`, `Recovery friendly`, and `Busy day/simple prep`.
+
+All menu options must follow the same food safety contract as `nutrition.meals`:
+
+- Respect allergies.
+- Respect excluded foods.
+- Keep `foods[].name` clean.
+- Put preparation or avoidance details in `foods[].notes`, not in food names.
+
+Future mobile can add menu option switching UI. Sprint 4 Batch 2.1 does not change mobile rendering.
+
+Gender and pregnancy/postpartum/breastfeeding context are planning inputs, not user-facing `DailyPlanJson` fields. The backend may use them for safety and personalization, but the normalized plan contract remains focused on the plan content itself.
+
 ## Food Name Contract
 
-`nutrition.meals[].foods[].name` must be a clean food or dish name only.
+`nutrition.meals[].foods[].name` and `nutrition.menuOptions[].meals[].foods[].name` must be clean food or dish names only.
 
 Do not embed allergy, exclusion, or avoidance explanations in `foods[].name`.
 

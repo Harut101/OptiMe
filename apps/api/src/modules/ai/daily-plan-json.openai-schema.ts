@@ -1,3 +1,36 @@
+const foodItemSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'portion', 'notes'],
+  properties: {
+    name: {
+      type: 'string',
+      description:
+        'Clean food or dish name only. Do not include allergy/exclusion explanations, parenthetical restrictions, no-avocado/no-pork wording, free-from wording, or without wording.'
+    },
+    portion: { type: 'string' },
+    notes: {
+      type: 'string',
+      description:
+        'Preparation or practical note. If mentioning avoided allergies/excluded foods, use safe avoidance language such as Prepared without avocado.'
+    }
+  }
+} as const;
+
+const mealSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'purpose', 'foods'],
+  properties: {
+    name: { type: 'string' },
+    purpose: { type: 'string' },
+    foods: {
+      type: 'array',
+      items: foodItemSchema
+    }
+  }
+} as const;
+
 export const dailyPlanJsonOpenAiSchema = {
   type: 'object',
   additionalProperties: false,
@@ -33,7 +66,7 @@ export const dailyPlanJsonOpenAiSchema = {
     nutrition: {
       type: 'object',
       additionalProperties: false,
-      required: ['calorieGuidance', 'macroGuidance', 'meals', 'hydration'],
+      required: ['calorieGuidance', 'macroGuidance', 'meals', 'menuOptions', 'hydration'],
       properties: {
         calorieGuidance: {
           type: 'object',
@@ -57,33 +90,22 @@ export const dailyPlanJsonOpenAiSchema = {
         },
         meals: {
           type: 'array',
+          items: mealSchema
+        },
+        menuOptions: {
+          type: 'array',
+          description:
+            'Menu choices by plan quality. BASIC: exactly 1 option. PERSONALIZED: exactly 2 options. ADAPTIVE: exactly 3 options. The first option should align with the primary meals field.',
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['name', 'purpose', 'foods'],
+            required: ['label', 'focus', 'meals'],
             properties: {
-              name: { type: 'string' },
-              purpose: { type: 'string' },
-              foods: {
+              label: { type: 'string' },
+              focus: { type: 'string' },
+              meals: {
                 type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['name', 'portion', 'notes'],
-                  properties: {
-                    name: {
-                      type: 'string',
-                      description:
-                        'Clean food or dish name only. Do not include allergy/exclusion explanations, parenthetical restrictions, no-avocado/no-pork wording, free-from wording, or without wording.'
-                    },
-                    portion: { type: 'string' },
-                    notes: {
-                      type: 'string',
-                      description:
-                        'Preparation or practical note. If mentioning avoided allergies/excluded foods, use safe avoidance language such as Prepared without avocado.'
-                    }
-                  }
-                }
+                items: mealSchema
               }
             }
           }

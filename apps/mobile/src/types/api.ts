@@ -8,6 +8,7 @@ import type {
   IntensityLevel,
   PlanFeedbackRating,
   PlanFeedbackTag,
+  PregnancyStatus,
   SubmitDailyPlanFeedbackRequest,
   SportType
 } from '@optime/shared-types';
@@ -17,6 +18,7 @@ export type {
   DailyPlanResponse,
   PlanFeedbackRating,
   PlanFeedbackTag,
+  PregnancyStatus,
   SubmitDailyPlanFeedbackRequest
 } from '@optime/shared-types';
 
@@ -50,6 +52,7 @@ export interface ProfileRequest {
   firstName?: string;
   lastName?: string;
   gender?: string;
+  pregnancyStatus?: PregnancyStatus;
   dateOfBirth: string;
   heightCm: number;
   weightKg: number;
@@ -84,3 +87,56 @@ export interface TrainingScheduleItem {
 }
 
 export type TrainingScheduleItemRequest = Omit<TrainingScheduleItem, 'id'>;
+
+export type SubscriptionPlan = 'FREE' | 'PLUS' | 'PRO';
+export type PlanQualityMode = 'BASIC' | 'PERSONALIZED' | 'ADAPTIVE';
+export type UsagePeriodType = 'DAILY' | 'MONTHLY';
+export type UsageFeature =
+  | 'DAILY_PLAN_GENERATION'
+  | 'DAILY_PLAN_REFRESH'
+  | 'AI_DAILY_PLAN_GENERATION'
+  | 'AI_SAFETY_AGENT_REVIEW'
+  | 'FUTURE_AI_COACH_MESSAGE';
+
+export interface EntitlementSummary {
+  currentPlan: SubscriptionPlan;
+  planQualityMode: PlanQualityMode;
+  isPremium: boolean;
+  activeSubscriptionId?: string;
+  source: 'subscription' | 'default_free';
+  features: {
+    canGenerateDailyPlan: boolean;
+    canRefreshPlan: boolean;
+    canUseOpenAIProvider: boolean;
+    canUseAdvancedPersonalization: boolean;
+    canUseFeedbackPersonalization: boolean;
+    canViewHistory: boolean;
+    canSubmitFeedback: boolean;
+    canUseWeeklyReports: boolean;
+    canUseWhoop: boolean;
+    canUseAiCoach: boolean;
+  };
+}
+
+export interface UsageSummaryItem {
+  feature: UsageFeature;
+  periodType: UsagePeriodType;
+  count: number;
+  limit: number;
+  remaining: number;
+  resetAt: string;
+}
+
+export interface UsageSummary {
+  items: UsageSummaryItem[];
+}
+
+export interface UsageLimitExceededError {
+  code: 'USAGE_LIMIT_REACHED';
+  feature: UsageFeature;
+  currentPlan: SubscriptionPlan;
+  limit: number;
+  periodType: UsagePeriodType;
+  resetAt: string;
+  upgradeSuggestion: 'PLUS' | 'PRO' | null;
+}

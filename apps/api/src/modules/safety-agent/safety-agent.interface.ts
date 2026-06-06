@@ -11,6 +11,8 @@ export interface SafetyAgentGoalSummary {
 export interface DeterministicSafetyContext {
   safeMode: boolean;
   isMinor: boolean;
+  gender?: string | null;
+  pregnancyStatus?: string | null;
   allergies: string[];
   excludedFoods: string[];
   deterministicSafetyPassed: boolean;
