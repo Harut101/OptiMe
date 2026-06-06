@@ -123,6 +123,26 @@ export interface OnboardingStatusResponse {
   };
 }
 
+export type ProgressivePromptInputType = 'stringList' | 'singleSelect' | 'multiSelect' | 'number';
+
+export interface ProgressivePrompt {
+  key: string;
+  title: string;
+  description: string;
+  inputType: ProgressivePromptInputType;
+  options?: Array<{ label: string; value: string }>;
+}
+
+export interface ProgressiveProfileSummary {
+  completedPrompts: string[];
+  nextPrompt?: ProgressivePrompt;
+  completionPercent: number;
+}
+
+export interface ProgressivePromptAnswerRequest {
+  value: string | string[] | number | boolean;
+}
+
 export interface GenerateDailyPlanRequest {
   forceRegenerate?: boolean;
 }
@@ -157,6 +177,7 @@ export interface DailyPlanJson {
     safeMode: boolean;
     adjustedForSafety: boolean;
     reasons: string[];
+    userSafeMessage?: string;
   };
   summary: {
     title: string;
@@ -249,4 +270,59 @@ export interface DailyPlanFeedbackResponse {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type DailyCheckInType = 'MEAL' | 'TRAINING' | 'EVENING_REFLECTION';
+export type MealCheckInStatus = 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'SKIPPED' | 'SWAPPED';
+export type TrainingCheckInStatus =
+  | 'COMPLETED'
+  | 'PARTIALLY_COMPLETED'
+  | 'SKIPPED'
+  | 'RESTED_INSTEAD';
+
+export interface MealCheckInPayload {
+  mealIndex?: number;
+  mealName?: string;
+  status: MealCheckInStatus;
+  notes?: string;
+}
+
+export interface TrainingCheckInPayload {
+  status: TrainingCheckInStatus;
+  perceivedDifficulty?: number;
+  energyAfter?: number;
+  painOrDiscomfort?: boolean;
+  notes?: string;
+}
+
+export interface EveningReflectionCheckInPayload {
+  energyLevel?: number;
+  tirednessLevel?: number;
+  sorenessLevel?: number;
+  mood?: string;
+  notes?: string;
+}
+
+export type DailyPlanCheckInPayload =
+  | MealCheckInPayload
+  | TrainingCheckInPayload
+  | EveningReflectionCheckInPayload;
+
+export interface CreateDailyPlanCheckInRequest {
+  type: DailyCheckInType;
+  payload: DailyPlanCheckInPayload;
+}
+
+export interface DailyPlanCheckInResponse {
+  id: string;
+  dailyPlanId: string;
+  type: DailyCheckInType;
+  subjectKey: string;
+  payload: DailyPlanCheckInPayload;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyPlanCheckInsResponse {
+  items: DailyPlanCheckInResponse[];
 }

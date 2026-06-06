@@ -12,6 +12,7 @@ import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
+import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
 
 type GoalForm = z.input<typeof goalSchema>;
 
@@ -31,7 +32,8 @@ export default function GoalSetupScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.push('/(onboarding)/nutrition-preferences');
     },
-    onError: (error) => Alert.alert('Goal was not saved', error.message)
+    onError: (error) =>
+      Alert.alert('Let’s keep this goal safe', getFriendlyGoalErrorMessage(error))
   });
 
   return (

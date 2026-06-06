@@ -1,6 +1,7 @@
 import { DailyReadinessLevel } from '@prisma/client';
 
-import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
+import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
+import { SUPPORTIVE_SAFETY_MESSAGES } from './safety-rules';
 
 export interface SafeFallbackPlanInput {
   planLocalDate: string;
@@ -9,6 +10,8 @@ export interface SafeFallbackPlanInput {
 }
 
 export function createSafeFallbackPlan(input: SafeFallbackPlanInput): DailyPlanJson {
+  const reasons = input.reasons ?? [];
+
   return {
     schemaVersion: 'sprint-2.v1',
     generatedAt: new Date().toISOString(),
@@ -16,7 +19,8 @@ export function createSafeFallbackPlan(input: SafeFallbackPlanInput): DailyPlanJ
     safety: {
       safeMode: true,
       adjustedForSafety: true,
-      reasons: input.reasons ?? []
+      reasons,
+      userSafeMessage: getUserSafeFallbackMessage(reasons)
     },
     summary: {
       title: 'Simple safe plan',
@@ -74,4 +78,69 @@ export function createSafeFallbackPlan(input: SafeFallbackPlanInput): DailyPlanJ
       fallbackReason: input.reasons?.join(' | ')
     }
   };
+}
+
+export function getUserSafeFallbackMessage(reasons: string[]) {
+  const reasonText = reasons.join(' | ').toLowerCase();
+
+  if (
+    reasonText.includes('under 18') ||
+    reasonText.includes('minor') ||
+    reasonText.includes('safe mode')
+  ) {
+    return 'We adjusted today toward balanced meals, hydration, recovery, and healthy movement.';
+  }
+
+  if (
+    reasonText.includes('weight loss') ||
+    reasonText.includes('weight-loss') ||
+    reasonText.includes('steadier goal') ||
+    reasonText.includes('aggressive')
+  ) {
+    return 'We adjusted today toward a steadier plan that supports energy, training, and recovery.';
+  }
+
+  if (
+    reasonText.includes('pregnancy') ||
+    reasonText.includes('postpartum') ||
+    reasonText.includes('breastfeeding') ||
+    reasonText.includes('nursing')
+  ) {
+    return 'We adjusted today toward gentle, balanced guidance because your health context calls for extra care.';
+  }
+
+  if (
+    reasonText.includes('allerg') ||
+    reasonText.includes('excluded food') ||
+    reasonText.includes('conflicts with your allergies') ||
+    reasonText.includes(SUPPORTIVE_SAFETY_MESSAGES.planFoodConflict.toLowerCase())
+  ) {
+    return 'We switched to a safer plan because the generated plan may have conflicted with your allergies or excluded foods.';
+  }
+
+  if (
+    reasonText.includes('pain') ||
+    reasonText.includes('dizz') ||
+    reasonText.includes('illness') ||
+    reasonText.includes('exhaust') ||
+    reasonText.includes('injur')
+  ) {
+    return 'We reduced training intensity today so movement stays conservative and recovery-friendly.';
+  }
+
+  if (reasonText.includes('safety_agent')) {
+    return 'We used a safer fallback because the generated plan needed a more conservative safety review.';
+  }
+
+  if (
+    reasonText.includes('safely validated') ||
+    reasonText.includes('schema_validation') ||
+    reasonText.includes('json_parse') ||
+    reasonText.includes('missing_output') ||
+    reasonText.includes('openai_')
+  ) {
+    return 'We used a reliable safe plan today because the generated plan could not be fully verified.';
+  }
+
+  return 'We adjusted today toward a safer, steadier plan.';
 }

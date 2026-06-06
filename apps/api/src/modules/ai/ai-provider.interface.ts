@@ -31,6 +31,16 @@ export interface GenerateDailyPlanPersonalizationContext {
     notHelpfulCount: number;
     commonTags: string[];
   };
+  checkInSummary?: {
+    recentCheckInCount: number;
+    recentSkippedMealsCount: number;
+    recentCompletedWorkoutsCount: number;
+    recentAverageTiredness: number | null;
+    painOrDiscomfortReported: boolean;
+    highTirednessReported: boolean;
+    illnessLikeNotesReported: boolean;
+    conservativeTrainingRecommended: boolean;
+  };
   trainingPersonalization: {
     usesSchedule: boolean;
     usesTrainingDescriptions: boolean;

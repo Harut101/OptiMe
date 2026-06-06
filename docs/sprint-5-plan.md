@@ -81,6 +81,14 @@ Recommended MVP:
 - Very small mobile UI on Today or Plan Details.
 - Use check-ins in future personalization context, but avoid complex analytics in Sprint 5.
 
+Batch 5 adds the first implementation:
+
+- `DailyPlanCheckIn` with flexible JSON payload and strict backend validation.
+- Meal, training, and evening reflection check-in types.
+- Owned daily-plan check-in endpoints.
+- Minimal recent check-in summary for future planning.
+- Small Plan Details check-in UI for meals and training.
+
 ### User-Facing Safety Disclaimer
 
 Add clear disclaimer copy in onboarding/profile/settings:

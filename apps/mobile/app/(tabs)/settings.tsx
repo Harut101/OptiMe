@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { WELLNESS_DISCLAIMER } from '@/features/safety/safety-copy';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function SettingsScreen() {
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
         <Text variant="label">Safety</Text>
         <Text variant="body">{user?.safeMode ? 'Safe mode is active.' : 'Standard wellness mode is active.'}</Text>
         <Text variant="muted">Age-aware safety is managed by the backend from your date of birth.</Text>
+        <Text variant="muted">{WELLNESS_DISCLAIMER}</Text>
       </Card>
       <Button
         title="Log out"

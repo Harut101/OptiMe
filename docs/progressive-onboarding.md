@@ -115,11 +115,11 @@ The endpoint keeps older fields for mobile compatibility and adds the progressiv
 
 For current mobile compatibility, `canGeneratePlan` mirrors `canGenerateFirstPlan`.
 
-## Future Progressive Prompts
+## Progressive Prompts
 
-Sprint 5 Batch 2 only exposes `nextPrompt`; it does not add prompt answer or skip endpoints.
+Sprint 5 exposes a lightweight prompt loop after the first plan is available.
 
-Future mobile batches can use `progressiveProfile.nextPrompt` to ask one small follow-up question at a time, preferably after the user has viewed or refreshed a plan.
+Mobile uses `progressiveProfile.nextPrompt` and `GET /v1/progressive-profile/next-prompt` to ask one small follow-up question at a time on Today.
 
 To avoid annoying the user:
 
@@ -163,7 +163,7 @@ The user can continue when:
 - at least one allergy is entered, or
 - `noKnownAllergiesConfirmed=true`
 
-Optional nutrition fields should be visually grouped under "Optional — improve personalization later":
+Optional nutrition fields should be visually grouped under "Optional - improve personalization later":
 
 - diet type
 - meals per day
@@ -189,7 +189,72 @@ PUT /v1/training-schedule/intent
 }
 ```
 
-Batch 4 should add progressive prompt UI for Stage 2 personalization. It should not be part of the Stage 1 gate.
+Stage 2 progressive prompts are not part of the Stage 1 gate.
+
+## Batch 4 Progressive Prompt Lifecycle
+
+Sprint 5 Batch 4 adds the first lightweight progressive prompt loop after Today is available.
+
+Backend endpoints:
+
+- `GET /v1/progressive-profile/next-prompt`
+- `POST /v1/progressive-profile/prompts/:key/answer`
+- `POST /v1/progressive-profile/prompts/:key/skip`
+
+Prompt state is tracked per user in `UserProgressiveProfilePrompt`.
+
+Prompt statuses:
+
+- `PENDING`: the prompt has been shown or selected as the next prompt.
+- `ANSWERED`: the user answered it and it should not be shown again.
+- `SKIPPED`: the user skipped it and it should not immediately reappear.
+
+Skip behavior:
+
+- `skippedAt` records when the user skipped.
+- `skippedUntil` adds a 24-hour cooldown.
+- Skipped prompts should not be returned while `skippedUntil` is in the future.
+
+Answer payload:
+
+```json
+{
+  "value": "string, string[], number, or boolean"
+}
+```
+
+Prompt answer behavior:
+
+- `PREFERRED_FOODS` merges into preferred foods.
+- `EXCLUDED_FOODS` merges into excluded foods.
+- `DIET_TYPE` updates nutrition preference diet type.
+- `MEALS_PER_DAY` updates nutrition preference meals per day.
+- Training and lifestyle prompt answers are stored as prompt answers only for now.
+
+Current prompt priority:
+
+1. `EXCLUDED_FOODS`
+2. `PREFERRED_FOODS`
+3. `LIMITATIONS_OR_PAIN_AREAS`
+4. `EQUIPMENT`
+5. `TRAINING_LEVEL`
+6. `TARGET_MUSCLE_GROUPS`
+7. `COOKING_TIME`
+8. `MEAL_PREP`
+9. `MEAL_TIMING`
+10. `DIET_TYPE`
+11. `MEALS_PER_DAY`
+12. `TRAINING_OUTCOME`
+
+Mobile behavior:
+
+- Today shows at most one small prompt card.
+- The card does not block plan generation.
+- The card does not hide the Today plan.
+- The user can answer or skip for now.
+- After answer or skip, mobile refreshes the next prompt and onboarding status.
+
+Batch 4 does not add check-ins. It should not ask whether the user ate a meal, completed a workout, or how their energy feels. Those belong to Batch 5.
 
 ## Safety Notes
 

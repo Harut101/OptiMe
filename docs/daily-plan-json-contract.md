@@ -27,6 +27,7 @@ type DailyPlanJson = {
     safeMode: boolean;
     adjustedForSafety: boolean;
     reasons: string[];
+    userSafeMessage?: string;
   };
   summary: {
     title: string;
@@ -254,3 +255,4 @@ Mobile should read:
 - `plan.safety`
 
 Mobile should show a simple safety note when response `status` is `FALLBACK` or `plan.safety.adjustedForSafety` is `true`.
+When present, `plan.safety.userSafeMessage` is the preferred user-facing copy. Mobile must not render `debug.fallbackReason` or raw provider diagnostics.

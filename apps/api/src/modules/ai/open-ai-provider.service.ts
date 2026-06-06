@@ -215,6 +215,7 @@ export class OpenAiProviderService implements AiProvider {
       'Do not give medical diagnosis.',
       'Do not recommend extreme dieting, starvation, detoxes, or unsafe calorie restriction.',
       'Do not recommend training through pain, dizziness, illness, fever, exhaustion, or injury.',
+      'If recent check-ins indicate pain, discomfort, high tiredness, illness-like notes, or extreme fatigue, reduce training intensity and favor conservative recovery-aware guidance without medical diagnosis.',
       'Respect safeMode rules for minors: balanced meals, hydration, sleep, recovery, healthy movement, and consistency.',
       'If pregnancyStatus is PREGNANT, POSTPARTUM, or BREASTFEEDING: avoid aggressive weight-loss framing, avoid extreme calorie deficit, avoid unsafe high-intensity recommendations, prefer moderate recovery-aware hydration-aware balanced guidance, and encourage consulting a healthcare provider for personal pregnancy/postpartum/breastfeeding guidance.',
       'For pregnancy, postpartum, or breastfeeding context, do not provide diagnosis or medical claims.',
@@ -307,7 +308,10 @@ export class OpenAiProviderService implements AiProvider {
           'PREGNANT',
           'POSTPARTUM',
           'BREASTFEEDING'
-        ].includes(input.profile?.pregnancyStatus ?? 'UNKNOWN')
+        ].includes(input.profile?.pregnancyStatus ?? 'UNKNOWN'),
+        recentCheckInsRequireConservativeTraining:
+          input.personalizationContext.checkInSummary?.conservativeTrainingRecommended ?? false,
+        noMedicalDiagnosisForCheckInSafetySignals: true
       },
       safetyFeedback: input.safetyFeedback
         ? {

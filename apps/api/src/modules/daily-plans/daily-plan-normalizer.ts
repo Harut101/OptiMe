@@ -1,6 +1,7 @@
 import { DailyReadinessLevel } from '@prisma/client';
 
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
+import { getUserSafeFallbackMessage } from '../safety/safe-fallback-plan.factory';
 
 interface NormalizeDailyPlanInput {
   planJson: unknown;
@@ -14,7 +15,17 @@ export function normalizeDailyPlanJson(input: NormalizeDailyPlanInput): DailyPla
   const parsed = dailyPlanJsonSchema.safeParse(input.planJson);
 
   if (parsed.success) {
-    return parsed.data;
+    return {
+      ...parsed.data,
+      safety: {
+        ...parsed.data.safety,
+        userSafeMessage:
+          parsed.data.safety.userSafeMessage ??
+          (parsed.data.safety.adjustedForSafety
+            ? getUserSafeFallbackMessage(parsed.data.safety.reasons)
+            : undefined)
+      }
+    };
   }
 
   return normalizeLegacyPlanJson(input);
@@ -47,7 +58,11 @@ function normalizeLegacyPlanJson(input: NormalizeDailyPlanInput): DailyPlanJson 
     safety: {
       safeMode: Boolean(input.safeMode),
       adjustedForSafety: false,
-      reasons: arrayOfStrings(legacyPlan.warnings)
+      reasons: arrayOfStrings(legacyPlan.warnings),
+      userSafeMessage:
+        arrayOfStrings(legacyPlan.warnings).length > 0
+          ? getUserSafeFallbackMessage(arrayOfStrings(legacyPlan.warnings))
+          : undefined
     },
     summary: {
       title: readiness === 'RECOVER' ? 'Recovery-focused day' : 'Steady plan for today',

@@ -194,11 +194,24 @@ Fallback plan rules:
 - Same `DailyPlanJson` schema.
 - `status = FALLBACK`.
 - `safety.adjustedForSafety = true`.
+- `safety.userSafeMessage` should contain a user-facing explanation when possible.
 - Supportive, practical copy.
 - No aggressive calorie targets.
 - No extreme dieting language.
 - No unsafe training advice.
 - No medical diagnosis.
+
+The UI must not show raw `debug.fallbackReason`, provider errors, Safety Agent reason codes, or raw JSON. Those fields are for development diagnostics and operational monitoring only.
+
+User-facing fallback copy should be short, calm, and specific enough to be useful:
+
+- Aggressive weight-loss goal: choose a steadier goal that supports energy, training, and recovery.
+- Under-18 weight-loss context: focus on balanced meals, hydration, sleep, recovery, healthy movement, and consistency.
+- Pregnancy, postpartum, or breastfeeding context: keep guidance gentle, balanced, and conservative.
+- Pain, dizziness, illness, exhaustion, or injury context: reduce intensity and prioritize conservative movement or rest.
+- Allergy or excluded-food conflict: switch to a safer plan that avoids restricted foods.
+- Invalid or unsafe provider output: use a reliable safe fallback because the generated plan could not be fully verified.
+- Safety Agent rejection: use a safer fallback because the generated plan needed a more conservative safety review.
 
 ## Safety Boundary
 

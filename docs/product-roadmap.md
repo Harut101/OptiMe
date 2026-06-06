@@ -63,6 +63,21 @@ Added monetization foundation without real payments:
 - Mobile tier/usage placeholders.
 - Friendly `USAGE_LIMIT_REACHED` UX.
 
+### Sprint 5: Progressive Onboarding, Check-Ins, And Safety UX
+
+Reduced onboarding friction and strengthened the plan-to-fact loop:
+
+- Stage 1 onboarding for the first safe plan.
+- Stage 2 progressive profile prompts after the user sees value.
+- Allergy confirmation instead of assuming missing allergy data is safe.
+- No-training-planned option for users without a current schedule.
+- Today progressive prompt card with answer/skip behavior.
+- Meal and training check-ins from Plan Details.
+- Pain/discomfort safety signal.
+- User-facing safety disclaimer in onboarding and Settings.
+- Friendly fallback Safety note on Today and Plan Details.
+- `DailyPlanJson.safety.userSafeMessage` for user-safe safety explanations.
+
 ## Current Product State
 
 OptiMe can now:
@@ -74,6 +89,8 @@ OptiMe can now:
 - Adapt plan depth by backend-resolved tier.
 - Track and enforce usage limits for expensive generation/refresh actions.
 - Show plan and usage placeholder UI on mobile.
+- Let users reach the first plan with a shorter safety-first onboarding path.
+- Collect progressive profile details and check-ins after activation.
 
 Still not implemented:
 
@@ -89,9 +106,9 @@ Still not implemented:
 
 ### Progressive Onboarding
 
-Current onboarding is functional, but it can become too long as personalization grows.
+Progressive onboarding is now the active onboarding direction.
 
-Recommended direction:
+Implemented direction:
 
 - Stage 1 collects only the minimum required data for a first safe plan.
 - Stage 2 progressively collects deeper preferences over the first days.
@@ -104,8 +121,9 @@ Stage 1 minimum:
 - Height.
 - Weight.
 - Goal.
-- Main allergies.
-- Basic training schedule.
+- Critical allergy information or explicit no-known-allergies confirmation.
+- Basic training schedule or explicit no-training-planned intent.
+- Pregnancy/postpartum context when relevant, optional and non-blocking.
 
 Stage 2 progressive profile:
 
@@ -151,23 +169,19 @@ AI should customize and optimize these protocols. This should reduce hallucinati
 
 ### Plan To Fact Check-Ins
 
-Daily plan generation is not enough. The product needs to learn what actually happened.
+Daily plan generation is not enough. Sprint 5 added the first plan-to-fact check-ins.
+
+Current micro-check-ins:
+
+- Meal completed, partially completed, skipped, or swapped.
+- Training completed, partially completed, skipped, or rested instead.
+- Pain/discomfort safety signal.
 
 Future micro-check-ins:
 
-- Lunch check-in.
-- Meal completed or skipped.
-- Training completed.
-- Tiredness 1-10.
-- Energy level.
-- Soreness or pain.
-- Evening reflection.
-
-Examples:
-
-- "Did you manage to eat lunch as planned?"
-- "How hard was the workout from 1 to 10?"
-- "Any pain, dizziness, or unusual fatigue?"
+- Evening reflection UI.
+- Energy, tiredness, and soreness trend UI.
+- Habit loop prompts.
 
 This should influence the next day's plan and future weekly summaries.
 
@@ -211,7 +225,7 @@ Example:
 
 ### User-Facing Safety Disclaimer
 
-Future onboarding/profile/settings UX must clearly state:
+Sprint 5 added a lightweight disclaimer in onboarding and Settings:
 
 - OptiMe is an AI wellness assistant, not a medical service.
 - It does not diagnose or treat medical conditions.
@@ -238,12 +252,11 @@ For minors:
 
 ## Recommended Order
 
-1. Sprint 5: Progressive onboarding, check-ins, and user-facing safety UX.
-2. Sprint 6: Protocol/template layer for nutrition, training, and recovery.
-3. Sprint 7: Meal/ingredient swap and better preference refinement.
-4. Sprint 8: Real subscriptions/payments and paywall polish.
-5. Sprint 9: Predictive adaptive coaching foundation.
-6. Sprint 10: WHOOP or health-platform integration.
-7. Later: AI Coach chat, embeddings, admin/web, exercise library, and media.
+1. Sprint 6: Training preferences plus protocol/template layer for nutrition, training, and recovery.
+2. Sprint 7: Meal/ingredient swap and better preference refinement.
+3. Sprint 8: Real subscriptions/payments and paywall polish.
+4. Sprint 9: Predictive adaptive coaching foundation.
+5. Sprint 10: WHOOP or health-platform integration.
+6. Later: AI Coach chat, embeddings, admin/web, exercise library, and media.
 
 This order strengthens the core loop before monetization and external integrations.

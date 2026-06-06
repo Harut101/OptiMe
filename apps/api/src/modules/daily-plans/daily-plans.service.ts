@@ -29,6 +29,7 @@ import {
 } from '../ai/ai-provider.interface';
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
+import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
@@ -66,6 +67,7 @@ export class DailyPlansService {
     private readonly featureAccessService: FeatureAccessService,
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
+    private readonly checkInsService: DailyPlanCheckInsService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -872,7 +874,7 @@ export class DailyPlansService {
 
     const feedbackLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
     const historyLimit = planQualityMode === PlanQualityMode.ADAPTIVE ? 10 : 5;
-    const [recentFeedback, recentPlans] = await Promise.all([
+    const [recentFeedback, recentPlans, checkInSummary] = await Promise.all([
       this.prisma.dailyPlanFeedback.findMany({
         where: { userId },
         orderBy: { updatedAt: 'desc' },
@@ -890,7 +892,8 @@ export class DailyPlansService {
           status: true,
           readinessLevel: true
         }
-      })
+      }),
+      this.checkInsService.getRecentSummary(userId)
     ]);
 
     return {
@@ -908,7 +911,8 @@ export class DailyPlansService {
         recentPlanCount: recentPlans.length,
         readinessLevels: [...new Set(recentPlans.map((plan) => plan.readinessLevel))],
         fallbackCount: recentPlans.filter((plan) => plan.status === PlanStatus.FALLBACK).length
-      }
+      },
+      checkInSummary
     };
   }
 

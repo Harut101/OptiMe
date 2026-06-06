@@ -155,6 +155,33 @@ enum UsageFeature {
   FUTURE_AI_COACH_MESSAGE
 }
 
+enum ProgressiveProfilePromptKey {
+  PREFERRED_FOODS
+  EXCLUDED_FOODS
+  DIET_TYPE
+  MEALS_PER_DAY
+  TARGET_MUSCLE_GROUPS
+  TRAINING_OUTCOME
+  EQUIPMENT
+  TRAINING_LEVEL
+  LIMITATIONS_OR_PAIN_AREAS
+  COOKING_TIME
+  MEAL_PREP
+  MEAL_TIMING
+}
+
+enum ProgressiveProfilePromptStatus {
+  PENDING
+  ANSWERED
+  SKIPPED
+}
+
+enum DailyCheckInType {
+  MEAL
+  TRAINING
+  EVENING_REFLECTION
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -179,6 +206,8 @@ model User {
   aiOperationLogs AiOperationLog[]
   subscriptions Subscription[]
   usageLedger   UsageLedger[]
+  progressiveProfilePrompts UserProgressiveProfilePrompt[]
+  dailyPlanCheckIns DailyPlanCheckIn[]
 
   @@index([createdAt])
 }
@@ -291,6 +320,7 @@ model DailyPlan {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   feedback DailyPlanFeedback[]
+  checkIns DailyPlanCheckIn[]
 
   @@unique([userId, planLocalDate, planTimezone])
   @@index([userId, createdAt])
@@ -380,4 +410,42 @@ model UsageLedger {
   @@index([userId, periodStart])
   @@index([feature, periodStart])
   @@index([userId, feature, periodType, periodStart])
+}
+
+model UserProgressiveProfilePrompt {
+  id           String                          @id @default(cuid())
+  userId       String
+  promptKey    ProgressiveProfilePromptKey
+  status       ProgressiveProfilePromptStatus  @default(PENDING)
+  answerJson   Json?
+  answeredAt   DateTime?
+  skippedAt    DateTime?
+  skippedUntil DateTime?
+  createdAt    DateTime                        @default(now())
+  updatedAt    DateTime                        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, promptKey])
+  @@index([userId, status])
+  @@index([userId, skippedUntil])
+}
+
+model DailyPlanCheckIn {
+  id          String           @id @default(cuid())
+  userId      String
+  dailyPlanId String
+  type        DailyCheckInType
+  subjectKey  String           @default("default")
+  payload     Json
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPlan DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dailyPlanId, type, subjectKey])
+  @@index([userId, createdAt])
+  @@index([dailyPlanId, type])
+  @@index([userId, dailyPlanId])
 }

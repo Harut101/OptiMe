@@ -3,8 +3,11 @@ import {
   AiOperationFeature,
   AiOperationProvider,
   AiOperationStatus,
+  DailyCheckInType,
   PlanQualityMode,
   PregnancyStatus,
+  ProgressiveProfilePromptKey,
+  ProgressiveProfilePromptStatus,
   SubscriptionEnvironment,
   SubscriptionPlan,
   SubscriptionProvider,
@@ -14,6 +17,7 @@ import {
 } from '@prisma/client';
 
 import { AiOperationLogsService } from '../src/modules/ai-operation-logs/ai-operation-logs.service';
+import { GenerateDailyPlanInput } from '../src/modules/ai/ai-provider.interface';
 import { AI_PROVIDER } from '../src/modules/ai/ai-provider.token';
 import { OPENAI_CLIENT_FACTORY } from '../src/modules/ai/open-ai-client.factory';
 import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-plan-food-name-normalizer';
@@ -627,7 +631,11 @@ describe('Sprint 1 backend vertical slice', () => {
       missingStage1Fields: []
     });
     expect(status.body.progressiveProfile.completedPrompts).toEqual(
-      expect.arrayContaining(['preferredFoods', 'excludedFoods', 'mealsPerDay'])
+      expect.arrayContaining([
+        ProgressiveProfilePromptKey.PREFERRED_FOODS,
+        ProgressiveProfilePromptKey.EXCLUDED_FOODS,
+        ProgressiveProfilePromptKey.MEALS_PER_DAY
+      ])
     );
   });
 
@@ -683,9 +691,15 @@ describe('Sprint 1 backend vertical slice', () => {
       canGenerateFirstPlan: true,
       missingStage1Fields: []
     });
-    expect(status.body.progressiveProfile.completedPrompts).not.toContain('preferredFoods');
-    expect(status.body.progressiveProfile.completedPrompts).not.toContain('excludedFoods');
-    expect(status.body.progressiveProfile.completedPrompts).not.toContain('dietType');
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain(
+      ProgressiveProfilePromptKey.PREFERRED_FOODS
+    );
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain(
+      ProgressiveProfilePromptKey.EXCLUDED_FOODS
+    );
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain(
+      ProgressiveProfilePromptKey.DIET_TYPE
+    );
   });
 
   it('blocks Stage 1 when required safety basics are missing', async () => {
@@ -781,6 +795,145 @@ describe('Sprint 1 backend vertical slice', () => {
 
     expect(plan.body.status).toBe('READY');
     expect(plan.body.plan.nutrition.meals.length).toBeGreaterThan(0);
+  });
+
+  it('requires auth for progressive profile next prompt', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/progressive-profile/next-prompt').expect(401);
+  });
+
+  it('returns the first available progressive prompt and stores it as pending', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'PromptStart');
+
+    const prompt = await request(ctx.app.getHttpServer())
+      .get('/v1/progressive-profile/next-prompt')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(prompt.body).toMatchObject({
+      key: ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS,
+      inputType: 'stringList'
+    });
+
+    const stored = await ctx.prisma.userProgressiveProfilePrompt.findUniqueOrThrow({
+      where: {
+        userId_promptKey: {
+          userId: user.user.id,
+          promptKey: ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS
+        }
+      }
+    });
+
+    expect(stored.status).toBe(ProgressiveProfilePromptStatus.PENDING);
+  });
+
+  it('answers preferred and excluded food prompts and does not return them again', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStage1BasicsWithoutGoal(ctx.app, user.accessToken, 'PromptFoods');
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.EXCLUDED_FOODS}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: ['pork', 'anchovies'] })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.PREFERRED_FOODS}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: 'berries, oats' })
+      .expect(201);
+
+    const preference = await ctx.prisma.nutritionPreference.findUniqueOrThrow({
+      where: { userId: user.user.id },
+      include: {
+        preferredFoods: true,
+        excludedFoods: true
+      }
+    });
+
+    expect(preference.excludedFoods.map((food) => food.name)).toEqual(
+      expect.arrayContaining(['pork', 'anchovies'])
+    );
+    expect(preference.preferredFoods.map((food) => food.name)).toEqual(
+      expect.arrayContaining(['berries', 'oats'])
+    );
+
+    const nextPrompt = await request(ctx.app.getHttpServer())
+      .get('/v1/progressive-profile/next-prompt')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(nextPrompt.body.key).not.toBe(ProgressiveProfilePromptKey.EXCLUDED_FOODS);
+    expect(nextPrompt.body.key).not.toBe(ProgressiveProfilePromptKey.PREFERRED_FOODS);
+  });
+
+  it('skips a progressive prompt with cooldown so it does not immediately reappear', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'PromptSkip');
+
+    const skipped = await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS}/skip`
+      )
+      .set(authHeader(user.accessToken))
+      .expect(201);
+
+    expect(skipped.body.skipped).toBe(true);
+    expect(new Date(skipped.body.skippedUntil).getTime()).toBeGreaterThan(Date.now());
+
+    const nextPrompt = await request(ctx.app.getHttpServer())
+      .get('/v1/progressive-profile/next-prompt')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(nextPrompt.body.key).not.toBe(ProgressiveProfilePromptKey.LIMITATIONS_OR_PAIN_AREAS);
+  });
+
+  it('validates prompt keys and answers safely', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/progressive-profile/prompts/NOT_A_PROMPT/answer')
+      .set(authHeader(user.accessToken))
+      .send({ value: 'test' })
+      .expect(404);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.TRAINING_LEVEL}/answer`)
+      .set(authHeader(user.accessToken))
+      .send({ value: 'ELITE' })
+      .expect(400);
+  });
+
+  it('keeps progressive prompt answers scoped to the current user', async () => {
+    const firstUser = await registerTestUser(ctx.app, 'progressive-one@example.com');
+    const secondUser = await registerTestUser(ctx.app, 'progressive-two@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.EQUIPMENT}/answer`)
+      .set(authHeader(firstUser.accessToken))
+      .send({ value: ['DUMBBELLS'] })
+      .expect(201);
+
+    const firstPrompt = await ctx.prisma.userProgressiveProfilePrompt.findUnique({
+      where: {
+        userId_promptKey: {
+          userId: firstUser.user.id,
+          promptKey: ProgressiveProfilePromptKey.EQUIPMENT
+        }
+      }
+    });
+    const secondPrompt = await ctx.prisma.userProgressiveProfilePrompt.findUnique({
+      where: {
+        userId_promptKey: {
+          userId: secondUser.user.id,
+          promptKey: ProgressiveProfilePromptKey.EQUIPMENT
+        }
+      }
+    });
+
+    expect(firstPrompt?.status).toBe(ProgressiveProfilePromptStatus.ANSWERED);
+    expect(secondPrompt).toBeNull();
   });
 
   it('supports training schedule CRUD for the authenticated user', async () => {
@@ -1343,6 +1496,8 @@ describe('Sprint 1 backend vertical slice', () => {
       .expect(400);
 
     expect(response.body.message).toContain('steadier goal');
+    expect(response.body.message).not.toContain('fallbackReason');
+    expect(response.body.message).not.toContain('safety_agent');
   });
 
   it('allows steady adult weight-loss goals within safety boundaries', async () => {
@@ -1718,6 +1873,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(response.body.status).toBe('FALLBACK');
       expect(response.body.plan.safety.reasons[0]).toContain('pregnancy');
+      expect(response.body.plan.safety.userSafeMessage).toContain('extra care');
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -1751,6 +1907,7 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
     expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
     expect(JSON.stringify(plan.body.plan)).toContain('conflicts with your allergies');
+    expect(plan.body.plan.safety.userSafeMessage).toContain('allergies or excluded foods');
   });
 
   it('normalizes old Sprint 1 plan JSON without crashing the response', async () => {
@@ -1853,6 +2010,282 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(history.body.items[0].id).toBe(firstPlan.body.id);
     expect(history.body.items[0].id).not.toBe(secondPlan.body.id);
     expect(dailyPlanJsonSchema.safeParse(history.body.items[0].plan).success).toBe(true);
+  });
+
+  it('creates and reads meal, training, and evening daily plan check-ins', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'CheckIn');
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const meal = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.MEAL,
+        payload: {
+          mealIndex: 0,
+          mealName: 'Breakfast',
+          status: 'COMPLETED',
+          notes: 'Easy and steady.'
+        }
+      })
+      .expect(201);
+
+    expect(meal.body.type).toBe(DailyCheckInType.MEAL);
+    expect(meal.body.subjectKey).toBe('meal:0');
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.TRAINING,
+        payload: {
+          status: 'RESTED_INSTEAD',
+          perceivedDifficulty: 3,
+          energyAfter: 6,
+          painOrDiscomfort: true,
+          notes: 'Felt knee pain, so I kept it gentle.'
+        }
+      })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.EVENING_REFLECTION,
+        payload: {
+          energyLevel: 6,
+          tirednessLevel: 8,
+          sorenessLevel: 5,
+          mood: 'calm',
+          notes: 'A bit tired tonight.'
+        }
+      })
+      .expect(201);
+
+    const checkIns = await request(ctx.app.getHttpServer())
+      .get(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(checkIns.body.items).toHaveLength(3);
+    expect(checkIns.body.items.map((item: { type: string }) => item.type)).toEqual(
+      expect.arrayContaining([
+        DailyCheckInType.MEAL,
+        DailyCheckInType.TRAINING,
+        DailyCheckInType.EVENING_REFLECTION
+      ])
+    );
+  });
+
+  it('updates an existing check-in when submitted again for the same subject', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'CheckInUpdate');
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    const first = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.MEAL,
+        payload: {
+          mealIndex: 1,
+          mealName: 'Lunch',
+          status: 'SKIPPED'
+        }
+      })
+      .expect(201);
+
+    const updated = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.MEAL,
+        payload: {
+          mealIndex: 1,
+          mealName: 'Lunch',
+          status: 'SWAPPED',
+          notes: 'Changed plans, no stress.'
+        }
+      })
+      .expect(201);
+
+    expect(updated.body.id).toBe(first.body.id);
+    expect(updated.body.payload.status).toBe('SWAPPED');
+
+    await expect(
+      ctx.prisma.dailyPlanCheckIn.count({
+        where: {
+          userId: user.user.id,
+          dailyPlanId: plan.body.id,
+          type: DailyCheckInType.MEAL,
+          subjectKey: 'meal:1'
+        }
+      })
+    ).resolves.toBe(1);
+  });
+
+  it('rejects invalid check-in payloads and long notes', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'CheckInInvalid');
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.TRAINING,
+        payload: {
+          status: 'CRUSHED_IT',
+          perceivedDifficulty: 11
+        }
+      })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.body.id}/check-ins`)
+      .set(authHeader(user.accessToken))
+      .send({
+        type: DailyCheckInType.MEAL,
+        payload: {
+          mealIndex: 0,
+          status: 'COMPLETED',
+          notes: 'x'.repeat(501)
+        }
+      })
+      .expect(400);
+  });
+
+  it('prevents users from reading or creating check-ins for another user plan', async () => {
+    const owner = await registerTestUser(ctx.app, 'checkin-owner@example.com');
+    const otherUser = await registerTestUser(ctx.app, 'checkin-other@example.com');
+
+    await completeRequiredOnboarding(ctx.app, owner.accessToken, 'CheckInOwner');
+    await completeRequiredOnboarding(ctx.app, otherUser.accessToken, 'CheckInOther');
+
+    const ownerPlan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(owner.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .get(`/v1/daily-plans/${ownerPlan.body.id}/check-ins`)
+      .set(authHeader(otherUser.accessToken))
+      .expect(404);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${ownerPlan.body.id}/check-ins`)
+      .set(authHeader(otherUser.accessToken))
+      .send({
+        type: DailyCheckInType.MEAL,
+        payload: {
+          mealIndex: 0,
+          status: 'COMPLETED'
+        }
+      })
+      .expect(404);
+  });
+
+  it('adds recent check-in summary to personalized planning context', async () => {
+    const provider: { generateDailyPlan: jest.Mock<Promise<ReturnType<typeof createMockDailyPlan>>, [GenerateDailyPlanInput]> } = {
+      generateDailyPlan: jest.fn(async (_input: GenerateDailyPlanInput) =>
+        createMockDailyPlan({
+          planLocalDate: getUtcLocalDate(),
+          planTimezone: 'UTC',
+          firstName: 'CheckInContext',
+          isMinor: false,
+          planQualityMode: PlanQualityMode.PERSONALIZED
+        })
+      )
+    };
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: provider
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'checkin-context@example.com');
+      await createTestSubscription(customCtx, user.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'CheckInContext');
+
+      const firstPlan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${firstPlan.body.id}/check-ins`)
+        .set(authHeader(user.accessToken))
+        .send({
+          type: DailyCheckInType.TRAINING,
+          payload: {
+            status: 'RESTED_INSTEAD',
+            painOrDiscomfort: true,
+            notes: 'Pain today, kept it light.'
+          }
+        })
+        .expect(201);
+
+      await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${firstPlan.body.id}/check-ins`)
+        .set(authHeader(user.accessToken))
+        .send({
+          type: DailyCheckInType.EVENING_REFLECTION,
+          payload: {
+            tirednessLevel: 9
+          }
+        })
+        .expect(201);
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const secondCallInput = provider.generateDailyPlan.mock.calls[1]?.[0] as
+        | GenerateDailyPlanInput
+        | undefined;
+
+      if (!secondCallInput) {
+        throw new Error('Expected a second daily plan provider call.');
+      }
+
+      expect(secondCallInput.personalizationContext.checkInSummary).toMatchObject({
+        painOrDiscomfortReported: true,
+        highTirednessReported: true,
+        conservativeTrainingRecommended: true
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
   });
 
   it('persists and updates one feedback record per user daily plan', async () => {
@@ -2096,6 +2529,9 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.status).toBe('FALLBACK');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
       expect(plan.body.plan.safety.adjustedForSafety).toBe(true);
+      expect(plan.body.plan.safety.userSafeMessage).toBe(
+        'We used a reliable safe plan today because the generated plan could not be fully verified.'
+      );
       expect(JSON.stringify(plan.body.plan)).toContain('could not be safely validated');
       expect(plan.body.plan.debug).toEqual({
         provider: 'fallback',

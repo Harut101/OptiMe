@@ -9,10 +9,12 @@ import { z } from 'zod';
 
 import { saveProfile } from '@/api/profile';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
+import { WELLNESS_DISCLAIMER } from '@/features/safety/safety-copy';
 import { useAuthStore } from '@/store/auth-store';
 
 type ProfileForm = z.input<typeof profileSchema>;
@@ -74,6 +76,11 @@ export default function ProfileSetupScreen() {
       <Text variant="muted">
         This helps the backend keep recommendations age-aware and practical. Safe mode is handled by the server.
       </Text>
+
+      <Card>
+        <Text variant="label">Safety note</Text>
+        <Text variant="muted">{WELLNESS_DISCLAIMER}</Text>
+      </Card>
 
       <Controller
         control={form.control}

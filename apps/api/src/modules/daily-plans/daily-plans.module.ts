@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { AiModule } from '../ai/ai.module';
+import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
@@ -14,6 +15,7 @@ import { DailyPlansService } from './daily-plans.service';
   imports: [
     AiOperationLogsModule,
     AiModule,
+    DailyPlanCheckInsModule,
     EntitlementsModule,
     OnboardingModule,
     SafetyModule,

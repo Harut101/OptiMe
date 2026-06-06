@@ -19,7 +19,8 @@ export const dailyPlanJsonSchema = z.object({
   safety: z.object({
     safeMode: z.boolean(),
     adjustedForSafety: z.boolean(),
-    reasons: z.array(z.string())
+    reasons: z.array(z.string()),
+    userSafeMessage: z.string().optional()
   }),
   summary: z.object({
     title: z.string(),

@@ -2,14 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { GoalType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-
-type ProgressivePrompt = {
-  key: string;
-  title: string;
-  description: string;
-  inputType: string;
-  options?: Array<{ label: string; value: string }>;
-};
+import { ProgressiveProfileService } from '../progressive-profile/progressive-profile.service';
 
 type Stage1Input = {
   firstName?: string | null;
@@ -40,84 +33,12 @@ type Stage1Input = {
   schedules?: unknown[];
 };
 
-const progressivePrompts: ProgressivePrompt[] = [
-  {
-    key: 'preferredFoods',
-    title: 'Foods you enjoy',
-    description: 'Add a few foods you like so future plans feel easier to follow.',
-    inputType: 'stringList'
-  },
-  {
-    key: 'excludedFoods',
-    title: 'Foods you prefer to avoid',
-    description: 'Add foods you do not want in regular meal suggestions.',
-    inputType: 'stringList'
-  },
-  {
-    key: 'dietType',
-    title: 'Diet style',
-    description: 'Share a diet style if one matters to you.',
-    inputType: 'singleSelect',
-    options: [
-      { label: 'No specific style', value: 'NONE' },
-      { label: 'Vegetarian', value: 'VEGETARIAN' },
-      { label: 'Vegan', value: 'VEGAN' },
-      { label: 'Mediterranean', value: 'MEDITERRANEAN' }
-    ]
-  },
-  {
-    key: 'mealsPerDay',
-    title: 'Meals per day',
-    description: 'Tell us how many meals usually fits your day.',
-    inputType: 'number'
-  },
-  {
-    key: 'targetMuscleGroups',
-    title: 'Target body areas',
-    description: 'Later, this will help personalize exercise suggestions.',
-    inputType: 'multiSelect'
-  },
-  {
-    key: 'equipment',
-    title: 'Available equipment',
-    description: 'Later, this will help tailor training to home, gym, or bodyweight options.',
-    inputType: 'multiSelect'
-  },
-  {
-    key: 'trainingLevel',
-    title: 'Training level',
-    description: 'Later, this will help set exercise complexity and progression.',
-    inputType: 'singleSelect'
-  },
-  {
-    key: 'limitationsOrPainAreas',
-    title: 'Limitations or pain areas',
-    description: 'Share anything we should account for to keep guidance safer.',
-    inputType: 'stringList'
-  },
-  {
-    key: 'cookingTimePreference',
-    title: 'Cooking time',
-    description: 'Later, this will help match meals to your available time.',
-    inputType: 'singleSelect'
-  },
-  {
-    key: 'mealPrepPreference',
-    title: 'Meal prep preference',
-    description: 'Later, this will help plan practical meals for your week.',
-    inputType: 'singleSelect'
-  },
-  {
-    key: 'mealTimingPreference',
-    title: 'Meal timing',
-    description: 'Later, this will help time food around training and daily rhythm.',
-    inputType: 'singleSelect'
-  }
-];
-
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly progressiveProfileService: ProgressiveProfileService
+  ) {}
 
   async getStatus(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -177,7 +98,7 @@ export class OnboardingService {
       stage1Completed: stage1.stage1Completed,
       canGenerateFirstPlan: stage1.canGenerateFirstPlan,
       missingStage1Fields: stage1.missingStage1Fields,
-      progressiveProfile: this.getProgressiveProfile(user)
+      progressiveProfile: await this.progressiveProfileService.getProgressiveProfileSummary(userId)
     };
   }
 
@@ -236,36 +157,4 @@ export class OnboardingService {
     };
   }
 
-  private getProgressiveProfile(input: Stage1Input) {
-    const completedPrompts = this.getCompletedProgressivePrompts(input);
-    const nextPrompt = progressivePrompts.find((prompt) => !completedPrompts.includes(prompt.key));
-
-    return {
-      completedPrompts,
-      ...(nextPrompt ? { nextPrompt } : {}),
-      completionPercent: Math.round((completedPrompts.length / progressivePrompts.length) * 100)
-    };
-  }
-
-  private getCompletedProgressivePrompts(input: Stage1Input) {
-    const completed = new Set<string>();
-
-    if ((input.nutritionPref?.preferredFoods?.length ?? 0) > 0) {
-      completed.add('preferredFoods');
-    }
-
-    if ((input.nutritionPref?.excludedFoods?.length ?? 0) > 0) {
-      completed.add('excludedFoods');
-    }
-
-    if (input.nutritionPref?.dietType && input.nutritionPref.dietType !== 'NONE') {
-      completed.add('dietType');
-    }
-
-    if (input.nutritionPref?.mealsPerDay) {
-      completed.add('mealsPerDay');
-    }
-
-    return [...completed];
-  }
 }

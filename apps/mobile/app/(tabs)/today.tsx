@@ -1,18 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
+import {
+  answerProgressivePrompt,
+  getNextProgressivePrompt,
+  skipProgressivePrompt
+} from '@/api/progressive-profile';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
+import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
+import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { colors } from '@/theme/colors';
-import type { UsageFeature, UsageLimitExceededError, UsageSummaryItem } from '@/types/api';
+import type {
+  ProgressivePrompt,
+  UsageFeature,
+  UsageLimitExceededError,
+  UsageSummaryItem
+} from '@/types/api';
 
 export default function TodayScreen() {
   const queryClient = useQueryClient();
@@ -25,6 +38,29 @@ export default function TodayScreen() {
   const usage = useQuery({
     queryKey: ['usage-summary'],
     queryFn: getUsageSummary
+  });
+  const progressivePrompt = useQuery({
+    queryKey: ['progressive-profile', 'next-prompt'],
+    queryFn: getNextProgressivePrompt
+  });
+  const answerPrompt = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string | string[] | number | boolean }) =>
+      answerProgressivePrompt(key, { value }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['progressive-profile', 'next-prompt'] });
+      await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
+    },
+    onError: (error) =>
+      Alert.alert('Could not save this answer', `${error.message}\n\nYou can keep using Today.`)
+  });
+  const skipPrompt = useMutation({
+    mutationFn: skipProgressivePrompt,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['progressive-profile', 'next-prompt'] });
+      await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
+    },
+    onError: (error) =>
+      Alert.alert('Could not skip this prompt', `${error.message}\n\nYou can keep using Today.`)
   });
   const generate = useMutation({
     mutationFn: (forceRegenerate: boolean) => generateTodayPlan(forceRegenerate),
@@ -82,6 +118,7 @@ export default function TodayScreen() {
   }
 
   const plan = today.data?.plan;
+  const safetyMessage = getPlanSafetyMessage(today.data);
   const generationUsage = usage.data?.items.find(
     (item) => item.feature === 'DAILY_PLAN_GENERATION'
   );
@@ -109,6 +146,15 @@ export default function TodayScreen() {
         </Card>
       ) : null}
 
+      {progressivePrompt.data ? (
+        <ProgressivePromptCard
+          prompt={progressivePrompt.data}
+          isSaving={answerPrompt.isPending || skipPrompt.isPending}
+          onAnswer={(value) => answerPrompt.mutate({ key: progressivePrompt.data!.key, value })}
+          onSkip={() => skipPrompt.mutate(progressivePrompt.data!.key)}
+        />
+      ) : null}
+
       {!today.data || !plan ? (
         <>
           <StateBlock
@@ -127,11 +173,15 @@ export default function TodayScreen() {
             {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
             <Text variant="heading">{plan.summary.title}</Text>
             <Text variant="muted">{plan.summary.message}</Text>
-            {today.data.status === 'FALLBACK' || plan.safety.adjustedForSafety ? (
-              <Text variant="muted">This plan was adjusted to keep today safe and manageable.</Text>
-            ) : null}
             <Text variant="muted">Updated {formatUpdatedAt(today.data.updatedAt)}</Text>
           </Card>
+
+          {safetyMessage ? (
+            <Card>
+              <Text variant="label">Safety note</Text>
+              <Text variant="body">{safetyMessage}</Text>
+            </Card>
+          ) : null}
 
           <Card>
             <Text variant="label">Nutrition</Text>
@@ -165,6 +215,150 @@ export default function TodayScreen() {
         </>
       )}
     </Screen>
+  );
+}
+
+function ProgressivePromptCard({
+  prompt,
+  isSaving,
+  onAnswer,
+  onSkip
+}: {
+  prompt: ProgressivePrompt;
+  isSaving: boolean;
+  onAnswer: (value: string | string[] | number | boolean) => void;
+  onSkip: () => void;
+}) {
+  const [textValue, setTextValue] = useState('');
+  const [singleValue, setSingleValue] = useState(prompt.options?.[0]?.value ?? '');
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    setTextValue('');
+    setSingleValue(prompt.options?.[0]?.value ?? '');
+    setSelectedValues([]);
+  }, [prompt.key, prompt.options]);
+
+  const handleAnswer = () => {
+    if (prompt.inputType === 'number') {
+      const parsedValue = Number(textValue);
+
+      if (!Number.isFinite(parsedValue)) {
+        Alert.alert('One quick detail', 'Please enter a number, or skip this for now.');
+        return;
+      }
+
+      onAnswer(parsedValue);
+      return;
+    }
+
+    if (prompt.inputType === 'multiSelect') {
+      if (selectedValues.length === 0) {
+        Alert.alert('One quick detail', 'Choose at least one option, or skip this for now.');
+        return;
+      }
+
+      onAnswer(selectedValues);
+      return;
+    }
+
+    if (prompt.inputType === 'singleSelect') {
+      if (!singleValue) {
+        Alert.alert('One quick detail', 'Choose an option, or skip this for now.');
+        return;
+      }
+
+      onAnswer(singleValue);
+      return;
+    }
+
+    if (!textValue.trim()) {
+      Alert.alert('One quick detail', 'Add an answer, or skip this for now.');
+      return;
+    }
+
+    onAnswer(textValue);
+  };
+
+  return (
+    <Card>
+      <View style={styles.promptHeader}>
+        <Text variant="label">Improve future plans</Text>
+        <Text variant="heading">{prompt.title}</Text>
+        <Text variant="muted">{prompt.description}</Text>
+      </View>
+
+      {prompt.inputType === 'stringList' ? (
+        <Field
+          label="Your answer"
+          placeholder="Separate items with commas"
+          value={textValue}
+          onChangeText={setTextValue}
+        />
+      ) : null}
+
+      {prompt.inputType === 'number' ? (
+        <Field
+          label="Your answer"
+          keyboardType="numeric"
+          value={textValue}
+          onChangeText={setTextValue}
+        />
+      ) : null}
+
+      {prompt.inputType === 'singleSelect' && prompt.options ? (
+        <SelectChips
+          label="Choose one"
+          value={singleValue}
+          onChange={setSingleValue}
+          options={prompt.options}
+        />
+      ) : null}
+
+      {prompt.inputType === 'multiSelect' && prompt.options ? (
+        <View style={styles.multiSelectWrap}>
+          <Text variant="label">Choose any that fit</Text>
+          <View style={styles.multiSelectRow}>
+            {prompt.options.map((option) => {
+              const active = selectedValues.includes(option.value);
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() =>
+                    setSelectedValues((current) =>
+                      active
+                        ? current.filter((value) => value !== option.value)
+                        : [...current, option.value]
+                    )
+                  }
+                  style={[styles.multiChip, active ? styles.multiChipActive : null]}
+                >
+                  <Text style={[styles.multiChipText, active ? styles.multiChipTextActive : null]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.promptActions}>
+        <Button
+          title={isSaving ? 'Saving...' : 'Answer'}
+          disabled={isSaving}
+          onPress={handleAnswer}
+          style={styles.promptButton}
+        />
+        <Button
+          title="Skip for now"
+          variant="ghost"
+          disabled={isSaving}
+          onPress={onSkip}
+          style={styles.promptButton}
+        />
+      </View>
+    </Card>
   );
 }
 
@@ -324,6 +518,44 @@ const styles = StyleSheet.create({
   },
   successText: {
     color: colors.success,
+    fontWeight: '700'
+  },
+  promptHeader: {
+    gap: 6
+  },
+  promptActions: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  promptButton: {
+    flex: 1
+  },
+  multiSelectWrap: {
+    gap: 8
+  },
+  multiSelectRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  multiChip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  multiChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#e7f3ef'
+  },
+  multiChipText: {
+    fontSize: 14,
+    color: colors.ink
+  },
+  multiChipTextActive: {
+    color: colors.primaryDark,
     fontWeight: '700'
   }
 });

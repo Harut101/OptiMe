@@ -94,6 +94,15 @@ export const trainingIntentSchema = z.object({
   noTrainingPlanned: z.boolean()
 });
 
+export const progressivePromptAnswerSchema = z.object({
+  value: z.union([
+    z.string(),
+    z.array(z.string()),
+    z.number(),
+    z.boolean()
+  ])
+});
+
 export const generateDailyPlanSchema = z.object({
   forceRegenerate: z.boolean().optional()
 });
@@ -120,7 +129,8 @@ export const dailyPlanJsonSchema = z.object({
   safety: z.object({
     safeMode: z.boolean(),
     adjustedForSafety: z.boolean(),
-    reasons: z.array(z.string())
+    reasons: z.array(z.string()),
+    userSafeMessage: z.string().optional()
   }),
   summary: z.object({
     title: z.string(),
@@ -227,4 +237,23 @@ export const dailyPlanFeedbackResponseSchema = z.object({
   notes: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string()
+});
+
+export const dailyCheckInTypeSchema = z.enum(['MEAL', 'TRAINING', 'EVENING_REFLECTION']);
+export const mealCheckInStatusSchema = z.enum([
+  'COMPLETED',
+  'PARTIALLY_COMPLETED',
+  'SKIPPED',
+  'SWAPPED'
+]);
+export const trainingCheckInStatusSchema = z.enum([
+  'COMPLETED',
+  'PARTIALLY_COMPLETED',
+  'SKIPPED',
+  'RESTED_INSTEAD'
+]);
+
+export const createDailyPlanCheckInSchema = z.object({
+  type: dailyCheckInTypeSchema,
+  payload: z.record(z.string(), z.unknown())
 });
