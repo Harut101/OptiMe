@@ -43,19 +43,22 @@ Stage 1 minimum:
 - Height.
 - Weight.
 - Goal.
-- Main allergies.
-- Basic training schedule.
+- Allergy information: at least one allergy or explicit confirmation of no known allergies.
+- Basic training intent: a lightweight schedule item or explicit "no training planned yet".
+- Pregnancy/postpartum context remains optional and conservative when unknown.
 
 Stage 2 progressive profiling:
 
 - Preferred foods.
 - Excluded foods.
-- Pregnancy/postpartum context.
+- Diet type.
+- Meals per day.
 - Target muscle groups.
 - Equipment.
 - Training level.
 - Limitations or pain areas.
 - Deeper food preferences.
+- Cooking time, meal prep, and meal timing preferences.
 - Feedback habits.
 
 Sprint 5 should start with the smallest implementation that reduces friction while preserving safe first-plan generation.
@@ -127,39 +130,46 @@ Sprint 5 should create the design and maybe add skeleton interfaces. Full protoc
 
 ## Suggested Implementation Batches
 
-### Batch 1: Progressive Onboarding Design And Data Model
+### Batch 1: Progressive Onboarding Design And Implementation Plan
 
 - Define Stage 1 vs Stage 2 completion.
 - Decide required fields for first plan generation.
 - Update onboarding status model/endpoint if needed.
 - Preserve backward compatibility.
 
-### Batch 2: Mobile Progressive Onboarding UX
+### Batch 2: Backend Stage 1 Onboarding Status
+
+- Add Stage 1 readiness fields to `GET /v1/onboarding/status`.
+- Preserve old onboarding fields for current mobile compatibility.
+- Add backend-safe allergy confirmation and no-training-planned intent flags.
+- Allow first-plan generation once Stage 1 is complete, without requiring Stage 2 personalization.
+
+### Batch 3: Mobile Progressive Onboarding UX
 
 - Shorten first-run onboarding.
 - Move deeper preferences to optional progressive profile prompts.
 - Keep first safe daily plan generation possible.
 
-### Batch 3: Check-In Foundation
+### Batch 4: Check-In Foundation
 
 - Add `DailyCheckIn` or similar model.
 - Add endpoints for meal/training/energy/pain/reflection check-ins.
 - Add ownership tests.
 - Do not add embeddings or advanced analytics.
 
-### Batch 4: Mobile Check-In UX
+### Batch 5: Mobile Check-In UX
 
 - Add small Today/Plan Details check-in prompts.
 - Keep the UI lightweight and supportive.
 - Avoid shame-based streak language.
 
-### Batch 5: Safety Disclaimer And Hard Block UX
+### Batch 6: Safety Disclaimer And Hard Block UX
 
 - Add user-facing disclaimer copy.
 - Improve safety block messages for serious symptoms and aggressive goals.
 - Ensure minors receive supportive, non-graphic, help-seeking guidance.
 
-### Batch 6: Protocol Layer Design
+### Batch 7: Protocol Layer Design
 
 - Document protocol types and interfaces.
 - Decide how protocols feed OpenAI provider context.

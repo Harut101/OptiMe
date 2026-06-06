@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -12,14 +13,20 @@ import {
 } from 'class-validator';
 
 export class UpsertNutritionPreferencesDto {
+  @IsOptional()
   @IsEnum(DietType)
-  dietType!: DietType;
+  dietType?: DietType;
 
   @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(8)
-  mealsPerDay!: number;
+  mealsPerDay?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  noKnownAllergiesConfirmed?: boolean;
 
   @IsOptional()
   @IsString()

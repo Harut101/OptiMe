@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DietType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafetyService } from '../safety/safety.service';
@@ -23,17 +24,24 @@ export class NutritionPreferencesService {
     });
 
     return this.prisma.$transaction(async (tx) => {
+      const dietType = dto.dietType ?? DietType.NONE;
+      const mealsPerDay = dto.mealsPerDay ?? 3;
+      const noKnownAllergiesConfirmed =
+        allergies.length === 0 ? Boolean(dto.noKnownAllergiesConfirmed) : false;
+
       const preference = await tx.nutritionPreference.upsert({
         where: { userId },
         update: {
-          dietType: dto.dietType,
-          mealsPerDay: dto.mealsPerDay,
+          dietType,
+          mealsPerDay,
+          noKnownAllergiesConfirmed,
           notes: dto.notes
         },
         create: {
           userId,
-          dietType: dto.dietType,
-          mealsPerDay: dto.mealsPerDay,
+          dietType,
+          mealsPerDay,
+          noKnownAllergiesConfirmed,
           notes: dto.notes
         }
       });

@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { deleteTrainingScheduleItem, getTrainingSchedule } from '@/api/training-schedule';
+import {
+  deleteTrainingScheduleItem,
+  getTrainingSchedule,
+  updateTrainingIntent
+} from '@/api/training-schedule';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
@@ -21,6 +25,14 @@ export default function TrainingScheduleScreen() {
     mutationFn: deleteTrainingScheduleItem,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-schedule'] }),
     onError: (error) => Alert.alert('Could not delete workout', error.message)
+  });
+  const intentMutation = useMutation({
+    mutationFn: updateTrainingIntent,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
+      router.replace('/(tabs)/today');
+    },
+    onError: (error) => Alert.alert('Training intent was not saved', error.message)
   });
 
   if (schedule.isLoading) {
@@ -46,13 +58,13 @@ export default function TrainingScheduleScreen() {
     <Screen>
       <Text variant="heading">Training schedule</Text>
       <Text variant="muted">
-        Add the sessions you usually plan. Your daily plan will keep the tone steady and sustainable.
+        Add a planned session if you have one, or choose a light, safe starting point for today.
       </Text>
 
       {items.length === 0 ? (
         <StateBlock
           title="No workouts yet"
-          message="Add at least one planned session to complete onboarding."
+          message="Add at least one planned session, or choose no training planned yet."
           actionTitle="Add workout"
           onAction={() => router.push('/(onboarding)/training-schedule/create')}
         />
@@ -101,7 +113,26 @@ export default function TrainingScheduleScreen() {
         variant="secondary"
         onPress={() => router.push('/(onboarding)/training-schedule/create')}
       />
-      <Button title="Continue to Today" disabled={items.length === 0} onPress={() => router.replace('/(tabs)/today')} />
+      {items.length === 0 ? (
+        <Card>
+          <Text variant="label">No training planned yet</Text>
+          <Text variant="muted">We'll keep today's training guidance light and safe.</Text>
+          <Button
+            title={intentMutation.isPending ? 'Saving...' : 'No training planned yet'}
+            variant="secondary"
+            disabled={intentMutation.isPending}
+            onPress={() => intentMutation.mutate({ noTrainingPlanned: true })}
+          />
+        </Card>
+      ) : null}
+      <Button
+        title="Continue to Today"
+        disabled={items.length === 0}
+        onPress={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
+          router.replace('/(tabs)/today');
+        }}
+      />
     </Screen>
   );
 }

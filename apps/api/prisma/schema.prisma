@@ -165,6 +165,7 @@ model User {
   locale             String   @default("en")
   isMinor            Boolean  @default(false)
   safeMode           Boolean  @default(false)
+  noTrainingPlanned  Boolean  @default(false)
   privacyConsentedAt DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -217,7 +218,8 @@ model NutritionPreference {
   id          String   @id @default(cuid())
   userId      String   @unique
   dietType    DietType @default(NONE)
-  mealsPerDay Int
+  mealsPerDay Int      @default(3)
+  noKnownAllergiesConfirmed Boolean @default(false)
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -6,6 +6,7 @@ import {
 } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTrainingScheduleItemDto } from './dto/create-training-schedule-item.dto';
+import { UpdateTrainingIntentDto } from './dto/update-training-intent.dto';
 import { UpdateTrainingScheduleItemDto } from './dto/update-training-schedule-item.dto';
 import { TrainingScheduleService } from './training-schedule.service';
 
@@ -25,6 +26,14 @@ export class TrainingScheduleController {
     @Body() dto: CreateTrainingScheduleItemDto
   ) {
     return this.scheduleService.createItem(user.userId, dto);
+  }
+
+  @Put('intent')
+  updateIntent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateTrainingIntentDto
+  ) {
+    return this.scheduleService.updateIntent(user.userId, dto);
   }
 
   @Patch('items/:id')

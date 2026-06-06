@@ -30,6 +30,7 @@ import {
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
@@ -64,6 +65,7 @@ export class DailyPlansService {
     private readonly aiOperationLogs: AiOperationLogsService,
     private readonly featureAccessService: FeatureAccessService,
     private readonly usageGuardService: UsageGuardService,
+    private readonly onboardingService: OnboardingService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -295,6 +297,7 @@ export class DailyPlansService {
         timezone: true,
         isMinor: true,
         safeMode: true,
+        noTrainingPlanned: true,
         privacyConsentedAt: true,
         profile: {
           select: {
@@ -319,6 +322,7 @@ export class DailyPlansService {
             dietType: true,
             mealsPerDay: true,
             notes: true,
+            noKnownAllergiesConfirmed: true,
             allergies: {
               select: { name: true }
             },
@@ -390,14 +394,14 @@ export class DailyPlansService {
   }
 
   private assertReadyToGenerate(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>) {
-    if (
-      !user.privacyConsentedAt ||
-      !user.profile ||
-      !user.goal ||
-      !user.nutritionPref ||
-      user.schedules.length === 0
-    ) {
-      throw new BadRequestException('Please complete onboarding before generating a daily plan.');
+    const readiness = this.onboardingService.evaluateStage1Readiness(user);
+
+    if (!readiness.canGenerateFirstPlan) {
+      throw new BadRequestException({
+        message: 'Please complete the required onboarding basics before generating a daily plan.',
+        code: 'ONBOARDING_STAGE_1_INCOMPLETE',
+        missingStage1Fields: readiness.missingStage1Fields
+      });
     }
   }
 

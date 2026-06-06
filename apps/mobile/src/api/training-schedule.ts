@@ -1,5 +1,9 @@
 import { apiRequest } from './client';
-import type { TrainingScheduleItem, TrainingScheduleItemRequest } from '@/types/api';
+import type {
+  TrainingIntentRequest,
+  TrainingScheduleItem,
+  TrainingScheduleItemRequest
+} from '@/types/api';
 
 export function getTrainingSchedule() {
   return apiRequest<TrainingScheduleItem[]>('/training-schedule');
@@ -22,5 +26,12 @@ export function updateTrainingScheduleItem(id: string, body: Partial<TrainingSch
 export function deleteTrainingScheduleItem(id: string) {
   return apiRequest<{ deleted: boolean }>(`/training-schedule/items/${id}`, {
     method: 'DELETE'
+  });
+}
+
+export function updateTrainingIntent(body: TrainingIntentRequest) {
+  return apiRequest<{ noTrainingPlanned: boolean }>('/training-schedule/intent', {
+    method: 'PUT',
+    body: JSON.stringify(body)
   });
 }

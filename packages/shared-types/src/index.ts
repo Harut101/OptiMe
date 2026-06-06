@@ -76,12 +76,17 @@ export interface UpsertGoalRequest {
 }
 
 export interface UpsertNutritionPreferencesRequest {
-  dietType: DietType;
-  mealsPerDay: number;
+  dietType?: DietType;
+  mealsPerDay?: number;
+  noKnownAllergiesConfirmed?: boolean;
   notes?: string;
   allergies?: string[];
   excludedFoods?: string[];
   preferredFoods?: string[];
+}
+
+export interface UpdateTrainingIntentRequest {
+  noTrainingPlanned: boolean;
 }
 
 export interface TrainingScheduleItemRequest {
@@ -91,6 +96,31 @@ export interface TrainingScheduleItemRequest {
   durationMinutes: number;
   intensity: IntensityLevel;
   description?: string;
+}
+
+export interface OnboardingProgressivePrompt {
+  key: string;
+  title: string;
+  description: string;
+  inputType: string;
+  options?: Array<{ label: string; value: string }>;
+}
+
+export interface OnboardingStatusResponse {
+  profileCompleted: boolean;
+  goalCompleted: boolean;
+  nutritionPreferencesCompleted: boolean;
+  trainingScheduleCompleted: boolean;
+  privacyConsentCompleted: boolean;
+  canGeneratePlan: boolean;
+  stage1Completed: boolean;
+  canGenerateFirstPlan: boolean;
+  missingStage1Fields: string[];
+  progressiveProfile: {
+    completedPrompts: string[];
+    nextPrompt?: OnboardingProgressivePrompt;
+    completionPercent: number;
+  };
 }
 
 export interface GenerateDailyPlanRequest {

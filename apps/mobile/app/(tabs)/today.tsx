@@ -39,9 +39,24 @@ export default function TodayScreen() {
     },
     onError: (error) => {
       const usageLimit = getUsageLimitError(error);
+      const onboardingError = getOnboardingIncompleteError(error);
 
       if (usageLimit) {
         setLimitMessage(formatUsageLimitMessage(usageLimit));
+        return;
+      }
+
+      if (onboardingError) {
+        Alert.alert(
+          'A little setup is needed',
+          'Please finish the required basics so we can keep your first plan safe.',
+          [
+            {
+              text: 'Continue setup',
+              onPress: () => router.push(routeForMissingStage1Fields(onboardingError.missingStage1Fields))
+            }
+          ]
+        );
         return;
       }
 
@@ -198,6 +213,45 @@ function getUsageLimitError(error: Error) {
   const body = error.body as Partial<UsageLimitExceededError>;
 
   return body.code === 'USAGE_LIMIT_REACHED' ? (body as UsageLimitExceededError) : null;
+}
+
+function getOnboardingIncompleteError(error: Error) {
+  if (!(error instanceof ApiError) || typeof error.body !== 'object' || error.body === null) {
+    return null;
+  }
+
+  const body = error.body as {
+    code?: string;
+    missingStage1Fields?: string[];
+  };
+
+  return body.code === 'ONBOARDING_STAGE_1_INCOMPLETE' && Array.isArray(body.missingStage1Fields)
+    ? { missingStage1Fields: body.missingStage1Fields }
+    : null;
+}
+
+function routeForMissingStage1Fields(missingFields: string[]) {
+  if (
+    missingFields.some((field) =>
+      ['privacyConsent', 'firstName', 'gender', 'dateOfBirth', 'heightCm', 'weightKg', 'activityLevel'].includes(field)
+    )
+  ) {
+    return '/(onboarding)/profile' as const;
+  }
+
+  if (
+    missingFields.some((field) =>
+      ['goalType', 'targetWeightKg', 'targetTimelineDays', 'impactMode'].includes(field)
+    )
+  ) {
+    return '/(onboarding)/goal' as const;
+  }
+
+  if (missingFields.includes('allergyInformation')) {
+    return '/(onboarding)/nutrition-preferences' as const;
+  }
+
+  return '/(onboarding)/training-schedule' as const;
 }
 
 function formatUsageLimitMessage(error: UsageLimitExceededError) {

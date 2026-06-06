@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafetyService } from '../safety/safety.service';
 import { CreateTrainingScheduleItemDto } from './dto/create-training-schedule-item.dto';
+import { UpdateTrainingIntentDto } from './dto/update-training-intent.dto';
 import { UpdateTrainingScheduleItemDto } from './dto/update-training-schedule-item.dto';
 
 @Injectable()
@@ -22,17 +23,35 @@ export class TrainingScheduleService {
   createItem(userId: string, dto: CreateTrainingScheduleItemDto) {
     this.safetyService.validateTrainingScheduleItem(dto);
 
-    return this.prisma.trainingScheduleItem.create({
-      data: {
-        userId,
-        dayOfWeek: dto.dayOfWeek,
-        localTime: dto.localTime,
-        sportType: dto.sportType,
-        durationMinutes: dto.durationMinutes,
-        intensity: dto.intensity,
-        description: dto.description
-      }
+    return this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { noTrainingPlanned: false },
+        select: { id: true }
+      });
+
+      return tx.trainingScheduleItem.create({
+        data: {
+          userId,
+          dayOfWeek: dto.dayOfWeek,
+          localTime: dto.localTime,
+          sportType: dto.sportType,
+          durationMinutes: dto.durationMinutes,
+          intensity: dto.intensity,
+          description: dto.description
+        }
+      });
     });
+  }
+
+  async updateIntent(userId: string, dto: UpdateTrainingIntentDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { noTrainingPlanned: dto.noTrainingPlanned },
+      select: { noTrainingPlanned: true }
+    });
+
+    return user;
   }
 
   async updateItem(userId: string, itemId: string, dto: UpdateTrainingScheduleItemDto) {

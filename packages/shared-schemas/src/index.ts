@@ -61,8 +61,9 @@ export const nutritionPreferencesSchema = z.object({
     'MEDITERRANEAN',
     'HALAL',
     'KOSHER'
-  ]),
-  mealsPerDay: z.coerce.number().int().min(1).max(8),
+  ]).optional(),
+  mealsPerDay: z.coerce.number().int().min(1).max(8).optional(),
+  noKnownAllergiesConfirmed: z.boolean().optional(),
   notes: z.string().optional(),
   allergies: z.array(z.string()).max(30).optional(),
   excludedFoods: z.array(z.string()).max(60).optional(),
@@ -87,6 +88,10 @@ export const trainingScheduleItemSchema = z.object({
   durationMinutes: z.coerce.number().int().min(1).max(300),
   intensity: z.enum(['LOW', 'MODERATE', 'HIGH']),
   description: z.string().optional()
+});
+
+export const trainingIntentSchema = z.object({
+  noTrainingPlanned: z.boolean()
 });
 
 export const generateDailyPlanSchema = z.object({

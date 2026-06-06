@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { AiModule } from '../ai/ai.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
 import { UsageModule } from '../usage/usage.module';
@@ -14,6 +15,7 @@ import { DailyPlansService } from './daily-plans.service';
     AiOperationLogsModule,
     AiModule,
     EntitlementsModule,
+    OnboardingModule,
     SafetyModule,
     SafetyAgentModule,
     UsageModule

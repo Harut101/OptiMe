@@ -46,6 +46,20 @@ export interface OnboardingStatus {
   trainingScheduleCompleted: boolean;
   privacyConsentCompleted: boolean;
   canGeneratePlan: boolean;
+  stage1Completed?: boolean;
+  canGenerateFirstPlan?: boolean;
+  missingStage1Fields?: string[];
+  progressiveProfile?: {
+    completedPrompts: string[];
+    nextPrompt?: {
+      key: string;
+      title: string;
+      description: string;
+      inputType: string;
+      options?: Array<{ label: string; value: string }>;
+    };
+    completionPercent: number;
+  };
 }
 
 export interface ProfileRequest {
@@ -68,12 +82,17 @@ export interface GoalRequest {
 }
 
 export interface NutritionPreferencesRequest {
-  dietType: DietType;
-  mealsPerDay: number;
+  dietType?: DietType;
+  mealsPerDay?: number;
+  noKnownAllergiesConfirmed?: boolean;
   notes?: string;
   allergies?: string[];
   excludedFoods?: string[];
   preferredFoods?: string[];
+}
+
+export interface TrainingIntentRequest {
+  noTrainingPlanned: boolean;
 }
 
 export interface TrainingScheduleItem {

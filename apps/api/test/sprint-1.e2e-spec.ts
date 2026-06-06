@@ -615,14 +615,172 @@ describe('Sprint 1 backend vertical slice', () => {
       .set(authHeader(user.accessToken))
       .expect(200);
 
-    expect(status.body).toEqual({
+    expect(status.body).toMatchObject({
       profileCompleted: true,
       goalCompleted: true,
       nutritionPreferencesCompleted: true,
       trainingScheduleCompleted: true,
       privacyConsentCompleted: true,
-      canGeneratePlan: true
+      canGeneratePlan: true,
+      stage1Completed: true,
+      canGenerateFirstPlan: true,
+      missingStage1Fields: []
     });
+    expect(status.body.progressiveProfile.completedPrompts).toEqual(
+      expect.arrayContaining(['preferredFoods', 'excludedFoods', 'mealsPerDay'])
+    );
+  });
+
+  it('reports Stage 1 readiness separately from progressive profile completion', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'StageOne',
+        gender: 'female',
+        pregnancyStatus: PregnancyStatus.UNKNOWN,
+        dateOfBirth: '1990-01-01',
+        heightCm: 170,
+        weightKg: 70,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'IMPROVE_FITNESS' })
+      .expect(200);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/nutrition-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ noKnownAllergiesConfirmed: true })
+      .expect(200);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-schedule/intent')
+      .set(authHeader(user.accessToken))
+      .send({ noTrainingPlanned: true })
+      .expect(200);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body).toMatchObject({
+      profileCompleted: true,
+      goalCompleted: true,
+      nutritionPreferencesCompleted: true,
+      trainingScheduleCompleted: false,
+      privacyConsentCompleted: true,
+      canGeneratePlan: true,
+      stage1Completed: true,
+      canGenerateFirstPlan: true,
+      missingStage1Fields: []
+    });
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain('preferredFoods');
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain('excludedFoods');
+    expect(status.body.progressiveProfile.completedPrompts).not.toContain('dietType');
+  });
+
+  it('blocks Stage 1 when required safety basics are missing', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .send({
+        firstName: 'MissingBasics',
+        dateOfBirth: '1990-01-01',
+        heightCm: 170,
+        weightKg: 70,
+        activityLevel: 'MODERATE',
+        privacyConsentAccepted: true
+      })
+      .expect(200);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.stage1Completed).toBe(false);
+    expect(status.body.canGenerateFirstPlan).toBe(false);
+    expect(status.body.missingStage1Fields).toEqual(
+      expect.arrayContaining(['gender', 'goalType', 'allergyInformation', 'basicTrainingIntent'])
+    );
+  });
+
+  it('blocks Stage 1 when date of birth has not been collected', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.stage1Completed).toBe(false);
+    expect(status.body.missingStage1Fields).toContain('dateOfBirth');
+  });
+
+  it('blocks Stage 1 for an incomplete stored weight-loss goal', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStage1BasicsWithoutGoal(ctx.app, user.accessToken);
+    await ctx.prisma.goal.create({
+      data: {
+        userId: user.user.id,
+        goalType: 'REDUCE_WEIGHT'
+      }
+    });
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.stage1Completed).toBe(false);
+    expect(status.body.missingStage1Fields).toEqual(
+      expect.arrayContaining(['targetWeightKg', 'targetTimelineDays', 'impactMode'])
+    );
+  });
+
+  it('keeps Stage 1 complete when pregnancy status is unknown', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'PregnancyUnknown');
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.stage1Completed).toBe(true);
+    expect(status.body.canGenerateFirstPlan).toBe(true);
+  });
+
+  it('allows daily plan generation with Stage 1 basics and deferred personalization fields', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStage1BasicsWithoutGoal(ctx.app, user.accessToken, 'MinimalPlan');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'IMPROVE_FITNESS' })
+      .expect(200);
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    expect(plan.body.status).toBe('READY');
+    expect(plan.body.plan.nutrition.meals.length).toBeGreaterThan(0);
   });
 
   it('supports training schedule CRUD for the authenticated user', async () => {
@@ -3587,6 +3745,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({
           dietType: 'NONE',
           mealsPerDay: 3,
+          noKnownAllergiesConfirmed: true,
           allergies: [],
           excludedFoods: ['pork'],
           preferredFoods: ['rice']
@@ -3702,6 +3861,7 @@ describe('Sprint 1 backend vertical slice', () => {
           .send({
             dietType: 'NONE',
             mealsPerDay: 3,
+            noKnownAllergiesConfirmed: true,
             allergies: [],
             excludedFoods: ['pork'],
             preferredFoods: ['rice']
@@ -3777,6 +3937,7 @@ async function completeRequiredOnboarding(app: TestApp['app'], token: string, fi
     .send({
       firstName,
       lastName: 'User',
+      gender: 'female',
       dateOfBirth: '1990-01-01',
       heightCm: 180,
       weightKg: 80,
@@ -3817,6 +3978,42 @@ async function completeRequiredOnboarding(app: TestApp['app'], token: string, fi
       description: 'Easy run'
     })
     .expect(201);
+}
+
+async function completeStage1BasicsWithoutGoal(
+  app: TestApp['app'],
+  token: string,
+  firstName = 'StageOne'
+) {
+  await request(app.getHttpServer())
+    .put('/v1/profile')
+    .set(authHeader(token))
+    .send({
+      firstName,
+      lastName: 'User',
+      gender: 'female',
+      pregnancyStatus: PregnancyStatus.UNKNOWN,
+      dateOfBirth: '1990-01-01',
+      heightCm: 180,
+      weightKg: 80,
+      activityLevel: 'MODERATE',
+      privacyConsentAccepted: true
+    })
+    .expect(200);
+
+  await request(app.getHttpServer())
+    .put('/v1/nutrition-preferences')
+    .set(authHeader(token))
+    .send({
+      noKnownAllergiesConfirmed: true
+    })
+    .expect(200);
+
+  await request(app.getHttpServer())
+    .put('/v1/training-schedule/intent')
+    .set(authHeader(token))
+    .send({ noTrainingPlanned: true })
+    .expect(200);
 }
 
 function daysFromNow(days: number) {

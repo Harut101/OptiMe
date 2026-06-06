@@ -8,6 +8,29 @@ import { StateBlock } from '@/components/StateBlock';
 import { useAuthStore } from '@/store/auth-store';
 
 function firstOnboardingRoute(status: Awaited<ReturnType<typeof getOnboardingStatus>>) {
+  if (status.canGenerateFirstPlan ?? status.canGeneratePlan) return '/(tabs)/today';
+
+  const missing = status.missingStage1Fields ?? [];
+
+  if (
+    missing.some((field) =>
+      ['privacyConsent', 'firstName', 'gender', 'dateOfBirth', 'heightCm', 'weightKg', 'activityLevel'].includes(field)
+    )
+  ) {
+    return '/(onboarding)/profile';
+  }
+
+  if (
+    missing.some((field) =>
+      ['goalType', 'targetWeightKg', 'targetTimelineDays', 'impactMode'].includes(field)
+    )
+  ) {
+    return '/(onboarding)/goal';
+  }
+
+  if (missing.includes('allergyInformation')) return '/(onboarding)/nutrition-preferences';
+  if (missing.includes('basicTrainingIntent')) return '/(onboarding)/training-schedule';
+
   if (!status.profileCompleted || !status.privacyConsentCompleted) return '/(onboarding)/profile';
   if (!status.goalCompleted) return '/(onboarding)/goal';
   if (!status.nutritionPreferencesCompleted) return '/(onboarding)/nutrition-preferences';
