@@ -42,8 +42,9 @@ Behavior:
 - Simple meal guidance.
 - One good, safe menu option.
 - Simple training guidance.
+- Simple protocol selection.
+- Simple text exercise suggestions when appropriate.
 - General safe gender-aware and pregnancy-aware guidance when explicitly provided.
-- Simple exercise suggestions when appropriate.
 - Limited context.
 - Minimal personalization.
 
@@ -64,6 +65,10 @@ Behavior:
 - Two practical menu options.
 - Better use of preferred and excluded foods.
 - Training adjusted to schedule and goal.
+- Target muscle groups when available.
+- Equipment-aware exercise recommendations when available.
+- Training level awareness when available.
+- Sets, reps, and rest guidance when safe.
 - More personalized adjustments using gender, pregnancyStatus, preferences, feedback, and schedule when safe and explicitly provided.
 - Better exercise suggestions from current schedule and description.
 - Recent feedback/history summaries can influence the plan.
@@ -85,6 +90,8 @@ Behavior:
 - Deeper history and feedback awareness.
 - Meal timing around workouts.
 - Training adapted to goal, schedule, feedback, and readiness placeholders.
+- Deeper check-in and history use.
+- Recovery-aware push, maintain, or recover choices.
 - Deeper personalization using gender, pregnancyStatus, history, feedback, and readiness placeholders when safe and explicitly provided.
 - Future WHOOP recovery, sleep, and strain hooks.
 
@@ -94,9 +101,18 @@ OpenAI prompt direction:
 - Use readiness placeholders for future recovery signals.
 - Make recommendations feel specific to today.
 
-## Training Personalization By Tier
+## Sprint 6 Training And Protocol Implications
 
-Batch 2 does not add a new `TrainingPreference` model, ExerciseLibrary, exercise media, or mobile exercise UI.
+Sprint 6 should introduce optional training preferences and a simple protocol/template layer.
+
+Important rules:
+
+- Training preferences must not block first plan generation.
+- `limitationsOrPainAreas` is safety-sensitive and should be prioritized in progressive prompts.
+- Protocols should stay simple: IDs, rules, and safetyRules.
+- AI should customize selected protocols, not invent the full plan from scratch.
+- Exercise recommendations should be text-only.
+- ExerciseLibrary and exercise media remain deferred.
 
 Current available training context:
 
@@ -108,7 +124,7 @@ Current available training context:
 - Feedback/history summary when tier allows it.
 - Safety constraints.
 
-Future training preference inputs:
+Sprint 6 training preference inputs:
 
 - Target body areas or muscle groups.
 - Training outcome: strength, muscle growth, endurance, mobility, general fitness.
@@ -127,6 +143,8 @@ Future `ExerciseLibrary` may support:
 - future images/videos
 
 For now, OpenAI can suggest exercises from current schedule/description, but must not create unsafe progression plans.
+
+Sprint 6 should strengthen this by passing selected training, nutrition, and recovery protocols into `AiProvider`.
 
 ## Nutrition Menu Options By Tier
 
@@ -174,15 +192,13 @@ All modes must avoid:
 
 If these signals appear, all tiers should reduce intensity and prefer rest, mobility, or light movement.
 
-## What Batch 2 Does Not Do
+## Sprint 6 Out Of Scope
 
-- No `UsageLedger`.
-- No `UsageGuardService`.
-- No generation or refresh limit enforcement.
 - No payment integration.
 - No ExerciseLibrary.
 - No exercise images/videos.
 - No advanced progression engine.
 - No WHOOP.
 - No AI Coach chat.
-- No mobile UI changes.
+- No embeddings.
+- No admin or web.

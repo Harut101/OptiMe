@@ -91,6 +91,20 @@ Daily plan generation can include a recent check-in summary:
 
 If recent check-ins indicate pain, dizziness, illness, high tiredness, or extreme fatigue, OpenAI planning context should favor conservative training guidance without medical diagnosis.
 
+## Sprint 6 Protocol Implications
+
+Sprint 6 should use check-ins to influence deterministic protocol selection before AI generation.
+
+Examples:
+
+- Pain/discomfort check-ins should select or bias toward conservative training and recovery protocols.
+- High tiredness should select or bias toward a recovery-oriented protocol.
+- Repeated skipped workouts can reduce intensity, duration, or complexity instead of adding pressure.
+- Completed workouts can support normal or gently progressive guidance when no safety concerns are present.
+- Skipped meals can make nutrition guidance simpler and more practical.
+
+Do not overbuild analytics yet. Check-ins should influence the next plan context and protocol selection, not create dashboards in Sprint 6.
+
 ## Mobile UX
 
 Batch 5 adds Plan Details check-ins:
