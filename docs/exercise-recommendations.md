@@ -157,4 +157,4 @@ A future `ExerciseLibrary` could store:
 - instructions
 - image/video references
 
-ExerciseLibrary is explicitly deferred. Sprint 6 should prove that text-based recommendations and safety checks are useful first.
+ExerciseLibrary is explicitly deferred. Sprint 6 proves the text-based exercise recommendation and safety-check foundation first.

@@ -87,7 +87,6 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 - `limitationsOrPainAreas` is prioritized as safety-sensitive context.
 - Training preferences can be saved and read by the backend.
 - Progressive prompts can collect training preferences without lengthening Stage 1.
-- Batch 2 does not add `ProtocolSelectorService`; that belongs to Batch 3.
 - Protocols are selected deterministically from user context, goals, schedule, check-ins, and safety state.
 - OpenAI receives protocol context and can customize it instead of planning from scratch.
 - DailyPlan debug metadata stores protocol IDs only, not full private context.
@@ -114,4 +113,12 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 
 ## Recommended Sprint 7 Direction
 
-After Sprint 6, consider meal/ingredient swaps or real payment integration depending on whether core plan quality feels strong enough for paid conversion.
+Sprint 7 should focus on Apple Health / Health Connect foundation before WHOOP and real payments.
+
+Reason:
+
+- Apple Health and Health Connect provide broader health-data coverage than WHOOP alone.
+- Steps, sleep, workouts, active energy, and weight can improve `ADAPTIVE` planning.
+- A health-data consent and sync foundation strengthens product value before purchase flow work.
+
+Sprint 7 should not block plan generation when health data is unavailable, and it must not provide medical diagnosis.

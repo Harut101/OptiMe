@@ -29,10 +29,15 @@ Implemented:
 
 Deferred:
 
-- mobile exercise rendering
 - `ExerciseLibrary`
 - exercise images or videos
 - deep OpenAI prompt orchestration
+
+Implemented after Batch 3:
+
+- optional text-based `training.exercises`
+- minimal Plan Details rendering for exercises when present
+- deterministic and Safety Agent exercise safety checks
 
 ## Protocol Output Shape
 

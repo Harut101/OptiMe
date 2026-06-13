@@ -236,7 +236,12 @@ Sprint 6 Batch 3 uses them for protocol selection.
 
 Still deferred:
 
-- `training.exercises`
 - mobile training preference UI
 - ExerciseLibrary
 - exercise media
+
+Implemented after Batch 3:
+
+- optional text-based `training.exercises`
+- exercise safety checks
+- Plan Details exercise rendering when exercises are present

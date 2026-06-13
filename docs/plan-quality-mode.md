@@ -103,7 +103,7 @@ OpenAI prompt direction:
 
 ## Sprint 6 Training And Protocol Implications
 
-Sprint 6 should introduce optional training preferences and a simple protocol/template layer.
+Sprint 6 introduced optional training preferences, deterministic protocol selection, and optional text-based exercise recommendations.
 
 Important rules:
 
@@ -144,7 +144,9 @@ Future `ExerciseLibrary` may support:
 
 For now, OpenAI can suggest exercises from current schedule/description, but must not create unsafe progression plans.
 
-Sprint 6 should strengthen this by passing selected training, nutrition, and recovery protocols into `AiProvider`.
+Sprint 6 passes selected training, nutrition, and recovery protocols into `AiProvider`.
+
+Plan Details can render optional `training.exercises` when present. Today stays clean and does not render exercises.
 
 ## Nutrition Menu Options By Tier
 
