@@ -1664,6 +1664,112 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(adaptive.selectionReasons.some((reason) => reason.includes('PlanQualityMode ADAPTIVE'))).toBe(true);
   });
 
+  it('uses summarized health signals conservatively in protocol selection', () => {
+    const selector = ctx.app.get(ProtocolSelectorService);
+
+    const lowSleep = selector.select(
+      baseProtocolInput({
+        healthPlanningContext: baseHealthPlanningContext({
+          lowSleep: true,
+          highActivityYesterday: false,
+          recentWorkout: false,
+          lowStepTrend: false
+        })
+      })
+    );
+    expect(lowSleep).toMatchObject({
+      trainingProtocol: { id: 'RECOVERY' },
+      recoveryProtocol: { id: 'HIGH_TIREDNESS' }
+    });
+
+    const highActivity = selector.select(
+      baseProtocolInput({
+        healthPlanningContext: baseHealthPlanningContext({
+          lowSleep: false,
+          highActivityYesterday: true,
+          recentWorkout: false,
+          lowStepTrend: false
+        })
+      })
+    );
+    expect(highActivity).toMatchObject({
+      trainingProtocol: { id: 'RECOVERY' },
+      recoveryProtocol: { id: 'HIGH_TIREDNESS' }
+    });
+
+    const recentWorkout = selector.select(
+      baseProtocolInput({
+        healthPlanningContext: baseHealthPlanningContext({
+          lowSleep: false,
+          highActivityYesterday: false,
+          recentWorkout: true,
+          lowStepTrend: false
+        })
+      })
+    );
+    expect(recentWorkout.trainingProtocol.id).toBe('MOBILITY');
+
+    const lowStepTrend = selector.select(
+      baseProtocolInput({
+        healthPlanningContext: baseHealthPlanningContext({
+          lowSleep: false,
+          highActivityYesterday: false,
+          recentWorkout: false,
+          lowStepTrend: true
+        })
+      })
+    );
+    expect(
+      lowStepTrend.selectionReasons.some((reason) => reason.includes('gentle movement'))
+    ).toBe(true);
+  });
+
+  it('keeps safety-sensitive protocol overrides above health signals', () => {
+    const selector = ctx.app.get(ProtocolSelectorService);
+    const healthPlanningContext = baseHealthPlanningContext({
+      lowSleep: true,
+      highActivityYesterday: true,
+      recentWorkout: true,
+      lowStepTrend: true
+    });
+
+    expect(
+      selector.select(baseProtocolInput({ isMinor: true, safeMode: true, healthPlanningContext }))
+    ).toMatchObject({
+      nutritionProtocol: { id: 'UNDER_18_SAFE' },
+      trainingProtocol: { id: 'MOBILITY' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          profile: { pregnancyStatus: PregnancyStatus.PREGNANT },
+          healthPlanningContext
+        })
+      )
+    ).toMatchObject({
+      nutritionProtocol: { id: 'PREGNANCY_POSTPARTUM_SAFE' },
+      recoveryProtocol: { id: 'PREGNANCY_POSTPARTUM_CONSERVATIVE' }
+    });
+
+    expect(
+      selector.select(
+        baseProtocolInput({
+          trainingPreference: {
+            trainingOutcome: TrainingOutcome.GENERAL_FITNESS,
+            equipment: [],
+            trainingLevel: null,
+            limitationsOrPainAreas: ['knee pain']
+          },
+          healthPlanningContext
+        })
+      )
+    ).toMatchObject({
+      trainingProtocol: { id: 'CONSERVATIVE_PAIN_LIMITATION' },
+      recoveryProtocol: { id: 'PAIN_OR_DISCOMFORT' }
+    });
+  });
+
   it('passes selected protocols to AiProvider input and stores safe protocol debug IDs', async () => {
     const capturedInputs: GenerateDailyPlanInput[] = [];
     const customCtx = await createTestApp({
@@ -1717,6 +1823,98 @@ describe('Sprint 1 backend vertical slice', () => {
         recoveryProtocolId: 'NORMAL_RECOVERY'
       });
       expect(plan.body.plan.debug.protocols.nutritionProtocol).toBeUndefined();
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('passes safe health planning context to AiProvider and debug metadata', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'health-planning-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'HealthPlanning');
+      await connectHealthProvider(customCtx.app, user.accessToken, HealthProvider.APPLE_HEALTH);
+      const planLocalDate = getUtcLocalDate();
+
+      await createHealthSummary(customCtx.app, user.accessToken, HealthProvider.APPLE_HEALTH, {
+        localDate: getUtcDateDaysBefore(planLocalDate, 1),
+        steps: 14000,
+        sleepMinutes: 320,
+        activeEnergyKcal: 950,
+        workoutCount: 1,
+        workoutMinutes: 75,
+        weightKg: 82,
+        averageHeartRate: 120,
+        restingHeartRate: 55
+      });
+      await createHealthSummary(customCtx.app, user.accessToken, HealthProvider.APPLE_HEALTH, {
+        localDate: getUtcDateDaysBefore(planLocalDate, 2),
+        steps: 2500,
+        sleepMinutes: 420
+      });
+      await createHealthSummary(customCtx.app, user.accessToken, HealthProvider.APPLE_HEALTH, {
+        localDate: getUtcDateDaysBefore(planLocalDate, 3),
+        steps: 2200,
+        sleepMinutes: 430
+      });
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const healthContext = capturedInputs[0]?.personalizationContext.healthPlanningContext;
+      expect(healthContext).toMatchObject({
+        available: true,
+        signals: {
+          lowSleep: true,
+          highActivityYesterday: true,
+          recentWorkout: true,
+          lowStepTrend: false
+        }
+      });
+      expect(healthContext?.latestSummary).toMatchObject({
+        steps: 14000,
+        sleepMinutes: 320,
+        activeEnergyKcal: 950,
+        workoutCount: 1,
+        workoutMinutes: 75
+      });
+      const healthContextJson = JSON.stringify(healthContext);
+      expect(healthContextJson).not.toContain('weightKg');
+      expect(healthContextJson).not.toContain('averageHeartRate');
+      expect(healthContextJson).not.toContain('restingHeartRate');
+      expect(healthContextJson).not.toContain('heartRate');
+      expect(plan.body.plan.debug.healthSignals).toEqual({
+        lowSleep: true,
+        highActivityYesterday: true,
+        recentWorkout: true,
+        lowStepTrend: false
+      });
+      expect(plan.body.plan.debug.healthSignals.steps).toBeUndefined();
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -5442,17 +5640,39 @@ async function createHealthSummary(
   app: TestApp['app'],
   token: string,
   sourceProvider: HealthProvider,
-  steps: number
+  input: number | {
+    localDate?: string;
+    timezone?: string;
+    steps?: number;
+    sleepMinutes?: number;
+    activeEnergyKcal?: number;
+    workoutCount?: number;
+    workoutMinutes?: number;
+    averageHeartRate?: number;
+    restingHeartRate?: number;
+    weightKg?: number;
+  }
 ) {
+  const body =
+    typeof input === 'number'
+      ? {
+          localDate: '2026-06-07',
+          timezone: 'UTC',
+          steps: input,
+          sleepMinutes: 420
+        }
+      : {
+          localDate: input.localDate ?? '2026-06-07',
+          timezone: input.timezone ?? 'UTC',
+          ...input
+        };
+
   await request(app.getHttpServer())
     .post('/v1/health/daily-summary')
     .set(authHeader(token))
     .send({
-      localDate: '2026-06-07',
-      timezone: 'UTC',
       sourceProvider,
-      steps,
-      sleepMinutes: 420
+      ...body
     })
     .expect(201);
 }
@@ -5585,6 +5805,42 @@ function baseProtocolInput(overrides: Partial<ProtocolSelectionInput> = {}): Pro
   };
 }
 
+function baseHealthPlanningContext(
+  signals: NonNullable<ProtocolSelectionInput['healthPlanningContext']>['signals']
+): NonNullable<ProtocolSelectionInput['healthPlanningContext']> {
+  return {
+    available: true,
+    daysReviewed: 3,
+    latestSummary: {
+      localDate: '2026-06-07',
+      steps: 4000,
+      sleepMinutes: signals.lowSleep ? 320 : 420,
+      activeEnergyKcal: signals.highActivityYesterday ? 950 : 300,
+      workoutCount: signals.recentWorkout ? 1 : 0,
+      workoutMinutes: signals.highActivityYesterday || signals.recentWorkout ? 75 : 0
+    },
+    recentAverages: {
+      steps: signals.lowStepTrend ? 2400 : 5000,
+      sleepMinutes: signals.lowSleep ? 340 : 420,
+      activeEnergyKcal: signals.highActivityYesterday ? 800 : 300,
+      workoutMinutes: signals.recentWorkout ? 35 : 0
+    },
+    signals,
+    selectionNotes: [
+      ...(signals.lowSleep ? ['Low sleep summary suggests recovery-oriented planning.'] : []),
+      ...(signals.highActivityYesterday
+        ? ['High activity yesterday suggests avoiding compounded training load.']
+        : []),
+      ...(signals.recentWorkout
+        ? ['Recent workout summary suggests conservative repeated-load decisions.']
+        : []),
+      ...(signals.lowStepTrend
+        ? ['Low step trend suggests gentle movement encouragement without shame.']
+        : [])
+    ]
+  };
+}
+
 function createTestSubscription(
   ctx: TestApp,
   userId: string,
@@ -5673,6 +5929,13 @@ function getUtcLocalDate() {
   const day = parts.find((part) => part.type === 'day')?.value;
 
   return `${year}-${month}-${day}`;
+}
+
+function getUtcDateDaysBefore(localDate: string, days: number) {
+  const [year, month, day] = localDate.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
 }
 
 function restoreOpenAiEnv(

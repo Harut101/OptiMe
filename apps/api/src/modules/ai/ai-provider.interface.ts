@@ -14,6 +14,7 @@ import {
 } from '@prisma/client';
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
+import { HealthPlanningContext } from '../health/health-planning.types';
 import { SelectedProtocols } from '../protocol/protocol.types';
 
 export interface GenerateDailyPlanSafetyFeedback {
@@ -62,6 +63,7 @@ export interface GenerateDailyPlanPersonalizationContext {
     futureSignals: string[];
   };
   selectedProtocols?: SelectedProtocols;
+  healthPlanningContext?: HealthPlanningContext;
 }
 
 export interface GenerateDailyPlanInput {

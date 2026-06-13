@@ -93,6 +93,14 @@ export const dailyPlanJsonSchema = z.object({
           recoveryProtocolId: z.string()
         })
         .optional(),
+      healthSignals: z
+        .object({
+          lowSleep: z.boolean(),
+          highActivityYesterday: z.boolean(),
+          recentWorkout: z.boolean(),
+          lowStepTrend: z.boolean()
+        })
+        .optional(),
       fallbackReason: z.string().optional(),
       safetyAgent: z
         .object({

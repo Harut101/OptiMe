@@ -33,6 +33,11 @@ export class ProtocolSelectorService {
     const hasHighTiredness =
       input.checkInSummary?.highTirednessReported ||
       ((input.checkInSummary?.recentAverageTiredness ?? 0) >= 4 && input.checkInSummary?.recentAverageTiredness !== null);
+    const healthSignals = input.healthPlanningContext?.signals;
+    const hasHealthRecoverySignal = Boolean(
+      healthSignals?.lowSleep || healthSignals?.highActivityYesterday
+    );
+    const hasRecentWorkoutSignal = Boolean(healthSignals?.recentWorkout);
 
     const nutritionProtocolId = this.selectNutritionProtocolId({
       ...input,
@@ -44,6 +49,8 @@ export class ProtocolSelectorService {
       ...input,
       hasPainSignal: Boolean(hasPainSignal),
       hasHighTiredness: Boolean(hasHighTiredness),
+      hasHealthRecoverySignal,
+      hasRecentWorkoutSignal,
       selectionReasons
     });
     const recoveryProtocolId = this.selectRecoveryProtocolId({
@@ -51,9 +58,11 @@ export class ProtocolSelectorService {
       hasPregnancySensitiveContext,
       hasPainSignal: Boolean(hasPainSignal),
       hasHighTiredness: Boolean(hasHighTiredness),
+      hasHealthRecoverySignal,
       selectionReasons
     });
 
+    this.addHealthSelectionReasons(input, selectionReasons);
     selectionReasons.push(this.getPlanQualityReason(input.planQualityMode));
 
     return {
@@ -112,6 +121,8 @@ export class ProtocolSelectorService {
     input: ProtocolSelectionInput & {
       hasPainSignal: boolean;
       hasHighTiredness: boolean;
+      hasHealthRecoverySignal: boolean;
+      hasRecentWorkoutSignal: boolean;
       selectionReasons: string[];
     }
   ): TrainingProtocolId {
@@ -132,6 +143,16 @@ export class ProtocolSelectorService {
 
     if (input.safeMode || input.isMinor) {
       input.selectionReasons.push('Safe mode keeps training light and movement-focused.');
+      return 'MOBILITY';
+    }
+
+    if (input.hasHealthRecoverySignal) {
+      input.selectionReasons.push('Summarized health signals select recovery-aware training.');
+      return 'RECOVERY';
+    }
+
+    if (input.hasRecentWorkoutSignal) {
+      input.selectionReasons.push('Recent workout signal keeps training mobility-focused to avoid repeated overload.');
       return 'MOBILITY';
     }
 
@@ -189,6 +210,7 @@ export class ProtocolSelectorService {
       hasPregnancySensitiveContext: boolean;
       hasPainSignal: boolean;
       hasHighTiredness: boolean;
+      hasHealthRecoverySignal: boolean;
       selectionReasons: string[];
     }
   ): RecoveryProtocolId {
@@ -212,8 +234,27 @@ export class ProtocolSelectorService {
       return 'HIGH_TIREDNESS';
     }
 
+    if (input.hasHealthRecoverySignal) {
+      input.selectionReasons.push('Summarized low sleep or high activity selects recovery-aware recovery.');
+      return 'HIGH_TIREDNESS';
+    }
+
     input.selectionReasons.push('No acute recovery signal selects normal recovery.');
     return 'NORMAL_RECOVERY';
+  }
+
+  private addHealthSelectionReasons(input: ProtocolSelectionInput, selectionReasons: string[]) {
+    const healthContext = input.healthPlanningContext;
+
+    if (!healthContext?.available) {
+      return;
+    }
+
+    selectionReasons.push(...healthContext.selectionNotes);
+
+    if (healthContext.signals.lowStepTrend) {
+      selectionReasons.push('Low recent step trend adds gentle movement guidance without shame.');
+    }
   }
 
   private getPlanQualityReason(planQualityMode: PlanQualityMode) {

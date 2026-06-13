@@ -31,6 +31,7 @@ import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
+import { HealthService } from '../health/health.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
@@ -70,6 +71,7 @@ export class DailyPlansService {
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
+    private readonly healthService: HealthService,
     private readonly protocolSelector: ProtocolSelectorService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
@@ -132,7 +134,11 @@ export class DailyPlansService {
     try {
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
-      const personalizationContext = await this.buildPersonalizationContext(user, planQualityMode);
+      const personalizationContext = await this.buildPersonalizationContext(
+        user,
+        planQualityMode,
+        planLocalDate
+      );
       const blockedFoods = {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
@@ -205,7 +211,8 @@ export class DailyPlansService {
         planJson: this.withPlanDebugContext(
           safePlanResult.planJson,
           planQualityMode,
-          personalizationContext.selectedProtocols
+          personalizationContext.selectedProtocols,
+          personalizationContext.healthPlanningContext
         )
       };
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
@@ -880,7 +887,8 @@ export class DailyPlansService {
   private withPlanDebugContext(
     planJson: DailyPlanJson,
     planQualityMode: PlanQualityMode,
-    selectedProtocols?: SelectedProtocols
+    selectedProtocols?: SelectedProtocols,
+    healthPlanningContext?: GenerateDailyPlanPersonalizationContext['healthPlanningContext']
   ): DailyPlanJson {
     if (!planJson.debug) {
       return planJson;
@@ -897,6 +905,16 @@ export class DailyPlansService {
                 nutritionProtocolId: selectedProtocols.nutritionProtocol.id,
                 trainingProtocolId: selectedProtocols.trainingProtocol.id,
                 recoveryProtocolId: selectedProtocols.recoveryProtocol.id
+              }
+            }
+          : {}),
+        ...(healthPlanningContext?.available
+          ? {
+              healthSignals: {
+                lowSleep: healthPlanningContext.signals.lowSleep,
+                highActivityYesterday: healthPlanningContext.signals.highActivityYesterday,
+                recentWorkout: healthPlanningContext.signals.recentWorkout,
+                lowStepTrend: healthPlanningContext.signals.lowStepTrend
               }
             }
           : {})
@@ -923,9 +941,17 @@ export class DailyPlansService {
 
   private async buildPersonalizationContext(
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>,
-    planQualityMode: PlanQualityMode
+    planQualityMode: PlanQualityMode,
+    planLocalDate: string
   ): Promise<GenerateDailyPlanPersonalizationContext> {
     const checkInSummary = await this.checkInsService.getRecentSummary(user.id);
+    const healthPlanningContext = await this.healthService.getRecentHealthSummariesForPlanning(
+      user.id,
+      {
+        planLocalDate,
+        days: 7
+      }
+    );
     const trainingPreference = user.trainingPreference;
     const selectedProtocols = this.protocolSelector.select({
       profile: user.profile,
@@ -936,6 +962,7 @@ export class DailyPlansService {
       trainingSchedule: user.schedules,
       trainingPreference,
       checkInSummary,
+      healthPlanningContext,
       planQualityMode
     });
     const baseContext: GenerateDailyPlanPersonalizationContext = {
@@ -957,7 +984,8 @@ export class DailyPlansService {
         : {}),
       trainingPersonalization: this.getTrainingPersonalizationContext(planQualityMode),
       selectedProtocols,
-      checkInSummary
+      checkInSummary,
+      healthPlanningContext
     };
 
     if (planQualityMode === PlanQualityMode.BASIC) {

@@ -124,6 +124,16 @@ Batch 4B spike status:
 - Dependencies are listed in package metadata but must be installed locally.
 - No background sync, charts, health-to-protocol integration, or daily-plan integration was added.
 
+Batch 5 protocol integration status:
+
+- Stored `HealthDailySummary` rows are summarized into a compact planning context.
+- `ProtocolSelectorService` uses low sleep, high activity yesterday, recent workout, and low step trend conservatively.
+- Health summaries are optional and missing data does not block daily plan generation.
+- `DailyPlansService` passes safe health context to `AiProvider` through personalization context.
+- Daily plan debug metadata stores only safe health signal booleans.
+- Weight, average heart rate, and resting heart rate are not used for planning in Batch 5.
+- Safety-sensitive rules remain above health signals.
+
 ### Batch 5: Protocol Integration
 
 - Load recent health summaries for planning context.
@@ -131,6 +141,14 @@ Batch 4B spike status:
 - Keep health effects conservative.
 - Ensure under-18, pregnancy/postpartum, and pain/discomfort rules override health context.
 - Add safety and e2e tests.
+
+Batch 5 implementation status:
+
+- Implemented health planning context retrieval from recent summaries.
+- Implemented conservative protocol selection from health signals.
+- Implemented health context handoff to `AiProvider`.
+- Implemented safe `debug.healthSignals` metadata.
+- Added tests for no health data, safety override ordering, AI provider context, and safe field exclusion.
 
 ### Batch 6: QA And Closure
 

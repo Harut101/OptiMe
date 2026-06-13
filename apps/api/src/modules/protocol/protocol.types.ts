@@ -7,6 +7,7 @@ import {
   TrainingLevel,
   TrainingOutcome
 } from '@prisma/client';
+import { HealthPlanningContext } from '../health/health-planning.types';
 
 export type TrainingProtocolIntensity = 'REST' | 'LIGHT' | 'MODERATE' | 'HARD';
 
@@ -97,5 +98,6 @@ export interface ProtocolSelectionInput {
     highTirednessReported: boolean;
     conservativeTrainingRecommended: boolean;
   };
+  healthPlanningContext?: HealthPlanningContext;
   planQualityMode: PlanQualityMode;
 }

@@ -77,6 +77,16 @@ Batch 4B native spike result:
 - No background sync, charts, protocol integration, or daily-plan integration was added.
 - See `docs/health-native-sync-spike.md` for setup and QA steps.
 
+Batch 5 protocol integration result:
+
+- Stored `HealthDailySummary` rows are summarized for planning.
+- `ProtocolSelectorService` can use low sleep, high activity yesterday, recent workout, and low step trend signals conservatively.
+- Health summaries are optional and never block plan generation.
+- Health signals can reduce intensity or suggest recovery, but they must not push the user harder.
+- Weight, average heart rate, and resting heart rate are not passed into planning context in Batch 5.
+- Daily plan debug metadata stores only safe health signal booleans.
+- See `docs/health-protocol-integration.md` for the implemented planning contract.
+
 ## Batch 3 Mobile Foundation
 
 Batch 3 adds mobile UI only:
@@ -154,6 +164,14 @@ Backend should not store:
 - unsupported medical data
 
 Planning should use summaries only when available. Missing summaries should not block daily plan generation.
+
+In Batch 5, planning uses only compact health context:
+
+- latest available summary fields: steps, sleep minutes, active energy, workout count, workout minutes
+- recent averages for those same fields
+- boolean signals for conservative protocol selection
+
+Planning does not use weight, heart-rate fields, raw samples, or permission payloads.
 
 ## Official Documentation References
 

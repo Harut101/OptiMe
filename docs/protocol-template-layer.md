@@ -169,6 +169,7 @@ Use:
 - no-training-planned intent
 - training preferences when available
 - recent check-ins
+- summarized health planning context when available
 - PlanQualityMode
 
 ## Current Deterministic Selection Rules
@@ -180,12 +181,17 @@ Safety-sensitive context has priority over personalization:
 - Pain, discomfort, or saved limitations select `CONSERVATIVE_PAIN_LIMITATION` training and `PAIN_OR_DISCOMFORT` recovery.
 - No training planned, or no saved schedule rows, selects `NO_TRAINING_PLANNED` training and `REST_DAY` recovery.
 - High tiredness check-ins select recovery-oriented nutrition, training, and recovery protocols.
+- Low sleep or high activity yesterday from health summaries selects recovery-aware training and recovery, after hard safety checks.
+- Recent workout health signals select mobility-focused training to avoid repeated overload.
+- Low step trends add gentle movement guidance without shame or pressure.
 - Muscle-gain goals or `trainingOutcome=MUSCLE_GROWTH` select `MUSCLE_GAIN` nutrition and muscle-growth training.
 - Weight-reduction goals select `SAFE_WEIGHT_LOSS` unless pregnancy or under-18 rules override them.
 - Beginner gym context selects `BEGINNER_GYM`.
 - Home or bodyweight equipment selects `HOME_WORKOUT`.
 
 `PlanQualityMode` changes explanation depth and how much context AI should use. It must not weaken safety or change hard safety rules.
+
+Health summaries are optional. Missing summaries do not block plan generation. Batch 5 planning context excludes weight, average heart rate, and resting heart rate.
 
 ## Daily Plan Debug Metadata
 
@@ -204,6 +210,23 @@ When a daily plan is generated, the backend may persist safe debug protocol IDs:
 ```
 
 Only IDs are stored in debug metadata. Full profile data, prompts, and full protocol text are not stored there.
+
+Batch 5 may also store safe health signal booleans:
+
+```json
+{
+  "debug": {
+    "healthSignals": {
+      "lowSleep": false,
+      "highActivityYesterday": true,
+      "recentWorkout": true,
+      "lowStepTrend": false
+    }
+  }
+}
+```
+
+Mobile must not render protocol or health debug metadata.
 
 ## OpenAI Customization Rules
 

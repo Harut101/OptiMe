@@ -176,3 +176,28 @@ Batch 4B follows this:
 - does not request resting heart rate
 - syncs foreground summaries only
 - does not store raw samples
+
+## Batch 5 Planning Privacy Boundary
+
+Daily planning uses health summaries only when available, and the context is minimized before it reaches protocol selection or AI generation.
+
+Allowed planning fields in Batch 5:
+
+- steps
+- sleep minutes
+- active energy kcal
+- workout count
+- workout minutes
+- recent averages for those fields
+- boolean signals such as low sleep, high activity yesterday, recent workout, and low step trend
+
+Excluded from planning context in Batch 5:
+
+- weight kg
+- average heart rate
+- resting heart rate
+- raw samples
+- permission payloads
+- device identifiers
+
+Health-based planning must remain non-diagnostic and supportive. It can make a plan more recovery-aware, but it must not shame the user, pressure them, or recommend pushing harder because of health data.
