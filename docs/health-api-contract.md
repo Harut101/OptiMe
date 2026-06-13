@@ -4,7 +4,7 @@ This document describes the Sprint 7 health API contracts.
 
 All endpoints require JWT authentication.
 
-Batch 2 implemented these endpoints as backend foundation only. Native Apple Health / Health Connect sync is still deferred, mobile UI is Batch 3, and protocol integration is Batch 5.
+Batch 2 implemented these endpoints as backend foundation. Batch 3 added mobile status/consent UI. Batch 4B added an Android-first native Health Connect sync spike. Batch 5 integrated stored summaries into conservative protocol selection.
 
 Batch 3 mobile uses:
 
@@ -13,7 +13,7 @@ Batch 3 mobile uses:
 - `POST /v1/health/disconnect`
 - `DELETE /v1/health/data`
 
-It does not use `POST /v1/health/daily-summary` for production UI. Manual summary sync remains development/testing only.
+Native sync uses `POST /v1/health/daily-summary` from the Android development-build spike. Manual summary sync remains useful for development/testing. Production background sync is still deferred.
 
 ## GET /v1/health/status
 
@@ -43,11 +43,30 @@ Response:
 }
 ```
 
-If no connection exists:
+If no saved connection exists, the response still includes known providers with disconnected/default status.
 
 ```json
 {
-  "connections": []
+  "connections": [
+    {
+      "provider": "APPLE_HEALTH",
+      "status": "DISCONNECTED",
+      "consentedAt": null,
+      "disconnectedAt": null,
+      "lastSyncAt": null,
+      "permissionsGranted": null,
+      "errorReason": null
+    },
+    {
+      "provider": "HEALTH_CONNECT",
+      "status": "DISCONNECTED",
+      "consentedAt": null,
+      "disconnectedAt": null,
+      "lastSyncAt": null,
+      "permissionsGranted": null,
+      "errorReason": null
+    }
+  ]
 }
 ```
 
@@ -137,20 +156,23 @@ Response when present:
 
 ```json
 {
-  "summary": {
-    "localDate": "2026-06-13",
-    "timezone": "Asia/Yerevan",
-    "sourceProvider": "APPLE_HEALTH",
-    "steps": 7200,
-    "sleepMinutes": 410,
-    "activeEnergyKcal": 430,
-    "workoutCount": 1,
-    "workoutMinutes": 45,
-    "averageHeartRate": null,
-    "restingHeartRate": null,
-    "weightKg": null,
-    "updatedAt": "2026-06-13T10:05:00.000Z"
-  }
+  "localDate": "2026-06-13",
+  "summaries": [
+    {
+      "localDate": "2026-06-13",
+      "timezone": "Asia/Yerevan",
+      "sourceProvider": "APPLE_HEALTH",
+      "steps": 7200,
+      "sleepMinutes": 410,
+      "activeEnergyKcal": 430,
+      "workoutCount": 1,
+      "workoutMinutes": 45,
+      "averageHeartRate": null,
+      "restingHeartRate": null,
+      "weightKg": null,
+      "updatedAt": "2026-06-13T10:05:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -158,7 +180,8 @@ Response when missing:
 
 ```json
 {
-  "summary": null
+  "localDate": "2026-06-13",
+  "summaries": []
 }
 ```
 
@@ -202,7 +225,7 @@ Response:
 }
 ```
 
-This endpoint is for development/testing and should not be treated as a native sync replacement.
+This endpoint is used by the Android foreground sync spike and remains useful for development/manual testing. It is not a background sync or dashboard endpoint.
 
 This endpoint requires an existing `CONNECTED` `HealthConnection` for the same provider. If the provider is not connected, the API returns:
 
@@ -213,13 +236,13 @@ This endpoint requires an existing `CONNECTED` `HealthConnection` for the same p
 }
 ```
 
-## POST /v1/health/sync
+## Native Sync Status
 
-Future endpoint when native sync is ready.
+Sprint 7 does not add a separate bulk sync endpoint. The Android foreground `Sync now` spike posts daily summaries through `POST /v1/health/daily-summary`.
 
-Expected behavior:
+Future production sync may add a bulk endpoint, but it should still:
 
-- accept one or more daily summaries from the mobile app
+- accept daily summaries, not raw samples
 - validate ownership through JWT
 - upsert by `userId + localDate + sourceProvider`
 - update connection `lastSyncAt`
@@ -248,6 +271,7 @@ Validation rules:
 
 Planning behavior:
 
-- missing health summary returns `summary: null`
+- missing health summary returns an empty `summaries` array
 - disconnected provider means health data is not used
 - health API errors should not block daily plan generation
+- Batch 5 planning context excludes `weightKg`, `averageHeartRate`, and `restingHeartRate`

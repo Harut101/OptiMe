@@ -15,23 +15,26 @@ This sprint is foundation-first. Health data is optional, consent-based, summari
 - Keep health data out of medical diagnosis and body-shaming language.
 - Keep safety equal across all tiers.
 
-## Scope
+## Delivered Scope
 
 - Documentation and contracts.
 - Expo/native feasibility analysis.
-- Proposed Prisma model shape.
-- Proposed REST API shape.
+- Prisma health connection and daily summary models.
+- Backend health REST APIs.
+- Mobile health status, consent, disconnect, and delete-data UI.
+- Android-first Health Connect native sync spike.
+- Expo Go safe fallback.
+- iOS safe stub.
 - Privacy and consent requirements.
-- Protocol integration design.
-- Test plan for later batches.
+- Conservative protocol integration.
+- Test coverage for backend health APIs and planning behavior.
 
 ## Out Of Scope
 
-- Backend implementation.
-- Prisma migrations.
-- Mobile UI implementation.
-- Native HealthKit or Health Connect libraries.
-- Development build or config-plugin setup.
+- Production native health rollout.
+- iOS HealthKit native implementation.
+- Background health sync.
+- Health charts or dashboard.
 - WHOOP integration.
 - Real payments.
 - App Store / Google Play purchase flow.
@@ -53,7 +56,7 @@ The goal is not to add medical interpretation. The goal is to make OptiMe more c
 - high activity yesterday -> lower training load
 - recent workout -> avoid repeated overload
 - low activity trend -> gentle movement suggestion
-- weight trend -> gentle context only
+- future weight trend -> gentle context only, if explicitly approved later
 
 ## Implementation Batches
 
@@ -121,7 +124,7 @@ Batch 4B spike status:
 - Android Health Connect native abstraction and foreground `Sync now` flow added.
 - iOS HealthKit adapter remains a safe unavailable stub.
 - App config now includes Android Health Connect plugin/build-property entries for development builds.
-- Dependencies are listed in package metadata but must be installed locally.
+- Dependencies and lockfile entries are listed for the Android native spike.
 - No background sync, charts, health-to-protocol integration, or daily-plan integration was added.
 
 Batch 5 protocol integration status:

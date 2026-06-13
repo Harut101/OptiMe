@@ -20,7 +20,7 @@ Batch 4B status:
 - Android Health Connect spike code was added.
 - iOS HealthKit remains a safe stub.
 - Package metadata and Android config plugin entries were added.
-- Dependencies still need local installation.
+- Package lockfile entries now include the selected Android health packages.
 - Foreground `Sync now` was added.
 - Background sync remains deferred.
 

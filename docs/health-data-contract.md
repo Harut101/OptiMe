@@ -4,7 +4,7 @@ This document describes the Sprint 7 backend health data contracts.
 
 The contract stores connection metadata and daily health summaries. It intentionally avoids raw health samples.
 
-Batch 2 implemented these contracts with migration `add_health_integration_foundation`.
+Batch 2 implemented these contracts with migration `add_health_integration_foundation`. Batch 5 uses these stored summaries for conservative planning context.
 
 ## Enums
 
@@ -119,3 +119,28 @@ Summaries reduce privacy and storage risk:
 - enough for conservative protocol selection
 
 Raw samples should be deferred until there is a clear product need and a stronger privacy review.
+
+## Planning Context Boundary
+
+Sprint 7 Batch 5 summarizes stored `HealthDailySummary` rows before protocol selection or AI generation.
+
+Allowed planning fields:
+
+- steps
+- sleep minutes
+- active energy kcal
+- workout count
+- workout minutes
+- recent averages for those fields
+- conservative signal booleans
+
+Excluded from planning context:
+
+- weight kg
+- average heart rate
+- resting heart rate
+- raw samples
+- permission payloads
+- device identifiers
+
+Health data is optional. Missing summaries return empty data and must not block daily plan generation.

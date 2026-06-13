@@ -92,6 +92,22 @@ Improved core plan quality before adding external health integrations:
 - Safety Agent exercise review.
 - Plan Details rendering for suggested exercises.
 
+### Sprint 7: Health Integration Foundation
+
+Added consent-based health summary foundations:
+
+- `HealthConnection` and `HealthDailySummary` models.
+- Health status, connect, disconnect, delete synced data, and daily summary APIs.
+- Mobile Health data screen and Settings/Profile card.
+- Android Health Connect native sync spike with foreground `Sync now`.
+- Expo Go safe fallback for native health sync.
+- iOS HealthKit safe unavailable stub.
+- Conservative health planning context from stored daily summaries.
+- Protocol selection support for low sleep, high activity yesterday, recent workout, and low step trend.
+- Safe health context passed to `AiProvider`.
+- `debug.healthSignals` booleans only.
+- Weight and heart-rate fields excluded from planning context.
+
 ## Current Product State
 
 OptiMe can now:
@@ -108,11 +124,16 @@ OptiMe can now:
 - Collect optional training preferences after activation.
 - Select deterministic nutrition, training, and recovery protocols.
 - Generate optional text-based exercise recommendations.
+- Connect optional health providers and store daily health summaries.
+- Use summarized health signals conservatively in daily planning.
 
 Still not implemented:
 
 - Real App Store or Google Play payments.
-- Apple Health / Health Connect.
+- Production Apple Health / Health Connect rollout.
+- iOS native HealthKit implementation.
+- Health background sync.
+- Health charts or dashboard.
 - WHOOP integration.
 - AI Coach chat.
 - Embeddings-based personalization.
@@ -270,18 +291,18 @@ For minors:
 
 ## Recommended Order
 
-1. Sprint 7: Apple Health / Health Connect foundation.
-2. Sprint 8: Meal/ingredient swap, better preference refinement, or ExerciseLibrary/body map planning.
-3. Sprint 9: Real subscriptions/payments and paywall polish.
-4. Sprint 10: Predictive adaptive coaching foundation.
-5. Sprint 11: WHOOP integration on top of the health-data foundation.
-6. Later: AI Coach chat, embeddings, admin/web, exercise media, and advanced analytics.
+1. Sprint 8: ExerciseLibrary plus professional interactive body map and exercise media foundation.
+2. Sprint 9: Real subscriptions/payments and paywall polish.
+3. Sprint 10: Predictive adaptive coaching foundation.
+4. Sprint 11: WHOOP integration on top of the health-data foundation.
+5. Later: AI Coach chat, embeddings, admin/web, meal swaps, and advanced analytics.
 
 This order strengthens the core loop and health-data foundation before monetization and narrower wearable integrations.
 
-Future ExerciseLibrary/body map note:
+Sprint 8 ExerciseLibrary/body map note:
 
-- Interactive body map and exercise media should be a later sprint, not Sprint 7.
 - Production body maps require professional/licensed SVG assets or designer-created assets.
-- Each muscle region should be a separate SVG path.
+- Each muscle region should be a separate SVG path with stable IDs.
 - Dev-generated SVG stubs should not be used in production UI.
+- Exercise media should use licensed, owned, or curated assets only.
+- AI should select and customize from deterministic exercise data rather than inventing all exercises freely.

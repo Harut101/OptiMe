@@ -24,19 +24,19 @@ This is not production-grade native integration yet. It is a development-build s
 
 ## Selected Android Packages
 
-Package metadata was added, but dependencies were not installed in this batch:
+Package metadata and lockfile entries exist for:
 
 - `react-native-health-connect`
 - `expo-health-connect`
 - `expo-build-properties`
 
-Run locally:
+After cloning, or if package metadata changes, run locally:
 
 ```powershell
 pnpm install --reporter=append-only --no-frozen-lockfile --config.offline=false --registry=https://registry.npmjs.org/
 ```
 
-If pnpm lockfile resolution needs package-specific commands instead:
+If pnpm lockfile resolution ever needs package-specific commands instead:
 
 ```powershell
 pnpm --filter @optime/mobile add react-native-health-connect@^3.5.3 expo-health-connect@^0.1.1
@@ -199,4 +199,3 @@ Android development build:
 - No protocol integration.
 - No daily-plan integration.
 - No production Play Store Health Connect declaration work yet.
-
