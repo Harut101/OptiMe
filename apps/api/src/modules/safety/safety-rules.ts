@@ -31,7 +31,9 @@ export const SUPPORTIVE_SAFETY_MESSAGES = {
   foodPreferenceConflict:
     'Preferred foods cannot include allergies or foods you asked us to exclude.',
   planFoodConflict:
-    'The generated plan included a food that conflicts with your allergies or excluded foods.'
+    'The generated plan included a food that conflicts with your allergies or excluded foods.',
+  planExerciseUnsafe:
+    'The generated plan included exercise guidance that needs to be made safer.'
 } as const;
 
 export const MINOR_SAFE_GOAL_TYPE = GoalType.HEALTHY_LIFESTYLE;

@@ -1,5 +1,6 @@
 import type {
   ActivityLevel,
+  DailyPlanExercise,
   DailyPlanResponse,
   DailyPlanFeedbackResponse,
   DietType,
@@ -14,6 +15,7 @@ import type {
 } from '@optime/shared-types';
 
 export type {
+  DailyPlanExercise,
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
   PlanFeedbackRating,

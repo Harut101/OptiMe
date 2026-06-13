@@ -31,6 +31,53 @@ const mealSchema = {
   }
 } as const;
 
+const exerciseSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'name',
+    'targetMuscles',
+    'equipment',
+    'sets',
+    'reps',
+    'rest',
+    'duration',
+    'intensityCue',
+    'safetyNotes'
+  ],
+  properties: {
+    name: {
+      type: 'string',
+      description:
+        'Clean exercise name only. Do not include pain/injury disclaimers or progression notes in the name.'
+    },
+    targetMuscles: {
+      type: 'array',
+      description: 'Up to 5 simple target muscle labels.',
+      items: { type: 'string' }
+    },
+    equipment: {
+      type: 'array',
+      description: 'Up to 5 simple equipment labels; use bodyweight when no equipment is needed.',
+      items: { type: 'string' }
+    },
+    sets: { type: 'string' },
+    reps: { type: 'string' },
+    rest: { type: 'string' },
+    duration: { type: 'string' },
+    intensityCue: {
+      type: 'string',
+      description:
+        'Supportive effort cue. Never say max effort, all-out, to failure, no pain no gain, or push through symptoms.'
+    },
+    safetyNotes: {
+      type: 'string',
+      description:
+        'Short safety note. Reduce intensity for pain, dizziness, illness, exhaustion, pregnancy/postpartum, under-18 safeMode, or beginner context.'
+    }
+  }
+} as const;
+
 export const dailyPlanJsonOpenAiSchema = {
   type: 'object',
   additionalProperties: false,
@@ -124,11 +171,17 @@ export const dailyPlanJsonOpenAiSchema = {
     training: {
       type: 'object',
       additionalProperties: false,
-      required: ['recommendation', 'intensity', 'notes'],
+      required: ['recommendation', 'intensity', 'notes', 'exercises'],
       properties: {
         recommendation: { type: 'string' },
         intensity: { type: 'string', enum: ['REST', 'LIGHT', 'MODERATE', 'HARD'] },
-        notes: { type: 'string' }
+        notes: { type: 'string' },
+        exercises: {
+          type: 'array',
+          description:
+            'Optional text-only exercise recommendations. BASIC: 0-2 simple exercises. PERSONALIZED: 3-4 when training is appropriate. ADAPTIVE: 4-5 individualized exercises when training is appropriate. Return [] for rest/recovery days.',
+          items: exerciseSchema
+        }
       }
     },
     recovery: {

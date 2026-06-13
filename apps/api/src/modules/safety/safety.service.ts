@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { GoalImpactMode, GoalType, IntensityLevel, PregnancyStatus } from '@prisma/client';
+import {
+  GoalImpactMode,
+  GoalType,
+  IntensityLevel,
+  PregnancyStatus,
+  TrainingLevel
+} from '@prisma/client';
 
 import {
   MAX_SAFE_WEIGHT_LOSS_FRACTION,
@@ -45,6 +51,23 @@ export interface NutritionSafetyInput {
   allergies: string[];
   excludedFoods: string[];
   preferredFoods: string[];
+}
+
+export interface PlanExerciseSafetyInput {
+  planJson: unknown;
+  safeMode: boolean;
+  isMinor: boolean;
+  pregnancyStatus?: PregnancyStatus | null;
+  trainingLevel?: TrainingLevel | null;
+  limitationsOrPainAreas: string[];
+  painOrDiscomfortReported: boolean;
+  highTirednessReported: boolean;
+}
+
+export interface PlanExerciseSafetyConflict {
+  matchedPath: string;
+  matchedText: string;
+  reason: string;
 }
 
 export type FoodConflictType = 'allergy' | 'excludedFood';
@@ -228,6 +251,24 @@ export class SafetyService {
     return {
       passed: false,
       reasons: [SUPPORTIVE_SAFETY_MESSAGES.planFoodConflict],
+      conflicts
+    };
+  }
+
+  validatePlanExerciseSafety(
+    input: PlanExerciseSafetyInput
+  ):
+    | { passed: true; reasons: []; conflicts: [] }
+    | { passed: false; reasons: string[]; conflicts: PlanExerciseSafetyConflict[] } {
+    const conflicts = this.findPlanExerciseConflicts(input);
+
+    if (conflicts.length === 0) {
+      return { passed: true, reasons: [], conflicts: [] };
+    }
+
+    return {
+      passed: false,
+      reasons: [SUPPORTIVE_SAFETY_MESSAGES.planExerciseUnsafe],
       conflicts
     };
   }
@@ -448,6 +489,17 @@ export class SafetyService {
       { path: 'recovery.recommendation', value: this.asRecord(plan.recovery).recommendation }
     ];
 
+    const training = this.asRecord(plan.training);
+    const exercises = Array.isArray(training.exercises) ? training.exercises : [];
+    exercises.forEach((exercise, index) => {
+      const exerciseRecord = this.asRecord(exercise);
+      checks.push(
+        { path: `training.exercises[${index}].name`, value: exerciseRecord.name },
+        { path: `training.exercises[${index}].intensityCue`, value: exerciseRecord.intensityCue },
+        { path: `training.exercises[${index}].safetyNotes`, value: exerciseRecord.safetyNotes }
+      );
+    });
+
     const reminders = Array.isArray(plan.reminders) ? plan.reminders : [];
     reminders.forEach((reminder, index) => {
       checks.push({ path: `reminders[${index}]`, value: reminder });
@@ -481,6 +533,135 @@ export class SafetyService {
 
   private extractSafeSnippet(text: string) {
     return text.replace(/\s+/g, ' ').trim().slice(0, 140);
+  }
+
+  private findPlanExerciseConflicts(input: PlanExerciseSafetyInput) {
+    const plan = this.asRecord(input.planJson);
+    const training = this.asRecord(plan.training);
+    const exercises = Array.isArray(training.exercises) ? training.exercises : [];
+    const conflicts: PlanExerciseSafetyConflict[] = [];
+    const sensitiveContext =
+      input.safeMode ||
+      input.isMinor ||
+      input.trainingLevel === TrainingLevel.BEGINNER ||
+      input.painOrDiscomfortReported ||
+      input.highTirednessReported ||
+      input.limitationsOrPainAreas.length > 0 ||
+      this.isPregnancySensitiveStatus(input.pregnancyStatus);
+
+    exercises.forEach((exercise, exerciseIndex) => {
+      const exerciseRecord = this.asRecord(exercise);
+      const checks: Array<{ path: string; value: unknown }> = [
+        { path: `training.exercises[${exerciseIndex}].name`, value: exerciseRecord.name },
+        { path: `training.exercises[${exerciseIndex}].sets`, value: exerciseRecord.sets },
+        { path: `training.exercises[${exerciseIndex}].reps`, value: exerciseRecord.reps },
+        { path: `training.exercises[${exerciseIndex}].duration`, value: exerciseRecord.duration },
+        {
+          path: `training.exercises[${exerciseIndex}].intensityCue`,
+          value: exerciseRecord.intensityCue
+        },
+        {
+          path: `training.exercises[${exerciseIndex}].safetyNotes`,
+          value: exerciseRecord.safetyNotes
+        }
+      ];
+
+      checks.forEach((check) => {
+        if (typeof check.value !== 'string') {
+          return;
+        }
+
+        const unsafeReason = this.getUnsafeExerciseReason(
+          check.value,
+          input.limitationsOrPainAreas,
+          sensitiveContext
+        );
+
+        if (unsafeReason) {
+          conflicts.push({
+            matchedPath: check.path,
+            matchedText: this.extractSafeSnippet(check.value),
+            reason: unsafeReason
+          });
+        }
+      });
+    });
+
+    return conflicts;
+  }
+
+  private getUnsafeExerciseReason(
+    text: string,
+    limitationsOrPainAreas: string[],
+    sensitiveContext: boolean
+  ) {
+    if (this.hasUnsafeSymptomTrainingLanguage(text)) {
+      return 'training_through_symptoms';
+    }
+
+    if (sensitiveContext && this.hasUnsafeMaxEffortLanguage(text)) {
+      return 'unsafe_max_effort_for_context';
+    }
+
+    if (this.conflictsWithLimitations(text, limitationsOrPainAreas)) {
+      return 'conflicts_with_limitations';
+    }
+
+    return null;
+  }
+
+  private hasUnsafeSymptomTrainingLanguage(text: string) {
+    return /\b(push|train|work|power|fight)\s+through\s+(pain|injur(?:y|ies|ed)|dizz(?:y|iness)|ill(?:ness)?|sick(?:ness)?|fever|exhaust(?:ion|ed)|fatigue|discomfort)\b/i.test(
+      text
+    );
+  }
+
+  private hasUnsafeMaxEffortLanguage(text: string) {
+    return /\b(max(?:imum)? effort|maximal|all[-\s]?out|to failure|train to failure|failure sets?|1rm|one[-\s]?rep max|no pain no gain)\b/i.test(
+      text
+    );
+  }
+
+  private conflictsWithLimitations(text: string, limitationsOrPainAreas: string[]) {
+    const normalizedText = text.toLowerCase();
+    const unsafeLimitationPattern =
+      /\b(ignore|push through|train through|work through|do not stop for|keep going through)\b/i;
+
+    if (!unsafeLimitationPattern.test(text)) {
+      return false;
+    }
+
+    return limitationsOrPainAreas.some((limitation) =>
+      this.getLimitationKeywords(limitation).some((keyword) => normalizedText.includes(keyword))
+    );
+  }
+
+  private getLimitationKeywords(limitation: string) {
+    const normalized = limitation.toLowerCase();
+    const knownAreas = [
+      'knee',
+      'back',
+      'lower back',
+      'shoulder',
+      'hip',
+      'ankle',
+      'wrist',
+      'elbow',
+      'neck',
+      'hamstring',
+      'quad',
+      'calf',
+      'foot'
+    ];
+    const matchedAreas = knownAreas.filter((area) => normalized.includes(area));
+
+    if (matchedAreas.length > 0) {
+      return matchedAreas;
+    }
+
+    return normalized
+      .split(/[^a-z]+/i)
+      .filter((word) => word.length >= 4 && !['pain', 'area', 'issue', 'discomfort'].includes(word));
   }
 
   private foodNameConflictsWithBlockedFood(foodName: string, blockedFood: string) {

@@ -62,14 +62,15 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 
 ### Batch 4
 
-- Add optional `training.exercises` schema.
+- Add optional text-based `training.exercises` schema.
 - Add `SafetyService` and Safety Agent exercise checks.
+- Keep existing mobile rendering working when exercises are missing.
 - Add tests.
 
 ### Batch 5
 
-- Add mobile progressive prompts for training preferences.
-- Render optional exercise recommendations in Plan Details.
+- Add mobile progressive prompts for training preferences if still needed.
+- Render optional exercise recommendations in Plan Details only.
 - Keep Today simple.
 - Run mobile typecheck.
 
@@ -91,7 +92,9 @@ This should reduce hallucinations, improve safety, improve consistency, and make
 - OpenAI receives protocol context and can customize it instead of planning from scratch.
 - DailyPlan debug metadata stores protocol IDs only, not full private context.
 - Optional exercise recommendations validate when present.
+- Exercise recommendations remain text-only and optional.
 - Existing mobile screens still work when exercises are missing.
+- Today remains clean and does not render exercises.
 - Safety remains equal across all tiers.
 - Unsafe training advice is blocked or replaced with safe fallback.
 - API build, e2e tests, and mobile typecheck stay green.

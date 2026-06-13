@@ -150,6 +150,7 @@ export class DailyPlansService {
         planLocalDate,
         planTimezone,
         user,
+        personalizationContext,
         forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK,
         allowSafetyRetry: this.canUseSafetyFeedbackRetry(providerPlanResult.status)
       });
@@ -174,6 +175,7 @@ export class DailyPlansService {
           planLocalDate,
           planTimezone,
           user,
+          personalizationContext,
           forcedFallback: retryProviderPlanResult.status === PlanStatus.FALLBACK,
           allowSafetyRetry: false,
           safetyRetryUsed: true
@@ -519,6 +521,7 @@ export class DailyPlansService {
     planLocalDate: string;
     planTimezone: string;
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
+    personalizationContext: GenerateDailyPlanPersonalizationContext;
     forcedFallback?: boolean;
     allowSafetyRetry?: boolean;
     safetyRetryUsed?: boolean;
@@ -597,6 +600,39 @@ export class DailyPlansService {
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
           reasons: pregnancyPlanSafety.reasons
+        })
+      };
+    }
+
+    const exercisePlanSafety = this.safetyService.validatePlanExerciseSafety({
+      planJson: normalizedFoodNames.planJson,
+      safeMode: input.user.safeMode,
+      isMinor: input.user.isMinor,
+      pregnancyStatus: input.user.profile?.pregnancyStatus,
+      trainingLevel: input.user.trainingPreference?.trainingLevel,
+      limitationsOrPainAreas: input.user.trainingPreference?.limitationsOrPainAreas ?? [],
+      painOrDiscomfortReported:
+        input.personalizationContext.checkInSummary?.painOrDiscomfortReported ?? false,
+      highTirednessReported:
+        input.personalizationContext.checkInSummary?.highTirednessReported ?? false
+    });
+
+    if (!exercisePlanSafety.passed) {
+      const firstConflict = exercisePlanSafety.conflicts[0];
+      this.logger.warn(
+        [
+          'SafetyService failed',
+          firstConflict
+            ? `exercise conflict at ${firstConflict.matchedPath}; reason=${firstConflict.reason}; matchedText=${firstConflict.matchedText}`
+            : `fallback reason=${exercisePlanSafety.reasons.join(' | ')}`
+        ].join(': ')
+      );
+      return {
+        status: PlanStatus.FALLBACK,
+        planJson: createSafeFallbackPlan({
+          planLocalDate: input.planLocalDate,
+          planTimezone: input.planTimezone,
+          reasons: exercisePlanSafety.reasons
         })
       };
     }

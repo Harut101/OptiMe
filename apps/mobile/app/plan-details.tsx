@@ -18,6 +18,7 @@ import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { colors } from '@/theme/colors';
 import type {
   DailyPlanCheckInResponse,
+  DailyPlanExercise,
   MealCheckInStatus,
   PlanFeedbackRating,
   PlanFeedbackTag,
@@ -101,6 +102,8 @@ export default function PlanDetailsScreen() {
       </Screen>
     );
   }
+
+  const exercises = Array.isArray(plan.training.exercises) ? plan.training.exercises : [];
 
   return (
     <Screen>
@@ -207,6 +210,33 @@ export default function PlanDetailsScreen() {
 
       {checkInMessage ? <Text style={styles.successText}>{checkInMessage}</Text> : null}
 
+      {exercises.length > 0 ? (
+        <Card>
+          <Text variant="label">Suggested exercises</Text>
+          {exercises.map((exercise, index) => (
+            <View key={`${exercise.name}-${index}`} style={styles.exerciseBlock}>
+              <Text variant="body" style={styles.exerciseName}>
+                {exercise.name}
+              </Text>
+              {formatExerciseMeta(exercise) ? (
+                <Text variant="muted">{formatExerciseMeta(exercise)}</Text>
+              ) : null}
+              {formatExercisePrescription(exercise) ? (
+                <Text variant="body">{formatExercisePrescription(exercise)}</Text>
+              ) : null}
+              {exercise.intensityCue ? (
+                <Text variant="muted">{exercise.intensityCue}</Text>
+              ) : null}
+              {exercise.safetyNotes ? (
+                <View style={styles.safetyNote}>
+                  <Text variant="muted">{exercise.safetyNotes}</Text>
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
       <Card>
         <Text variant="label">Hydration</Text>
         <Text variant="body">{plan.nutrition.hydration.guidance}</Text>
@@ -311,6 +341,26 @@ function getTrainingPainSignal(checkIns: DailyPlanCheckInResponse[] | undefined)
   return Boolean(checkIn?.payload && 'painOrDiscomfort' in checkIn.payload && checkIn.payload.painOrDiscomfort);
 }
 
+function formatExerciseMeta(exercise: DailyPlanExercise) {
+  const parts = [
+    exercise.targetMuscles?.length ? `Targets: ${exercise.targetMuscles.join(', ')}` : null,
+    exercise.equipment?.length ? `Equipment: ${exercise.equipment.join(', ')}` : null
+  ].filter(Boolean);
+
+  return parts.join(' - ');
+}
+
+function formatExercisePrescription(exercise: DailyPlanExercise) {
+  return [
+    exercise.sets ? `Sets: ${exercise.sets}` : null,
+    exercise.reps ? `Reps: ${exercise.reps}` : null,
+    exercise.rest ? `Rest: ${exercise.rest}` : null,
+    exercise.duration ? `Duration: ${exercise.duration}` : null
+  ]
+    .filter(Boolean)
+    .join(' - ');
+}
+
 function toggleTag(
   tag: PlanFeedbackTag,
   setSelectedTags: Dispatch<SetStateAction<PlanFeedbackTag[]>>
@@ -344,6 +394,20 @@ const styles = StyleSheet.create({
   mealBlock: {
     gap: 8,
     paddingTop: 6
+  },
+  exerciseBlock: {
+    gap: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line
+  },
+  exerciseName: {
+    fontWeight: '700'
+  },
+  safetyNote: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 10
   },
   successText: {
     color: colors.success,

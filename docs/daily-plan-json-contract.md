@@ -76,6 +76,17 @@ type DailyPlanJson = {
     recommendation: string;
     intensity: "REST" | "LIGHT" | "MODERATE" | "HARD";
     notes: string;
+    exercises?: Array<{
+      name: string;
+      targetMuscles: string[];
+      equipment: string[];
+      sets?: string;
+      reps?: string;
+      rest?: string;
+      duration?: string;
+      intensityCue?: string;
+      safetyNotes?: string;
+    }>;
   };
   recovery: {
     recommendation: string;
@@ -123,6 +134,26 @@ All menu options must follow the same food safety contract as `nutrition.meals`:
 Future mobile can add menu option switching UI. Sprint 4 Batch 2.1 does not change mobile rendering.
 
 Gender and pregnancy/postpartum/breastfeeding context are planning inputs, not user-facing `DailyPlanJson` fields. The backend may use them for safety and personalization, but the normalized plan contract remains focused on the plan content itself.
+
+## Training Exercises
+
+`training.exercises` is optional and backward-compatible. Existing mobile screens can ignore it and continue rendering:
+
+- `training.recommendation`
+- `training.intensity`
+- `training.notes`
+
+Exercise item limits:
+
+- maximum 8 exercises
+- non-empty `name`, max 120 characters
+- `targetMuscles` max 5 items
+- `equipment` max 5 items
+- optional `sets`, `reps`, `rest`, `duration`, `intensityCue`, and `safetyNotes` with short string limits
+
+Exercise recommendations are text-only in Sprint 6. There is no `ExerciseLibrary`, no images, no videos, and no exercise media contract yet.
+
+Protocols and training preferences guide exercise suggestions. Safety rules still run after provider generation and can replace the plan with a fallback if exercise advice is unsafe.
 
 ## Food Name Contract
 
@@ -201,7 +232,17 @@ Deterministic safety checks rely on structured fields. Future AI Safety Agent re
   "training": {
     "recommendation": "Keep training controlled and sustainable today.",
     "intensity": "MODERATE",
-    "notes": "Adjust effort down if energy, sleep, or recovery feels off."
+    "notes": "Adjust effort down if energy, sleep, or recovery feels off.",
+    "exercises": [
+      {
+        "name": "Easy walk",
+        "targetMuscles": ["full body"],
+        "equipment": ["bodyweight"],
+        "duration": "10-20 minutes",
+        "intensityCue": "Keep the pace comfortable.",
+        "safetyNotes": "Stop or reduce effort if anything feels uncomfortable."
+      }
+    ]
   },
   "recovery": {
     "recommendation": "Support recovery with regular meals, hydration, and a calm evening routine.",
@@ -256,3 +297,5 @@ Mobile should read:
 
 Mobile should show a simple safety note when response `status` is `FALLBACK` or `plan.safety.adjustedForSafety` is `true`.
 When present, `plan.safety.userSafeMessage` is the preferred user-facing copy. Mobile must not render `debug.fallbackReason` or raw provider diagnostics.
+
+Mobile exercise rendering can remain deferred. If rendered later, exercise details should appear in Plan Details, not clutter Today.

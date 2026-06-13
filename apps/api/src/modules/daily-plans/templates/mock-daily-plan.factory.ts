@@ -54,7 +54,8 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
     training: {
       recommendation: summaryByMode.trainingRecommendation,
       intensity: 'MODERATE',
-      notes: 'Adjust effort down if energy, sleep, or recovery feels off.'
+      notes: 'Adjust effort down if energy, sleep, or recovery feels off.',
+      exercises: createExercises(planQualityMode)
     },
     recovery: {
       recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',
@@ -68,6 +69,77 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
       planQualityMode
     }
   };
+}
+
+function createExercises(
+  planQualityMode: PlanQualityMode
+): NonNullable<DailyPlanJson['training']['exercises']> {
+  const basics = [
+    {
+      name: 'Easy walk',
+      targetMuscles: ['full body'],
+      equipment: ['bodyweight'],
+      duration: '10-20 minutes',
+      intensityCue: 'Keep the pace comfortable.',
+      safetyNotes: 'Stop or reduce effort if anything feels uncomfortable.'
+    },
+    {
+      name: 'Bodyweight squat',
+      targetMuscles: ['legs', 'glutes'],
+      equipment: ['bodyweight'],
+      sets: '2',
+      reps: '8-10',
+      rest: '60-90 seconds',
+      intensityCue: 'Move with control and leave effort in reserve.',
+      safetyNotes: 'Use a pain-free range of motion.'
+    }
+  ];
+
+  if (planQualityMode === PlanQualityMode.BASIC) {
+    return basics.slice(0, 2);
+  }
+
+  const personalized = [
+    ...basics,
+    {
+      name: 'Incline push-up',
+      targetMuscles: ['chest', 'shoulders', 'arms'],
+      equipment: ['bench or sturdy surface'],
+      sets: '2-3',
+      reps: '6-10',
+      rest: '60-90 seconds',
+      intensityCue: 'Choose an incline that feels smooth and controlled.',
+      safetyNotes: 'Skip this if wrists or shoulders feel irritated.'
+    },
+    {
+      name: 'Dead bug',
+      targetMuscles: ['core'],
+      equipment: ['bodyweight'],
+      sets: '2',
+      reps: '6-8 per side',
+      rest: '45-60 seconds',
+      intensityCue: 'Move slowly and breathe steadily.',
+      safetyNotes: 'Keep the movement gentle and controlled.'
+    }
+  ];
+
+  if (planQualityMode === PlanQualityMode.PERSONALIZED) {
+    return personalized;
+  }
+
+  return [
+    ...personalized,
+    {
+      name: 'Glute bridge',
+      targetMuscles: ['glutes', 'hamstrings'],
+      equipment: ['bodyweight'],
+      sets: '2-3',
+      reps: '8-12',
+      rest: '60 seconds',
+      intensityCue: 'Use a steady pace and stop well before strain.',
+      safetyNotes: 'Keep it comfortable for hips and lower back.'
+    }
+  ];
 }
 
 function createPrimaryMeals(): DailyPlanJson['nutrition']['meals'] {

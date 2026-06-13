@@ -1743,6 +1743,103 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
+  it('validates DailyPlanJson with optional text exercise recommendations', () => {
+    const planWithoutExercises = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'NoExercises',
+      isMinor: false
+    });
+    delete planWithoutExercises.training.exercises;
+
+    expect(dailyPlanJsonSchema.safeParse(planWithoutExercises).success).toBe(true);
+
+    const planWithExercises = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'WithExercises',
+      isMinor: false,
+      planQualityMode: PlanQualityMode.PERSONALIZED
+    });
+
+    expect(dailyPlanJsonSchema.safeParse(planWithExercises).success).toBe(true);
+    expect(planWithExercises.training.exercises).toHaveLength(4);
+
+    expect(
+      dailyPlanJsonSchema.safeParse({
+        ...planWithExercises,
+        training: {
+          ...planWithExercises.training,
+          exercises: Array.from({ length: 9 }, (_, index) => ({
+            name: `Exercise ${index}`,
+            targetMuscles: ['full body'],
+            equipment: ['bodyweight']
+          }))
+        }
+      }).success
+    ).toBe(false);
+
+    expect(
+      dailyPlanJsonSchema.safeParse({
+        ...planWithExercises,
+        training: {
+          ...planWithExercises.training,
+          exercises: [
+            {
+              name: ' ',
+              targetMuscles: ['core'],
+              equipment: ['bodyweight']
+            }
+          ]
+        }
+      }).success
+    ).toBe(false);
+
+    expect(
+      dailyPlanJsonSchema.safeParse({
+        ...planWithExercises,
+        training: {
+          ...planWithExercises.training,
+          exercises: [
+            {
+              name: 'Bodyweight squat',
+              targetMuscles: ['legs'],
+              equipment: ['bodyweight'],
+              safetyNotes: 'x'.repeat(221)
+            }
+          ]
+        }
+      }).success
+    ).toBe(false);
+  });
+
+  it('varies mock exercise recommendation depth by PlanQualityMode', () => {
+    expect(
+      createMockDailyPlan({
+        planLocalDate: getUtcLocalDate(),
+        planTimezone: 'UTC',
+        isMinor: false,
+        planQualityMode: PlanQualityMode.BASIC
+      }).training.exercises
+    ).toHaveLength(2);
+    expect(
+      createMockDailyPlan({
+        planLocalDate: getUtcLocalDate(),
+        planTimezone: 'UTC',
+        isMinor: false,
+        planQualityMode: PlanQualityMode.PERSONALIZED
+      }).training.exercises
+    ).toHaveLength(4);
+    expect(
+      createMockDailyPlan({
+        planLocalDate: getUtcLocalDate(),
+        planTimezone: 'UTC',
+        isMinor: false,
+        planQualityMode: PlanQualityMode.ADAPTIVE
+      }).training.exercises
+    ).toHaveLength(5);
+  });
+
   it('creates a safe AI operation log for successful mock daily plan generation', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'OperationLog');
@@ -2258,6 +2355,110 @@ describe('Sprint 1 backend vertical slice', () => {
     ).toBe(false);
   });
 
+  it('rejects unsafe exercise advice in deterministic SafetyService checks', () => {
+    const safetyService = new SafetyService();
+    const basePlan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'ExerciseSafety',
+      isMinor: false,
+      planQualityMode: PlanQualityMode.PERSONALIZED
+    });
+
+    const baseInput = {
+      safeMode: false,
+      isMinor: false,
+      pregnancyStatus: PregnancyStatus.UNKNOWN,
+      trainingLevel: TrainingLevel.INTERMEDIATE,
+      limitationsOrPainAreas: [],
+      painOrDiscomfortReported: false,
+      highTirednessReported: false
+    };
+
+    expect(
+      safetyService.validatePlanExerciseSafety({
+        ...baseInput,
+        planJson: {
+          ...basePlan,
+          training: {
+            ...basePlan.training,
+            exercises: [
+              {
+                name: 'Run intervals',
+                targetMuscles: ['legs'],
+                equipment: ['bodyweight'],
+                safetyNotes: 'Push through pain to finish the set.'
+              }
+            ]
+          }
+        }
+      }).passed
+    ).toBe(false);
+
+    expect(
+      safetyService.validatePlanExerciseSafety({
+        ...baseInput,
+        trainingLevel: TrainingLevel.BEGINNER,
+        planJson: {
+          ...basePlan,
+          training: {
+            ...basePlan.training,
+            exercises: [
+              {
+                name: 'Heavy deadlift',
+                targetMuscles: ['back', 'legs'],
+                equipment: ['barbell'],
+                intensityCue: 'Use max effort and train to failure.'
+              }
+            ]
+          }
+        }
+      }).passed
+    ).toBe(false);
+
+    expect(
+      safetyService.validatePlanExerciseSafety({
+        ...baseInput,
+        pregnancyStatus: PregnancyStatus.POSTPARTUM,
+        planJson: {
+          ...basePlan,
+          training: {
+            ...basePlan.training,
+            exercises: [
+              {
+                name: 'Jump squats',
+                targetMuscles: ['legs'],
+                equipment: ['bodyweight'],
+                intensityCue: 'All-out effort for postpartum fitness.'
+              }
+            ]
+          }
+        }
+      }).passed
+    ).toBe(false);
+
+    expect(
+      safetyService.validatePlanExerciseSafety({
+        ...baseInput,
+        limitationsOrPainAreas: ['knee pain'],
+        planJson: {
+          ...basePlan,
+          training: {
+            ...basePlan.training,
+            exercises: [
+              {
+                name: 'Step-up',
+                targetMuscles: ['legs'],
+                equipment: ['bench'],
+                safetyNotes: 'Ignore knee pain and keep going.'
+              }
+            ]
+          }
+        }
+      }).passed
+    ).toBe(false);
+  });
+
   it('falls back when generated training advice is unsafe for pregnancy-sensitive context', async () => {
     const customCtx = await createTestApp({
       providerOverrides: [
@@ -2318,6 +2519,64 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(response.body.status).toBe('FALLBACK');
       expect(response.body.plan.safety.reasons[0]).toContain('pregnancy');
       expect(response.body.plan.safety.userSafeMessage).toContain('extra care');
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('persists fallback when generated exercise advice is unsafe', async () => {
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async () => {
+              const plan = createMockDailyPlan({
+                planLocalDate: getUtcLocalDate(),
+                planTimezone: 'UTC',
+                firstName: 'UnsafeExercise',
+                isMinor: false,
+                planQualityMode: PlanQualityMode.PERSONALIZED
+              });
+
+              plan.training.exercises = [
+                {
+                  name: 'Heavy deadlift',
+                  targetMuscles: ['back', 'legs'],
+                  equipment: ['barbell'],
+                  intensityCue: 'Use max effort and train to failure.'
+                }
+              ];
+
+              return plan;
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'unsafe-exercise-plan@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'UnsafeExercise');
+
+      await request(customCtx.app.getHttpServer())
+        .put('/v1/training-preferences')
+        .set(authHeader(user.accessToken))
+        .send({ trainingLevel: TrainingLevel.BEGINNER })
+        .expect(200);
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(response.body.status).toBe('FALLBACK');
+      expect(response.body.plan.safety.reasons).toContain(
+        'The generated plan included exercise guidance that needs to be made safer.'
+      );
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -3437,6 +3696,8 @@ describe('Sprint 1 backend vertical slice', () => {
       const safetyAgentInput = requests[0].input as Array<{ content?: string }>;
       expect(safetyAgentInput[0].content).toContain('Reject gender-stereotyped');
       expect(safetyAgentInput[0].content).toContain('If pregnancyStatus is PREGNANT');
+      expect(safetyAgentInput[0].content).toContain('Review training.exercises');
+      expect(safetyAgentInput[0].content).toContain('unsafe exercise recommendations');
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -4130,6 +4391,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(parsedRequests[0].system).toContain('PlanQualityMode is BASIC');
       expect(parsedRequests[0].system).toContain('Return exactly 1 nutrition.menuOptions');
+      expect(parsedRequests[0].system).toContain('For BASIC, include 0-2 simple');
       expect(parsedRequests[0].context.planQualityMode).toBe('BASIC');
       expect(parsedRequests[0].context.personalizationContext.contextLevel).toBe('minimal');
       expect(
@@ -4139,6 +4401,7 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(parsedRequests[1].system).toContain('PlanQualityMode is PERSONALIZED');
       expect(parsedRequests[1].system).toContain('Return exactly 2 nutrition.menuOptions');
       expect(parsedRequests[1].system).toContain('sets, reps, and rest');
+      expect(parsedRequests[1].system).toContain('For PERSONALIZED, include 3-4 exercises');
       expect(parsedRequests[1].context.planQualityMode).toBe('PERSONALIZED');
       expect(parsedRequests[1].context.personalizationContext.contextLevel).toBe('personalized');
       expect(
@@ -4148,6 +4411,7 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(parsedRequests[2].system).toContain('PlanQualityMode is ADAPTIVE');
       expect(parsedRequests[2].system).toContain('Return exactly 3 nutrition.menuOptions');
       expect(parsedRequests[2].system).toContain('readiness placeholders');
+      expect(parsedRequests[2].system).toContain('For ADAPTIVE, include 4-5 individualized exercises');
       expect(parsedRequests[2].context.planQualityMode).toBe('ADAPTIVE');
       expect(parsedRequests[2].context.personalizationContext.contextLevel).toBe('adaptive');
       expect(

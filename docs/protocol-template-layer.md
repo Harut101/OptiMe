@@ -29,7 +29,6 @@ Implemented:
 
 Deferred:
 
-- `training.exercises` in `DailyPlanJson`
 - mobile exercise rendering
 - `ExerciseLibrary`
 - exercise images or videos
@@ -214,6 +213,7 @@ OpenAI should receive:
 OpenAI should:
 
 - customize meals, training copy, exercise suggestions, and recovery guidance
+- use selected training protocols to shape optional `training.exercises`
 - keep copy supportive and practical
 - follow protocol safetyRules exactly
 - avoid inventing unavailable data
@@ -227,6 +227,8 @@ OpenAI must not:
 - turn protocols into rigid medical advice
 
 Deterministic `SafetyService` and the optional Safety Agent still run after provider generation. Protocols guide generation; they do not replace safety validation.
+
+Sprint 6 Batch 4 adds optional text-based `training.exercises`. Protocols can guide the exercise list, but providers must not include ExerciseLibrary IDs, images, videos, or media references.
 
 ## Future Extensions
 

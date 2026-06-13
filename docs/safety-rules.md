@@ -185,6 +185,41 @@ High-intensity training is rejected if the description mentions:
 
 The backend response tells the user to choose rest or light movement instead of high intensity.
 
+## Exercise Recommendation Safety
+
+Sprint 6 Batch 4 adds optional text-based `training.exercises` safety checks after provider generation.
+
+`SafetyService` rejects exercise guidance that tells the user to:
+
+- push through pain, injury, dizziness, illness, fever, exhaustion, fatigue, or discomfort
+- train through symptoms
+- ignore a reported limitation or pain area
+
+When context is safety-sensitive, `SafetyService` also rejects max-effort or failure language:
+
+- beginner training level
+- under-18 or `safeMode`
+- pregnancy, postpartum, or breastfeeding context
+- reported pain or discomfort
+- saved limitations or pain areas
+- high tiredness
+
+Examples rejected in sensitive contexts:
+
+- `Use max effort`
+- `Train to failure`
+- `All-out effort`
+- `1RM`
+- `No pain no gain`
+
+Exercise safety diagnostics include:
+
+- `matchedPath`, such as `training.exercises[0].safetyNotes`
+- `reason`, such as `training_through_symptoms`
+- a short safe text snippet
+
+The backend does not diagnose pain or injury. It only blocks unsafe exercise wording and falls back to safer guidance.
+
 ## Fallback Plan Behavior
 
 Fallback is used when provider output fails validation or violates safety checks.
@@ -235,6 +270,7 @@ The Safety Agent can review:
 - gender-stereotyped recommendations
 - unsafe pregnancy, postpartum, or breastfeeding recommendations
 - unsafe diet or training advice
+- unsafe exercise recommendations and progression
 - semantic conflicts with `safeMode`
 - tone that is not supportive or health-focused
 

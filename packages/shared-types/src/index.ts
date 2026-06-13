@@ -204,6 +204,18 @@ export interface DailyPlanMenuOption {
   meals: DailyPlanMeal[];
 }
 
+export interface DailyPlanExercise {
+  name: string;
+  targetMuscles: string[];
+  equipment: string[];
+  sets?: string;
+  reps?: string;
+  rest?: string;
+  duration?: string;
+  intensityCue?: string;
+  safetyNotes?: string;
+}
+
 export interface DailyPlanJson {
   schemaVersion: 'sprint-2.v1';
   generatedAt: string;
@@ -241,6 +253,7 @@ export interface DailyPlanJson {
     recommendation: string;
     intensity: DailyPlanTrainingIntensity;
     notes: string;
+    exercises?: DailyPlanExercise[];
   };
   recovery: {
     recommendation: string;

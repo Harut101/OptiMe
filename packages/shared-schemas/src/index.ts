@@ -140,6 +140,18 @@ const dailyPlanMealSchema = z.object({
   foods: z.array(dailyPlanFoodItemSchema)
 });
 
+const dailyPlanExerciseSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  targetMuscles: z.array(z.string().trim().min(1).max(60)).max(5),
+  equipment: z.array(z.string().trim().min(1).max(60)).max(5),
+  sets: z.string().trim().max(40).optional(),
+  reps: z.string().trim().max(40).optional(),
+  rest: z.string().trim().max(40).optional(),
+  duration: z.string().trim().max(60).optional(),
+  intensityCue: z.string().trim().max(160).optional(),
+  safetyNotes: z.string().trim().max(220).optional()
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -184,7 +196,8 @@ export const dailyPlanJsonSchema = z.object({
   training: z.object({
     recommendation: z.string(),
     intensity: z.enum(['REST', 'LIGHT', 'MODERATE', 'HARD']),
-    notes: z.string()
+    notes: z.string(),
+    exercises: z.array(dailyPlanExerciseSchema).max(8).optional()
   }),
   recovery: z.object({
     recommendation: z.string(),
