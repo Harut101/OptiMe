@@ -90,6 +90,15 @@ Batch 2 implementation status:
 - Add disconnect and delete synced data actions.
 - Add platform stubs if native sync is still deferred.
 
+Batch 3 implementation status:
+
+- Mobile Settings/Profile now shows a Health data card.
+- Mobile has a Health data screen with privacy-first explanation, connect, disconnect, and delete synced data actions.
+- Connect calls the backend consent/status endpoint only.
+- No native Apple Health / Health Connect permissions are requested yet.
+- No real health samples or summaries are synced yet.
+- Today and Plan Details remain unchanged.
+
 ### Batch 4: Native Integration Spike
 
 - Evaluate iOS HealthKit library path.

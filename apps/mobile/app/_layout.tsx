@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="plan-details" options={{ title: 'Plan details', headerBackTitle: 'Today' }} />
+        <Stack.Screen name="health-data" options={{ title: 'Health data', headerBackTitle: 'Profile' }} />
       </Stack>
     </AppProviders>
   );

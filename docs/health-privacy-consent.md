@@ -139,3 +139,14 @@ Pregnancy/postpartum safety overrides health-based personalization.
 Suggested copy:
 
 "OptiMe can use optional health data like steps, sleep, workouts, and active energy to make daily plans more aware of your recovery and activity. You choose what to share, and you can disconnect or delete synced data anytime. OptiMe does not diagnose medical conditions."
+
+## Batch 3 Mobile Copy
+
+The mobile foundation UI uses privacy-first copy:
+
+- "Health data is optional."
+- "You can disconnect anytime."
+- "OptiMe stores daily summaries first, not raw samples."
+- "This is not medical advice."
+
+It also states that native Apple Health / Health Connect permissions and real sync are not active yet.

@@ -249,3 +249,49 @@ export interface UsageLimitExceededError {
   resetAt: string;
   upgradeSuggestion: 'PLUS' | 'PRO' | null;
 }
+
+export type HealthProvider = 'APPLE_HEALTH' | 'HEALTH_CONNECT';
+export type HealthConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'PERMISSION_DENIED' | 'ERROR';
+
+export interface HealthPermissions {
+  steps?: boolean;
+  sleep?: boolean;
+  workouts?: boolean;
+  activeEnergy?: boolean;
+  weight?: boolean;
+  heartRate?: boolean;
+  restingHeartRate?: boolean;
+}
+
+export interface HealthConnection {
+  provider: HealthProvider;
+  status: HealthConnectionStatus;
+  consentedAt: string | null;
+  disconnectedAt: string | null;
+  lastSyncAt: string | null;
+  permissionsGranted: HealthPermissions | null;
+  errorReason: string | null;
+}
+
+export interface HealthStatusResponse {
+  connections: HealthConnection[];
+}
+
+export interface ConnectHealthRequest {
+  provider: HealthProvider;
+  permissionsGranted?: HealthPermissions;
+}
+
+export interface DisconnectHealthRequest {
+  provider: HealthProvider;
+}
+
+export interface DeleteHealthDataRequest {
+  provider?: HealthProvider;
+}
+
+export interface DeleteHealthDataResponse {
+  deleted: true;
+  provider: HealthProvider | null;
+  summaryCountDeleted: number;
+}

@@ -6,6 +6,15 @@ All endpoints require JWT authentication.
 
 Batch 2 implemented these endpoints as backend foundation only. Native Apple Health / Health Connect sync is still deferred, mobile UI is Batch 3, and protocol integration is Batch 5.
 
+Batch 3 mobile uses:
+
+- `GET /v1/health/status`
+- `POST /v1/health/connect`
+- `POST /v1/health/disconnect`
+- `DELETE /v1/health/data`
+
+It does not use `POST /v1/health/daily-summary` for production UI. Manual summary sync remains development/testing only.
+
 ## GET /v1/health/status
 
 Returns current health connection status for the authenticated user.

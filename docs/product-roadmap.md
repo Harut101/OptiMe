@@ -271,10 +271,17 @@ For minors:
 ## Recommended Order
 
 1. Sprint 7: Apple Health / Health Connect foundation.
-2. Sprint 8: Meal/ingredient swap and better preference refinement.
+2. Sprint 8: Meal/ingredient swap, better preference refinement, or ExerciseLibrary/body map planning.
 3. Sprint 9: Real subscriptions/payments and paywall polish.
 4. Sprint 10: Predictive adaptive coaching foundation.
 5. Sprint 11: WHOOP integration on top of the health-data foundation.
-6. Later: AI Coach chat, embeddings, admin/web, exercise library, and media.
+6. Later: AI Coach chat, embeddings, admin/web, exercise media, and advanced analytics.
 
 This order strengthens the core loop and health-data foundation before monetization and narrower wearable integrations.
+
+Future ExerciseLibrary/body map note:
+
+- Interactive body map and exercise media should be a later sprint, not Sprint 7.
+- Production body maps require professional/licensed SVG assets or designer-created assets.
+- Each muscle region should be a separate SVG path.
+- Dev-generated SVG stubs should not be used in production UI.

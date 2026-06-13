@@ -59,6 +59,26 @@ Batch 4 should evaluate:
 
 Do not install health libraries until the feasibility spike.
 
+## Batch 3 Mobile Foundation
+
+Batch 3 adds mobile UI only:
+
+- Settings/Profile Health data card
+- Health data explanation screen
+- backend connect/disconnect/delete synced data actions
+- platform provider label, Apple Health on iOS and Health Connect on Android
+
+Batch 3 does not:
+
+- request native Apple Health permissions
+- request native Health Connect permissions
+- install native health libraries
+- create a development build config
+- sync real health samples
+- show charts or analytics
+
+The mobile connect action stores consent/status with the backend foundation only. Native sync remains Batch 4.
+
 ## Initial Data Types
 
 Sprint 7 should start with daily summaries:
@@ -121,4 +141,3 @@ Planning should use summaries only when available. Missing summaries should not 
 - Expo custom native code: https://docs.expo.dev/workflow/customizing/
 - Android Health Connect: https://developer.android.com/health-and-fitness/health-connect
 - Apple HealthKit: https://developer.apple.com/documentation/healthkit
-

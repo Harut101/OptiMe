@@ -1,13 +1,20 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 
 import { getEntitlements, getUsageSummary } from '@/api/account';
+import { getHealthStatus } from '@/api/health';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import {
+  getPlatformHealthProvider,
+  getPlatformHealthProviderLabel
+} from '@/features/health/health-platform';
 import { WELLNESS_DISCLAIMER } from '@/features/safety/safety-copy';
 import { useAuthStore } from '@/store/auth-store';
+
+const HEALTH_DATA_ROUTE = '/health-data' as Href;
 
 export default function SettingsScreen() {
   const queryClient = useQueryClient();
@@ -21,6 +28,15 @@ export default function SettingsScreen() {
     queryKey: ['usage-summary'],
     queryFn: getUsageSummary
   });
+  const healthStatus = useQuery({
+    queryKey: ['health-status'],
+    queryFn: getHealthStatus
+  });
+  const healthProvider = getPlatformHealthProvider();
+  const healthProviderLabel = getPlatformHealthProviderLabel();
+  const platformConnection = healthStatus.data?.connections.find(
+    (connection) => connection.provider === healthProvider
+  );
   const generationUsage = usage.data?.items.find(
     (item) => item.feature === 'DAILY_PLAN_GENERATION'
   );
@@ -52,6 +68,31 @@ export default function SettingsScreen() {
             <Text variant="muted">Upgrade options coming soon.</Text>
           </>
         )}
+      </Card>
+      <Card>
+        <Text variant="label">Health data</Text>
+        <Text variant="body">
+          Connect health data later to help OptiMe adapt plans using steps, sleep, workouts, and
+          activity.
+        </Text>
+        <Text variant="muted">Provider: {healthProviderLabel}</Text>
+        <Text variant="muted">
+          Status:{' '}
+          {healthStatus.isLoading
+            ? 'Checking...'
+            : healthStatus.isError
+              ? 'Health details unavailable'
+              : formatHealthStatus(platformConnection?.status)}
+        </Text>
+        <Text variant="muted">
+          Optional. This foundation does not request native health permissions or sync real health
+          data yet.
+        </Text>
+        <Button
+          title={platformConnection?.status === 'CONNECTED' ? 'Manage' : 'Connect'}
+          variant="secondary"
+          onPress={() => router.push(HEALTH_DATA_ROUTE)}
+        />
       </Card>
       <Card>
         <Text variant="label">Safety</Text>
@@ -94,4 +135,20 @@ function formatUsageLimit(item?: { limit: number; periodType: string }) {
   }
 
   return `${item.limit}/${item.periodType.toLowerCase() === 'daily' ? 'day' : 'period'}`;
+}
+
+function formatHealthStatus(status?: string) {
+  if (status === 'CONNECTED') {
+    return 'Connected';
+  }
+
+  if (status === 'PERMISSION_DENIED') {
+    return 'Permission denied';
+  }
+
+  if (status === 'ERROR') {
+    return 'Sync error';
+  }
+
+  return 'Not connected';
 }
