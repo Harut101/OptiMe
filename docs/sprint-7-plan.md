@@ -108,6 +108,22 @@ Batch 3 implementation status:
 - Read summarized data on device where feasible.
 - Keep backend sync summarized.
 
+Batch 4A feasibility status:
+
+- Added `docs/health-native-feasibility.md`.
+- Confirmed Expo Go is not suitable for native HealthKit / Health Connect.
+- Confirmed development builds and config plugins are the likely path.
+- Recommended Path A for Batch 4B: native integration spike with selected libraries, foreground "Sync now", and last-7-days summaries only.
+- No packages, app config, native permissions, or sync code were added in Batch 4A.
+
+Batch 4B spike status:
+
+- Android Health Connect native abstraction and foreground `Sync now` flow added.
+- iOS HealthKit adapter remains a safe unavailable stub.
+- App config now includes Android Health Connect plugin/build-property entries for development builds.
+- Dependencies are listed in package metadata but must be installed locally.
+- No background sync, charts, health-to-protocol integration, or daily-plan integration was added.
+
 ### Batch 5: Protocol Integration
 
 - Load recent health summaries for planning context.

@@ -5,7 +5,9 @@ import type {
   DeleteHealthDataResponse,
   DisconnectHealthRequest,
   HealthConnection,
-  HealthStatusResponse
+  HealthDailySummaryRequest,
+  HealthStatusResponse,
+  UpsertHealthDailySummaryResponse
 } from '@/types/api';
 
 export function getHealthStatus() {
@@ -33,3 +35,9 @@ export function deleteHealthData(request: DeleteHealthDataRequest) {
   });
 }
 
+export function upsertHealthDailySummary(request: HealthDailySummaryRequest) {
+  return apiRequest<UpsertHealthDailySummaryResponse>('/health/daily-summary', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+}

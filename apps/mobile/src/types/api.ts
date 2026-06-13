@@ -295,3 +295,36 @@ export interface DeleteHealthDataResponse {
   provider: HealthProvider | null;
   summaryCountDeleted: number;
 }
+
+export interface HealthDailySummaryRequest {
+  localDate: string;
+  timezone: string;
+  sourceProvider: HealthProvider;
+  steps?: number;
+  sleepMinutes?: number;
+  activeEnergyKcal?: number;
+  workoutCount?: number;
+  workoutMinutes?: number;
+  averageHeartRate?: number;
+  restingHeartRate?: number;
+  weightKg?: number;
+}
+
+export interface HealthDailySummary {
+  localDate: string;
+  timezone: string;
+  sourceProvider: HealthProvider;
+  steps: number | null;
+  sleepMinutes: number | null;
+  activeEnergyKcal: number | null;
+  workoutCount: number | null;
+  workoutMinutes: number | null;
+  averageHeartRate: number | null;
+  restingHeartRate: number | null;
+  weightKg: number | null;
+  updatedAt: string;
+}
+
+export interface UpsertHealthDailySummaryResponse {
+  summary: HealthDailySummary;
+}

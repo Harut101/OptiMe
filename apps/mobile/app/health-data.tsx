@@ -18,6 +18,7 @@ import {
   getPlatformHealthProvider,
   getPlatformHealthProviderLabel
 } from '@/features/health/health-platform';
+import { nativeHealthService } from '@/features/health/native-health.service';
 import { colors } from '@/theme/colors';
 
 export default function HealthDataScreen() {
@@ -79,13 +80,29 @@ export default function HealthDataScreen() {
     }
   });
 
+  const syncMutation = useMutation({
+    mutationFn: () => nativeHealthService.syncLast7Days(),
+    onSuccess: async (result) => {
+      setSuccessMessage(
+        result.syncedDays > 0
+          ? 'Health summaries synced.'
+          : 'Health sync completed. No daily summaries were available.'
+      );
+      await queryClient.invalidateQueries({ queryKey: ['health-status'] });
+    }
+  });
+
   const errorMessage =
+    syncMutation.error?.message ??
     connectMutation.error?.message ??
     disconnectMutation.error?.message ??
     deleteMutation.error?.message ??
     (statusQuery.isError ? 'Health status is unavailable right now.' : null);
   const isBusy =
-    connectMutation.isPending || disconnectMutation.isPending || deleteMutation.isPending;
+    connectMutation.isPending ||
+    disconnectMutation.isPending ||
+    deleteMutation.isPending ||
+    syncMutation.isPending;
 
   return (
     <Screen>
@@ -101,8 +118,28 @@ export default function HealthDataScreen() {
           {statusQuery.isLoading ? 'Checking...' : formatHealthStatus(connection?.status)}
         </Text>
         <Text variant="muted">
-          Native {providerLabel} permission requests and real sync are not active yet.
+          Native sync requires a development build with health support. Expo Go will show a safe
+          unavailable message.
         </Text>
+      </Card>
+
+      <Card>
+        <Text variant="label">Sync now</Text>
+        <Text variant="muted">
+          In a development build, OptiMe can request permission for steps, sleep, workouts, and
+          activity, then sync daily summaries for the last 7 days.
+        </Text>
+        <Text variant="muted">
+          Weight, heart rate, and resting heart rate stay off in this spike.
+        </Text>
+        <Button
+          title={syncMutation.isPending ? 'Syncing...' : 'Sync now'}
+          disabled={isBusy || !provider}
+          onPress={() => {
+            setSuccessMessage(null);
+            syncMutation.mutate();
+          }}
+        />
       </Card>
 
       {showPermissionExplanation || !isConnected ? (
@@ -145,7 +182,7 @@ export default function HealthDataScreen() {
           <Text variant="label">Manage connection</Text>
           <Text variant="muted">
             You are connected at the foundation level. Real native health sync will come in a later
-            batch.
+            development build through Sync now.
           </Text>
           <Text variant="muted">
             Disconnecting stops future use. It does not delete stored summaries.

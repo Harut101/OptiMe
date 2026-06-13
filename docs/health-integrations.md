@@ -59,6 +59,24 @@ Batch 4 should evaluate:
 
 Do not install health libraries until the feasibility spike.
 
+Batch 4A feasibility result:
+
+- Expo Go cannot support the required native health modules.
+- Development builds are required.
+- Config plugins are the preferred path.
+- `react-native-health-connect` / `expo-health-connect` is the leading Android candidate.
+- `@kingstinct/react-native-healthkit` is the leading iOS candidate, with `react-native-health` as fallback.
+- See `docs/health-native-feasibility.md` for full details.
+
+Batch 4B native spike result:
+
+- Android Health Connect adapter added behind a native health abstraction.
+- `Sync now` action added to the Health data screen.
+- Expo Go remains safe and shows a development-build-required message.
+- iOS HealthKit remains stubbed and unavailable until a later batch.
+- No background sync, charts, protocol integration, or daily-plan integration was added.
+- See `docs/health-native-sync-spike.md` for setup and QA steps.
+
 ## Batch 3 Mobile Foundation
 
 Batch 3 adds mobile UI only:
@@ -78,6 +96,8 @@ Batch 3 does not:
 - show charts or analytics
 
 The mobile connect action stores consent/status with the backend foundation only. Native sync remains Batch 4.
+
+Batch 4A did not add native sync. Batch 4B should be a development-build spike, not production rollout.
 
 ## Initial Data Types
 
@@ -139,5 +159,7 @@ Planning should use summaries only when available. Missing summaries should not 
 
 - Expo development builds: https://docs.expo.dev/develop/development-builds/introduction/
 - Expo custom native code: https://docs.expo.dev/workflow/customizing/
+- Expo config plugins: https://docs.expo.dev/config-plugins/introduction/
+- Expo Continuous Native Generation: https://docs.expo.dev/workflow/continuous-native-generation/
 - Android Health Connect: https://developer.android.com/health-and-fitness/health-connect
 - Apple HealthKit: https://developer.apple.com/documentation/healthkit

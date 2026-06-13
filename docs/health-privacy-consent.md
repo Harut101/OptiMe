@@ -150,3 +150,29 @@ The mobile foundation UI uses privacy-first copy:
 - "This is not medical advice."
 
 It also states that native Apple Health / Health Connect permissions and real sync are not active yet.
+
+## Batch 4A Native Permission Recommendation
+
+When native sync is added, request the first permission set only:
+
+- steps
+- sleep
+- workouts / exercise sessions
+- active energy
+
+Keep these disabled/deferred by default:
+
+- weight
+- heart rate
+- resting heart rate
+
+Weight and heart-rate data are more sensitive. They should require clearer user intent and should not be used for diagnosis, body-shaming, or pressure.
+
+Batch 4B follows this:
+
+- requests only steps, sleep, workouts, and active energy on Android
+- does not request weight
+- does not request heart rate
+- does not request resting heart rate
+- syncs foreground summaries only
+- does not store raw samples
