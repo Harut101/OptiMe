@@ -5,6 +5,8 @@ import {
   AiOperationStatus,
   DailyCheckInType,
   GoalType,
+  HealthConnectionStatus,
+  HealthProvider,
   PlanQualityMode,
   PregnancyStatus,
   ProgressiveProfilePromptKey,
@@ -538,6 +540,347 @@ describe('Sprint 1 backend vertical slice', () => {
     );
     expect(summary.body.items).toHaveLength(3);
     expect(summary.body.items[0].resetAt).toEqual(expect.any(String));
+  });
+
+  it('requires auth for health status and daily summary sync', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/health/status').expect(401);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'UTC',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 1000
+      })
+      .expect(401);
+  });
+
+  it('returns both health providers disconnected by default', async () => {
+    const user = await registerTestUser(ctx.app, 'health-default-status@example.com');
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/health/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body.connections).toEqual([
+      {
+        provider: HealthProvider.APPLE_HEALTH,
+        status: HealthConnectionStatus.DISCONNECTED,
+        consentedAt: null,
+        disconnectedAt: null,
+        lastSyncAt: null,
+        permissionsGranted: null,
+        errorReason: null
+      },
+      {
+        provider: HealthProvider.HEALTH_CONNECT,
+        status: HealthConnectionStatus.DISCONNECTED,
+        consentedAt: null,
+        disconnectedAt: null,
+        lastSyncAt: null,
+        permissionsGranted: null,
+        errorReason: null
+      }
+    ]);
+  });
+
+  it('connects, validates permissions, and disconnects a health provider', async () => {
+    const user = await registerTestUser(ctx.app, 'health-connect@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/connect')
+      .set(authHeader(user.accessToken))
+      .send({
+        provider: 'INVALID_PROVIDER',
+        permissionsGranted: { steps: true }
+      })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/connect')
+      .set(authHeader(user.accessToken))
+      .send({
+        provider: HealthProvider.APPLE_HEALTH,
+        permissionsGranted: { steps: true, unknownPermission: true }
+      })
+      .expect(400);
+
+    const connected = await request(ctx.app.getHttpServer())
+      .post('/v1/health/connect')
+      .set(authHeader(user.accessToken))
+      .send({
+        provider: HealthProvider.APPLE_HEALTH,
+        permissionsGranted: {
+          steps: true,
+          sleep: true,
+          workouts: true,
+          activeEnergy: true,
+          weight: false
+        }
+      })
+      .expect(201);
+
+    expect(connected.body).toMatchObject({
+      provider: HealthProvider.APPLE_HEALTH,
+      status: HealthConnectionStatus.CONNECTED,
+      disconnectedAt: null,
+      permissionsGranted: {
+        steps: true,
+        sleep: true,
+        workouts: true,
+        activeEnergy: true,
+        weight: false
+      },
+      errorReason: null
+    });
+    expect(connected.body.consentedAt).toEqual(expect.any(String));
+    expect(connected.body.userId).toBeUndefined();
+
+    const disconnected = await request(ctx.app.getHttpServer())
+      .post('/v1/health/disconnect')
+      .set(authHeader(user.accessToken))
+      .send({ provider: HealthProvider.APPLE_HEALTH })
+      .expect(201);
+
+    expect(disconnected.body).toMatchObject({
+      provider: HealthProvider.APPLE_HEALTH,
+      status: HealthConnectionStatus.DISCONNECTED
+    });
+    expect(disconnected.body.disconnectedAt).toEqual(expect.any(String));
+  });
+
+  it('requires connected provider before manual health summary sync', async () => {
+    const user = await registerTestUser(ctx.app, 'health-sync-requires-consent@example.com');
+
+    const response = await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(user.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'UTC',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 5000
+      })
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      code: 'HEALTH_PROVIDER_NOT_CONNECTED'
+    });
+  });
+
+  it('upserts manual health summaries for the same user, date, and provider', async () => {
+    const user = await registerTestUser(ctx.app, 'health-upsert@example.com');
+    await connectHealthProvider(ctx.app, user.accessToken, HealthProvider.APPLE_HEALTH);
+
+    const first = await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(user.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'Asia/Yerevan',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 7000,
+        sleepMinutes: 420,
+        activeEnergyKcal: 450,
+        workoutCount: 1,
+        workoutMinutes: 35,
+        averageHeartRate: 90,
+        restingHeartRate: 58,
+        weightKg: 82.5
+      })
+      .expect(201);
+
+    expect(first.body.summary).toMatchObject({
+      localDate: '2026-06-07',
+      timezone: 'Asia/Yerevan',
+      sourceProvider: HealthProvider.APPLE_HEALTH,
+      steps: 7000,
+      sleepMinutes: 420,
+      activeEnergyKcal: 450,
+      workoutCount: 1,
+      workoutMinutes: 35,
+      averageHeartRate: 90,
+      restingHeartRate: 58,
+      weightKg: 82.5
+    });
+    expect(first.body.summary.userId).toBeUndefined();
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(user.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'Asia/Yerevan',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 8100,
+        sleepMinutes: 390
+      })
+      .expect(201);
+
+    const rows = await ctx.prisma.healthDailySummary.findMany({
+      where: {
+        userId: user.user.id,
+        localDate: '2026-06-07',
+        sourceProvider: HealthProvider.APPLE_HEALTH
+      }
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].steps).toBe(8100);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/health/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(status.body.connections[0].lastSyncAt).toEqual(expect.any(String));
+  });
+
+  it('returns own health summaries and an empty array when missing', async () => {
+    const user = await registerTestUser(ctx.app, 'health-own-summary@example.com');
+    const other = await registerTestUser(ctx.app, 'health-other-summary@example.com');
+    await connectHealthProvider(ctx.app, user.accessToken, HealthProvider.APPLE_HEALTH);
+    await connectHealthProvider(ctx.app, other.accessToken, HealthProvider.APPLE_HEALTH);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(user.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'UTC',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 5000
+      })
+      .expect(201);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(other.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'UTC',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 9999
+      })
+      .expect(201);
+
+    const own = await request(ctx.app.getHttpServer())
+      .get('/v1/health/daily-summary?localDate=2026-06-07')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(own.body).toMatchObject({
+      localDate: '2026-06-07',
+      summaries: [
+        expect.objectContaining({
+          sourceProvider: HealthProvider.APPLE_HEALTH,
+          steps: 5000
+        })
+      ]
+    });
+    expect(own.body.summaries).toHaveLength(1);
+
+    const missing = await request(ctx.app.getHttpServer())
+      .get('/v1/health/daily-summary?localDate=2026-06-08')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(missing.body).toEqual({
+      localDate: '2026-06-08',
+      summaries: []
+    });
+  });
+
+  it('deletes only the current user health summaries and supports provider-specific delete', async () => {
+    const user = await registerTestUser(ctx.app, 'health-delete@example.com');
+    const other = await registerTestUser(ctx.app, 'health-delete-other@example.com');
+    await connectHealthProvider(ctx.app, user.accessToken, HealthProvider.APPLE_HEALTH);
+    await connectHealthProvider(ctx.app, user.accessToken, HealthProvider.HEALTH_CONNECT);
+    await connectHealthProvider(ctx.app, other.accessToken, HealthProvider.APPLE_HEALTH);
+
+    await createHealthSummary(ctx.app, user.accessToken, HealthProvider.APPLE_HEALTH, 6000);
+    await createHealthSummary(ctx.app, user.accessToken, HealthProvider.HEALTH_CONNECT, 7000);
+    await createHealthSummary(ctx.app, other.accessToken, HealthProvider.APPLE_HEALTH, 8000);
+
+    const providerDelete = await request(ctx.app.getHttpServer())
+      .delete('/v1/health/data')
+      .set(authHeader(user.accessToken))
+      .send({ provider: HealthProvider.APPLE_HEALTH })
+      .expect(200);
+
+    expect(providerDelete.body).toEqual({
+      deleted: true,
+      provider: HealthProvider.APPLE_HEALTH,
+      summaryCountDeleted: 1
+    });
+
+    await expect(
+      ctx.prisma.healthDailySummary.findMany({
+        where: { userId: user.user.id }
+      })
+    ).resolves.toHaveLength(1);
+    await expect(
+      ctx.prisma.healthDailySummary.findMany({
+        where: { userId: other.user.id }
+      })
+    ).resolves.toHaveLength(1);
+
+    const allDelete = await request(ctx.app.getHttpServer())
+      .delete('/v1/health/data')
+      .set(authHeader(user.accessToken))
+      .send({})
+      .expect(200);
+
+    expect(allDelete.body).toMatchObject({
+      deleted: true,
+      provider: null,
+      summaryCountDeleted: 1
+    });
+    await expect(
+      ctx.prisma.healthDailySummary.findMany({
+        where: { userId: other.user.id }
+      })
+    ).resolves.toHaveLength(1);
+  });
+
+  it.each([
+    ['negative steps', { steps: -1 }],
+    ['excessive sleep', { sleepMinutes: 1441 }],
+    ['excessive active energy', { activeEnergyKcal: 10001 }],
+    ['excessive workout count', { workoutCount: 21 }],
+    ['excessive workout minutes', { workoutMinutes: 1441 }],
+    ['low heart rate', { averageHeartRate: 29 }],
+    ['low resting heart rate', { restingHeartRate: 29 }],
+    ['low weight', { weightKg: 19 }],
+    ['invalid local date', { localDate: '06-07-2026' }],
+    ['invalid timezone', { timezone: 'Mars/Base' }]
+  ])('rejects invalid manual health summary ranges: %s', async (_name, override) => {
+    const user = await registerTestUser(ctx.app);
+    await connectHealthProvider(ctx.app, user.accessToken, HealthProvider.APPLE_HEALTH);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/daily-summary')
+      .set(authHeader(user.accessToken))
+      .send({
+        localDate: '2026-06-07',
+        timezone: 'UTC',
+        sourceProvider: HealthProvider.APPLE_HEALTH,
+        steps: 1000,
+        ...override
+      })
+      .expect(400);
+  });
+
+  it('keeps health data optional for daily plan generation', async () => {
+    const user = await registerTestUser(ctx.app, 'health-optional-plan@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'HealthOptional');
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    expect(plan.body.status).toBe('READY');
   });
 
   it('derives isMinor and safeMode from dateOfBirth and rejects client safeMode', async () => {
@@ -5073,6 +5416,46 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 });
+
+async function connectHealthProvider(
+  app: TestApp['app'],
+  token: string,
+  provider: HealthProvider
+) {
+  await request(app.getHttpServer())
+    .post('/v1/health/connect')
+    .set(authHeader(token))
+    .send({
+      provider,
+      permissionsGranted: {
+        steps: true,
+        sleep: true,
+        workouts: true,
+        activeEnergy: true,
+        weight: false
+      }
+    })
+    .expect(201);
+}
+
+async function createHealthSummary(
+  app: TestApp['app'],
+  token: string,
+  sourceProvider: HealthProvider,
+  steps: number
+) {
+  await request(app.getHttpServer())
+    .post('/v1/health/daily-summary')
+    .set(authHeader(token))
+    .send({
+      localDate: '2026-06-07',
+      timezone: 'UTC',
+      sourceProvider,
+      steps,
+      sleepMinutes: 420
+    })
+    .expect(201);
+}
 
 async function completeRequiredOnboarding(app: TestApp['app'], token: string, firstName = 'Alex') {
   await request(app.getHttpServer())

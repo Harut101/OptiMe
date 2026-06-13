@@ -1,8 +1,10 @@
 # Health API Contract
 
-This document proposes REST API contracts for Sprint 7. It is not implementation yet.
+This document describes the Sprint 7 health API contracts.
 
 All endpoints require JWT authentication.
+
+Batch 2 implemented these endpoints as backend foundation only. Native Apple Health / Health Connect sync is still deferred, mobile UI is Batch 3, and protocol integration is Batch 5.
 
 ## GET /v1/health/status
 
@@ -193,6 +195,15 @@ Response:
 
 This endpoint is for development/testing and should not be treated as a native sync replacement.
 
+This endpoint requires an existing `CONNECTED` `HealthConnection` for the same provider. If the provider is not connected, the API returns:
+
+```json
+{
+  "code": "HEALTH_PROVIDER_NOT_CONNECTED",
+  "message": "Connect this health provider before syncing health summaries."
+}
+```
+
 ## POST /v1/health/sync
 
 Future endpoint when native sync is ready.
@@ -212,9 +223,22 @@ Expected behavior:
 - `400 Bad Request`: invalid provider, invalid date, invalid timezone, invalid numeric range, unsupported permission.
 - `409 Conflict`: provider state conflict if needed.
 
+Validation rules:
+
+- `localDate` must be `YYYY-MM-DD`.
+- `timezone` must be `UTC` or an IANA-style timezone string.
+- `steps`: 0 to 100000.
+- `sleepMinutes`: 0 to 1440.
+- `activeEnergyKcal`: 0 to 10000.
+- `workoutCount`: 0 to 20.
+- `workoutMinutes`: 0 to 1440.
+- `averageHeartRate`: 30 to 220.
+- `restingHeartRate`: 30 to 220.
+- `weightKg`: 20 to 400.
+- `permissionsGranted` can include only known boolean permission keys.
+
 Planning behavior:
 
 - missing health summary returns `summary: null`
 - disconnected provider means health data is not used
 - health API errors should not block daily plan generation
-

@@ -215,6 +215,18 @@ enum TrainingEquipment {
   MACHINES
 }
 
+enum HealthProvider {
+  APPLE_HEALTH
+  HEALTH_CONNECT
+}
+
+enum HealthConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  PERMISSION_DENIED
+  ERROR
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -242,6 +254,8 @@ model User {
   progressiveProfilePrompts UserProgressiveProfilePrompt[]
   dailyPlanCheckIns DailyPlanCheckIn[]
   trainingPreference TrainingPreference?
+  healthConnections HealthConnection[]
+  healthDailySummaries HealthDailySummary[]
 
   @@index([createdAt])
 }
@@ -497,4 +511,48 @@ model TrainingPreference {
   updatedAt              DateTime            @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HealthConnection {
+  id                 String                 @id @default(cuid())
+  userId             String
+  provider           HealthProvider
+  status             HealthConnectionStatus @default(DISCONNECTED)
+  consentedAt         DateTime?
+  disconnectedAt      DateTime?
+  lastSyncAt          DateTime?
+  permissionsGranted  Json?
+  errorReason         String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId, status])
+  @@index([provider, status])
+}
+
+model HealthDailySummary {
+  id                  String         @id @default(cuid())
+  userId              String
+  localDate            String
+  timezone             String
+  sourceProvider       HealthProvider
+  steps                Int?
+  sleepMinutes         Int?
+  activeEnergyKcal     Int?
+  workoutCount         Int?
+  workoutMinutes       Int?
+  averageHeartRate     Int?
+  restingHeartRate     Int?
+  weightKg             Decimal?       @db.Decimal(6, 2)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate, sourceProvider])
+  @@index([userId, localDate])
+  @@index([sourceProvider, localDate])
 }

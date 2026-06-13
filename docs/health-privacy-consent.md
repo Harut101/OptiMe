@@ -67,6 +67,13 @@ Delete synced data should:
 - leave account/profile data intact
 - not require deleting the account
 
+Batch 2 behavior:
+
+- `POST /v1/health/disconnect` sets provider status to `DISCONNECTED` and preserves existing summaries.
+- `DELETE /v1/health/data` deletes summaries for the authenticated user and clears `lastSyncAt`.
+- Provider-specific deletion deletes only that provider's summaries.
+- Deleting synced data does not delete the user account.
+
 If the user reconnects later, summaries can be synced again only after consent.
 
 ## Logging Rules
@@ -132,4 +139,3 @@ Pregnancy/postpartum safety overrides health-based personalization.
 Suggested copy:
 
 "OptiMe can use optional health data like steps, sleep, workouts, and active energy to make daily plans more aware of your recovery and activity. You choose what to share, and you can disconnect or delete synced data anytime. OptiMe does not diagnose medical conditions."
-

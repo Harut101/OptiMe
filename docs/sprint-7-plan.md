@@ -73,6 +73,15 @@ The goal is not to add medical interpretation. The goal is to make OptiMe more c
 - Keep native sync out of scope.
 - Add e2e tests for ownership, validation, and non-blocking behavior.
 
+Batch 2 implementation status:
+
+- Implemented backend health module and protected REST endpoints.
+- Implemented Prisma models and migration `add_health_integration_foundation`.
+- Implemented development/manual summary upsert endpoint.
+- Native Apple Health / Health Connect sync remains deferred.
+- Mobile UI remains deferred to Batch 3.
+- Protocol integration remains deferred to Batch 5.
+
 ### Batch 3: Mobile Health Foundation UI
 
 - Add Settings health card.
@@ -138,4 +147,3 @@ The goal is not to add medical interpretation. The goal is to make OptiMe more c
   Mitigation: Use supportive language focused on energy, recovery, and small practical actions.
 - Risk: Health data becomes a paywalled safety feature.
   Mitigation: Safety remains equal across all tiers. Tiering only changes personalization depth.
-

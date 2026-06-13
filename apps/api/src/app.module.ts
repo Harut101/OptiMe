@@ -6,6 +6,7 @@ import { DailyPlanCheckInsModule } from './modules/daily-plan-check-ins/daily-pl
 import { DailyPlansModule } from './modules/daily-plans/daily-plans.module';
 import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 import { GoalsModule } from './modules/goals/goals.module';
+import { HealthModule } from './modules/health/health.module';
 import { NutritionPreferencesModule } from './modules/nutrition-preferences/nutrition-preferences.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
@@ -29,6 +30,7 @@ import { PrismaModule } from './prisma/prisma.module';
     EntitlementsModule,
     ProfilesModule,
     GoalsModule,
+    HealthModule,
     NutritionPreferencesModule,
     TrainingScheduleModule,
     TrainingPreferencesModule,

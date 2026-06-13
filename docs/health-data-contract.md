@@ -1,8 +1,10 @@
 # Health Data Contract
 
-This document proposes backend data contracts for Sprint 7. It is not implementation yet.
+This document describes the Sprint 7 backend health data contracts.
 
 The contract stores connection metadata and daily health summaries. It intentionally avoids raw health samples.
+
+Batch 2 implemented these contracts with migration `add_health_integration_foundation`.
 
 ## Enums
 
@@ -68,6 +70,8 @@ model HealthDailySummary {
 }
 ```
 
+Implementation note: `weightKg` is stored as Prisma `Decimal` and returned from the API as a number or `null`.
+
 ## Ownership Rules
 
 - All health records belong to one authenticated user.
@@ -115,4 +119,3 @@ Summaries reduce privacy and storage risk:
 - enough for conservative protocol selection
 
 Raw samples should be deferred until there is a clear product need and a stronger privacy review.
-
