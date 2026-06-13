@@ -78,6 +78,20 @@ Reduced onboarding friction and strengthened the plan-to-fact loop:
 - Friendly fallback Safety note on Today and Plan Details.
 - `DailyPlanJson.safety.userSafeMessage` for user-safe safety explanations.
 
+### Sprint 6: Training Preferences, Protocols, And Exercise Recommendations
+
+Improved core plan quality before adding external health integrations:
+
+- `TrainingPreference` backend/API.
+- Progressive prompts saving target muscles, equipment, training level, and limitations.
+- Deterministic `ProtocolSelectorService`.
+- Nutrition, training, and recovery protocols.
+- Selected protocol IDs passed into `AiProvider` context.
+- Optional `DailyPlanJson.training.exercises`.
+- Exercise safety checks in `SafetyService`.
+- Safety Agent exercise review.
+- Plan Details rendering for suggested exercises.
+
 ## Current Product State
 
 OptiMe can now:
@@ -91,11 +105,15 @@ OptiMe can now:
 - Show plan and usage placeholder UI on mobile.
 - Let users reach the first plan with a shorter safety-first onboarding path.
 - Collect progressive profile details and check-ins after activation.
+- Collect optional training preferences after activation.
+- Select deterministic nutrition, training, and recovery protocols.
+- Generate optional text-based exercise recommendations.
 
 Still not implemented:
 
 - Real App Store or Google Play payments.
-- WHOOP or health-platform integrations.
+- Apple Health / Health Connect.
+- WHOOP integration.
 - AI Coach chat.
 - Embeddings-based personalization.
 - Admin or web app.
@@ -252,11 +270,11 @@ For minors:
 
 ## Recommended Order
 
-1. Sprint 6: Training preferences plus protocol/template layer for nutrition, training, and recovery.
-2. Sprint 7: Meal/ingredient swap and better preference refinement.
-3. Sprint 8: Real subscriptions/payments and paywall polish.
-4. Sprint 9: Predictive adaptive coaching foundation.
-5. Sprint 10: WHOOP or health-platform integration.
+1. Sprint 7: Apple Health / Health Connect foundation.
+2. Sprint 8: Meal/ingredient swap and better preference refinement.
+3. Sprint 9: Real subscriptions/payments and paywall polish.
+4. Sprint 10: Predictive adaptive coaching foundation.
+5. Sprint 11: WHOOP integration on top of the health-data foundation.
 6. Later: AI Coach chat, embeddings, admin/web, exercise library, and media.
 
-This order strengthens the core loop before monetization and external integrations.
+This order strengthens the core loop and health-data foundation before monetization and narrower wearable integrations.
