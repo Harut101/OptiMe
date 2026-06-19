@@ -11,8 +11,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "body-map:generate": "node scripts/generate-body-map.mjs",
+    "body-map:validate": "node scripts/validate-body-map.mjs",
+    "ia:validate": "node scripts/validate-information-architecture.mjs",
+    "interaction:test": "node scripts/test-screen-interactions.mjs",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"No mobile tests yet\""
+    "test": "node scripts/validate-information-architecture.mjs && node scripts/test-screen-interactions.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -31,6 +35,7 @@
     "react-native-health-connect": "^3.5.3",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.16.0",
+    "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.2"

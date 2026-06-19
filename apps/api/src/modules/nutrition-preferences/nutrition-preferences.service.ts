@@ -12,6 +12,17 @@ export class NutritionPreferencesService {
     private readonly safetyService: SafetyService
   ) {}
 
+  getPreferences(userId: string) {
+    return this.prisma.nutritionPreference.findUnique({
+      where: { userId },
+      include: {
+        allergies: true,
+        excludedFoods: true,
+        preferredFoods: true
+      }
+    });
+  }
+
   async upsertPreferences(userId: string, dto: UpsertNutritionPreferencesDto) {
     const allergies = this.normalizeList(dto.allergies);
     const excludedFoods = this.normalizeList(dto.excludedFoods);

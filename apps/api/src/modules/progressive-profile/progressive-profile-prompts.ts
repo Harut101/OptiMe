@@ -63,13 +63,22 @@ export const progressivePromptDefinitions: ProgressivePromptDefinition[] = [
     description: 'This will help future training suggestions feel more targeted.',
     inputType: 'multiSelect',
     options: [
-      { label: 'Core', value: 'CORE' },
+      { label: 'Abs', value: 'ABS' },
+      { label: 'Obliques', value: 'OBLIQUES' },
       { label: 'Glutes', value: 'GLUTES' },
-      { label: 'Legs', value: 'LEGS' },
-      { label: 'Back', value: 'BACK' },
+      { label: 'Quadriceps', value: 'QUADRICEPS' },
+      { label: 'Hamstrings', value: 'HAMSTRINGS' },
+      { label: 'Adductors', value: 'ADDUCTORS' },
+      { label: 'Abductors', value: 'ABDUCTORS' },
+      { label: 'Calves', value: 'CALVES' },
+      { label: 'Traps', value: 'TRAPS' },
+      { label: 'Lats', value: 'LATS' },
+      { label: 'Lower back', value: 'LOWER_BACK' },
       { label: 'Chest', value: 'CHEST' },
       { label: 'Shoulders', value: 'SHOULDERS' },
-      { label: 'Arms', value: 'ARMS' }
+      { label: 'Biceps', value: 'BICEPS' },
+      { label: 'Triceps', value: 'TRICEPS' },
+      { label: 'Forearms', value: 'FOREARMS' }
     ]
   },
   {

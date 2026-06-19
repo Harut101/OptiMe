@@ -18,6 +18,7 @@ import { Screen } from '@/components/Screen';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
+import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { colors } from '@/theme/colors';
 import type {
@@ -316,6 +317,12 @@ function ProgressivePromptCard({
       ) : null}
 
       {prompt.inputType === 'multiSelect' && prompt.options ? (
+        prompt.key === 'TARGET_MUSCLE_GROUPS' ? (
+          <BodyMapSelector
+            value={selectedValues as import('@optime/shared-types').TargetMuscleGroup[]}
+            onChange={setSelectedValues}
+          />
+        ) : (
         <View style={styles.multiSelectWrap}>
           <Text variant="label">Choose any that fit</Text>
           <View style={styles.multiSelectRow}>
@@ -341,6 +348,7 @@ function ProgressivePromptCard({
             })}
           </View>
         </View>
+        )
       ) : null}
 
       <View style={styles.promptActions}>

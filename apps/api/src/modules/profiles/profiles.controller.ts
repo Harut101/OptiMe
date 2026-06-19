@@ -1,4 +1,4 @@
-import { Body, Controller, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -12,6 +12,11 @@ import { ProfilesService } from './profiles.service';
 @Controller('profile')
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
+
+  @Get()
+  getProfile(@CurrentUser() user: AuthenticatedUser) {
+    return this.profilesService.getProfile(user.userId);
+  }
 
   @Put()
   upsertProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpsertProfileDto) {

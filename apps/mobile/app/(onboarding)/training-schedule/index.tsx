@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import {
@@ -14,6 +14,7 @@ import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const TRAINING_PREFERENCES_ROUTE = '/(onboarding)/training-preferences' as Href;
 
 export default function TrainingScheduleScreen() {
   const queryClient = useQueryClient();
@@ -112,6 +113,11 @@ export default function TrainingScheduleScreen() {
         title="Add workout"
         variant="secondary"
         onPress={() => router.push('/(onboarding)/training-schedule/create')}
+      />
+      <Button
+        title="Personalize training (optional)"
+        variant="secondary"
+        onPress={() => router.push(TRAINING_PREFERENCES_ROUTE)}
       />
       {items.length === 0 ? (
         <Card>

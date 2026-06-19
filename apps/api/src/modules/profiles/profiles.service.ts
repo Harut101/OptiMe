@@ -12,6 +12,27 @@ export class ProfilesService {
     private readonly safetyService: SafetyService
   ) {}
 
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        timezone: true,
+        locale: true,
+        isMinor: true,
+        safeMode: true,
+        privacyConsentedAt: true,
+        profile: true
+      }
+    });
+
+    const { profile, ...account } = user;
+    return { user: account, profile };
+  }
+
   async upsertProfile(userId: string, dto: UpsertProfileDto) {
     const derived = this.safetyService.deriveAgeSafety(dto.dateOfBirth);
 
@@ -30,6 +51,8 @@ export class ProfilesService {
           email: true,
           firstName: true,
           lastName: true,
+          timezone: true,
+          locale: true,
           isMinor: true,
           safeMode: true,
           privacyConsentedAt: true

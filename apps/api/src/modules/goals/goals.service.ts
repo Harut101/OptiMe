@@ -11,6 +11,10 @@ export class GoalsService {
     private readonly safetyService: SafetyService
   ) {}
 
+  getGoal(userId: string) {
+    return this.prisma.goal.findUnique({ where: { userId } });
+  }
+
   async upsertGoal(userId: string, dto: UpsertGoalDto) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },

@@ -1,4 +1,4 @@
-import { Body, Controller, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -12,6 +12,11 @@ import { NutritionPreferencesService } from './nutrition-preferences.service';
 @Controller('nutrition-preferences')
 export class NutritionPreferencesController {
   constructor(private readonly preferencesService: NutritionPreferencesService) {}
+
+  @Get()
+  getPreferences(@CurrentUser() user: AuthenticatedUser) {
+    return this.preferencesService.getPreferences(user.userId);
+  }
 
   @Put()
   upsertPreferences(

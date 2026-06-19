@@ -1,4 +1,4 @@
-import { Body, Controller, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -12,6 +12,11 @@ import { GoalsService } from './goals.service';
 @Controller('goals')
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
+
+  @Get()
+  getGoal(@CurrentUser() user: AuthenticatedUser) {
+    return this.goalsService.getGoal(user.userId);
+  }
 
   @Put()
   upsertGoal(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpsertGoalDto) {

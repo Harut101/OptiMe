@@ -21,7 +21,7 @@ import {
 export class UpsertTrainingPreferenceDto {
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(8)
+  @ArrayMaxSize(20)
   @ArrayUnique()
   @IsEnum(TargetMuscleGroup, { each: true })
   targetMuscleGroups?: TargetMuscleGroup[];

@@ -1,5 +1,9 @@
 # Product Roadmap
 
+## Sprint 8B Batch 1
+
+Mobile information architecture now separates Today, Food, Training, and Profile. Food and Training preferences can be updated after onboarding through reusable domain forms, while Profile is divided into Personal, Health, Connections, and Settings. Preference saves affect future plans without regenerating the current plan.
+
 OptiMe is a mobile-first AI wellness coach. It helps users answer four daily questions:
 
 - How ready am I to train today?

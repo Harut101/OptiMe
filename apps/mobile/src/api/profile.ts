@@ -1,8 +1,12 @@
 import { apiRequest } from './client';
-import type { ProfileRequest } from '@/types/api';
+import type { ProfileRequest, ProfileResponse } from '@/types/api';
+
+export function getProfile() {
+  return apiRequest<ProfileResponse>('/profile');
+}
 
 export function saveProfile(body: ProfileRequest) {
-  return apiRequest('/profile', {
+  return apiRequest<ProfileResponse>('/profile', {
     method: 'PUT',
     body: JSON.stringify(body)
   });

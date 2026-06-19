@@ -1,0 +1,1 @@
+ALTER TYPE "TargetMuscleGroup" ADD VALUE IF NOT EXISTS 'LATS';

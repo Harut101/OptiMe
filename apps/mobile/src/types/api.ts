@@ -11,7 +11,11 @@ import type {
   PlanFeedbackTag,
   PregnancyStatus,
   SubmitDailyPlanFeedbackRequest,
-  SportType
+  SportType,
+  TargetMuscleGroup,
+  TrainingEquipment,
+  TrainingLevel,
+  TrainingOutcome
 } from '@optime/shared-types';
 
 export type {
@@ -21,7 +25,12 @@ export type {
   PlanFeedbackRating,
   PlanFeedbackTag,
   PregnancyStatus,
-  SubmitDailyPlanFeedbackRequest
+  SubmitDailyPlanFeedbackRequest,
+  TargetMuscleGroup,
+  TrainingEquipment,
+  TrainingLevel,
+  TrainingOutcome,
+  TrainingPreferenceResponse
 } from '@optime/shared-types';
 
 export interface UserDto {
@@ -76,11 +85,31 @@ export interface ProfileRequest {
   privacyConsentAccepted?: boolean;
 }
 
+export interface ProfileResponse {
+  user: UserDto;
+  profile: null | {
+    gender: string | null;
+    pregnancyStatus: PregnancyStatus;
+    dateOfBirth: string;
+    heightCm: number;
+    weightKg: number;
+    activityLevel: ActivityLevel;
+  };
+}
+
 export interface GoalRequest {
   goalType: GoalType;
   targetWeightKg?: number;
   targetTimelineDays?: number;
   impactMode?: GoalImpactMode;
+}
+
+export interface GoalResponse {
+  id: string;
+  goalType: GoalType;
+  targetWeightKg?: number | null;
+  targetTimelineDays?: number | null;
+  impactMode?: GoalImpactMode | null;
 }
 
 export interface NutritionPreferencesRequest {
@@ -91,6 +120,26 @@ export interface NutritionPreferencesRequest {
   allergies?: string[];
   excludedFoods?: string[];
   preferredFoods?: string[];
+}
+
+export interface NutritionPreferencesResponse {
+  id: string;
+  dietType: DietType;
+  mealsPerDay: number;
+  noKnownAllergiesConfirmed: boolean;
+  notes: string | null;
+  allergies: Array<{ id: string; name: string }>;
+  excludedFoods: Array<{ id: string; name: string }>;
+  preferredFoods: Array<{ id: string; name: string }>;
+}
+
+export interface TrainingPreferencesRequest {
+  targetMuscleGroups?: TargetMuscleGroup[];
+  trainingOutcome?: TrainingOutcome | null;
+  equipment?: TrainingEquipment[];
+  trainingLevel?: TrainingLevel | null;
+  limitationsOrPainAreas?: string[];
+  preferredTrainingDays?: number[];
 }
 
 export interface TrainingIntentRequest {

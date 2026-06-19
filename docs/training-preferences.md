@@ -1,5 +1,15 @@
 # Training Preferences
 
+## Standalone Training ownership
+
+The Training tab owns `TrainingPreference`, target-muscle selection, equipment, experience level, preferred days, limitations, and weekly schedule management. `TrainingSetupForm` is controlled and route-free, and is shared with the optional onboarding step.
+
+The Body Map selects training targets only. Limitations and pain areas remain a separate safety field. Schedule items continue to own workout type, duration, intensity, and description through the existing training-schedule API.
+
+A missing setup does not block planning. The Training tab shows a setup state and safe defaults remain active. Saving preferences affects future plans only and does not regenerate the current plan or modify history.
+
+Training uses the shared draft comparison and unsaved-change guard used by Food, Personal, and Goals. Cancel restores the last persisted preference response, while schedule CRUD remains independently persisted through training-schedule endpoints.
+
 Training preferences are optional profile details used to improve training recommendations. They must not block first plan generation.
 
 Stage 1 onboarding remains safety-first and short. Training preferences belong mostly to Stage 2 progressive profile prompts.
@@ -13,13 +23,23 @@ Body areas or muscle groups the user wants to improve.
 Example values:
 
 - `CHEST`
-- `BACK`
-- `LEGS`
+- `TRAPS`
+- `LATS`
+- `LOWER_BACK`
+- `ABS`
+- `OBLIQUES`
+- `BICEPS`
+- `TRICEPS`
+- `FOREARMS`
+- `QUADRICEPS`
+- `HAMSTRINGS`
+- `ADDUCTORS`
+- `ABDUCTORS`
+- `CALVES`
 - `GLUTES`
-- `CORE`
 - `SHOULDERS`
-- `ARMS`
-- `FULL_BODY`
+
+Legacy records may still contain `BACK`, `LEGS`, `CORE`, `ARMS`, or `FULL_BODY`. New body-map interactions save only specific muscle groups.
 
 Use:
 

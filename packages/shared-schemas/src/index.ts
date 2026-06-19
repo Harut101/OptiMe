@@ -96,8 +96,12 @@ export const trainingIntentSchema = z.object({
 
 export const trainingPreferenceSchema = z.object({
   targetMuscleGroups: z
-    .array(z.enum(['CHEST', 'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY']))
-    .max(8)
+    .array(z.enum([
+      'CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS',
+      'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',
+      'GLUTES', 'SHOULDERS', 'BACK', 'LEGS', 'CORE', 'ARMS', 'FULL_BODY'
+    ]))
+    .max(20)
     .optional(),
   trainingOutcome: z
     .enum(['STRENGTH', 'MUSCLE_GROWTH', 'ENDURANCE', 'MOBILITY', 'GENERAL_FITNESS'])

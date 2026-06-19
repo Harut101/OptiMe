@@ -989,6 +989,81 @@ describe('Sprint 1 backend vertical slice', () => {
     );
   });
 
+  it('reads profile, goal, and nutrition preferences through user-owned domain endpoints', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken);
+
+    const profile = await request(ctx.app.getHttpServer())
+      .get('/v1/profile')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    const goal = await request(ctx.app.getHttpServer())
+      .get('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    const nutrition = await request(ctx.app.getHttpServer())
+      .get('/v1/nutrition-preferences')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(profile.body.user.email).toBe(user.user.email);
+    expect(profile.body.profile).toMatchObject({ activityLevel: 'MODERATE' });
+    expect(goal.body).toMatchObject({ goalType: 'IMPROVE_FITNESS' });
+    expect(nutrition.body).toMatchObject({ mealsPerDay: 3 });
+    expect(nutrition.body.allergies).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'peanuts' })])
+    );
+  });
+
+  it('allows an authenticated user with no saved goal to add one later', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const empty = await request(ctx.app.getHttpServer())
+      .get('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(empty.body).toEqual({});
+
+    const created = await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'IMPROVE_FITNESS' })
+      .expect(200);
+    expect(created.body.goalType).toBe('IMPROVE_FITNESS');
+  });
+
+  it('updates the goal without regenerating or mutating current and historical plans', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'GoalHistory');
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+    const before = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'IMPROVE_ENDURANCE' })
+      .expect(200);
+
+    const after = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id }
+    });
+    const history = await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/history?limit=10')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(after.planJson).toEqual(before.planJson);
+    expect(after.updatedAt.getTime()).toBe(before.updatedAt.getTime());
+    expect(history.body.items.map((item: { id: string }) => item.id)).toContain(generated.body.id);
+  });
+
   it('reports Stage 1 readiness separately from progressive profile completion', async () => {
     const user = await registerTestUser(ctx.app);
 
@@ -1378,6 +1453,33 @@ describe('Sprint 1 backend vertical slice', () => {
       .expect(400);
   });
 
+  it('persists exact body-map muscle groups without broad parent values', async () => {
+    const user = await registerTestUser(ctx.app, 'training-pref-specific-muscles@example.com');
+    const specificGroups = [
+      TargetMuscleGroup.BICEPS,
+      TargetMuscleGroup.ABS,
+      TargetMuscleGroup.LOWER_BACK,
+      TargetMuscleGroup.QUADRICEPS,
+      TargetMuscleGroup.CALVES
+    ];
+
+    const response = await request(ctx.app.getHttpServer())
+      .put('/v1/training-preferences')
+      .set(authHeader(user.accessToken))
+      .send({ targetMuscleGroups: specificGroups })
+      .expect(200);
+
+    expect(response.body.targetMuscleGroups).toEqual(specificGroups);
+    expect(response.body.targetMuscleGroups).not.toEqual(
+      expect.arrayContaining([
+        TargetMuscleGroup.ARMS,
+        TargetMuscleGroup.CORE,
+        TargetMuscleGroup.BACK,
+        TargetMuscleGroup.LEGS
+      ])
+    );
+  });
+
   it('limits limitations or pain areas length', async () => {
     const user = await registerTestUser(ctx.app, 'training-pref-limitations@example.com');
 
@@ -1422,7 +1524,7 @@ describe('Sprint 1 backend vertical slice', () => {
     await request(ctx.app.getHttpServer())
       .post(`/v1/progressive-profile/prompts/${ProgressiveProfilePromptKey.TARGET_MUSCLE_GROUPS}/answer`)
       .set(authHeader(user.accessToken))
-      .send({ value: [TargetMuscleGroup.CORE, TargetMuscleGroup.GLUTES] })
+      .send({ value: [TargetMuscleGroup.ABS, TargetMuscleGroup.GLUTES] })
       .expect(201);
 
     await request(ctx.app.getHttpServer())
@@ -1455,7 +1557,7 @@ describe('Sprint 1 backend vertical slice', () => {
       .expect(200);
 
     expect(response.body).toMatchObject({
-      targetMuscleGroups: [TargetMuscleGroup.CORE, TargetMuscleGroup.GLUTES],
+      targetMuscleGroups: [TargetMuscleGroup.ABS, TargetMuscleGroup.GLUTES],
       equipment: [TrainingEquipment.HOME, TrainingEquipment.BODYWEIGHT],
       trainingLevel: TrainingLevel.BEGINNER,
       limitationsOrPainAreas: ['shoulder discomfort'],
