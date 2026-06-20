@@ -1,0 +1,22 @@
+# Localization
+
+Sprint 9A supports `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. `en-US` is the fallback. `es-419` and `de-DE` are reserved for later work and are not exposed by the application.
+
+The mobile runtime uses `i18next`, `react-i18next`, and `expo-localization`. Translation resources live under `apps/mobile/src/i18n/locales`. Persisted values are stable locale codes and domain enum values; translated labels are presentation only. Native language names remain fixed in the selector: English (United States), Русский, Français, and 简体中文.
+
+For users without saved settings, the primary device locale is resolved as follows: `en-*` to `en-US`, `ru-*` to `ru-RU`, `fr-*` to `fr-FR`, and `zh-CN`, `zh-SG`, or `zh-Hans-*` to `zh-CN`. Unsupported locales, including Traditional Chinese variants, fall back to `en-US`. Once saved, the user's preference overrides device detection.
+
+The app changes shell language at runtime after a successful settings save. Missing keys fall back to English and emit a development warning. API requests include a validated `Accept-Language` header while preserving authentication headers.
+
+This batch localizes navigation, common actions, unsaved-change controls, and Settings. Full feature copy and AI-generated content are deferred. Future domain labels should be resolved from stable values through centralized key maps, never persisted as translated text. All current locales are left-to-right; RTL requires a separate layout and QA batch.
+## Sprint 9A Batch 2
+
+The core mobile shell is localized for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. English is the canonical typed resource; locale resources deep-merge over it for safe fallback. Feature namespaces cover authentication, onboarding, Today, plan details, Food, Training, Profile, Goals, Health, Body Map, settings, progressive prompts, errors, and stable enum labels.
+
+Persisted domain values are never translated. `src/i18n/enum-labels.ts` maps stable values to translation keys, including legacy muscle groups. Interpolation variables must match English and are checked by `localization:validate`.
+
+Existing and historical AI plan content remains exactly as stored. A localized Russian, French, or Chinese shell may therefore display English generated content until plan-generation localization is designed separately. No render-time or external translation is used.
+
+ExerciseLibrary content is stored in explicit `ExerciseTranslation` and `ExerciseMediaTranslation` rows for all four supported locales. Read APIs use validated `Accept-Language`, project through the requested locale, and fall back deterministically to `en-US`. Slugs, IDs, enums, URLs, and business logic remain language-neutral; translations are never generated at request time.
+
+Known backend codes are presented with localized application messages; unknown failures use localized generic fallbacks while technical errors remain available to development logging.

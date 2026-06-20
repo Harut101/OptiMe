@@ -1,5 +1,8 @@
 import { API_BASE_URL } from '@/config/env';
 import { useAuthStore } from '@/store/auth-store';
+import { useSettingsStore } from '@/store/settings-store';
+import { resolveSupportedLocale } from '@optime/shared-types';
+import { i18n } from '@/i18n';
 
 export class ApiError extends Error {
   constructor(
@@ -20,6 +23,10 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
   const headers = new Headers(options.headers);
 
   headers.set('Accept', 'application/json');
+  headers.set(
+    'Accept-Language',
+    resolveSupportedLocale(useSettingsStore.getState().preferredLocale)
+  );
 
   if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -41,7 +48,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
         ? errorBody.message
         : Array.isArray(errorBody?.message)
           ? errorBody.message.join('\n')
-          : 'Something went wrong. Please try again.';
+          : i18n.t('errors.network');
 
     throw new ApiError(message, response.status, errorBody);
   }

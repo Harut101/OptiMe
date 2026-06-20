@@ -32,17 +32,17 @@ assert(!existsSync(resolve(root, 'app/(tabs)/settings.tsx')), 'Obsolete Settings
 
 const food = read('app/(tabs)/food.tsx');
 assertIncludes(food, [
-  "queryKey: ['nutrition-preferences']", 'Loading food preferences',
-  'Personalize your meals', 'FoodPreferencesForm', 'Save', 'Cancel',
-  'Your updated preferences will be used for future plans.', 'useUnsavedChangesGuard',
+  "queryKey: ['nutrition-preferences']", "t('common.loading')",
+  "t('food.emptyTitle')", 'FoodPreferencesForm', "t('common.save')", "t('common.cancel')",
+  "t('food.savedMessage')", 'useUnsavedChangesGuard',
   'setValue(savedValue)', 'saveNutritionPreferences', 'mutation.isPending || !dirty'
 ], 'Food');
 
 const training = read('app/(tabs)/training.tsx');
 assertIncludes(training, [
-  "queryKey: ['training-preferences']", 'Loading training setup',
-  'Complete your training setup', 'TrainingSetupForm', 'Save preferences', 'Cancel',
-  'Your updated preferences will be used for future plans.', 'useUnsavedChangesGuard',
+  "queryKey: ['training-preferences']", "t('common.loading')",
+  "t('training.emptyTitle')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
+  "t('training.savedMessage')", 'useUnsavedChangesGuard',
   'setValue(savedValue)', 'saveTrainingPreferences', 'saveMutation.isPending || !dirty'
 ], 'Training');
 
@@ -55,27 +55,27 @@ assert(!trainingForm.includes('path.id'), 'Training preference payload must neve
 const profile = read('app/(tabs)/profile.tsx');
 assertIncludes(profile, [
   "'Personal'", "'Health'", "'Connections'", "'Settings'", 'PersonalProfileForm',
-  'Edit personal details', "router.push('/goal-editor')", "router.push('/health-data')",
+  "t('common.edit')", "router.push('/goal-editor')", "router.push('/health-data')",
   'useUnsavedChangesGuard', 'setValue(savedValue)'
 ], 'Profile');
 
 const personalForm = read('src/features/profile/PersonalProfileForm.tsx');
 assertIncludes(personalForm, [
-  'Weight (kg)', 'Height (cm)', 'Activity level', 'Pregnancy / postpartum context',
+  "t('profile.weight'", "t('profile.height'", "t('profile.activity')", "t('profile.pregnancyContext')",
   "value.gender === 'female'"
 ], 'PersonalProfileForm');
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
-  "queryKey: ['goal']", 'Loading goals', 'Set your goals', 'GoalsForm',
-  'Save goals', 'Cancel', 'useUnsavedChangesGuard', 'setValue(persistedValue)',
-  'Your updated goals will be used for future plans.', 'saveGoal'
+  "queryKey: ['goal']", "t('common.loading')", "t('goals.emptyTitle')", 'GoalsForm',
+  "t('common.save')", "t('common.cancel')", 'useUnsavedChangesGuard', 'setValue(persistedValue)',
+  "t('goals.savedMessage')", 'saveGoal'
 ], 'Goals');
 assert(goalEditor.includes('mutation.isPending || !dirty'), 'Goals must prevent empty or duplicate saves.');
 
 const goalsForm = read('src/features/goals/GoalsForm.tsx');
 const onboardingGoal = read('app/(onboarding)/goal.tsx');
-assert(goalsForm.includes('GOAL_OPTIONS'), 'Goal labels must be centralized.');
+assert(goalsForm.includes('GOAL_VALUES') && goalsForm.includes('getGoalTypeLabel'), 'Goal labels must be centralized.');
 assert(!goalsForm.includes('expo-router'), 'GoalsForm must not navigate.');
 assert(!goalsForm.includes('@/api/'), 'GoalsForm must not persist data.');
 assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.');
@@ -89,7 +89,7 @@ for (const [name, source] of [
 }
 
 const health = read('app/health-data.tsx');
-assertIncludes(health, ['Sync now', 'Disconnect', 'Delete synced health data'], 'Connections');
+assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')"], 'Connections');
 assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown.');
 
 console.log('Screen interaction contracts passed.');

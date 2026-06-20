@@ -1,9 +1,11 @@
 import { useNavigation } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const discardConfirmed = useRef(false);
 
   useEffect(() => {
@@ -18,12 +20,12 @@ export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
 
       event.preventDefault();
       Alert.alert(
-        'Discard unsaved changes?',
-        'Your updates have not been saved yet.',
+        t('unsaved.title'),
+        t('unsaved.message'),
         [
-          { text: 'Keep editing', style: 'cancel' },
+          { text: t('common.keepEditing'), style: 'cancel' },
           {
-            text: 'Discard',
+            text: t('common.discard'),
             style: 'destructive',
             onPress: () => {
               discardConfirmed.current = true;
@@ -33,5 +35,5 @@ export function useUnsavedChangesGuard(hasUnsavedChanges: boolean) {
         ]
       );
     });
-  }, [hasUnsavedChanges, navigation]);
+  }, [hasUnsavedChanges, navigation, t]);
 }

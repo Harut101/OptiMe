@@ -1,10 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 import type { ActivityLevel, PregnancyStatus } from '@optime/shared-types';
+import { useTranslation } from 'react-i18next';
 
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
 import type { ProfileRequest, ProfileResponse } from '@/types/api';
+import { enumOptions, getActivityLevelLabel, getGenderLabel, getPregnancyStatusLabel, type GenderValue } from '@/i18n/enum-labels';
+import { useSettingsStore } from '@/store/settings-store';
 
 export interface PersonalProfileFormValue {
   firstName: string;
@@ -34,6 +37,8 @@ export const EMPTY_PERSONAL_PROFILE: PersonalProfileFormValue = {
 };
 
 export function PersonalProfileForm({ value, onChange }: PersonalProfileFormProps) {
+  const { t } = useTranslation();
+  const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const update = <K extends keyof PersonalProfileFormValue>(
     key: K,
     nextValue: PersonalProfileFormValue[K]
@@ -48,43 +53,43 @@ export function PersonalProfileForm({ value, onChange }: PersonalProfileFormProp
 
   return (
     <View style={styles.form}>
-      <Field label="First name" value={value.firstName} onChangeText={(text) => update('firstName', text)} />
-      <Field label="Last name" value={value.lastName} onChangeText={(text) => update('lastName', text)} />
+      <Field label={t('profile.firstName')} value={value.firstName} onChangeText={(text) => update('firstName', text)} />
+      <Field label={t('profile.lastName')} value={value.lastName} onChangeText={(text) => update('lastName', text)} />
       <Field
-        label="Date of birth"
-        placeholder="YYYY-MM-DD"
+        label={t('profile.dateOfBirth')}
+        placeholder={t('profile.datePlaceholder')}
         value={value.dateOfBirth}
         onChangeText={(text) => update('dateOfBirth', text)}
       />
       <Field
-        label="Height (cm)"
+        label={t('profile.height', { unit: measurementSystem === 'IMPERIAL' ? 'in' : 'cm' })}
         keyboardType="numeric"
-        value={value.heightCm}
-        onChangeText={(text) => update('heightCm', text)}
+        value={toDisplayMeasurement(value.heightCm, measurementSystem, 'height')}
+        onChangeText={(text) => update('heightCm', toCanonicalMeasurement(text, measurementSystem, 'height'))}
       />
       <Field
-        label="Weight (kg)"
+        label={t('profile.weight', { unit: measurementSystem === 'IMPERIAL' ? 'lb' : 'kg' })}
         keyboardType="numeric"
-        value={value.weightKg}
-        onChangeText={(text) => update('weightKg', text)}
+        value={toDisplayMeasurement(value.weightKg, measurementSystem, 'weight')}
+        onChangeText={(text) => update('weightKg', toCanonicalMeasurement(text, measurementSystem, 'weight'))}
       />
-      <SelectChips label="Gender" value={value.gender} onChange={setGender} options={GENDER_OPTIONS} />
+      <SelectChips label={t('profile.gender')} value={value.gender} onChange={setGender} options={enumOptions(GENDERS, (item) => getGenderLabel(t, item))} />
       <SelectChips
-        label="Activity level"
+        label={t('profile.activity')}
         value={value.activityLevel}
         onChange={(activityLevel) => update('activityLevel', activityLevel)}
-        options={ACTIVITY_OPTIONS}
+        options={enumOptions(ACTIVITY_LEVELS, (item) => getActivityLevelLabel(t, item))}
       />
       {value.gender === 'female' ? (
         <View style={styles.healthContext}>
-          <Text variant="label">Optional health context</Text>
-          <Text variant="heading">Pregnancy / postpartum context</Text>
-          <Text variant="muted">Optional. Used only to keep nutrition and training guidance safer.</Text>
+          <Text variant="label">{t('profile.healthContext')}</Text>
+          <Text variant="heading">{t('profile.pregnancyContext')}</Text>
+          <Text variant="muted">{t('profile.pregnancyHelp')}</Text>
           <SelectChips
-            label="Choose what fits today"
+            label={t('profile.chooseToday')}
             value={value.pregnancyStatus}
             onChange={(pregnancyStatus) => update('pregnancyStatus', pregnancyStatus)}
-            options={PREGNANCY_OPTIONS}
+            options={enumOptions(PREGNANCY_STATUSES, (item) => getPregnancyStatusLabel(t, item))}
           />
         </View>
       ) : null}
@@ -92,28 +97,23 @@ export function PersonalProfileForm({ value, onChange }: PersonalProfileFormProp
   );
 }
 
-const GENDER_OPTIONS = [
-  { label: 'Female', value: 'female' },
-  { label: 'Male', value: 'male' },
-  { label: 'Other', value: 'other' },
-  { label: 'Prefer not to say', value: 'prefer_not_to_say' }
-];
+const GENDERS: GenderValue[] = ['female', 'male', 'other', 'prefer_not_to_say'];
+const ACTIVITY_LEVELS: ActivityLevel[] = ['LOW', 'LIGHT', 'MODERATE', 'HIGH', 'ATHLETE'];
+const PREGNANCY_STATUSES: PregnancyStatus[] = ['PREFER_NOT_TO_SAY', 'NOT_PREGNANT', 'PREGNANT', 'POSTPARTUM', 'BREASTFEEDING'];
 
-const ACTIVITY_OPTIONS: Array<{ label: string; value: ActivityLevel }> = [
-  { label: 'Low', value: 'LOW' },
-  { label: 'Light', value: 'LIGHT' },
-  { label: 'Moderate', value: 'MODERATE' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Athlete', value: 'ATHLETE' }
-];
+function toDisplayMeasurement(value: string, system: 'METRIC' | 'IMPERIAL', kind: 'height' | 'weight') {
+  if (system === 'METRIC' || value === '') return value;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return value;
+  return String(Number((kind === 'height' ? number / 2.54 : number * 2.2046226218).toFixed(1)));
+}
 
-const PREGNANCY_OPTIONS: Array<{ label: string; value: PregnancyStatus }> = [
-  { label: 'Prefer not to say', value: 'PREFER_NOT_TO_SAY' },
-  { label: 'Not pregnant', value: 'NOT_PREGNANT' },
-  { label: 'Pregnant', value: 'PREGNANT' },
-  { label: 'Postpartum', value: 'POSTPARTUM' },
-  { label: 'Breastfeeding', value: 'BREASTFEEDING' }
-];
+function toCanonicalMeasurement(value: string, system: 'METRIC' | 'IMPERIAL', kind: 'height' | 'weight') {
+  if (system === 'METRIC' || value === '') return value;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return value;
+  return String(Number((kind === 'height' ? number * 2.54 : number / 2.2046226218).toFixed(4)));
+}
 
 export function fromProfileResponse(response: ProfileResponse): PersonalProfileFormValue {
   if (!response.profile) {

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -8,23 +9,20 @@ import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   return (
     <Screen scroll={false}>
       <View style={styles.hero}>
         <Text variant="label">OptiMe</Text>
-        <Text variant="title">A calmer way to plan food, training, and recovery.</Text>
-        <Text variant="muted">
-          Start with a simple profile and get a supportive daily plan built around consistency.
-        </Text>
+        <Text variant="title">{t('auth.welcomeTitle')}</Text>
+        <Text variant="muted">{t('auth.welcomeMessage')}</Text>
       </View>
 
       <Card>
-        <Text variant="heading">Daily planning</Text>
-        <Text variant="muted">
-          Set up your profile and generate a simple plan for food, training, hydration, and recovery.
-        </Text>
-        <Button title="Create account" onPress={() => router.push('/(auth)/register')} />
-        <Button title="Log in" variant="secondary" onPress={() => router.push('/(auth)/login')} />
+        <Text variant="heading">{t('auth.dailyPlanning')}</Text>
+        <Text variant="muted">{t('auth.dailyPlanningMessage')}</Text>
+        <Button title={t('auth.createAccount')} onPress={() => router.push('/(auth)/register')} />
+        <Button title={t('auth.login')} variant="secondary" onPress={() => router.push('/(auth)/login')} />
       </Card>
     </Screen>
   );

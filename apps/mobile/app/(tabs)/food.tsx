@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   getNutritionPreferences,
@@ -22,8 +23,10 @@ import {
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
+import { getDietTypeLabel } from '@/i18n/enum-labels';
 
 export default function FoodScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const preferences = useQuery({
     queryKey: ['nutrition-preferences'],
@@ -54,19 +57,19 @@ export default function FoodScreen() {
       setSavedValue(next);
       setEditing(false);
       setValidationError(null);
-      setSuccessMessage('Your updated preferences will be used for future plans.');
+      setSuccessMessage(t('food.savedMessage'));
       queryClient.setQueryData(['nutrition-preferences'], data);
     }
   });
 
   if (preferences.isLoading) {
-    return <Screen><StateBlock title="Loading food preferences" message="Bringing your saved choices into view." /></Screen>;
+    return <Screen><StateBlock title={t('common.loading')} message={t('food.loadingMessage')} /></Screen>;
   }
 
   if (preferences.isError) {
     return (
       <Screen>
-        <StateBlock title="Food preferences unavailable" message={preferences.error.message} actionTitle="Try again" onAction={() => preferences.refetch()} />
+        <StateBlock title={t('food.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => preferences.refetch()} />
       </Screen>
     );
   }
@@ -80,7 +83,7 @@ export default function FoodScreen() {
 
   const save = () => {
     if (!hasAllergySafetyAnswer(value)) {
-      setValidationError('Add allergies or confirm that you have no known food allergies.');
+      setValidationError(t('food.allergyRequired'));
       return;
     }
     setValidationError(null);
@@ -89,14 +92,14 @@ export default function FoodScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Food</Text>
-      <Text variant="muted">Shape future meal guidance around foods that work for you.</Text>
+      <Text variant="heading">{t('food.title')}</Text>
+      <Text variant="muted">{t('food.intro')}</Text>
 
       {!preferences.data && !editing ? (
         <StateBlock
-          title="Personalize your meals"
-          message="Add your dietary preferences and foods you want to avoid to improve future meal recommendations."
-          actionTitle="Set up food preferences"
+          title={t('food.emptyTitle')}
+          message={t('food.emptyMessage')}
+          actionTitle={t('food.setup')}
           onAction={startSetup}
         />
       ) : editing ? (
@@ -105,9 +108,9 @@ export default function FoodScreen() {
           {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
           {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
           <View style={styles.actions}>
-            <Button title={mutation.isPending ? 'Saving...' : 'Save'} disabled={mutation.isPending || !dirty} onPress={save} />
+            <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
             <Button
-              title="Cancel"
+              title={t('common.cancel')}
               variant="secondary"
               disabled={mutation.isPending}
               onPress={() => {
@@ -121,30 +124,27 @@ export default function FoodScreen() {
       ) : (
         <>
           <FoodSummary value={savedValue} />
-          <Button title="Edit food preferences" variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
+          <Button title={t('common.edit')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
         </>
       )}
 
-      {successMessage ? <Card><Text variant="label">Saved</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
     </Screen>
   );
 }
 
 function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
+  const { t } = useTranslation();
   return (
     <Card>
-      <Text variant="label">Current preferences</Text>
-      <Text>Diet style: {humanize(value.dietType)}</Text>
-      <Text>Meals per day: {value.mealsPerDay}</Text>
-      <Text variant="muted">Allergies: {value.allergies || 'No known allergies confirmed'}</Text>
-      <Text variant="muted">Excluded foods: {value.excludedFoods || 'None added'}</Text>
-      <Text variant="muted">Preferred foods: {value.preferredFoods || 'None added'}</Text>
+      <Text variant="label">{t('food.current')}</Text>
+      <Text>{t('food.dietStyle')}: {getDietTypeLabel(t, value.dietType)}</Text>
+      <Text>{t('food.mealsPerDay')}: {value.mealsPerDay}</Text>
+      <Text variant="muted">{t('food.allergies')}: {value.allergies || t('food.confirmedNoAllergies')}</Text>
+      <Text variant="muted">{t('food.excludedFoods')}: {value.excludedFoods || t('common.noneAdded')}</Text>
+      <Text variant="muted">{t('food.preferredFoods')}: {value.preferredFoods || t('common.noneAdded')}</Text>
     </Card>
   );
-}
-
-function humanize(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 }
 
 const styles = StyleSheet.create({

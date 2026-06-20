@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/theme/colors';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -16,32 +19,32 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="today"
         options={{
-          title: 'Today',
-          tabBarAccessibilityLabel: 'Today',
+          title: t('tabs.today'),
+          tabBarAccessibilityLabel: t('tabs.today'),
           tabBarIcon: ({ color, size }) => <Ionicons name="sunny-outline" color={color} size={size} />
         }}
       />
       <Tabs.Screen
         name="food"
         options={{
-          title: 'Food',
-          tabBarAccessibilityLabel: 'Food preferences',
+          title: t('tabs.food'),
+          tabBarAccessibilityLabel: t('tabs.food'),
           tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" color={color} size={size} />
         }}
       />
       <Tabs.Screen
         name="training"
         options={{
-          title: 'Training',
-          tabBarAccessibilityLabel: 'Training setup',
+          title: t('tabs.training'),
+          tabBarAccessibilityLabel: t('tabs.training'),
           tabBarIcon: ({ color, size }) => <Ionicons name="barbell-outline" color={color} size={size} />
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarAccessibilityLabel: 'Profile and settings',
+          title: t('tabs.profile'),
+          tabBarAccessibilityLabel: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
         }}
       />

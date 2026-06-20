@@ -1,4 +1,5 @@
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -6,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
 import type { IntensityLevel, SportType } from '@optime/shared-types';
+import { enumOptions, getIntensityLabel, getSportTypeLabel } from '@/i18n/enum-labels';
 
 export interface TrainingScheduleFormValues {
   dayOfWeek: string;
@@ -31,30 +33,23 @@ export function TrainingScheduleForm({
   defaultValues,
   onSubmit
 }: TrainingScheduleFormProps) {
+  const { t } = useTranslation();
   const form = useForm<TrainingScheduleFormValues>({ defaultValues });
 
   return (
     <Screen>
       <Text variant="heading">{title}</Text>
-      <Text variant="muted">Keep this close to what you actually plan to do most weeks.</Text>
+      <Text variant="muted">{t('schedule.weeklyHelp')}</Text>
 
       <Controller
         control={form.control}
         name="dayOfWeek"
         render={({ field }) => (
           <SelectChips
-            label="Day"
+            label={t('schedule.day')}
             value={field.value}
             onChange={field.onChange}
-            options={[
-              { label: 'Sun', value: '0' },
-              { label: 'Mon', value: '1' },
-              { label: 'Tue', value: '2' },
-              { label: 'Wed', value: '3' },
-              { label: 'Thu', value: '4' },
-              { label: 'Fri', value: '5' },
-              { label: 'Sat', value: '6' }
-            ]}
+            options={DAY_KEYS.map((key, value) => ({ label: t(`enums.weekdays.${key}` as never), value: String(value) }))}
           />
         )}
       />
@@ -62,7 +57,7 @@ export function TrainingScheduleForm({
         control={form.control}
         name="localTime"
         render={({ field }) => (
-          <Field label="Time" placeholder="07:30" value={field.value} onChangeText={field.onChange} />
+          <Field label={t('schedule.time')} placeholder="07:30" value={field.value} onChangeText={field.onChange} />
         )}
       />
       <Controller
@@ -70,17 +65,10 @@ export function TrainingScheduleForm({
         name="sportType"
         render={({ field }) => (
           <SelectChips
-            label="Sport"
+            label={t('schedule.sport')}
             value={field.value}
             onChange={field.onChange}
-            options={[
-              { label: 'Run', value: 'RUNNING' },
-              { label: 'Gym', value: 'GYM' },
-              { label: 'Strength', value: 'STRENGTH' },
-              { label: 'Cycle', value: 'CYCLING' },
-              { label: 'Yoga', value: 'YOGA' },
-              { label: 'Other', value: 'OTHER' }
-            ]}
+            options={enumOptions(SPORT_VALUES, (item) => getSportTypeLabel(t, item))}
           />
         )}
       />
@@ -88,7 +76,7 @@ export function TrainingScheduleForm({
         control={form.control}
         name="durationMinutes"
         render={({ field }) => (
-          <Field label="Duration (minutes)" keyboardType="numeric" value={field.value} onChangeText={field.onChange} />
+          <Field label={t('schedule.durationMinutes')} keyboardType="numeric" value={field.value} onChangeText={field.onChange} />
         )}
       />
       <Controller
@@ -96,14 +84,10 @@ export function TrainingScheduleForm({
         name="intensity"
         render={({ field }) => (
           <SelectChips
-            label="Intensity"
+            label={t('schedule.intensity')}
             value={field.value}
             onChange={field.onChange}
-            options={[
-              { label: 'Low', value: 'LOW' },
-              { label: 'Moderate', value: 'MODERATE' },
-              { label: 'High', value: 'HIGH' }
-            ]}
+            options={enumOptions(INTENSITIES, (item) => getIntensityLabel(t, item))}
           />
         )}
       />
@@ -111,7 +95,7 @@ export function TrainingScheduleForm({
         control={form.control}
         name="description"
         render={({ field }) => (
-          <Field label="Description" multiline value={field.value} onChangeText={field.onChange} />
+          <Field label={t('schedule.description')} multiline value={field.value} onChangeText={field.onChange} />
         )}
       />
 
@@ -119,3 +103,7 @@ export function TrainingScheduleForm({
     </Screen>
   );
 }
+
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+const SPORT_VALUES: SportType[] = ['RUNNING', 'GYM', 'STRENGTH', 'CYCLING', 'YOGA', 'OTHER'];
+const INTENSITIES: IntensityLevel[] = ['LOW', 'MODERATE', 'HIGH'];

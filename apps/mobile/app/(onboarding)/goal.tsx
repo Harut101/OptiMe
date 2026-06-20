@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { goalSchema } from '@optime/shared-schemas';
 
 import { saveGoal } from '@/api/goals';
@@ -16,6 +17,7 @@ import {
 import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
 
 export default function GoalsOnboardingStep() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [value, setValue] = useState(EMPTY_GOALS_FORM);
   const mutation = useMutation({
@@ -26,13 +28,13 @@ export default function GoalsOnboardingStep() {
       router.push('/(onboarding)/nutrition-preferences');
     },
     onError: (error) =>
-      Alert.alert('Let’s keep this goal safe', getFriendlyGoalErrorMessage(error))
+      Alert.alert(t('onboarding.safeGoalTitle'), getFriendlyGoalErrorMessage(error, t))
   });
 
   const continueOnboarding = () => {
     const result = goalSchema.safeParse(toGoalRequest(value));
     if (!result.success) {
-      Alert.alert('Check your goal', result.error.issues[0]?.message ?? 'Please review your goal.');
+      Alert.alert(t('onboarding.checkGoal'), t('goals.checkGoal'));
       return;
     }
     mutation.mutate(result.data);
@@ -40,11 +42,11 @@ export default function GoalsOnboardingStep() {
 
   return (
     <Screen>
-      <Text variant="heading">Choose your direction</Text>
-      <Text variant="muted">Pick the outcome that best matches the season you are in.</Text>
+      <Text variant="heading">{t('onboarding.directionTitle')}</Text>
+      <Text variant="muted">{t('onboarding.directionMessage')}</Text>
       <GoalsForm value={value} onChange={setValue} validationMode="onboarding" />
       <Button
-        title={mutation.isPending ? 'Saving...' : 'Continue'}
+        title={mutation.isPending ? t('common.saving') : t('common.continue')}
         disabled={mutation.isPending}
         onPress={continueOnboarding}
       />

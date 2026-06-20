@@ -9,3 +9,6 @@ The Food tab supports loading, retry, empty setup, edit, save, cancel, dirty-sta
 Saving updates future planning context only. It does not regenerate the visible plan, mutate historical plans, or delete plan data.
 
 Draft behavior matches Training, Personal, and Goals: a real change enables Save, reverting clears dirty state, Cancel restores the persisted baseline, duplicate saves are disabled, and guarded back navigation confirms before discarding.
+## Localization
+
+Food empty/loading/error states, allergy confirmation, diet labels, editable fields, and save feedback are localized. Diet enum identities and user-entered food names are stored and submitted unchanged.

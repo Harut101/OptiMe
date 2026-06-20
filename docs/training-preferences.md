@@ -12,6 +12,8 @@ Training uses the shared draft comparison and unsaved-change guard used by Food,
 
 Training preferences are optional profile details used to improve training recommendations. They must not block first plan generation.
 
+ExerciseLibrary reuses the existing `TrainingLevel` and canonical `TargetMuscleGroup` values but does not currently select or attach catalog exercises to a plan. The future selection layer will map broad environment preferences such as `GYM` or `HOME` to concrete library equipment without changing persisted TrainingPreference values.
+
 Stage 1 onboarding remains safety-first and short. Training preferences belong mostly to Stage 2 progressive profile prompts.
 
 ## Fields
@@ -265,3 +267,6 @@ Implemented after Batch 3:
 - optional text-based `training.exercises`
 - exercise safety checks
 - Plan Details exercise rendering when exercises are present
+## Localization
+
+Training environment, outcome, level, equipment, schedule, muscle labels, limitations, and editor states use centralized translations. API payloads continue to contain exact enum values, never translated labels or Body Map path IDs.

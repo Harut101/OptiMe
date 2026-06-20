@@ -2,9 +2,11 @@ import type { TargetMuscleGroup } from '@optime/shared-types';
 import { useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { G, Image as SvgImage, Path } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
+import { getMuscleGroupLabel } from '@/i18n/enum-labels';
 
 import { BODY_MAP_ASSETS } from './body-map-assets';
 import { BODY_MAP_PATHS } from './body-map-paths.generated';
@@ -26,6 +28,7 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   onChange: (value: TargetMuscleGroup[]) => void;
   debugBodyMapLayout?: boolean;
 }) {
+  const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const [view, setView] = useState<BodyMapView>('front');
   const [selectedMuscles, setSelectedMuscles] = useState(() => normalizeLegacyMuscleGroups(value));
@@ -66,7 +69,7 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
             style={[styles.viewButton, view === item ? styles.viewButtonActive : null]}
           >
             <Text style={view === item ? styles.viewTextActive : styles.viewText}>
-              {item === 'front' ? 'Front' : 'Back'}
+              {t(item === 'front' ? 'bodyMap.front' : 'bodyMap.back')}
             </Text>
           </Pressable>
         ))}
@@ -113,7 +116,10 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
                     onPressIn={() => setPressedPath(path.id)}
                     onPressOut={() => setPressedPath(null)}
                     accessible
-                    accessibilityLabel={`${path.label}, ${path.side}`}
+                    accessibilityLabel={t(selected ? 'bodyMap.deselect' : 'bodyMap.select', {
+                      muscle: getMuscleGroupLabel(t, path.muscleGroup),
+                      side: getSideLabel(t, path.side)
+                    })}
                   />
                   <Path
                     id={path.id}
@@ -130,7 +136,9 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
       </View>
 
       <Text variant="muted">
-        {selectedMuscles.length > 0 ? `Selected: ${selectedMuscles.map(formatGroup).join(', ')}` : 'Tap the areas you want your training to emphasize.'}
+        {selectedMuscles.length > 0
+          ? t('bodyMap.selected', { muscles: selectedMuscles.map((item) => getMuscleGroupLabel(t, item)).join(', ') })
+          : t('bodyMap.instruction')}
       </Text>
       {showLayoutDebug ? (
         <Text style={styles.debugText}>
@@ -141,8 +149,11 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   );
 }
 
-function formatGroup(value: TargetMuscleGroup) {
-  return value.toLowerCase().split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+function getSideLabel(t: ReturnType<typeof useTranslation>['t'], side: string) {
+  const normalized = side.toLowerCase();
+  if (normalized.includes('left')) return t('bodyMap.sideLeft');
+  if (normalized.includes('right')) return t('bodyMap.sideRight');
+  return t('bodyMap.sideCenter');
 }
 
 const styles = StyleSheet.create({

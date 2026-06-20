@@ -240,6 +240,80 @@ enum HealthConnectionStatus {
   ERROR
 }
 
+enum PreferredLocale {
+  EN_US @map("en-US")
+  RU_RU @map("ru-RU")
+  FR_FR @map("fr-FR")
+  ZH_CN @map("zh-CN")
+}
+
+enum MeasurementSystem {
+  METRIC
+  IMPERIAL
+}
+
+enum ExerciseCategory {
+  STRENGTH
+  MOBILITY
+  CARDIO
+  RECOVERY
+}
+
+enum ExerciseEquipment {
+  NONE
+  BODYWEIGHT
+  DUMBBELLS
+  BARBELL
+  KETTLEBELL
+  RESISTANCE_BANDS
+  MACHINES
+  BENCH
+  PULL_UP_BAR
+  CABLE_MACHINE
+  CARDIO_MACHINE
+}
+
+enum MovementPattern {
+  SQUAT
+  HINGE
+  HORIZONTAL_PUSH
+  VERTICAL_PUSH
+  HORIZONTAL_PULL
+  VERTICAL_PULL
+  LUNGE
+  CARRY
+  ROTATION
+  ANTI_ROTATION
+  CORE_FLEXION
+  CORE_STABILITY
+  ISOLATION
+  MOBILITY
+  CARDIO
+  RECOVERY
+}
+
+enum ExerciseContraindicationTag {
+  WRIST_LOAD
+  ELBOW_LOAD
+  SHOULDER_LOAD
+  KNEE_LOAD
+  LOWER_BACK_LOAD
+  OVERHEAD_POSITION
+  BALANCE_REQUIRED
+  HIGH_IMPACT
+  PRONE_POSITION
+  SUPINE_POSITION
+  PREGNANCY_REVIEW
+  POSTPARTUM_REVIEW
+}
+
+enum ExerciseMediaType {
+  PRIMARY
+  TECHNIQUE
+  ANATOMY
+  ALTERNATE
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -269,8 +343,23 @@ model User {
   trainingPreference TrainingPreference?
   healthConnections HealthConnection[]
   healthDailySummaries HealthDailySummary[]
+  settings UserSettings?
 
   @@index([createdAt])
+}
+
+model UserSettings {
+  id                String            @id @default(cuid())
+  userId            String            @unique
+  preferredLocale   PreferredLocale   @default(EN_US)
+  measurementSystem MeasurementSystem @default(METRIC)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([preferredLocale])
+  @@index([measurementSystem])
 }
 
 model Profile {
@@ -568,4 +657,81 @@ model HealthDailySummary {
   @@unique([userId, localDate, sourceProvider])
   @@index([userId, localDate])
   @@index([sourceProvider, localDate])
+}
+
+model Exercise {
+  id                     String                         @id @default(cuid())
+  slug                   String                         @unique
+  category               ExerciseCategory
+  movementPattern        MovementPattern
+  equipment              ExerciseEquipment[]            @default([])
+  targetMuscles          TargetMuscleGroup[]             @default([])
+  secondaryMuscles       TargetMuscleGroup[]             @default([])
+  trainingLevels         TrainingLevel[]                 @default([])
+  contraindicationTags   ExerciseContraindicationTag[]   @default([])
+  isActive               Boolean                         @default(true)
+  sortOrder              Int                             @default(0)
+  createdAt              DateTime                        @default(now())
+  updatedAt              DateTime                        @updatedAt
+  translations           ExerciseTranslation[]
+  media                  ExerciseMedia[]
+
+  @@index([isActive, sortOrder, slug])
+  @@index([category, isActive])
+  @@index([movementPattern, isActive])
+}
+
+model ExerciseTranslation {
+  id             String          @id @default(cuid())
+  exerciseId     String
+  locale         PreferredLocale
+  name           String
+  description    String?
+  instructions   String[]        @default([])
+  coachingCues   String[]        @default([])
+  safetyNotes    String[]        @default([])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  exercise       Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, locale])
+  @@index([locale, name])
+}
+
+model ExerciseMedia {
+  id             String                     @id @default(cuid())
+  exerciseId     String
+  seedKey        String?                    @unique
+  type           ExerciseMediaType
+  url            String
+  thumbnailUrl   String?
+  width          Int?
+  height         Int?
+  sortOrder      Int                        @default(0)
+  isPrimary      Boolean                    @default(false)
+  isActive       Boolean                    @default(true)
+  source         String?
+  license        String?
+  attribution    String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  exercise       Exercise                   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  translations   ExerciseMediaTranslation[]
+
+  @@index([exerciseId, isActive, sortOrder])
+  @@index([exerciseId, isPrimary, isActive])
+}
+
+model ExerciseMediaTranslation {
+  id                String          @id @default(cuid())
+  exerciseMediaId   String
+  locale            PreferredLocale
+  altText           String
+  caption           String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  exerciseMedia     ExerciseMedia   @relation(fields: [exerciseMediaId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseMediaId, locale])
+  @@index([locale])
 }

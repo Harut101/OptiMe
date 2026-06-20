@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Alert } from 'react-native';
 import { loginSchema } from '@optime/shared-schemas';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 
 import { loginUser } from '@/api/auth';
 import { Button } from '@/components/Button';
@@ -16,6 +17,7 @@ import { useAuthStore } from '@/store/auth-store';
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const setSession = useAuthStore((state) => state.setSession);
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -31,25 +33,25 @@ export default function LoginScreen() {
       await setSession(data.accessToken, data.user);
       router.replace('/');
     },
-    onError: (error) => Alert.alert('Login failed', error.message)
+    onError: () => Alert.alert(t('auth.loginFailed'), t('errors.network'))
   });
 
   return (
     <Screen>
-      <Text variant="heading">Welcome back</Text>
-      <Text variant="muted">Log in to continue your daily plan flow.</Text>
+      <Text variant="heading">{t('auth.welcomeBack')}</Text>
+      <Text variant="muted">{t('auth.loginMessage')}</Text>
 
       <Controller
         control={form.control}
         name="email"
         render={({ field, fieldState }) => (
           <Field
-            label="Email"
+            label={t('auth.email')}
             autoCapitalize="none"
             keyboardType="email-address"
             value={field.value}
             onChangeText={field.onChange}
-            error={fieldState.error?.message}
+            error={fieldState.error ? t('errors.validation') : undefined}
           />
         )}
       />
@@ -58,21 +60,21 @@ export default function LoginScreen() {
         name="password"
         render={({ field, fieldState }) => (
           <Field
-            label="Password"
+            label={t('auth.password')}
             secureTextEntry
             value={field.value}
             onChangeText={field.onChange}
-            error={fieldState.error?.message}
+            error={fieldState.error ? t('errors.validation') : undefined}
           />
         )}
       />
 
       <Button
-        title={mutation.isPending ? 'Logging in...' : 'Log in'}
+        title={mutation.isPending ? t('auth.loggingIn') : t('auth.login')}
         disabled={mutation.isPending}
         onPress={form.handleSubmit((values) => mutation.mutate(values))}
       />
-      <Button title="Create account" variant="ghost" onPress={() => router.push('/(auth)/register')} />
+      <Button title={t('auth.createAccount')} variant="ghost" onPress={() => router.push('/(auth)/register')} />
     </Screen>
   );
 }

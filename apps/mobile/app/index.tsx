@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Redirect } from 'expo-router';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { getMe } from '@/api/auth';
 import { getOnboardingStatus } from '@/api/onboarding';
@@ -39,6 +40,7 @@ function firstOnboardingRoute(status: Awaited<ReturnType<typeof getOnboardingSta
 }
 
 export default function IndexScreen() {
+  const { t } = useTranslation();
   const hydrated = useAuthStore((state) => state.hydrated);
   const token = useAuthStore((state) => state.accessToken);
   const setUser = useAuthStore((state) => state.setUser);
@@ -62,7 +64,7 @@ export default function IndexScreen() {
   }, [me.data, setUser]);
 
   if (!hydrated) {
-    return <StateBlock title="Getting things ready" message="Checking your session." />;
+    return <StateBlock title={t('auth.preparing')} message={t('auth.checkingSession')} />;
   }
 
   if (!token) {
@@ -74,7 +76,7 @@ export default function IndexScreen() {
   }
 
   if (!onboarding.data) {
-    return <StateBlock title="Loading your setup" message="We are preparing your next step." />;
+    return <StateBlock title={t('auth.loadingSetup')} message={t('auth.preparingNextStep')} />;
   }
 
   return <Redirect href={firstOnboardingRoute(onboarding.data)} />;

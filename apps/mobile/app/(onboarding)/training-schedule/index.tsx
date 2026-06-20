@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Href, router } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   deleteTrainingScheduleItem,
@@ -12,11 +13,13 @@ import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
+import { getIntensityLabel, getSportTypeLabel } from '@/i18n/enum-labels';
 
-const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const TRAINING_PREFERENCES_ROUTE = '/(onboarding)/training-preferences' as Href;
 
 export default function TrainingScheduleScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const schedule = useQuery({
     queryKey: ['training-schedule'],
@@ -25,7 +28,7 @@ export default function TrainingScheduleScreen() {
   const deleteMutation = useMutation({
     mutationFn: deleteTrainingScheduleItem,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-schedule'] }),
-    onError: (error) => Alert.alert('Could not delete workout', error.message)
+    onError: () => Alert.alert(t('schedule.deleteFailed'), t('errors.unableSave'))
   });
   const intentMutation = useMutation({
     mutationFn: updateTrainingIntent,
@@ -33,20 +36,20 @@ export default function TrainingScheduleScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.replace('/(tabs)/today');
     },
-    onError: (error) => Alert.alert('Training intent was not saved', error.message)
+    onError: () => Alert.alert(t('errors.unableSave'), t('errors.network'))
   });
 
   if (schedule.isLoading) {
-    return <StateBlock title="Loading schedule" message="Checking your weekly training setup." />;
+    return <StateBlock title={t('schedule.loading')} message={t('schedule.loadingMessage')} />;
   }
 
   if (schedule.isError) {
     return (
       <Screen>
         <StateBlock
-          title="Schedule unavailable"
-          message={schedule.error.message}
-          actionTitle="Try again"
+          title={t('schedule.unavailable')}
+          message={t('errors.unableLoad')}
+          actionTitle={t('common.retry')}
           onAction={() => schedule.refetch()}
         />
       </Screen>
@@ -57,16 +60,14 @@ export default function TrainingScheduleScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Training schedule</Text>
-      <Text variant="muted">
-        Add a planned session if you have one, or choose a light, safe starting point for today.
-      </Text>
+      <Text variant="heading">{t('schedule.title')}</Text>
+      <Text variant="muted">{t('schedule.intro')}</Text>
 
       {items.length === 0 ? (
         <StateBlock
-          title="No workouts yet"
-          message="Add at least one planned session, or choose no training planned yet."
-          actionTitle="Add workout"
+          title={t('schedule.noWorkouts')}
+          message={t('schedule.noWorkoutsMessage')}
+          actionTitle={t('schedule.addWorkout')}
           onAction={() => router.push('/(onboarding)/training-schedule/create')}
         />
       ) : (
@@ -75,18 +76,18 @@ export default function TrainingScheduleScreen() {
             <View style={styles.row}>
               <View style={styles.grow}>
                 <Text variant="label">
-                  {days[item.dayOfWeek]} at {item.localTime}
+                  {t(`enums.weekdays.${DAY_KEYS[item.dayOfWeek]}` as never)} {t('common.at')} {item.localTime}
                 </Text>
                 <Text variant="body">
-                  {item.sportType.replace('_', ' ')} - {item.durationMinutes} min -{' '}
-                  {item.intensity.toLowerCase()}
+                  {getSportTypeLabel(t, item.sportType)} - {item.durationMinutes} {t('common.minutesShort')} -{' '}
+                  {getIntensityLabel(t, item.intensity)}
                 </Text>
                 {item.description ? <Text variant="muted">{item.description}</Text> : null}
               </View>
             </View>
             <View style={styles.actions}>
               <Button
-                title="Edit"
+                title={t('common.edit')}
                 variant="secondary"
                 onPress={() =>
                   router.push({
@@ -103,28 +104,28 @@ export default function TrainingScheduleScreen() {
                   })
                 }
               />
-              <Button title="Delete" variant="danger" onPress={() => deleteMutation.mutate(item.id)} />
+              <Button title={t('common.delete')} variant="danger" onPress={() => deleteMutation.mutate(item.id)} />
             </View>
           </Card>
         ))
       )}
 
       <Button
-        title="Add workout"
+        title={t('schedule.addWorkout')}
         variant="secondary"
         onPress={() => router.push('/(onboarding)/training-schedule/create')}
       />
       <Button
-        title="Personalize training (optional)"
+        title={t('schedule.personalize')}
         variant="secondary"
         onPress={() => router.push(TRAINING_PREFERENCES_ROUTE)}
       />
       {items.length === 0 ? (
         <Card>
-          <Text variant="label">No training planned yet</Text>
-          <Text variant="muted">We'll keep today's training guidance light and safe.</Text>
+          <Text variant="label">{t('schedule.noTraining')}</Text>
+          <Text variant="muted">{t('schedule.noTrainingHelp')}</Text>
           <Button
-            title={intentMutation.isPending ? 'Saving...' : 'No training planned yet'}
+            title={intentMutation.isPending ? t('common.saving') : t('schedule.noTraining')}
             variant="secondary"
             disabled={intentMutation.isPending}
             onPress={() => intentMutation.mutate({ noTrainingPlanned: true })}
@@ -132,7 +133,7 @@ export default function TrainingScheduleScreen() {
         </Card>
       ) : null}
       <Button
-        title="Continue to Today"
+        title={t('onboarding.continueToday')}
         disabled={items.length === 0}
         onPress={async () => {
           await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });

@@ -1,4 +1,5 @@
 import type { DailyPlanResponse } from '@/types/api';
+import type { TFunction } from 'i18next';
 
 export const WELLNESS_DISCLAIMER =
   'OptiMe is an AI wellness assistant, not a medical service. It does not diagnose or treat medical conditions. For injuries, pregnancy/postpartum concerns, medical symptoms, or major lifestyle changes, consider consulting a qualified professional.';
@@ -17,11 +18,11 @@ export function getPlanSafetyMessage(planResponse?: DailyPlanResponse | null) {
   return plan.safety.userSafeMessage ?? mapSafetyReasonsToUserMessage(plan.safety.reasons);
 }
 
-export function getFriendlyGoalErrorMessage(error: Error) {
+export function getFriendlyGoalErrorMessage(error: Error, t?: TFunction) {
   const message = error.message.toLowerCase();
 
   if (message.includes('steadier goal') || message.includes('weight goal')) {
-    return "Let's choose a steadier goal that supports energy, training, and recovery.";
+    return t?.('safety.goalSteady' as never) ?? "Let's choose a steadier goal that supports energy, training, and recovery.";
   }
 
   if (
@@ -29,14 +30,14 @@ export function getFriendlyGoalErrorMessage(error: Error) {
     message.includes('postpartum') ||
     message.includes('breastfeeding')
   ) {
-    return 'For this health context, OptiMe keeps goals focused on steady energy, recovery, hydration, and balanced habits.';
+    return t?.('safety.goalHealthContext' as never) ?? 'For this health context, OptiMe keeps goals focused on steady energy, recovery, hydration, and balanced habits.';
   }
 
   if (message.includes('profile')) {
-    return 'Please finish your profile first so we can keep this goal safe and realistic.';
+    return t?.('safety.goalProfile' as never) ?? 'Please finish your profile first so we can keep this goal safe and realistic.';
   }
 
-  return 'Please adjust this goal and try again. We want the plan to stay safe, steady, and practical.';
+  return t?.('safety.goalGeneric' as never) ?? 'Please adjust this goal and try again. We want the plan to stay safe, steady, and practical.';
 }
 
 function mapSafetyReasonsToUserMessage(reasons: string[]) {

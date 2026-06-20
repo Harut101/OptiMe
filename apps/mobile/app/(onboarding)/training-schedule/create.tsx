@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { createTrainingScheduleItem } from '@/api/training-schedule';
 import { TrainingScheduleForm, TrainingScheduleFormValues } from '@/features/training-schedule/TrainingScheduleForm';
 
 export default function CreateTrainingScheduleScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: createTrainingScheduleItem,
@@ -14,13 +16,13 @@ export default function CreateTrainingScheduleScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.replace('/(onboarding)/training-schedule');
     },
-    onError: (error) => Alert.alert('Workout was not saved', error.message)
+    onError: () => Alert.alert(t('schedule.saveFailed'), t('errors.unableSave'))
   });
 
   return (
     <TrainingScheduleForm
-      title="Add workout"
-      submitTitle={mutation.isPending ? 'Saving...' : 'Save workout'}
+      title={t('schedule.addWorkout')}
+      submitTitle={mutation.isPending ? t('common.saving') : t('schedule.saveWorkout')}
       disabled={mutation.isPending}
       defaultValues={{
         dayOfWeek: '1',

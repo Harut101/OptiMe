@@ -11,8 +11,11 @@ Health and Connections are Profile sections, not primary tabs. Workout create/ed
 
 Standalone editors keep local draft state. Switching tabs does not save or reset a draft; removing an editor with unsaved changes prompts before discarding it.
 
-New copy uses stable enum values for persistence. User-facing labels remain separate so a later localization layer can translate labels without changing API identities.
+Bottom-tab and stack shell labels now use i18next translation keys for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. Stable route names and persisted enums remain unchanged. Feature-screen copy that has not yet moved into resources falls back to its current English text.
 
 Profile → Personal opens the nested `/goal-editor` route for post-onboarding goal changes. Food, Training, Personal, and Goals compare each draft with its last persisted baseline. Save is disabled without a real change or while saving; Cancel restores that baseline; guarded back navigation prompts only while dirty.
 
 See `sprint-8b-mobile-qa.md` for the manual iPhone checklist covering safe areas, keyboards, scrolling, and tab fit.
+## Localized navigation
+
+The four tab labels and stack titles use translation keys. Profile's internal Personal, Health, Connections, and Settings navigation supports wrapping/longer labels without adding locale-specific routes. Route names and persisted navigation state remain language-neutral.

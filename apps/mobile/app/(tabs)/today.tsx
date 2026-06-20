@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
@@ -21,6 +22,10 @@ import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { colors } from '@/theme/colors';
+import { formatTime } from '@/i18n/formatters';
+import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
+import { useSettingsStore } from '@/store/settings-store';
+import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
 import type {
   ProgressivePrompt,
   UsageFeature,
@@ -29,6 +34,8 @@ import type {
 } from '@/types/api';
 
 export default function TodayScreen() {
+  const { t } = useTranslation();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
@@ -52,7 +59,7 @@ export default function TodayScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
     },
     onError: (error) =>
-      Alert.alert('Could not save this answer', `${error.message}\n\nYou can keep using Today.`)
+      Alert.alert(t('today.answerSaveFailed'), `${t('errors.unableSave')}\n\n${t('today.keepUsingToday')}`)
   });
   const skipPrompt = useMutation({
     mutationFn: skipProgressivePrompt,
@@ -61,7 +68,7 @@ export default function TodayScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
     },
     onError: (error) =>
-      Alert.alert('Could not skip this prompt', `${error.message}\n\nYou can keep using Today.`)
+      Alert.alert(t('today.promptSkipFailed'), `${t('errors.unableSave')}\n\n${t('today.keepUsingToday')}`)
   });
   const generate = useMutation({
     mutationFn: (forceRegenerate: boolean) => generateTodayPlan(forceRegenerate),
@@ -72,24 +79,24 @@ export default function TodayScreen() {
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
       await queryClient.refetchQueries({ queryKey: ['usage-summary'], type: 'active' });
       setLimitMessage(null);
-      setRefreshMessage(forceRegenerate ? 'Plan refreshed' : 'Plan generated.');
+      setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
     },
     onError: (error) => {
       const usageLimit = getUsageLimitError(error);
       const onboardingError = getOnboardingIncompleteError(error);
 
       if (usageLimit) {
-        setLimitMessage(formatUsageLimitMessage(usageLimit));
+        setLimitMessage(formatUsageLimitMessage(usageLimit, t, preferredLocale));
         return;
       }
 
       if (onboardingError) {
         Alert.alert(
-          'A little setup is needed',
-          'Please finish the required basics so we can keep your first plan safe.',
+          t('today.setupNeeded'),
+          t('today.setupNeededMessage'),
           [
             {
-              text: 'Continue setup',
+              text: t('today.continueSetup'),
               onPress: () => router.push(routeForMissingStage1Fields(onboardingError.missingStage1Fields))
             }
           ]
@@ -97,21 +104,21 @@ export default function TodayScreen() {
         return;
       }
 
-      Alert.alert('Plan update failed', error.message);
+      Alert.alert(t('today.updateFailed'), t('errors.network'));
     }
   });
 
   if (today.isLoading) {
-    return <StateBlock title="Loading Today" message="Checking whether a plan already exists." />;
+    return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
   }
 
   if (today.isError) {
     return (
       <Screen>
         <StateBlock
-          title="Today is unavailable"
-          message={today.error.message}
-          actionTitle="Try again"
+          title={t('today.unavailable')}
+          message={t('errors.unableLoad')}
+          actionTitle={t('common.retry')}
           onAction={() => today.refetch()}
         />
       </Screen>
@@ -128,9 +135,9 @@ export default function TodayScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text variant="label">Today</Text>
-        <Text variant="title">Steady, practical, ready.</Text>
-        <Text variant="muted">A simple plan for food, training, hydration, and recovery today.</Text>
+        <Text variant="label">{t('today.title')}</Text>
+        <Text variant="title">{t('today.tagline')}</Text>
+        <Text variant="muted">{t('today.intro')}</Text>
       </View>
 
       <UsageStatus
@@ -141,9 +148,9 @@ export default function TodayScreen() {
 
       {limitMessage ? (
         <Card>
-          <Text variant="label">Limit reached</Text>
+          <Text variant="label">{t('today.limitReached')}</Text>
           <Text variant="body">{limitMessage}</Text>
-          <Text variant="muted">Upgrade options coming soon.</Text>
+          <Text variant="muted">{t('today.upgradeSoon')}</Text>
         </Card>
       ) : null}
 
@@ -159,9 +166,9 @@ export default function TodayScreen() {
       {!today.data || !plan ? (
         <>
           <StateBlock
-            title="No plan yet"
-            message="Generate a simple plan for food, training, hydration, and recovery today."
-            actionTitle={generate.isPending ? 'Generating...' : 'Generate today plan'}
+            title={t('today.noPlan')}
+            message={t('today.noPlanMessage')}
+            actionTitle={generate.isPending ? t('today.generating') : t('today.generate')}
             onAction={() => generate.mutate(false)}
           />
         </>
@@ -169,46 +176,46 @@ export default function TodayScreen() {
         <>
           <Card>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{today.data.readinessLevel}</Text>
+              <Text style={styles.badgeText}>{t(`enums.readiness.${today.data.readinessLevel}` as never)}</Text>
             </View>
             {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
             <Text variant="heading">{plan.summary.title}</Text>
             <Text variant="muted">{plan.summary.message}</Text>
-            <Text variant="muted">Updated {formatUpdatedAt(today.data.updatedAt)}</Text>
+            <Text variant="muted">{t('today.updatedAt', { time: formatTime(today.data.updatedAt, preferredLocale) })}</Text>
           </Card>
 
           {safetyMessage ? (
             <Card>
-              <Text variant="label">Safety note</Text>
+              <Text variant="label">{t('today.safetyNote')}</Text>
               <Text variant="body">{safetyMessage}</Text>
             </Card>
           ) : null}
 
           <Card>
-            <Text variant="label">Nutrition</Text>
+            <Text variant="label">{t('today.nutrition')}</Text>
             <Text variant="body">{plan.nutrition.calorieGuidance.notes}</Text>
             <Text variant="muted">{plan.nutrition.macroGuidance.notes}</Text>
             <Text variant="muted">
-              Protein: {plan.nutrition.macroGuidance.protein} - Carbs:{' '}
-              {plan.nutrition.macroGuidance.carbs} - Fat: {plan.nutrition.macroGuidance.fat}
+              {t('today.protein')}: {plan.nutrition.macroGuidance.protein} - {t('today.carbs')}:{' '}
+              {plan.nutrition.macroGuidance.carbs} - {t('today.fat')}: {plan.nutrition.macroGuidance.fat}
             </Text>
           </Card>
 
           <Card>
-            <Text variant="label">Training</Text>
+            <Text variant="label">{t('today.training')}</Text>
             <Text variant="body">{plan.training.recommendation}</Text>
             <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
           </Card>
 
           <Card>
-            <Text variant="label">Recovery</Text>
+            <Text variant="label">{t('today.recovery')}</Text>
             <Text variant="body">{plan.recovery.recommendation}</Text>
             <Text variant="muted">{plan.nutrition.hydration.guidance}</Text>
           </Card>
 
-          <Button title="View plan details" onPress={() => router.push('/plan-details')} />
+          <Button title={t('today.details')} onPress={() => router.push('/plan-details')} />
           <Button
-            title={generate.isPending ? 'Refreshing...' : 'Refresh plan'}
+            title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
             variant="secondary"
             disabled={generate.isPending}
             onPress={() => generate.mutate(true)}
@@ -230,9 +237,11 @@ function ProgressivePromptCard({
   onAnswer: (value: string | string[] | number | boolean) => void;
   onSkip: () => void;
 }) {
+  const { t } = useTranslation();
   const [textValue, setTextValue] = useState('');
   const [singleValue, setSingleValue] = useState(prompt.options?.[0]?.value ?? '');
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const promptCopy = getProgressivePromptCopy(t, prompt);
 
   useEffect(() => {
     setTextValue('');
@@ -245,7 +254,7 @@ function ProgressivePromptCard({
       const parsedValue = Number(textValue);
 
       if (!Number.isFinite(parsedValue)) {
-        Alert.alert('One quick detail', 'Please enter a number, or skip this for now.');
+        Alert.alert(t('today.quickDetail'), t('today.numberNeeded'));
         return;
       }
 
@@ -255,7 +264,7 @@ function ProgressivePromptCard({
 
     if (prompt.inputType === 'multiSelect') {
       if (selectedValues.length === 0) {
-        Alert.alert('One quick detail', 'Choose at least one option, or skip this for now.');
+        Alert.alert(t('today.quickDetail'), t('today.optionsNeeded'));
         return;
       }
 
@@ -265,7 +274,7 @@ function ProgressivePromptCard({
 
     if (prompt.inputType === 'singleSelect') {
       if (!singleValue) {
-        Alert.alert('One quick detail', 'Choose an option, or skip this for now.');
+        Alert.alert(t('today.quickDetail'), t('today.optionNeeded'));
         return;
       }
 
@@ -274,7 +283,7 @@ function ProgressivePromptCard({
     }
 
     if (!textValue.trim()) {
-      Alert.alert('One quick detail', 'Add an answer, or skip this for now.');
+      Alert.alert(t('today.quickDetail'), t('today.answerNeeded'));
       return;
     }
 
@@ -284,15 +293,15 @@ function ProgressivePromptCard({
   return (
     <Card>
       <View style={styles.promptHeader}>
-        <Text variant="label">Improve future plans</Text>
-        <Text variant="heading">{prompt.title}</Text>
-        <Text variant="muted">{prompt.description}</Text>
+        <Text variant="label">{t('today.improvePlans')}</Text>
+        <Text variant="heading">{promptCopy.title}</Text>
+        <Text variant="muted">{promptCopy.description}</Text>
       </View>
 
       {prompt.inputType === 'stringList' ? (
         <Field
-          label="Your answer"
-          placeholder="Separate items with commas"
+          label={t('today.yourAnswer')}
+          placeholder={t('today.listPlaceholder')}
           value={textValue}
           onChangeText={setTextValue}
         />
@@ -300,7 +309,7 @@ function ProgressivePromptCard({
 
       {prompt.inputType === 'number' ? (
         <Field
-          label="Your answer"
+          label={t('today.yourAnswer')}
           keyboardType="numeric"
           value={textValue}
           onChangeText={setTextValue}
@@ -309,10 +318,10 @@ function ProgressivePromptCard({
 
       {prompt.inputType === 'singleSelect' && prompt.options ? (
         <SelectChips
-          label="Choose one"
+          label={t('today.chooseOne')}
           value={singleValue}
           onChange={setSingleValue}
-          options={prompt.options}
+          options={prompt.options.map((option) => ({ ...option, label: getProgressiveOptionLabel(t, prompt.key, option.value, option.label) }))}
         />
       ) : null}
 
@@ -324,7 +333,7 @@ function ProgressivePromptCard({
           />
         ) : (
         <View style={styles.multiSelectWrap}>
-          <Text variant="label">Choose any that fit</Text>
+          <Text variant="label">{t('today.chooseAny')}</Text>
           <View style={styles.multiSelectRow}>
             {prompt.options.map((option) => {
               const active = selectedValues.includes(option.value);
@@ -341,7 +350,7 @@ function ProgressivePromptCard({
                   style={[styles.multiChip, active ? styles.multiChipActive : null]}
                 >
                   <Text style={[styles.multiChipText, active ? styles.multiChipTextActive : null]}>
-                    {option.label}
+                    {getProgressiveOptionLabel(t, prompt.key, option.value, option.label)}
                   </Text>
                 </Pressable>
               );
@@ -353,13 +362,13 @@ function ProgressivePromptCard({
 
       <View style={styles.promptActions}>
         <Button
-          title={isSaving ? 'Saving...' : 'Answer'}
+          title={isSaving ? t('common.saving') : t('today.answer')}
           disabled={isSaving}
           onPress={handleAnswer}
           style={styles.promptButton}
         />
         <Button
-          title="Skip for now"
+          title={t('today.skip')}
           variant="ghost"
           disabled={isSaving}
           onPress={onSkip}
@@ -379,11 +388,12 @@ function UsageStatus({
   generationUsage?: UsageSummaryItem;
   refreshUsage?: UsageSummaryItem;
 }) {
+  const { t } = useTranslation();
   if (isUnavailable) {
     return (
       <Card>
-        <Text variant="label">Plan usage</Text>
-        <Text variant="muted">Plan details unavailable</Text>
+        <Text variant="label">{t('today.planUsage')}</Text>
+        <Text variant="muted">{t('today.usageUnavailable')}</Text>
       </Card>
     );
   }
@@ -394,14 +404,14 @@ function UsageStatus({
 
   return (
     <Card>
-      <Text variant="label">Plan usage</Text>
+      <Text variant="label">{t('today.planUsage')}</Text>
       {generationUsage ? (
         <Text variant="muted">
-          Generations left today: {generationUsage.remaining}
+          {t('today.generationsLeft', { count: generationUsage.remaining })}
         </Text>
       ) : null}
       {refreshUsage ? (
-        <Text variant="muted">Refreshes left today: {refreshUsage.remaining}</Text>
+        <Text variant="muted">{t('today.refreshesLeft', { count: refreshUsage.remaining })}</Text>
       ) : null}
     </Card>
   );
@@ -456,51 +466,38 @@ function routeForMissingStage1Fields(missingFields: string[]) {
   return '/(onboarding)/training-schedule' as const;
 }
 
-function formatUsageLimitMessage(error: UsageLimitExceededError) {
-  const action = getUsageFeatureLabel(error.feature);
-  const reset = formatResetAt(error.resetAt);
-
-  return [
-    "You've reached today's limit for this plan.",
-    `Your ${formatPlan(error.currentPlan)} plan includes ${error.limit} ${action} per day.`,
-    reset ? `Try again after ${reset}.` : 'Try again after reset.'
-  ].join(' ');
+function formatUsageLimitMessage(error: UsageLimitExceededError, t: ReturnType<typeof useTranslation>['t'], locale: string) {
+  const action = getUsageFeatureLabel(error.feature, t);
+  const resetAt = formatResetAt(error.resetAt, locale);
+  const reset = resetAt ? t('today.tryAfter', { time: resetAt }) : t('today.tryAfterReset');
+  return t('today.limitMessage', {
+    plan: getSubscriptionPlanLabel(t, error.currentPlan),
+    limit: error.limit,
+    action,
+    reset
+  });
 }
 
-function getUsageFeatureLabel(feature: UsageFeature) {
+function getUsageFeatureLabel(feature: UsageFeature, t: ReturnType<typeof useTranslation>['t']) {
   if (feature === 'DAILY_PLAN_REFRESH') {
-    return 'refresh';
+    return t('today.usageRefresh');
   }
 
   if (feature === 'AI_DAILY_PLAN_GENERATION') {
-    return 'AI plan generation';
+    return t('today.usageAiGeneration');
   }
 
-  return 'plan generation';
+  return t('today.usageGeneration');
 }
 
-function formatPlan(plan: string) {
-  return plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase();
-}
-
-function formatResetAt(value: string) {
+function formatResetAt(value: string, locale: string) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return null;
   }
 
-  return date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-function formatUpdatedAt(value: string) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return formatTime(date, locale);
 }
 
 const styles = StyleSheet.create({

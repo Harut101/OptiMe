@@ -8,7 +8,7 @@ export async function registerTestUser(app: INestApplication, email = uniqueEmai
       email,
       password: 'password123',
       timezone: 'UTC',
-      locale: 'en',
+      locale: 'en-US',
       privacyConsentAccepted: true
     })
     .expect(201);

@@ -1,5 +1,34 @@
 export type SprintOnePlan = 'FREE';
 
+export const SUPPORTED_LOCALES = ['en-US', 'ru-RU', 'fr-FR', 'zh-CN'] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
+
+export const MEASUREMENT_SYSTEMS = ['METRIC', 'IMPERIAL'] as const;
+export type MeasurementSystem = (typeof MEASUREMENT_SYSTEMS)[number];
+
+export function isSupportedLocale(value: string): value is SupportedLocale {
+  return SUPPORTED_LOCALES.includes(value as SupportedLocale);
+}
+
+export function resolveSupportedLocale(value?: string | null): SupportedLocale {
+  if (!value) return DEFAULT_LOCALE;
+  if (isSupportedLocale(value)) return value;
+
+  const normalized = value.replace('_', '-').toLowerCase();
+  if (normalized.startsWith('en-') || normalized === 'en') return 'en-US';
+  if (normalized.startsWith('ru-') || normalized === 'ru') return 'ru-RU';
+  if (normalized.startsWith('fr-') || normalized === 'fr') return 'fr-FR';
+  if (
+    normalized === 'zh-cn' ||
+    normalized === 'zh-sg' ||
+    normalized === 'zh-hans' ||
+    normalized.startsWith('zh-hans-')
+  ) return 'zh-CN';
+
+  return DEFAULT_LOCALE;
+}
+
 export interface ApiEnvelope<T> {
   data: T;
 }
@@ -48,30 +77,94 @@ export type TrainingOutcome =
   | 'ENDURANCE'
   | 'MOBILITY'
   | 'GENERAL_FITNESS';
-export type TrainingLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-export type TargetMuscleGroup =
-  | 'CHEST'
-  | 'TRAPS'
-  | 'LATS'
-  | 'LOWER_BACK'
-  | 'ABS'
-  | 'OBLIQUES'
-  | 'BICEPS'
-  | 'TRICEPS'
-  | 'FOREARMS'
-  | 'QUADRICEPS'
-  | 'HAMSTRINGS'
-  | 'ADDUCTORS'
-  | 'ABDUCTORS'
-  | 'CALVES'
-  | 'BACK'
-  | 'LEGS'
-  | 'GLUTES'
-  | 'CORE'
-  | 'SHOULDERS'
-  | 'ARMS'
-  | 'FULL_BODY';
+export const TRAINING_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+export type TrainingLevel = (typeof TRAINING_LEVELS)[number];
+export const TARGET_MUSCLE_GROUPS = ['CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES', 'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY'] as const;
+export type TargetMuscleGroup = (typeof TARGET_MUSCLE_GROUPS)[number];
 export type TrainingEquipment = 'GYM' | 'HOME' | 'DUMBBELLS' | 'BODYWEIGHT' | 'MACHINES';
+
+export const EXERCISE_CATEGORIES = ['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY'] as const;
+export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
+export const EXERCISE_EQUIPMENT = ['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE'] as const;
+export type ExerciseEquipment = (typeof EXERCISE_EQUIPMENT)[number];
+export const MOVEMENT_PATTERNS = ['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY'] as const;
+export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+export const EXERCISE_CONTRAINDICATION_TAGS = ['WRIST_LOAD', 'ELBOW_LOAD', 'SHOULDER_LOAD', 'KNEE_LOAD', 'LOWER_BACK_LOAD', 'OVERHEAD_POSITION', 'BALANCE_REQUIRED', 'HIGH_IMPACT', 'PRONE_POSITION', 'SUPINE_POSITION', 'PREGNANCY_REVIEW', 'POSTPARTUM_REVIEW'] as const;
+export type ExerciseContraindicationTag = (typeof EXERCISE_CONTRAINDICATION_TAGS)[number];
+export const EXERCISE_MEDIA_TYPES = ['PRIMARY', 'TECHNIQUE', 'ANATOMY', 'ALTERNATE'] as const;
+export type ExerciseMediaType = (typeof EXERCISE_MEDIA_TYPES)[number];
+export type ExerciseTrainingLevel = TrainingLevel;
+
+export interface ExerciseThumbnail {
+  url: string;
+  altText: string;
+}
+
+export interface ExerciseListItem {
+  id: string;
+  slug: string;
+  name: string;
+  category: ExerciseCategory;
+  targetMuscles: TargetMuscleGroup[];
+  equipment: ExerciseEquipment[];
+  thumbnail: ExerciseThumbnail | null;
+  resolvedLocale: SupportedLocale;
+}
+
+export interface ExerciseMediaItem {
+  id: string;
+  type: ExerciseMediaType;
+  url: string;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  altText: string;
+  caption: string | null;
+}
+
+export interface ExerciseDetail {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: ExerciseCategory;
+  movementPattern: MovementPattern;
+  equipment: ExerciseEquipment[];
+  targetMuscles: TargetMuscleGroup[];
+  secondaryMuscles: TargetMuscleGroup[];
+  trainingLevels: ExerciseTrainingLevel[];
+  instructions: string[];
+  coachingCues: string[];
+  safetyNotes: string[];
+  contraindicationTags: ExerciseContraindicationTag[];
+  media: ExerciseMediaItem[];
+  resolvedLocale: SupportedLocale;
+}
+
+export interface ExerciseListFilters {
+  category?: ExerciseCategory;
+  equipment?: ExerciseEquipment;
+  targetMuscle?: TargetMuscleGroup;
+  trainingLevel?: ExerciseTrainingLevel;
+  movementPattern?: MovementPattern;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface ExerciseListResponse {
+  items: ExerciseListItem[];
+  pagination: PaginationMeta;
+}
 
 export interface RegisterRequest {
   email: string;

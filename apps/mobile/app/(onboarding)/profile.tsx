@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { profileSchema } from '@optime/shared-schemas';
 
 import { saveProfile } from '@/api/profile';
@@ -18,6 +19,7 @@ import { WELLNESS_DISCLAIMER } from '@/features/safety/safety-copy';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ProfileSetupScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
   const [value, setValue] = useState(EMPTY_PERSONAL_PROFILE);
@@ -28,7 +30,7 @@ export default function ProfileSetupScreen() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.push('/(onboarding)/goal');
     },
-    onError: (error) => Alert.alert('Profile was not saved', error.message)
+    onError: () => Alert.alert(t('onboarding.profileNotSaved'), t('errors.unableSave'))
   });
 
   const continueOnboarding = () => {
@@ -36,7 +38,7 @@ export default function ProfileSetupScreen() {
     const result = profileSchema.safeParse({ ...request, privacyConsentAccepted: true });
 
     if (!result.success) {
-      Alert.alert('Check your profile', result.error.issues[0]?.message ?? 'Please review the fields.');
+      Alert.alert(t('onboarding.checkProfile'), t('errors.validation'));
       return;
     }
 
@@ -45,17 +47,15 @@ export default function ProfileSetupScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Your foundation</Text>
-      <Text variant="muted">
-        This helps OptiMe keep recommendations age-aware and practical. Safe mode is managed by the backend.
-      </Text>
+      <Text variant="heading">{t('onboarding.foundationTitle')}</Text>
+      <Text variant="muted">{t('onboarding.foundationMessage')}</Text>
       <Card>
-        <Text variant="label">Safety note</Text>
+        <Text variant="label">{t('onboarding.safetyNote')}</Text>
         <Text variant="muted">{WELLNESS_DISCLAIMER}</Text>
       </Card>
       <PersonalProfileForm value={value} onChange={setValue} />
       <Button
-        title={mutation.isPending ? 'Saving...' : 'Continue'}
+        title={mutation.isPending ? t('common.saving') : t('common.continue')}
         disabled={mutation.isPending}
         onPress={continueOnboarding}
       />

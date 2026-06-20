@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { getTrainingPreferences, saveTrainingPreferences } from '@/api/training-preferences';
 import { deleteTrainingScheduleItem, getTrainingSchedule } from '@/api/training-schedule';
@@ -22,10 +23,12 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import type { TrainingScheduleItem } from '@/types/api';
+import { getEquipmentLabel, getIntensityLabel, getMuscleGroupLabel, getSportTypeLabel, getTrainingLevelLabel, getTrainingOutcomeLabel } from '@/i18n/enum-labels';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 export default function TrainingScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: ['training-preferences'], queryFn: getTrainingPreferences });
   const schedule = useQuery({ queryKey: ['training-schedule'], queryFn: getTrainingSchedule });
@@ -52,25 +55,25 @@ export default function TrainingScreen() {
       setValue(next);
       setSavedValue(next);
       setEditing(false);
-      setSuccessMessage('Your updated preferences will be used for future plans.');
+      setSuccessMessage(t('training.savedMessage'));
       queryClient.setQueryData(['training-preferences'], data);
     }
   });
   const deleteMutation = useMutation({
     mutationFn: deleteTrainingScheduleItem,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-schedule'] }),
-    onError: (error) => Alert.alert('Could not delete workout', error.message)
+    onError: () => Alert.alert(t('schedule.deleteFailed'), t('errors.unableSave'))
   });
 
   if (preferences.isLoading || schedule.isLoading) {
-    return <Screen><StateBlock title="Loading training setup" message="Checking your preferences and weekly schedule." /></Screen>;
+    return <Screen><StateBlock title={t('common.loading')} message={t('training.loadingMessage')} /></Screen>;
   }
 
   if (preferences.isError || schedule.isError) {
     const message = preferences.error?.message ?? schedule.error?.message ?? 'Training setup is unavailable.';
     return (
       <Screen>
-        <StateBlock title="Training setup unavailable" message={message} actionTitle="Try again" onAction={() => { preferences.refetch(); schedule.refetch(); }} />
+        <StateBlock title={t('training.unavailable')} message={message} actionTitle={t('common.retry')} onAction={() => { preferences.refetch(); schedule.refetch(); }} />
       </Screen>
     );
   }
@@ -80,14 +83,14 @@ export default function TrainingScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Training</Text>
-      <Text variant="muted">Set your training focus, available equipment, target muscles, and weekly rhythm.</Text>
+      <Text variant="heading">{t('training.title')}</Text>
+      <Text variant="muted">{t('training.intro')}</Text>
 
       {!hasPreferences && scheduleItems.length === 0 && !editing ? (
         <StateBlock
-          title="Complete your training setup"
-          message="Add your environment, equipment, experience level, schedule, and target muscle groups."
-          actionTitle="Set up training"
+          title={t('training.emptyTitle')}
+          message={t('training.emptyMessage')}
+          actionTitle={t('training.setup')}
           onAction={() => { setSuccessMessage(null); setEditing(true); }}
         />
       ) : editing ? (
@@ -96,12 +99,12 @@ export default function TrainingScreen() {
           {saveMutation.isError ? <Text style={styles.error}>{saveMutation.error.message}</Text> : null}
           <View style={styles.actions}>
             <Button
-              title={saveMutation.isPending ? 'Saving...' : 'Save preferences'}
+              title={saveMutation.isPending ? t('common.saving') : t('common.save')}
               disabled={saveMutation.isPending || !dirty}
               onPress={() => saveMutation.mutate(toTrainingPreferenceRequest(value))}
             />
             <Button
-              title="Cancel"
+              title={t('common.cancel')}
               variant="secondary"
               disabled={saveMutation.isPending}
               onPress={() => { setValue(savedValue); setEditing(false); }}
@@ -111,53 +114,51 @@ export default function TrainingScreen() {
       ) : (
         <>
           <TrainingSummary value={savedValue} />
-          <Button title="Edit training preferences" variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
+          <Button title={t('common.edit')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
         </>
       )}
 
       <ScheduleSection items={scheduleItems} onDelete={(id) => deleteMutation.mutate(id)} />
-      {successMessage ? <Card><Text variant="label">Saved</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
     </Screen>
   );
 }
 
 function TrainingSummary({ value }: { value: TrainingSetupFormValue }) {
+  const { t } = useTranslation();
   return (
     <Card>
-      <Text variant="label">Current setup</Text>
-      <Text>Focus: {value.trainingOutcome ? humanize(value.trainingOutcome) : 'Not set'}</Text>
-      <Text variant="muted">Level: {value.trainingLevel ? humanize(value.trainingLevel) : 'Not set'}</Text>
-      <Text variant="muted">Equipment: {value.equipment.length ? value.equipment.map(humanize).join(', ') : 'Not set'}</Text>
-      <Text variant="muted">Target muscles: {value.targetMuscleGroups.length ? value.targetMuscleGroups.map(humanize).join(', ') : 'Not set'}</Text>
-      <Text variant="muted">Limitations: {value.limitationsOrPainAreas || 'None added'}</Text>
+      <Text variant="label">{t('training.current')}</Text>
+      <Text>{t('training.focus')}: {value.trainingOutcome ? getTrainingOutcomeLabel(t, value.trainingOutcome) : t('common.notSet')}</Text>
+      <Text variant="muted">{t('training.level')}: {value.trainingLevel ? getTrainingLevelLabel(t, value.trainingLevel) : t('common.notSet')}</Text>
+      <Text variant="muted">{t('training.equipment')}: {value.equipment.length ? value.equipment.map((item) => getEquipmentLabel(t, item)).join(', ') : t('common.notSet')}</Text>
+      <Text variant="muted">{t('training.targetMuscles')}: {value.targetMuscleGroups.length ? value.targetMuscleGroups.map((item) => getMuscleGroupLabel(t, item)).join(', ') : t('common.notSet')}</Text>
+      <Text variant="muted">{t('training.limitations')}: {value.limitationsOrPainAreas || t('common.noneAdded')}</Text>
     </Card>
   );
 }
 
 function ScheduleSection({ items, onDelete }: { items: TrainingScheduleItem[]; onDelete: (id: string) => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <View style={styles.grow}><Text variant="heading">Weekly schedule</Text><Text variant="muted">Workout type and duration live here.</Text></View>
-        <Button title="Add" variant="secondary" onPress={() => router.push('/training-schedule/create')} />
+        <View style={styles.grow}><Text variant="heading">{t('schedule.weekly')}</Text><Text variant="muted">{t('schedule.weeklyHelp')}</Text></View>
+        <Button title={t('common.add')} variant="secondary" onPress={() => router.push('/training-schedule/create')} />
       </View>
-      {items.length === 0 ? <Card><Text variant="muted">No planned workouts yet. Safe defaults remain available.</Text></Card> : items.map((item) => (
+      {items.length === 0 ? <Card><Text variant="muted">{t('schedule.noPlanned')}</Text></Card> : items.map((item) => (
         <Card key={item.id}>
-          <Text variant="label">{DAYS[item.dayOfWeek]} at {item.localTime}</Text>
-          <Text>{humanize(item.sportType)} · {item.durationMinutes} min · {humanize(item.intensity)}</Text>
+          <Text variant="label">{t(`enums.weekdays.${DAY_KEYS[item.dayOfWeek]}` as never)} {t('common.at')} {item.localTime}</Text>
+          <Text>{getSportTypeLabel(t, item.sportType)} · {item.durationMinutes} {t('common.minutesShort')} · {getIntensityLabel(t, item.intensity)}</Text>
           {item.description ? <Text variant="muted">{item.description}</Text> : null}
           <View style={styles.row}>
-            <Button title="Edit" variant="secondary" onPress={() => router.push({ pathname: '/training-schedule/edit', params: { ...item, dayOfWeek: String(item.dayOfWeek), durationMinutes: String(item.durationMinutes), description: item.description ?? '' } })} />
-            <Button title="Delete" variant="danger" onPress={() => onDelete(item.id)} />
+            <Button title={t('common.edit')} variant="secondary" onPress={() => router.push({ pathname: '/training-schedule/edit', params: { ...item, dayOfWeek: String(item.dayOfWeek), durationMinutes: String(item.durationMinutes), description: item.description ?? '' } })} />
+            <Button title={t('common.delete')} variant="danger" onPress={() => onDelete(item.id)} />
           </View>
         </Card>
       ))}
     </View>
   );
-}
-
-function humanize(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 }
 
 const styles = StyleSheet.create({

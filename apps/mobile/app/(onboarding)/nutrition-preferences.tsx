@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { saveNutritionPreferences } from '@/api/nutrition-preferences';
 import { Button } from '@/components/Button';
@@ -15,6 +16,7 @@ import {
 } from '@/features/food-preferences/FoodPreferencesForm';
 
 export default function NutritionPreferencesOnboardingStep() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [value, setValue] = useState(EMPTY_FOOD_PREFERENCES);
   const mutation = useMutation({
@@ -23,14 +25,14 @@ export default function NutritionPreferencesOnboardingStep() {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.push('/(onboarding)/training-schedule');
     },
-    onError: (error) => Alert.alert('Preferences were not saved', error.message)
+    onError: () => Alert.alert(t('onboarding.preferencesNotSaved'), t('errors.unableSave'))
   });
 
   const continueOnboarding = () => {
     if (!hasAllergySafetyAnswer(value)) {
       Alert.alert(
-        'Allergy information needed',
-        'Add any food allergies or confirm that you have no known food allergies so we can keep your plan safer.'
+        t('onboarding.allergyNeededTitle'),
+        t('onboarding.allergyNeededMessage')
       );
       return;
     }
@@ -40,13 +42,11 @@ export default function NutritionPreferencesOnboardingStep() {
 
   return (
     <Screen>
-      <Text variant="heading">Food preferences</Text>
-      <Text variant="muted">
-        Allergy information keeps your first plan safer. The rest can be refined later from Food.
-      </Text>
+      <Text variant="heading">{t('onboarding.foodTitle')}</Text>
+      <Text variant="muted">{t('onboarding.foodMessage')}</Text>
       <FoodPreferencesForm value={value} onChange={setValue} validationMode="onboarding" />
       <Button
-        title={mutation.isPending ? 'Saving...' : 'Continue'}
+        title={mutation.isPending ? t('common.saving') : t('common.continue')}
         disabled={mutation.isPending}
         onPress={continueOnboarding}
       />

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   getDailyPlanCheckIns,
@@ -25,16 +26,8 @@ import type {
   TrainingCheckInStatus
 } from '@/types/api';
 
-const feedbackTags: Array<{ label: string; value: PlanFeedbackTag }> = [
-  { label: 'Too much food', value: 'TOO_MUCH_FOOD' },
-  { label: 'Too little food', value: 'TOO_LITTLE_FOOD' },
-  { label: 'Training too hard', value: 'TRAINING_TOO_HARD' },
-  { label: 'Training too easy', value: 'TRAINING_TOO_EASY' },
-  { label: 'Felt good', value: 'FELT_GOOD' },
-  { label: 'Low energy', value: 'LOW_ENERGY' }
-];
-
 export default function PlanDetailsScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [rating, setRating] = useState<PlanFeedbackRating | null>(null);
   const [selectedTags, setSelectedTags] = useState<PlanFeedbackTag[]>([]);
@@ -67,16 +60,16 @@ export default function PlanDetailsScreen() {
 
       setCheckInMessage(
         reportedPain
-          ? "Thanks for letting us know. We'll use this to keep future training guidance more conservative."
-          : "Thanks, we'll use this to adapt future plans."
+          ? t('plan.painThanks')
+          : t('plan.checkInThanks')
       );
     },
-    onError: (error) => Alert.alert('Check-in not saved', `${error.message}\n\nNo worries, your plan is still here.`)
+    onError: () => Alert.alert(t('plan.checkInFailed'), `${t('errors.unableSave')}\n\n${t('plan.planStillHere')}`)
   });
   const feedback = useMutation({
     mutationFn: () => {
       if (!today.data || !rating) {
-        throw new Error('Choose Helpful or Not helpful first.');
+        throw new Error(t('plan.chooseRating'));
       }
 
       return submitDailyPlanFeedback(today.data.id, {
@@ -84,12 +77,12 @@ export default function PlanDetailsScreen() {
         tags: selectedTags
       });
     },
-    onSuccess: () => setFeedbackMessage('Thanks for the feedback.'),
-    onError: (error) => Alert.alert('Feedback not saved', error.message)
+    onSuccess: () => setFeedbackMessage(t('plan.feedbackThanks')),
+    onError: () => Alert.alert(t('plan.feedbackFailed'), t('errors.unableSave'))
   });
 
   if (today.isLoading) {
-    return <StateBlock title="Loading plan" message="Opening your plan details." />;
+    return <StateBlock title={t('plan.loading')} message={t('plan.loadingMessage')} />;
   }
 
   const plan = today.data?.plan;
@@ -98,28 +91,31 @@ export default function PlanDetailsScreen() {
   if (!plan) {
     return (
       <Screen>
-        <StateBlock title="No plan yet" message="Generate a plan from Today to see details here." />
+        <StateBlock title={t('plan.noPlan')} message={t('plan.noPlanMessage')} />
       </Screen>
     );
   }
 
   const exercises = Array.isArray(plan.training.exercises) ? plan.training.exercises : [];
+  const feedbackTags = getFeedbackTags(t);
+  const mealStatuses = getMealStatuses(t);
+  const trainingStatuses = getTrainingStatuses(t);
 
   return (
     <Screen>
-      <Text variant="heading">Plan details</Text>
+      <Text variant="heading">{t('plan.title')}</Text>
       <Text variant="muted">{plan.summary.message}</Text>
 
       {safetyMessage ? (
         <Card>
-          <Text variant="label">Safety note</Text>
+          <Text variant="label">{t('today.safetyNote')}</Text>
           <Text variant="body">{safetyMessage}</Text>
         </Card>
       ) : null}
 
       <Card>
-        <Text variant="label">Meals</Text>
-        <Text variant="muted">How did each meal go? No worries if it changed - this helps us adapt.</Text>
+        <Text variant="label">{t('plan.meals')}</Text>
+        <Text variant="muted">{t('plan.mealsHelp')}</Text>
         {plan.nutrition.meals.map((meal, index) => {
           const currentStatus = getMealCheckInStatus(checkIns.data?.items, index);
 
@@ -159,8 +155,8 @@ export default function PlanDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">Training check-in</Text>
-        <Text variant="muted">Tell us what happened. Resting instead is useful signal, not a failure.</Text>
+        <Text variant="label">{t('plan.trainingCheckIn')}</Text>
+        <Text variant="muted">{t('plan.trainingHelp')}</Text>
         <View style={styles.tagRow}>
           {trainingStatuses.map((status) => (
             <Button
@@ -185,7 +181,7 @@ export default function PlanDetailsScreen() {
           ))}
         </View>
         <Button
-          title="I felt pain or discomfort"
+          title={t('plan.pain')}
           variant={getTrainingPainSignal(checkIns.data?.items) ? 'danger' : 'secondary'}
           disabled={checkIn.isPending}
           onPress={() => {
@@ -204,7 +200,7 @@ export default function PlanDetailsScreen() {
           }}
         />
         <Text variant="muted">
-          We will keep future training guidance more conservative when discomfort is reported.
+          {t('plan.painHelp')}
         </Text>
       </Card>
 
@@ -212,17 +208,17 @@ export default function PlanDetailsScreen() {
 
       {exercises.length > 0 ? (
         <Card>
-          <Text variant="label">Suggested exercises</Text>
+          <Text variant="label">{t('plan.exercises')}</Text>
           {exercises.map((exercise, index) => (
             <View key={`${exercise.name}-${index}`} style={styles.exerciseBlock}>
               <Text variant="body" style={styles.exerciseName}>
                 {exercise.name}
               </Text>
-              {formatExerciseMeta(exercise) ? (
-                <Text variant="muted">{formatExerciseMeta(exercise)}</Text>
+              {formatExerciseMeta(exercise, t) ? (
+                <Text variant="muted">{formatExerciseMeta(exercise, t)}</Text>
               ) : null}
-              {formatExercisePrescription(exercise) ? (
-                <Text variant="body">{formatExercisePrescription(exercise)}</Text>
+              {formatExercisePrescription(exercise, t) ? (
+                <Text variant="body">{formatExercisePrescription(exercise, t)}</Text>
               ) : null}
               {exercise.intensityCue ? (
                 <Text variant="muted">{exercise.intensityCue}</Text>
@@ -238,7 +234,7 @@ export default function PlanDetailsScreen() {
       ) : null}
 
       <Card>
-        <Text variant="label">Hydration</Text>
+        <Text variant="label">{t('plan.hydration')}</Text>
         <Text variant="body">{plan.nutrition.hydration.guidance}</Text>
         {plan.nutrition.hydration.notes ? (
           <Text variant="muted">{plan.nutrition.hydration.notes}</Text>
@@ -246,14 +242,14 @@ export default function PlanDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">Recovery</Text>
+        <Text variant="label">{t('plan.recovery')}</Text>
         <Text variant="body">{plan.recovery.recommendation}</Text>
         {plan.recovery.sleepTip ? <Text variant="muted">{plan.recovery.sleepTip}</Text> : null}
         {plan.recovery.mobilityTip ? <Text variant="muted">{plan.recovery.mobilityTip}</Text> : null}
       </Card>
 
       <Card>
-        <Text variant="label">Reminders</Text>
+        <Text variant="label">{t('plan.reminders')}</Text>
         {plan.reminders.map((reminder) => (
           <Text key={reminder} variant="body">
             {reminder}
@@ -262,16 +258,16 @@ export default function PlanDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">Was this plan helpful?</Text>
+        <Text variant="label">{t('plan.helpfulQuestion')}</Text>
         <View style={styles.row}>
           <Button
-            title="Helpful"
+            title={t('plan.helpful')}
             variant={rating === 'HELPFUL' ? 'primary' : 'secondary'}
             style={styles.choiceButton}
             onPress={() => setRating('HELPFUL')}
           />
           <Button
-            title="Not helpful"
+            title={t('plan.notHelpful')}
             variant={rating === 'NOT_HELPFUL' ? 'primary' : 'secondary'}
             style={styles.choiceButton}
             onPress={() => setRating('NOT_HELPFUL')}
@@ -294,7 +290,7 @@ export default function PlanDetailsScreen() {
         </View>
         {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
         <Button
-          title={feedback.isPending ? 'Saving...' : 'Send feedback'}
+          title={feedback.isPending ? t('common.saving') : t('plan.sendFeedback')}
           disabled={!rating || feedback.isPending}
           onPress={() => feedback.mutate()}
         />
@@ -303,19 +299,34 @@ export default function PlanDetailsScreen() {
   );
 }
 
-const mealStatuses: Array<{ label: string; value: MealCheckInStatus }> = [
-  { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Partial', value: 'PARTIALLY_COMPLETED' },
-  { label: 'Skipped', value: 'SKIPPED' },
-  { label: 'Swapped', value: 'SWAPPED' }
-];
+function getMealStatuses(t: ReturnType<typeof useTranslation>['t']): Array<{ label: string; value: MealCheckInStatus }> {
+  return [
+    { label: t('plan.statusCompleted'), value: 'COMPLETED' },
+    { label: t('plan.statusPartial'), value: 'PARTIALLY_COMPLETED' },
+    { label: t('plan.statusSkipped'), value: 'SKIPPED' },
+    { label: t('plan.statusSwapped'), value: 'SWAPPED' }
+  ];
+}
 
-const trainingStatuses: Array<{ label: string; value: TrainingCheckInStatus }> = [
-  { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Partial', value: 'PARTIALLY_COMPLETED' },
-  { label: 'Skipped', value: 'SKIPPED' },
-  { label: 'Rested', value: 'RESTED_INSTEAD' }
-];
+function getTrainingStatuses(t: ReturnType<typeof useTranslation>['t']): Array<{ label: string; value: TrainingCheckInStatus }> {
+  return [
+    { label: t('plan.statusCompleted'), value: 'COMPLETED' },
+    { label: t('plan.statusPartial'), value: 'PARTIALLY_COMPLETED' },
+    { label: t('plan.statusSkipped'), value: 'SKIPPED' },
+    { label: t('plan.statusRested'), value: 'RESTED_INSTEAD' }
+  ];
+}
+
+function getFeedbackTags(t: ReturnType<typeof useTranslation>['t']): Array<{ label: string; value: PlanFeedbackTag }> {
+  return [
+    { label: t('plan.tagTooMuchFood'), value: 'TOO_MUCH_FOOD' },
+    { label: t('plan.tagTooLittleFood'), value: 'TOO_LITTLE_FOOD' },
+    { label: t('plan.tagTrainingTooHard'), value: 'TRAINING_TOO_HARD' },
+    { label: t('plan.tagTrainingTooEasy'), value: 'TRAINING_TOO_EASY' },
+    { label: t('plan.tagFeltGood'), value: 'FELT_GOOD' },
+    { label: t('plan.tagLowEnergy'), value: 'LOW_ENERGY' }
+  ];
+}
 
 function getMealCheckInStatus(checkIns: DailyPlanCheckInResponse[] | undefined, mealIndex: number) {
   const checkIn = checkIns?.find(
@@ -341,21 +352,21 @@ function getTrainingPainSignal(checkIns: DailyPlanCheckInResponse[] | undefined)
   return Boolean(checkIn?.payload && 'painOrDiscomfort' in checkIn.payload && checkIn.payload.painOrDiscomfort);
 }
 
-function formatExerciseMeta(exercise: DailyPlanExercise) {
+function formatExerciseMeta(exercise: DailyPlanExercise, t: ReturnType<typeof useTranslation>['t']) {
   const parts = [
-    exercise.targetMuscles?.length ? `Targets: ${exercise.targetMuscles.join(', ')}` : null,
-    exercise.equipment?.length ? `Equipment: ${exercise.equipment.join(', ')}` : null
+    exercise.targetMuscles?.length ? t('plan.targets', { value: exercise.targetMuscles.join(', ') }) : null,
+    exercise.equipment?.length ? t('plan.equipment', { value: exercise.equipment.join(', ') }) : null
   ].filter(Boolean);
 
   return parts.join(' - ');
 }
 
-function formatExercisePrescription(exercise: DailyPlanExercise) {
+function formatExercisePrescription(exercise: DailyPlanExercise, t: ReturnType<typeof useTranslation>['t']) {
   return [
-    exercise.sets ? `Sets: ${exercise.sets}` : null,
-    exercise.reps ? `Reps: ${exercise.reps}` : null,
-    exercise.rest ? `Rest: ${exercise.rest}` : null,
-    exercise.duration ? `Duration: ${exercise.duration}` : null
+    exercise.sets ? t('plan.sets', { value: exercise.sets }) : null,
+    exercise.reps ? t('plan.reps', { value: exercise.reps }) : null,
+    exercise.rest ? t('plan.rest', { value: exercise.rest }) : null,
+    exercise.duration ? t('plan.duration', { value: exercise.duration }) : null
   ]
     .filter(Boolean)
     .join(' - ');

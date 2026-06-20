@@ -19,3 +19,8 @@ Each path maps to one specific `TargetMuscleGroup`. Left and right path IDs shar
 Legacy `ARMS`, `BACK`, `CORE`, `LEGS`, and `FULL_BODY` values remain valid for old records. `BodyMapSelector` expands them once when initializing its display state, but taps and saves produce only specific groups. Parent SVG groups have no handlers. Each region has one modest 8-unit transparent hit path and one noninteractive visual path.
 
 The selector changes only the existing progressive target-muscle prompt; Today plan content and Plan Details remain unchanged.
+
+ExerciseLibrary reuses these canonical `TargetMuscleGroup` identities for catalog targets. It does not alter Body Map SVG/PNG assets, mappings, geometry, bilateral behavior, payloads, `4:5` layout, or selected color.
+## Localized semantics
+
+Front/back controls, instructions, selected-muscle names, and complete accessibility phrases are localized from exact `TargetMuscleGroup` values. SVG IDs, path geometry, mappings, the 4:5 layout, bilateral selection, and `#FF2D55` selection color are unchanged.

@@ -15,8 +15,9 @@
     "body-map:validate": "node scripts/validate-body-map.mjs",
     "ia:validate": "node scripts/validate-information-architecture.mjs",
     "interaction:test": "node scripts/test-screen-interactions.mjs",
+    "localization:validate": "node scripts/validate-localization.mjs && node scripts/test-localization-contracts.mjs",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "node scripts/validate-information-architecture.mjs && node scripts/test-screen-interactions.mjs"
+    "test": "node scripts/validate-information-architecture.mjs && node scripts/test-screen-interactions.mjs && node scripts/validate-localization.mjs && node scripts/test-localization-contracts.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -26,11 +27,14 @@
     "@tanstack/react-query": "^5.62.7",
     "expo": "^54.0.0",
     "expo-health-connect": "^0.1.1",
+    "expo-localization": "~17.0.9",
     "expo-router": "^6.0.0",
     "expo-secure-store": "^15.0.8",
     "expo-status-bar": "^3.0.8",
+    "i18next": "^25.0.0",
     "react": "^19.1.0",
     "react-hook-form": "^7.54.2",
+    "react-i18next": "^16.0.0",
     "react-native": "^0.81.5",
     "react-native-health-connect": "^3.5.3",
     "react-native-safe-area-context": "^5.6.2",

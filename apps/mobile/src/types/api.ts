@@ -17,6 +17,7 @@ import type {
   TrainingLevel,
   TrainingOutcome
 } from '@optime/shared-types';
+import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
 
 export type {
   DailyPlanExercise,
@@ -48,6 +49,17 @@ export interface UserDto {
 export interface AuthResponse {
   accessToken: string;
   user: UserDto;
+}
+
+export interface UserSettingsResponse {
+  preferredLocale: SupportedLocale;
+  measurementSystem: MeasurementSystem;
+  initialized: boolean;
+}
+
+export interface UpdateUserSettingsRequest {
+  preferredLocale?: SupportedLocale;
+  measurementSystem?: MeasurementSystem;
 }
 
 export interface OnboardingStatus {

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { DietType } from '@optime/shared-types';
+import { useTranslation } from 'react-i18next';
 
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
@@ -9,6 +10,7 @@ import type {
   NutritionPreferencesRequest,
   NutritionPreferencesResponse
 } from '@/types/api';
+import { enumOptions, getDietTypeLabel } from '@/i18n/enum-labels';
 
 export interface FoodPreferencesFormValue {
   dietType: DietType;
@@ -41,6 +43,7 @@ export function FoodPreferencesForm({
   onChange,
   validationMode = 'standalone'
 }: FoodPreferencesFormProps) {
+  const { t } = useTranslation();
   const enteredAllergies = splitList(value.allergies);
   const update = <K extends keyof FoodPreferencesFormValue>(
     key: K,
@@ -50,8 +53,8 @@ export function FoodPreferencesForm({
   return (
     <View style={styles.form}>
       <Field
-        label="Food allergies"
-        placeholder="peanuts, shellfish"
+        label={t('food.allergies')}
+        placeholder={t('food.allergiesPlaceholder')}
         value={value.allergies}
         onChangeText={(text) =>
           onChange({
@@ -80,42 +83,42 @@ export function FoodPreferencesForm({
           {value.noKnownAllergiesConfirmed ? <Text style={styles.checkmark}>✓</Text> : null}
         </View>
         <View style={styles.toggleCopy}>
-          <Text variant="label">No known food allergies</Text>
-          <Text variant="muted">Choose this if there are no known food allergies to avoid.</Text>
+          <Text variant="label">{t('food.noAllergies')}</Text>
+          <Text variant="muted">{t('food.noAllergiesHelp')}</Text>
         </View>
       </Pressable>
       {validationMode === 'onboarding' && !hasAllergySafetyAnswer(value) ? (
         <Text style={styles.warning}>
-          Add allergies or confirm that you have no known food allergies to continue safely.
+          {t('food.allergyRequired')}
         </Text>
       ) : null}
       <SelectChips
-        label="Diet style"
+        label={t('food.dietStyle')}
         value={value.dietType}
         onChange={(next) => update('dietType', next)}
-        options={DIET_OPTIONS}
+        options={enumOptions(DIET_VALUES, (item) => getDietTypeLabel(t, item))}
       />
       <Field
-        label="Meals per day"
+        label={t('food.mealsPerDay')}
         keyboardType="numeric"
         value={value.mealsPerDay}
         onChangeText={(text) => update('mealsPerDay', text)}
       />
       <Field
-        label="Excluded foods"
-        placeholder="foods you prefer to avoid"
+        label={t('food.excludedFoods')}
+        placeholder={t('food.excludedPlaceholder')}
         value={value.excludedFoods}
         onChangeText={(text) => update('excludedFoods', text)}
       />
       <Field
-        label="Preferred foods"
-        placeholder="rice, eggs, berries"
+        label={t('food.preferredFoods')}
+        placeholder={t('food.preferredPlaceholder')}
         value={value.preferredFoods}
         onChangeText={(text) => update('preferredFoods', text)}
       />
       <Field
-        label="Food and meal notes"
-        placeholder="meal timing, simple prep, or other preferences"
+        label={t('food.notes')}
+        placeholder={t('food.notesPlaceholder')}
         multiline
         value={value.notes}
         onChangeText={(text) => update('notes', text)}
@@ -124,17 +127,7 @@ export function FoodPreferencesForm({
   );
 }
 
-const DIET_OPTIONS: Array<{ label: string; value: DietType }> = [
-  { label: 'None', value: 'NONE' },
-  { label: 'Omnivore', value: 'OMNIVORE' },
-  { label: 'Vegetarian', value: 'VEGETARIAN' },
-  { label: 'Vegan', value: 'VEGAN' },
-  { label: 'Pescatarian', value: 'PESCATARIAN' },
-  { label: 'Mediterranean', value: 'MEDITERRANEAN' },
-  { label: 'Low carb', value: 'LOW_CARB' },
-  { label: 'Halal', value: 'HALAL' },
-  { label: 'Kosher', value: 'KOSHER' }
-];
+const DIET_VALUES: DietType[] = ['NONE', 'OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN', 'KETO', 'MEDITERRANEAN', 'LOW_CARB', 'HALAL', 'KOSHER'];
 
 export function hasAllergySafetyAnswer(value: FoodPreferencesFormValue) {
   return value.noKnownAllergiesConfirmed || splitList(value.allergies).length > 0;

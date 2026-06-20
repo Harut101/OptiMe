@@ -1,5 +1,10 @@
 import request from 'supertest';
 import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  resolveSupportedLocale
+} from '@optime/shared-types';
+import {
   AiOperationFeature,
   AiOperationProvider,
   AiOperationStatus,
@@ -110,6 +115,112 @@ describe('Sprint 1 backend vertical slice', () => {
 
     expect(me.body.email).toBe(registered.email);
     expect(me.body.passwordHash).toBeUndefined();
+  });
+
+  it('keeps the supported locale contract exact and falls back safely', () => {
+    expect(SUPPORTED_LOCALES).toEqual(['en-US', 'ru-RU', 'fr-FR', 'zh-CN']);
+    expect(DEFAULT_LOCALE).toBe('en-US');
+    expect(resolveSupportedLocale('en-GB')).toBe('en-US');
+    expect(resolveSupportedLocale('ru-AM')).toBe('ru-RU');
+    expect(resolveSupportedLocale('fr-CA')).toBe('fr-FR');
+    expect(resolveSupportedLocale('zh-CN')).toBe('zh-CN');
+    expect(resolveSupportedLocale('zh-Hans')).toBe('zh-CN');
+    expect(resolveSupportedLocale('zh-TW')).toBe('en-US');
+    expect(resolveSupportedLocale('es-419')).toBe('en-US');
+    expect(resolveSupportedLocale('de-DE')).toBe('en-US');
+  });
+
+  it('requires authentication for user settings', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/settings').expect(401);
+    await request(ctx.app.getHttpServer()).put('/v1/settings').send({ preferredLocale: 'fr-FR' }).expect(401);
+  });
+
+  it('loads safe defaults for existing users without initialized settings', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    const response = await request(ctx.app.getHttpServer())
+      .get('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(response.body).toEqual({
+      preferredLocale: 'en-US',
+      measurementSystem: 'METRIC',
+      initialized: false
+    });
+  });
+
+  it('persists locale and measurement system independently', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ preferredLocale: 'ru-RU' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ preferredLocale: 'ru-RU', measurementSystem: 'METRIC', initialized: true });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ measurementSystem: 'IMPERIAL' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ preferredLocale: 'ru-RU', measurementSystem: 'IMPERIAL', initialized: true });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ preferredLocale: 'fr-FR' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ preferredLocale: 'fr-FR', measurementSystem: 'IMPERIAL', initialized: true });
+      });
+  });
+
+  it('rejects unsupported locale and measurement values', async () => {
+    const user = await registerTestUser(ctx.app);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ preferredLocale: 'es-419' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ measurementSystem: 'US_CUSTOMARY' })
+      .expect(400);
+  });
+
+  it('does not mutate or regenerate daily plans when settings change', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'LocalePlan');
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+    const before = await ctx.prisma.dailyPlan.findMany({
+      where: { userId: user.user.id },
+      select: { id: true, planJson: true, updatedAt: true }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ preferredLocale: 'zh-CN', measurementSystem: 'IMPERIAL' })
+      .expect(200);
+
+    const after = await ctx.prisma.dailyPlan.findMany({
+      where: { userId: user.user.id },
+      select: { id: true, planJson: true, updatedAt: true }
+    });
+    expect(after).toEqual(before);
   });
 
   it('requires auth for entitlement summary', async () => {

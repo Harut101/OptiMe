@@ -20,6 +20,7 @@ export async function cleanupDatabase(prisma: PrismaService) {
   await prisma.nutritionPreference.deleteMany();
   await prisma.goal.deleteMany();
   await prisma.profile.deleteMany();
+  await prisma.userSettings.deleteMany();
   await prisma.user.deleteMany();
 }
 

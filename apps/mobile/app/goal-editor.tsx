@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { goalSchema } from '@optime/shared-schemas';
+import { useTranslation } from 'react-i18next';
 
 import { getGoal, saveGoal } from '@/api/goals';
 import { Button } from '@/components/Button';
@@ -21,8 +22,13 @@ import {
 import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
+import { formatWeight } from '@/i18n/formatters';
+import { useSettingsStore } from '@/store/settings-store';
 
 export default function GoalEditorScreen() {
+  const { t } = useTranslation();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
+  const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const queryClient = useQueryClient();
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const [editing, setEditing] = useState(false);
@@ -51,22 +57,22 @@ export default function GoalEditorScreen() {
       setPersistedValue(next);
       setEditing(false);
       setValidationError(null);
-      setSuccessMessage('Your updated goals will be used for future plans.');
+      setSuccessMessage(t('goals.savedMessage'));
     }
   });
 
   if (goal.isLoading) {
-    return <Screen><StateBlock title="Loading goals" message="Bringing your saved direction into view." /></Screen>;
+    return <Screen><StateBlock title={t('common.loading')} message={t('goals.loadingMessage')} /></Screen>;
   }
 
   if (goal.isError) {
-    return <Screen><StateBlock title="Goals unavailable" message={goal.error.message} actionTitle="Try again" onAction={() => goal.refetch()} /></Screen>;
+    return <Screen><StateBlock title={t('goals.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => goal.refetch()} /></Screen>;
   }
 
   const save = () => {
     const result = goalSchema.safeParse(toGoalRequest(value));
     if (!result.success) {
-      setValidationError(result.error.issues[0]?.message ?? 'Please review your goal.');
+      setValidationError(t('goals.checkGoal'));
       return;
     }
     setValidationError(null);
@@ -75,25 +81,25 @@ export default function GoalEditorScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Goals</Text>
-      <Text variant="muted">Update the direction OptiMe should consider for future recommendations.</Text>
+      <Text variant="heading">{t('goals.title')}</Text>
+      <Text variant="muted">{t('goals.intro')}</Text>
 
       {goal.data === null && !editing ? (
         <StateBlock
-          title="Set your goals"
-          message="Add the outcome you want OptiMe to consider when creating future recommendations."
-          actionTitle="Add goals"
+          title={t('goals.emptyTitle')}
+          message={t('goals.emptyMessage')}
+          actionTitle={t('goals.add')}
           onAction={() => { setSuccessMessage(null); setEditing(true); }}
         />
       ) : editing ? (
         <>
           <GoalsForm value={value} onChange={setValue} validationMode="standalone" />
           {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
-          {mutation.isError ? <Text style={styles.error}>{getFriendlyGoalErrorMessage(mutation.error)}</Text> : null}
+          {mutation.isError ? <Text style={styles.error}>{getFriendlyGoalErrorMessage(mutation.error, t)}</Text> : null}
           <View style={styles.actions}>
-            <Button title={mutation.isPending ? 'Saving...' : 'Save goals'} disabled={mutation.isPending || !dirty} onPress={save} />
+            <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
             <Button
-              title="Cancel"
+              title={t('common.cancel')}
               variant="secondary"
               disabled={mutation.isPending}
               onPress={() => {
@@ -107,19 +113,24 @@ export default function GoalEditorScreen() {
       ) : goal.data ? (
         <>
           <Card>
-            <Text variant="label">Current goal</Text>
-            <Text>{getGoalLabel(goal.data.goalType)}</Text>
+            <Text variant="label">{t('goals.current')}</Text>
+            <Text>{getGoalLabel(goal.data.goalType, t)}</Text>
             {goal.data.goalType === 'REDUCE_WEIGHT' ? (
               <Text variant="muted">
-                Target: {goal.data.targetWeightKg ?? 'Not set'} kg · {goal.data.targetTimelineDays ?? 'No timeline'} days
+                {t('goals.targetSummary', {
+                  weight: goal.data.targetWeightKg == null
+                    ? t('common.notSet')
+                    : formatWeight(goal.data.targetWeightKg, preferredLocale, measurementSystem),
+                  days: String(goal.data.targetTimelineDays ?? t('common.notSet'))
+                })}
               </Text>
             ) : null}
           </Card>
-          <Button title="Edit goals" variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
+          <Button title={t('common.edit')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
         </>
       ) : null}
 
-      {successMessage ? <Card><Text variant="label">Saved</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
     </Screen>
   );
 }

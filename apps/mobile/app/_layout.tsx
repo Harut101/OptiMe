@@ -1,10 +1,13 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 
 import { AppProviders } from '@/providers/app-providers';
 import { colors } from '@/theme/colors';
 
 export default function RootLayout() {
+  const { t } = useTranslation();
+
   return (
     <AppProviders>
       <StatusBar style="dark" />
@@ -20,11 +23,11 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="plan-details" options={{ title: 'Plan details', headerBackTitle: 'Today' }} />
-        <Stack.Screen name="health-data" options={{ title: 'Health data', headerBackTitle: 'Profile' }} />
-        <Stack.Screen name="goal-editor" options={{ title: 'Goals', headerBackTitle: 'Profile' }} />
-        <Stack.Screen name="training-schedule/create" options={{ title: 'Add workout', headerBackTitle: 'Training' }} />
-        <Stack.Screen name="training-schedule/edit" options={{ title: 'Edit workout', headerBackTitle: 'Training' }} />
+        <Stack.Screen name="plan-details" options={{ title: t('navigation.planDetails'), headerBackTitle: t('tabs.today') }} />
+        <Stack.Screen name="health-data" options={{ title: t('navigation.healthData'), headerBackTitle: t('tabs.profile') }} />
+        <Stack.Screen name="goal-editor" options={{ title: t('navigation.goals'), headerBackTitle: t('tabs.profile') }} />
+        <Stack.Screen name="training-schedule/create" options={{ title: t('navigation.addWorkout'), headerBackTitle: t('tabs.training') }} />
+        <Stack.Screen name="training-schedule/edit" options={{ title: t('navigation.editWorkout'), headerBackTitle: t('tabs.training') }} />
       </Stack>
     </AppProviders>
   );

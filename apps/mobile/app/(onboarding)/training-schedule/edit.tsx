@@ -5,8 +5,10 @@ import { Alert } from 'react-native';
 import { updateTrainingScheduleItem } from '@/api/training-schedule';
 import { TrainingScheduleForm, TrainingScheduleFormValues } from '@/features/training-schedule/TrainingScheduleForm';
 import type { IntensityLevel, SportType } from '@optime/shared-types';
+import { useTranslation } from 'react-i18next';
 
 export default function EditTrainingScheduleScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     id: string;
     dayOfWeek: string;
@@ -31,13 +33,13 @@ export default function EditTrainingScheduleScreen() {
       await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
       router.replace('/(onboarding)/training-schedule');
     },
-    onError: (error) => Alert.alert('Workout was not updated', error.message)
+    onError: () => Alert.alert(t('schedule.updateFailed'), t('errors.unableSave'))
   });
 
   return (
     <TrainingScheduleForm
-      title="Edit workout"
-      submitTitle={mutation.isPending ? 'Saving...' : 'Save changes'}
+      title={t('schedule.editWorkout')}
+      submitTitle={mutation.isPending ? t('common.saving') : t('schedule.saveChanges')}
       disabled={mutation.isPending}
       defaultValues={{
         dayOfWeek: params.dayOfWeek ?? '1',

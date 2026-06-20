@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   connectHealthProvider,
@@ -15,18 +16,19 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import {
   FOUNDATION_HEALTH_PERMISSIONS,
-  getPlatformHealthProvider,
-  getPlatformHealthProviderLabel
+  getPlatformHealthProvider
 } from '@/features/health/health-platform';
 import { nativeHealthService } from '@/features/health/native-health.service';
 import { colors } from '@/theme/colors';
+import { getHealthProviderLabel } from '@/i18n/enum-labels';
 
 export default function HealthDataScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showPermissionExplanation, setShowPermissionExplanation] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const provider = getPlatformHealthProvider();
-  const providerLabel = getPlatformHealthProviderLabel();
+  const providerLabel = provider ? getHealthProviderLabel(t, provider) : t('health.title');
   const statusQuery = useQuery({
     queryKey: ['health-status'],
     queryFn: getHealthStatus
@@ -37,7 +39,7 @@ export default function HealthDataScreen() {
   const connectMutation = useMutation({
     mutationFn: async () => {
       if (!provider) {
-        throw new Error('Health data is not available on this platform yet.');
+        throw new Error(t('errors.nativeHealthUnsupported'));
       }
 
       return connectHealthProvider({
@@ -46,7 +48,7 @@ export default function HealthDataScreen() {
       });
     },
     onSuccess: async () => {
-      setSuccessMessage(`${providerLabel} connection foundation is now enabled.`);
+      setSuccessMessage(t('health.connectionEnabled', { provider: providerLabel }));
       setShowPermissionExplanation(false);
       await queryClient.invalidateQueries({ queryKey: ['health-status'] });
     }
@@ -55,13 +57,13 @@ export default function HealthDataScreen() {
   const disconnectMutation = useMutation({
     mutationFn: async () => {
       if (!provider) {
-        throw new Error('Health data is not available on this platform yet.');
+        throw new Error(t('errors.nativeHealthUnsupported'));
       }
 
       return disconnectHealthProvider({ provider });
     },
     onSuccess: async () => {
-      setSuccessMessage(`${providerLabel} is disconnected. Synced summaries are kept until you delete them.`);
+      setSuccessMessage(t('health.disconnectedMessage', { provider: providerLabel }));
       await queryClient.invalidateQueries({ queryKey: ['health-status'] });
     }
   });
@@ -69,13 +71,13 @@ export default function HealthDataScreen() {
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!provider) {
-        throw new Error('Health data is not available on this platform yet.');
+        throw new Error(t('errors.nativeHealthUnsupported'));
       }
 
       return deleteHealthData({ provider });
     },
     onSuccess: async (result) => {
-      setSuccessMessage(`Deleted ${result.summaryCountDeleted} synced health summaries.`);
+      setSuccessMessage(t('health.deletedCount', { count: result.summaryCountDeleted }));
       await queryClient.invalidateQueries({ queryKey: ['health-status'] });
     }
   });
@@ -85,8 +87,8 @@ export default function HealthDataScreen() {
     onSuccess: async (result) => {
       setSuccessMessage(
         result.syncedDays > 0
-          ? 'Health summaries synced.'
-          : 'Health sync completed. No daily summaries were available.'
+          ? t('health.synced')
+          : t('health.syncedEmpty')
       );
       await queryClient.invalidateQueries({ queryKey: ['health-status'] });
     }
@@ -97,7 +99,7 @@ export default function HealthDataScreen() {
     connectMutation.error?.message ??
     disconnectMutation.error?.message ??
     deleteMutation.error?.message ??
-    (statusQuery.isError ? 'Health status is unavailable right now.' : null);
+    (statusQuery.isError ? t('health.unavailable') : null);
   const isBusy =
     connectMutation.isPending ||
     disconnectMutation.isPending ||
@@ -106,34 +108,31 @@ export default function HealthDataScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">Health data</Text>
+      <Text variant="heading">{t('health.title')}</Text>
       <Card>
         <Text variant="label">{providerLabel}</Text>
         <Text variant="body">
-          Health data is optional. Later, OptiMe can use daily summaries like steps, sleep,
-          workouts, and activity to make plans more aware of your day.
+          {t('health.intro')}
         </Text>
         <Text variant="muted">
-          Current status:{' '}
-          {statusQuery.isLoading ? 'Checking...' : formatHealthStatus(connection?.status)}
+          {t('health.status')}:{' '}
+          {statusQuery.isLoading ? t('common.loading') : formatHealthStatus(connection?.status, t)}
         </Text>
         <Text variant="muted">
-          Native sync requires a development build with health support. Expo Go will show a safe
-          unavailable message.
+          {t('health.nativeBuildHelp')}
         </Text>
       </Card>
 
       <Card>
-        <Text variant="label">Sync now</Text>
+        <Text variant="label">{t('health.sync')}</Text>
         <Text variant="muted">
-          In a development build, OptiMe can request permission for steps, sleep, workouts, and
-          activity, then sync daily summaries for the last 7 days.
+          {t('health.syncHelp')}
         </Text>
         <Text variant="muted">
-          Weight, heart rate, and resting heart rate stay off in this spike.
+          {t('health.syncScope')}
         </Text>
         <Button
-          title={syncMutation.isPending ? 'Syncing...' : 'Sync now'}
+          title={syncMutation.isPending ? t('health.syncing') : t('health.sync')}
           disabled={isBusy || !provider}
           onPress={() => {
             setSuccessMessage(null);
@@ -144,20 +143,11 @@ export default function HealthDataScreen() {
 
       {showPermissionExplanation || !isConnected ? (
         <Card>
-          <Text variant="label">Before you connect</Text>
-          <Text variant="muted">Health data is optional and you can disconnect anytime.</Text>
-          <Text variant="muted">
-            OptiMe stores daily summaries first, not raw samples by default.
-          </Text>
-          <Text variant="muted">
-            Data is used only to improve plan personalization later. This is not medical advice.
-          </Text>
-          <Text variant="muted">
-            You can delete synced health data without deleting your account.
-          </Text>
+          <Text variant="label">{t('health.beforeConnect')}</Text>
+          <Text variant="muted">{t('health.explanation')}</Text>
           <View style={styles.actions}>
             <Button
-              title={isBusy ? 'Connecting...' : 'Continue'}
+              title={isBusy ? t('health.connecting') : t('health.continue')}
               disabled={isBusy || !provider}
               onPress={() => {
                 setSuccessMessage(null);
@@ -165,7 +155,7 @@ export default function HealthDataScreen() {
               }}
             />
             <Button
-              title="Cancel"
+              title={t('common.cancel')}
               variant="ghost"
               disabled={isBusy}
               onPress={() => {
@@ -179,17 +169,11 @@ export default function HealthDataScreen() {
         </Card>
       ) : (
         <Card>
-          <Text variant="label">Manage connection</Text>
-          <Text variant="muted">
-            You are connected at the foundation level. Real native health sync will come in a later
-            development build through Sync now.
-          </Text>
-          <Text variant="muted">
-            Disconnecting stops future use. It does not delete stored summaries.
-          </Text>
+          <Text variant="label">{t('health.manage')}</Text>
+          <Text variant="muted">{t('health.manageHelp')}</Text>
           <View style={styles.actions}>
             <Button
-              title={isBusy ? 'Disconnecting...' : 'Disconnect'}
+              title={isBusy ? t('health.disconnecting') : t('health.disconnect')}
               variant="secondary"
               disabled={isBusy}
               onPress={() => {
@@ -198,7 +182,7 @@ export default function HealthDataScreen() {
               }}
             />
             <Button
-              title={isBusy ? 'Deleting...' : 'Delete synced health data'}
+              title={isBusy ? t('health.deleting') : t('health.deleteData')}
               variant="danger"
               disabled={isBusy}
               onPress={() => {
@@ -212,7 +196,7 @@ export default function HealthDataScreen() {
 
       {isConnected && !showPermissionExplanation ? (
         <Button
-          title="Review connection explanation"
+          title={t('health.review')}
           variant="ghost"
           onPress={() => setShowPermissionExplanation(true)}
         />
@@ -220,7 +204,7 @@ export default function HealthDataScreen() {
 
       {successMessage ? (
         <Card>
-          <Text variant="label">Updated</Text>
+          <Text variant="label">{t('health.updated')}</Text>
           <Text variant="muted">{successMessage}</Text>
         </Card>
       ) : null}
@@ -228,7 +212,7 @@ export default function HealthDataScreen() {
       {errorMessage ? (
         <Card>
           <Text variant="label" style={styles.errorText}>
-            Health data unavailable
+            {t('health.unavailable')}
           </Text>
           <Text variant="muted">{errorMessage}</Text>
         </Card>
@@ -237,20 +221,20 @@ export default function HealthDataScreen() {
   );
 }
 
-function formatHealthStatus(status?: string) {
+function formatHealthStatus(status: string | undefined, t: ReturnType<typeof useTranslation>['t']) {
   if (status === 'CONNECTED') {
-    return 'Connected';
+    return t('health.connected');
   }
 
   if (status === 'PERMISSION_DENIED') {
-    return 'Permission denied';
+    return t('health.permissionDenied');
   }
 
   if (status === 'ERROR') {
-    return 'Sync error';
+    return t('health.syncError');
   }
 
-  return 'Not connected';
+  return t('health.notConnected');
 }
 
 const styles = StyleSheet.create({

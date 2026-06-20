@@ -14,3 +14,6 @@ The reusable forms contain no route navigation or API persistence. Wrappers deci
 Skipping optional setup never forces onboarding to restart. Missing personalization uses safe defaults, while safety-critical allergy, age, and pregnancy/postpartum behavior remains enforced by the backend.
 
 The current Stage 1 contract requires one goal before first-plan generation, so goal onboarding has Continue rather than Skip. The standalone editor still handles a missing goal safely and lets the user create it later without returning to onboarding.
+## Localization
+
+Stage 1 onboarding and optional progressive setup use the same translated field components as standalone editors. Prompt copy is selected from stable progressive-prompt keys on mobile; answer values sent to the API remain unchanged. Switching language does not restart onboarding or clear draft values.
