@@ -16,11 +16,25 @@ import {
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { HealthPlanningContext } from '../health/health-planning.types';
 import { SelectedProtocols } from '../protocol/protocol.types';
+import type { ExerciseCandidate } from '../exercise-selection/exercise-selection.types';
 
 export interface GenerateDailyPlanSafetyFeedback {
   riskLevel: 'low' | 'medium' | 'high';
   reasons: string[];
   requiredChanges: string[];
+}
+
+export interface GenerateDailyPlanExerciseFeedback {
+  reasonCodes: string[];
+}
+
+export interface GenerateDailyPlanExerciseSelection {
+  candidates: Array<Omit<
+    ExerciseCandidate,
+    'internalScore' | 'internalReasonCodes' | 'contraindicationTags' | 'exerciseUpdatedAt'
+  >>;
+  requestedExerciseCount: number;
+  workoutDurationMinutes: number;
 }
 
 export interface GenerateDailyPlanPersonalizationContext {
@@ -109,6 +123,8 @@ export interface GenerateDailyPlanInput {
   planTimezone: string;
   planQualityMode: PlanQualityMode;
   personalizationContext: GenerateDailyPlanPersonalizationContext;
+  exerciseSelection: GenerateDailyPlanExerciseSelection;
+  exerciseFeedback?: GenerateDailyPlanExerciseFeedback;
   safetyFeedback?: GenerateDailyPlanSafetyFeedback;
 }
 

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, PreferredLocale } from '@prisma/client';
 import type {
   ExerciseDetail,
@@ -24,7 +25,40 @@ type ExerciseRecord = Prisma.ExerciseGetPayload<{ include: typeof exerciseInclud
 
 @Injectable()
 export class ExercisesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService
+  ) {}
+
+  async getActiveForSelection(locale: SupportedLocale) {
+    const records = await this.prisma.exercise.findMany({
+      where: { isActive: true },
+      include: { translations: true },
+      orderBy: [{ sortOrder: 'asc' }, { slug: 'asc' }]
+    });
+
+    return records.map((record) => {
+      const translation = this.translationFor(record.translations, locale);
+      return {
+        exerciseId: record.id,
+        slug: record.slug,
+        name: translation.value.name,
+        resolvedLocale: translation.locale,
+        category: record.category,
+        movementPattern: record.movementPattern,
+        equipment: record.equipment,
+        targetMuscles: record.targetMuscles,
+        secondaryMuscles: record.secondaryMuscles,
+        trainingLevels: record.trainingLevels,
+        instructions: translation.value.instructions,
+        coachingCues: translation.value.coachingCues,
+        safetyNotes: translation.value.safetyNotes,
+        contraindicationTags: record.contraindicationTags,
+        exerciseUpdatedAt: record.updatedAt.toISOString(),
+        sortOrder: record.sortOrder
+      };
+    });
+  }
 
   async list(query: ListExercisesQueryDto, locale: SupportedLocale): Promise<ExerciseListResponse> {
     const where = this.buildWhere(query, locale);
@@ -64,6 +98,7 @@ export class ExercisesService {
     const localeValues = [...new Set([toPrismaLocale(locale), ENGLISH_PRISMA_LOCALE])];
     return {
       isActive: true,
+      id: query.ids ? { in: [...new Set(query.ids)] } : undefined,
       category: query.category,
       movementPattern: query.movementPattern,
       equipment: query.equipment ? { has: query.equipment } : undefined,
@@ -89,7 +124,7 @@ export class ExercisesService {
       category: record.category,
       targetMuscles: record.targetMuscles,
       equipment: record.equipment,
-      thumbnail: primary ? { url: primary.thumbnailUrl ?? primary.url, altText: mediaTranslation?.value.altText ?? translation.value.name } : null,
+      thumbnail: primary ? { url: this.resolveMediaUrl(primary.thumbnailUrl ?? primary.url), altText: mediaTranslation?.value.altText ?? translation.value.name } : null,
       resolvedLocale: translation.locale
     };
   }
@@ -116,8 +151,8 @@ export class ExercisesService {
         return {
           id: item.id,
           type: item.type,
-          url: item.url,
-          thumbnailUrl: item.thumbnailUrl,
+          url: this.resolveMediaUrl(item.url),
+          thumbnailUrl: item.thumbnailUrl ? this.resolveMediaUrl(item.thumbnailUrl) : null,
           width: item.width,
           height: item.height,
           sortOrder: item.sortOrder,
@@ -136,5 +171,13 @@ export class ExercisesService {
       ?? translations.find((item) => item.locale === ENGLISH_PRISMA_LOCALE);
     if (!value) throw new NotFoundException('Exercise English translation is unavailable.');
     return { value, locale: value.locale === requested ? locale : 'en-US' as const };
+  }
+
+  private resolveMediaUrl(value: string) {
+    if (/^https?:\/\//i.test(value)) return value;
+    const path = value.startsWith('/') ? value : `/${value}`;
+    const base = this.config.get<string>('EXERCISE_MEDIA_PUBLIC_BASE_URL')?.trim();
+    if (!base) return path;
+    return `${base.replace(/\/+$/, '')}${path}`;
   }
 }

@@ -39,9 +39,9 @@ describe('ExerciseLibrary', () => {
     await request(ctx.app.getHttpServer()).get('/v1/exercises/bodyweight-squat').expect(401);
   });
 
-  it('validates and seeds the 46-item catalog idempotently with four translations each', async () => {
+  it('validates and seeds the 77-item catalog idempotently with four translations each', async () => {
     const validation = validateExerciseCatalog(exerciseCatalog);
-    expect(validation).toEqual({ exerciseCount: 46, translationCount: 184, mediaCount: 0 });
+    expect(validation).toEqual({ exerciseCount: 77, translationCount: 308, mediaCount: 0 });
 
     await seedExerciseCatalog(ctx.prisma);
     await seedExerciseCatalog(ctx.prisma);
@@ -50,7 +50,7 @@ describe('ExerciseLibrary', () => {
       where: { slug: { in: exerciseCatalog.map((item) => item.slug) } },
       include: { translations: true }
     });
-    expect(seeded).toHaveLength(46);
+    expect(seeded).toHaveLength(77);
     expect(seeded.every((item) => item.translations.length === 4)).toBe(true);
   });
 
@@ -62,7 +62,7 @@ describe('ExerciseLibrary', () => {
 
     expect(first.body.items).toHaveLength(5);
     expect(first.body.items).toEqual(second.body.items);
-    expect(first.body.pagination).toMatchObject({ page: 1, pageSize: 5, totalItems: 46, totalPages: 10 });
+    expect(first.body.pagination).toMatchObject({ page: 1, pageSize: 5, totalItems: 77, totalPages: 16 });
     expect(first.body.items.map((item: { slug: string }) => item.slug)).not.toContain('qa-inactive');
     expect(first.body.items.every((item: { thumbnail: unknown }) => item.thumbnail === null)).toBe(true);
 
@@ -77,6 +77,24 @@ describe('ExerciseLibrary', () => {
 
     await apiList('?category=translated-value', 400);
     await apiList('?targetMuscle=UPPER_BACK', 400);
+  });
+
+  it('batch-resolves a bounded active ID list with localized thumbnails', async () => {
+    const first = await createQaExercise('qa-batch-first', { withMedia: true, sortOrder: 901 });
+    const second = await createQaExercise('qa-batch-second', { sortOrder: 902 });
+    const inactive = await createQaExercise('qa-batch-inactive', { isActive: false, sortOrder: 900 });
+    const response = await apiList(`?ids=${first.id},${second.id},${inactive.id},missing-id&pageSize=16`, 200, 'ru-RU');
+
+    expect(response.body.items.map((item: { id: string }) => item.id)).toEqual([first.id, second.id]);
+    expect(response.body.items[0].thumbnail).toEqual({
+      url: 'https://cdn.optime.test/qa-batch-first-thumb.webp',
+      altText: 'QA exercise demonstration'
+    });
+    expect(response.body.items[0]).not.toHaveProperty('license');
+    expect(response.body.items[0]).not.toHaveProperty('attribution');
+
+    const tooManyIds = Array.from({ length: 17 }, (_, index) => `id-${index}`).join(',');
+    await apiList(`?ids=${tooManyIds}`, 400);
   });
 
   it('searches localized names and resolves all supported locales without mutating persistence', async () => {

@@ -1,0 +1,628 @@
+{
+  "schemaVersion": "exercise-media-reconciliation.v1",
+  "sourceDirectory": "apps/mobile/assets/exercise-media/inbox",
+  "summary": {
+    "catalogExercises": 77,
+    "sourceFiles": 47,
+    "uniqueParsedImageSlugs": 46,
+    "uniqueCanonicalImageSlugs": 46,
+    "exactMatches": 47,
+    "aliasMatches": 0,
+    "invalidFilenames": 0,
+    "ambiguousAliases": 0,
+    "duplicateFileNames": 0,
+    "duplicateMediaIndexes": 0,
+    "renameTargetConflicts": 0,
+    "catalogExercisesWithoutMedia": 31,
+    "imageSlugsWithoutCatalog": 0,
+    "blockingErrors": 0
+  },
+  "catalogSlugs": [
+    "assisted-pull-up",
+    "back-squat",
+    "barbell-bench-press",
+    "barbell-curl",
+    "barbell-hip-thrust",
+    "barbell-shoulder-press",
+    "barbell-shrug",
+    "bench-dip",
+    "bent-over-barbell-row",
+    "bird-dog",
+    "bodyweight-squat",
+    "butterfly-stretch",
+    "cable-bicep-curl",
+    "cable-chest-fly",
+    "cable-hip-adduction",
+    "cable-triceps-pushdown",
+    "cable-upright-row",
+    "calf-stretch",
+    "cat-cow",
+    "childs-pose",
+    "crunches",
+    "dead-bug",
+    "deadlift",
+    "dumbbell-bench-press",
+    "dumbbell-biceps-curl",
+    "dumbbell-shoulder-press",
+    "elliptical",
+    "face-pull",
+    "farmers-carry",
+    "front-plank",
+    "glute-bridge",
+    "glute-bridge-march",
+    "goblet-squat",
+    "hammer-curl",
+    "hip-abduction-machine",
+    "hip-adduction-machine",
+    "hip-flexor-stretch",
+    "hip-thrust",
+    "incline-back-extension",
+    "incline-dumbbell-reverse-fly",
+    "incline-push-up",
+    "kettlebell-sumo-squat",
+    "lat-pulldown",
+    "lateral-lunge-stretch",
+    "lateral-raise",
+    "leg-extension",
+    "leg-press",
+    "lying-leg-raise",
+    "machine-chest-press",
+    "machine-row",
+    "mini-loop-band-side-lying-hip-abduction",
+    "one-arm-dumbbell-row",
+    "overhead-triceps-extension",
+    "pallof-press",
+    "palms-down-barbell-wrist-curl",
+    "palms-down-dumbbell-wrist-curl",
+    "push-up",
+    "quadruped-leg-kickback",
+    "reverse-lunge",
+    "romanian-deadlift",
+    "russian-twist",
+    "seated-cable-row",
+    "seated-calf-raise",
+    "seated-leg-curl",
+    "seated-machine-calf-press",
+    "side-plank",
+    "standing-barbell-calf-raise",
+    "standing-calf-raise",
+    "standing-hip-abduction",
+    "stationary-bike",
+    "step-up",
+    "stiff-legged-barbell-good-morning",
+    "superman",
+    "thoracic-rotation",
+    "trap-bar-shrugs",
+    "walking",
+    "wall-push-up"
+  ],
+  "catalogExercisesWithoutMedia": [
+    "assisted-pull-up",
+    "bird-dog",
+    "calf-stretch",
+    "cat-cow",
+    "childs-pose",
+    "dead-bug",
+    "dumbbell-bench-press",
+    "dumbbell-shoulder-press",
+    "elliptical",
+    "face-pull",
+    "front-plank",
+    "glute-bridge",
+    "glute-bridge-march",
+    "goblet-squat",
+    "hammer-curl",
+    "hip-flexor-stretch",
+    "incline-push-up",
+    "leg-extension",
+    "machine-chest-press",
+    "machine-row",
+    "one-arm-dumbbell-row",
+    "pallof-press",
+    "reverse-lunge",
+    "romanian-deadlift",
+    "seated-calf-raise",
+    "side-plank",
+    "stationary-bike",
+    "step-up",
+    "thoracic-rotation",
+    "walking",
+    "wall-push-up"
+  ],
+  "imageSlugsWithoutCatalog": [],
+  "multipleImageSlugs": [
+    {
+      "parsedSlug": "russian-twist",
+      "indexes": [
+        1,
+        2
+      ]
+    }
+  ],
+  "multipleImageExercises": [
+    {
+      "canonicalSlug": "russian-twist",
+      "indexes": [
+        1,
+        2
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "sourceSlug": "cable-crossover-fly",
+      "canonicalSlug": "cable-chest-fly",
+      "reason": "Reviewed naming synonym for the seeded Cable Chest Fly exercise."
+    },
+    {
+      "sourceSlug": "cable-row",
+      "canonicalSlug": "seated-cable-row",
+      "reason": "Visual inspection confirms a seated bilateral cable row with foot support, matching the seeded Seated Cable Row in equipment, body position, loading, and technique."
+    },
+    {
+      "sourceSlug": "calf-raise",
+      "canonicalSlug": "standing-calf-raise",
+      "reason": "Visual inspection confirms an unsupported standing bodyweight calf raise, matching the seeded exercise in loading, position, range of motion, and target muscles."
+    },
+    {
+      "sourceSlug": "dumbbell-back-fly",
+      "canonicalSlug": "incline-dumbbell-reverse-fly",
+      "reason": "Approved catalog expansion canonical slug for dumbbell-back-fly."
+    },
+    {
+      "sourceSlug": "dumbbell-bicep-curl",
+      "canonicalSlug": "dumbbell-biceps-curl",
+      "reason": "Reviewed singular/plural naming difference for Dumbbell Biceps Curl."
+    },
+    {
+      "sourceSlug": "dumbbell-lateral-raise",
+      "canonicalSlug": "lateral-raise",
+      "reason": "The seeded Lateral Raise explicitly uses dumbbells."
+    },
+    {
+      "sourceSlug": "leg-raise",
+      "canonicalSlug": "lying-leg-raise",
+      "reason": "Approved catalog expansion canonical slug for leg-raise."
+    },
+    {
+      "sourceSlug": "machine-hip-abductor",
+      "canonicalSlug": "hip-abduction-machine",
+      "reason": "Reviewed word-order difference for Hip Abduction Machine."
+    },
+    {
+      "sourceSlug": "machine-hip-adductor",
+      "canonicalSlug": "hip-adduction-machine",
+      "reason": "Reviewed word-order difference for Hip Adduction Machine."
+    },
+    {
+      "sourceSlug": "single-leg-kickback",
+      "canonicalSlug": "quadruped-leg-kickback",
+      "reason": "Approved catalog expansion canonical slug for single-leg-kickback."
+    }
+  ],
+  "items": [
+    {
+      "sourceFileName": "back-squat_anatomy-01.webp",
+      "parsedSlug": "back-squat",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Back Squat",
+      "canonicalSlug": "back-squat",
+      "canonicalFileName": "back-squat_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "barbell-bench-press_anatomy-01.webp",
+      "parsedSlug": "barbell-bench-press",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Barbell Bench Press",
+      "canonicalSlug": "barbell-bench-press",
+      "canonicalFileName": "barbell-bench-press_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "barbell-curl_anatomy-01.webp",
+      "parsedSlug": "barbell-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Barbell Curl",
+      "canonicalSlug": "barbell-curl",
+      "canonicalFileName": "barbell-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "barbell-hip-thrust_anatomy-01.webp",
+      "parsedSlug": "barbell-hip-thrust",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Barbell Hip Thrust",
+      "canonicalSlug": "barbell-hip-thrust",
+      "canonicalFileName": "barbell-hip-thrust_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "barbell-shoulder-press_anatomy-01.webp",
+      "parsedSlug": "barbell-shoulder-press",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Barbell Shoulder Press",
+      "canonicalSlug": "barbell-shoulder-press",
+      "canonicalFileName": "barbell-shoulder-press_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "barbell-shrug_anatomy-01.webp",
+      "parsedSlug": "barbell-shrug",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Barbell Shrug",
+      "canonicalSlug": "barbell-shrug",
+      "canonicalFileName": "barbell-shrug_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "bench-dip_anatomy-01.webp",
+      "parsedSlug": "bench-dip",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Bench Dip",
+      "canonicalSlug": "bench-dip",
+      "canonicalFileName": "bench-dip_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "bent-over-barbell-row_anatomy-01.webp",
+      "parsedSlug": "bent-over-barbell-row",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Bent-Over Barbell Row",
+      "canonicalSlug": "bent-over-barbell-row",
+      "canonicalFileName": "bent-over-barbell-row_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "bodyweight-squat_anatomy-01.webp",
+      "parsedSlug": "bodyweight-squat",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Bodyweight Squat",
+      "canonicalSlug": "bodyweight-squat",
+      "canonicalFileName": "bodyweight-squat_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "butterfly-stretch_anatomy-01.webp",
+      "parsedSlug": "butterfly-stretch",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Butterfly Stretch",
+      "canonicalSlug": "butterfly-stretch",
+      "canonicalFileName": "butterfly-stretch_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "cable-bicep-curl_anatomy-01.webp",
+      "parsedSlug": "cable-bicep-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Cable Biceps Curl",
+      "canonicalSlug": "cable-bicep-curl",
+      "canonicalFileName": "cable-bicep-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "cable-chest-fly_anatomy-01.webp",
+      "parsedSlug": "cable-chest-fly",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Cable Chest Fly",
+      "canonicalSlug": "cable-chest-fly",
+      "canonicalFileName": "cable-chest-fly_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "cable-hip-adduction_anatomy-01.webp",
+      "parsedSlug": "cable-hip-adduction",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Cable Hip Adduction",
+      "canonicalSlug": "cable-hip-adduction",
+      "canonicalFileName": "cable-hip-adduction_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "cable-triceps-pushdown_anatomy-01.webp",
+      "parsedSlug": "cable-triceps-pushdown",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Cable Triceps Pushdown",
+      "canonicalSlug": "cable-triceps-pushdown",
+      "canonicalFileName": "cable-triceps-pushdown_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "cable-upright-row_anatomy-01.webp",
+      "parsedSlug": "cable-upright-row",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Cable Upright Row",
+      "canonicalSlug": "cable-upright-row",
+      "canonicalFileName": "cable-upright-row_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "crunches_anatomy-01.webp",
+      "parsedSlug": "crunches",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Crunches",
+      "canonicalSlug": "crunches",
+      "canonicalFileName": "crunches_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "deadlift_anatomy-01.webp",
+      "parsedSlug": "deadlift",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Conventional Deadlift",
+      "canonicalSlug": "deadlift",
+      "canonicalFileName": "deadlift_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "dumbbell-biceps-curl_anatomy-01.webp",
+      "parsedSlug": "dumbbell-biceps-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Dumbbell Biceps Curl",
+      "canonicalSlug": "dumbbell-biceps-curl",
+      "canonicalFileName": "dumbbell-biceps-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "farmers-carry_anatomy-01.webp",
+      "parsedSlug": "farmers-carry",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Farmer’s Carry",
+      "canonicalSlug": "farmers-carry",
+      "canonicalFileName": "farmers-carry_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "hip-abduction-machine_anatomy-01.webp",
+      "parsedSlug": "hip-abduction-machine",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Hip Abduction Machine",
+      "canonicalSlug": "hip-abduction-machine",
+      "canonicalFileName": "hip-abduction-machine_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "hip-adduction-machine_anatomy-01.webp",
+      "parsedSlug": "hip-adduction-machine",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Hip Adduction Machine",
+      "canonicalSlug": "hip-adduction-machine",
+      "canonicalFileName": "hip-adduction-machine_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "hip-thrust_anatomy-01.webp",
+      "parsedSlug": "hip-thrust",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Hip Thrust",
+      "canonicalSlug": "hip-thrust",
+      "canonicalFileName": "hip-thrust_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "incline-back-extension_anatomy-01.webp",
+      "parsedSlug": "incline-back-extension",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Incline Back Extension",
+      "canonicalSlug": "incline-back-extension",
+      "canonicalFileName": "incline-back-extension_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "incline-dumbbell-reverse-fly_anatomy-01.webp",
+      "parsedSlug": "incline-dumbbell-reverse-fly",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Incline Dumbbell Reverse Fly",
+      "canonicalSlug": "incline-dumbbell-reverse-fly",
+      "canonicalFileName": "incline-dumbbell-reverse-fly_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "kettlebell-sumo-squat_anatomy-01.webp",
+      "parsedSlug": "kettlebell-sumo-squat",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Kettlebell Sumo Squat",
+      "canonicalSlug": "kettlebell-sumo-squat",
+      "canonicalFileName": "kettlebell-sumo-squat_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "lat-pulldown_anatomy-01.webp",
+      "parsedSlug": "lat-pulldown",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Lat Pulldown",
+      "canonicalSlug": "lat-pulldown",
+      "canonicalFileName": "lat-pulldown_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "lateral-lunge-stretch_anatomy-01.webp",
+      "parsedSlug": "lateral-lunge-stretch",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Lateral Lunge Stretch",
+      "canonicalSlug": "lateral-lunge-stretch",
+      "canonicalFileName": "lateral-lunge-stretch_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "lateral-raise_anatomy-01.webp",
+      "parsedSlug": "lateral-raise",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Lateral Raise",
+      "canonicalSlug": "lateral-raise",
+      "canonicalFileName": "lateral-raise_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "leg-press_anatomy-01.webp",
+      "parsedSlug": "leg-press",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Leg Press",
+      "canonicalSlug": "leg-press",
+      "canonicalFileName": "leg-press_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "lying-leg-raise_anatomy-01.webp",
+      "parsedSlug": "lying-leg-raise",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Lying Leg Raise",
+      "canonicalSlug": "lying-leg-raise",
+      "canonicalFileName": "lying-leg-raise_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "mini-loop-band-side-lying-hip-abduction_anatomy-01.webp",
+      "parsedSlug": "mini-loop-band-side-lying-hip-abduction",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Mini-Band Side-Lying Hip Abduction",
+      "canonicalSlug": "mini-loop-band-side-lying-hip-abduction",
+      "canonicalFileName": "mini-loop-band-side-lying-hip-abduction_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "overhead-triceps-extension_anatomy-01.webp",
+      "parsedSlug": "overhead-triceps-extension",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Overhead Triceps Extension",
+      "canonicalSlug": "overhead-triceps-extension",
+      "canonicalFileName": "overhead-triceps-extension_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "palms-down-barbell-wrist-curl_anatomy-01.webp",
+      "parsedSlug": "palms-down-barbell-wrist-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Palms-Down Barbell Wrist Curl",
+      "canonicalSlug": "palms-down-barbell-wrist-curl",
+      "canonicalFileName": "palms-down-barbell-wrist-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "palms-down-dumbbell-wrist-curl_anatomy-01.webp",
+      "parsedSlug": "palms-down-dumbbell-wrist-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Palms-Down Dumbbell Wrist Curl",
+      "canonicalSlug": "palms-down-dumbbell-wrist-curl",
+      "canonicalFileName": "palms-down-dumbbell-wrist-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "push-up_anatomy-01.webp",
+      "parsedSlug": "push-up",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Push-Up",
+      "canonicalSlug": "push-up",
+      "canonicalFileName": "push-up_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "quadruped-leg-kickback_anatomy-01.webp",
+      "parsedSlug": "quadruped-leg-kickback",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Quadruped Leg Kickback",
+      "canonicalSlug": "quadruped-leg-kickback",
+      "canonicalFileName": "quadruped-leg-kickback_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "russian-twist_anatomy-01.webp",
+      "parsedSlug": "russian-twist",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Russian Twist",
+      "canonicalSlug": "russian-twist",
+      "canonicalFileName": "russian-twist_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "russian-twist_anatomy-02.webp",
+      "parsedSlug": "russian-twist",
+      "mediaIndex": 2,
+      "canonicalExerciseName": "Russian Twist",
+      "canonicalSlug": "russian-twist",
+      "canonicalFileName": "russian-twist_anatomy-02.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "seated-cable-row_anatomy-01.webp",
+      "parsedSlug": "seated-cable-row",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Seated Cable Row",
+      "canonicalSlug": "seated-cable-row",
+      "canonicalFileName": "seated-cable-row_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "seated-leg-curl_anatomy-01.webp",
+      "parsedSlug": "seated-leg-curl",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Seated Leg Curl",
+      "canonicalSlug": "seated-leg-curl",
+      "canonicalFileName": "seated-leg-curl_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "seated-machine-calf-press_anatomy-01.webp",
+      "parsedSlug": "seated-machine-calf-press",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Seated Machine Calf Press",
+      "canonicalSlug": "seated-machine-calf-press",
+      "canonicalFileName": "seated-machine-calf-press_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "standing-barbell-calf-raise_anatomy-01.webp",
+      "parsedSlug": "standing-barbell-calf-raise",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Standing Barbell Calf Raise",
+      "canonicalSlug": "standing-barbell-calf-raise",
+      "canonicalFileName": "standing-barbell-calf-raise_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "standing-calf-raise_anatomy-01.webp",
+      "parsedSlug": "standing-calf-raise",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Standing Calf Raise",
+      "canonicalSlug": "standing-calf-raise",
+      "canonicalFileName": "standing-calf-raise_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "standing-hip-abduction_anatomy-01.webp",
+      "parsedSlug": "standing-hip-abduction",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Standing Hip Abduction",
+      "canonicalSlug": "standing-hip-abduction",
+      "canonicalFileName": "standing-hip-abduction_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "stiff-legged-barbell-good-morning_anatomy-01.webp",
+      "parsedSlug": "stiff-legged-barbell-good-morning",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Stiff-Legged Barbell Good Morning",
+      "canonicalSlug": "stiff-legged-barbell-good-morning",
+      "canonicalFileName": "stiff-legged-barbell-good-morning_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "superman_anatomy-01.webp",
+      "parsedSlug": "superman",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Superman",
+      "canonicalSlug": "superman",
+      "canonicalFileName": "superman_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "sourceFileName": "trap-bar-shrugs_anatomy-01.webp",
+      "parsedSlug": "trap-bar-shrugs",
+      "mediaIndex": 1,
+      "canonicalExerciseName": "Trap-Bar Shrugs",
+      "canonicalSlug": "trap-bar-shrugs",
+      "canonicalFileName": "trap-bar-shrugs_anatomy-01.webp",
+      "status": "EXACT_MATCH"
+    }
+  ]
+}

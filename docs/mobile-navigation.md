@@ -16,6 +16,8 @@ Bottom-tab and stack shell labels now use i18next translation keys for `en-US`, 
 Profile → Personal opens the nested `/goal-editor` route for post-onboarding goal changes. Food, Training, Personal, and Goals compare each draft with its last persisted baseline. Save is disabled without a real change or while saving; Cancel restores that baseline; guarded back navigation prompts only while dirty.
 
 See `sprint-8b-mobile-qa.md` for the manual iPhone checklist covering safe areas, keyboards, scrolling, and tab fit.
+
+Plan Details owns local Food/Training content tabs inside the existing Today flow. Library-backed exercise cards open the full-screen `/exercise-details` stack route with stable plan and exercise IDs. Returning preserves the mounted Plan Details state and does not regenerate or mutate the plan.
 ## Localized navigation
 
 The four tab labels and stack titles use translation keys. Profile's internal Personal, Health, Connections, and Settings navigation supports wrapping/longer labels without adding locale-specific routes. Route names and persisted navigation state remain language-neutral.

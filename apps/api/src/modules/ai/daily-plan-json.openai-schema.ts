@@ -35,6 +35,8 @@ const exerciseSchema = {
   type: 'object',
   additionalProperties: false,
   required: [
+    'exerciseId',
+    'slug',
     'name',
     'targetMuscles',
     'equipment',
@@ -43,9 +45,12 @@ const exerciseSchema = {
     'rest',
     'duration',
     'intensityCue',
-    'safetyNotes'
+    'safetyNotes',
+    'notes'
   ],
   properties: {
+    exerciseId: { type: 'string', description: 'Exact exerciseId from allowedExerciseCandidates.' },
+    slug: { type: 'string', description: 'Exact matching slug from allowedExerciseCandidates.' },
     name: {
       type: 'string',
       description:
@@ -74,7 +79,8 @@ const exerciseSchema = {
       type: 'string',
       description:
         'Short safety note. Reduce intensity for pain, dizziness, illness, exhaustion, pregnancy/postpartum, under-18 safeMode, or beginner context.'
-    }
+    },
+    notes: { type: 'string', description: 'Concise plan-specific note only; do not alter exercise identity or technique.' }
   }
 } as const;
 
@@ -179,7 +185,7 @@ export const dailyPlanJsonOpenAiSchema = {
         exercises: {
           type: 'array',
           description:
-            'Optional text-only exercise recommendations. BASIC: 0-2 simple exercises. PERSONALIZED: 3-4 when training is appropriate. ADAPTIVE: 4-5 individualized exercises when training is appropriate. Return [] for rest/recovery days.',
+            'Choose only from allowedExerciseCandidates. Use exact exerciseId and slug. Return the requested exercise count, or [] when requestedExerciseCount is zero.',
           items: exerciseSchema
         }
       }

@@ -2,9 +2,12 @@ import type { TFunction } from 'i18next';
 import type {
   ActivityLevel,
   DietType,
+  ExerciseCategory,
+  ExerciseEquipment,
   GoalImpactMode,
   GoalType,
   IntensityLevel,
+  MovementPattern,
   PregnancyStatus,
   SportType,
   TargetMuscleGroup,
@@ -32,7 +35,10 @@ const maps = {
   measurementSystem: map<'METRIC' | 'IMPERIAL'>('measurementSystem', ['METRIC', 'IMPERIAL']),
   healthProvider: map<HealthProvider>('healthProvider', ['APPLE_HEALTH', 'HEALTH_CONNECT']),
   subscriptionPlan: map<SubscriptionPlan>('subscriptionPlan', ['FREE', 'PLUS', 'PRO']),
-  planQualityMode: map<PlanQualityMode>('planQualityMode', ['BASIC', 'PERSONALIZED', 'ADAPTIVE'])
+  planQualityMode: map<PlanQualityMode>('planQualityMode', ['BASIC', 'PERSONALIZED', 'ADAPTIVE']),
+  exerciseEquipment: map<ExerciseEquipment>('exerciseEquipment', ['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE']),
+  exerciseCategory: map<ExerciseCategory>('exerciseCategory', ['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY']),
+  movementPattern: map<MovementPattern>('movementPattern', ['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY'])
 } as const;
 
 function map<T extends string>(group: string, values: readonly T[]) {
@@ -60,6 +66,9 @@ export const getMeasurementSystemLabel = (t: TFunction, value: 'METRIC' | 'IMPER
 export const getHealthProviderLabel = (t: TFunction, value: HealthProvider) => label(t, maps.healthProvider, value);
 export const getSubscriptionPlanLabel = (t: TFunction, value: SubscriptionPlan) => label(t, maps.subscriptionPlan, value);
 export const getPlanQualityModeLabel = (t: TFunction, value: PlanQualityMode) => label(t, maps.planQualityMode, value);
+export const getExerciseEquipmentLabel = (t: TFunction, value: ExerciseEquipment) => label(t, maps.exerciseEquipment, value);
+export const getExerciseCategoryLabel = (t: TFunction, value: ExerciseCategory) => label(t, maps.exerciseCategory, value);
+export const getMovementPatternLabel = (t: TFunction, value: MovementPattern) => label(t, maps.movementPattern, value);
 
 export function enumOptions<T extends string>(values: readonly T[], getLabel: (value: T) => string) {
   return values.map((value) => ({ value, label: getLabel(value) }));

@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="plan-details" options={{ title: t('navigation.planDetails'), headerBackTitle: t('tabs.today') }} />
+        <Stack.Screen name="exercise-details" options={{ title: t('plan.exerciseDetailsTitle'), headerBackTitle: t('navigation.planDetails') }} />
         <Stack.Screen name="health-data" options={{ title: t('navigation.healthData'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="goal-editor" options={{ title: t('navigation.goals'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="training-schedule/create" options={{ title: t('navigation.addWorkout'), headerBackTitle: t('tabs.training') }} />

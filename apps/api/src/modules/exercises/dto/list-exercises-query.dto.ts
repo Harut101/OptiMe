@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import {
   EXERCISE_CATEGORIES,
   EXERCISE_EQUIPMENT,
@@ -14,6 +14,16 @@ import {
 } from '@optime/shared-types';
 
 export class ListExercisesQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => typeof value === 'string'
+    ? value.split(',').map((item) => item.trim()).filter(Boolean)
+    : value)
+  @IsArray()
+  @ArrayMaxSize(16)
+  @IsString({ each: true })
+  @MaxLength(64, { each: true })
+  ids?: string[];
+
   @IsOptional()
   @IsIn(EXERCISE_CATEGORIES)
   category?: ExerciseCategory;

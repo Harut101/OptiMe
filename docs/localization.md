@@ -19,4 +19,8 @@ Existing and historical AI plan content remains exactly as stored. A localized R
 
 ExerciseLibrary content is stored in explicit `ExerciseTranslation` and `ExerciseMediaTranslation` rows for all four supported locales. Read APIs use validated `Accept-Language`, project through the requested locale, and fall back deterministically to `en-US`. Slugs, IDs, enums, URLs, and business logic remain language-neutral; translations are never generated at request time.
 
+Daily plan exercise selection resolves the saved preferred locale and falls back to English per exercise. New plan snapshots preserve localized name, instructions, cues, and safety notes. Changing app language later does not mutate an existing snapshot. General AI plan prose localization remains separate work.
+
 Known backend codes are presented with localized application messages; unknown failures use localized generic fallbacks while technical errors remain available to development logging.
+
+Daily Plan Food/Training tabs, Exercise Details headings and states, media position announcements, and exercise prescription labels are available in all four supported locales. Exercise equipment, category, movement pattern, and muscle labels use the centralized enum map. Stored snapshot prose and plan-specific AI text are displayed as persisted and are never translated at render time.

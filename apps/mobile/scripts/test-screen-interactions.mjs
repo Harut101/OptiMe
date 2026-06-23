@@ -80,6 +80,35 @@ assert(!goalsForm.includes('expo-router'), 'GoalsForm must not navigate.');
 assert(!goalsForm.includes('@/api/'), 'GoalsForm must not persist data.');
 assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.');
 
+const planDetails = read('app/plan-details.tsx');
+const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
+const planTabs = read('src/features/daily-plan/PlanContentTabs.tsx');
+const exerciseCard = read('src/features/daily-plan/ExerciseCard.tsx');
+const exerciseDetails = read('app/exercise-details.tsx');
+const mediaCarousel = read('src/features/daily-plan/ExerciseMediaCarousel.tsx');
+const exerciseApi = read('src/api/exercises.ts');
+assertIncludes(planDetails, ['PlanTabbedContent', "t('plan.recovery')", "t('plan.reminders')"], 'Plan Details');
+assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Recovery and reminders must remain shared outside plan tabs.');
+assertIncludes(planTabs, ['accessibilityRole="tab"', 'accessibilityState={{ selected }}', 'foodLabel', 'trainingLabel'], 'Plan content tabs');
+assertIncludes(planContent, [
+  "plan.nutrition.meals.length > 0 ? 'food'", "exercises.length > 0 ? 'training'", "useState<PlanContentTab>(defaultTab)",
+  "queryKey: ['exercise-summaries', locale, exerciseIds]", 'FoodContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
+], 'Plan tab content');
+assertIncludes(exerciseCard, ['exercise.name', 'formatExercisePrescription', 'getMuscleGroupLabel', 'getExerciseEquipmentLabel', 'summary?.thumbnail', 'barbell-outline'], 'Exercise card');
+assert(exerciseCard.includes('return onPress ?') && exerciseCard.includes('<Pressable'), 'Only supported library exercises should open details.');
+assertIncludes(exerciseDetails, [
+  "queryKey: ['today-plan']", "queryKey: ['exercise-detail', locale, exerciseId]", 'exercise.exerciseSnapshot',
+  'formatExercisePrescription', 'ExerciseMediaCarousel', 'snapshot.instructions', 'snapshot.coachingCues', 'snapshot.safetyNotes'
+], 'Exercise details');
+assertIncludes(mediaCarousel, ['horizontal', 'pagingEnabled', 'aspectRatio: 4 / 5', 'resizeMode="contain"', 'available.length > 1', "available.length === 0"], 'Exercise media carousel');
+assert(!mediaCarousel.includes('autoplay') && !mediaCarousel.includes('infinite'), 'Exercise media must not autoplay or loop infinitely.');
+assertIncludes(exerciseApi, ['`/exercises?${params.toString()}`', 'ids: uniqueIds.join', '`/exercises/${encodeURIComponent(exerciseId)}`'], 'Exercise API client');
+for (const source of [planContent, planTabs, exerciseCard, exerciseDetails, mediaCarousel, exerciseApi]) {
+  assert(!source.includes('generateDailyPlan'), 'Daily Plan content navigation must not regenerate a plan.');
+  assert(!source.includes('daily-plans/generate'), 'Daily Plan content navigation must not call generation endpoints.');
+  assert(!source.includes('openai'), 'Daily Plan content navigation must not call OpenAI.');
+}
+
 for (const [name, source] of [
   ['Food', food], ['Training', training], ['Profile', profile], ['Goals', goalEditor]
 ]) {

@@ -1,6 +1,7 @@
 import { DailyReadinessLevel, PlanQualityMode } from '@prisma/client';
 
 import { DailyPlanJson } from '../daily-plan-json.schema';
+import type { GenerateDailyPlanExerciseSelection } from '../../ai/ai-provider.interface';
 
 export interface MockDailyPlanInput {
   planLocalDate: string;
@@ -8,6 +9,7 @@ export interface MockDailyPlanInput {
   firstName?: string | null;
   isMinor: boolean;
   planQualityMode?: PlanQualityMode;
+  exerciseSelection?: GenerateDailyPlanExerciseSelection;
 }
 
 export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
@@ -55,7 +57,9 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
       recommendation: summaryByMode.trainingRecommendation,
       intensity: 'MODERATE',
       notes: 'Adjust effort down if energy, sleep, or recovery feels off.',
-      exercises: createExercises(planQualityMode)
+      exercises: input.exerciseSelection
+        ? createLibraryExercises(input.exerciseSelection)
+        : createExercises(planQualityMode)
     },
     recovery: {
       recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',
@@ -69,6 +73,24 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
       planQualityMode
     }
   };
+}
+
+function createLibraryExercises(selection: GenerateDailyPlanExerciseSelection): NonNullable<DailyPlanJson['training']['exercises']> {
+  return selection.candidates.slice(0, selection.requestedExerciseCount).map((candidate) => {
+    const common = {
+      exerciseId: candidate.exerciseId,
+      slug: candidate.slug,
+      name: candidate.name,
+      targetMuscles: candidate.targetMuscles,
+      equipment: candidate.equipment,
+      intensityCue: 'Keep the movement controlled and leave comfortable effort in reserve.',
+      safetyNotes: candidate.safetyNotes.join(' ').slice(0, 220),
+      notes: 'Use a comfortable range and adjust down when needed.'
+    };
+    if (candidate.category === 'STRENGTH') return { ...common, sets: '2', reps: '8-10', rest: '60 seconds' };
+    if (candidate.category === 'CARDIO') return { ...common, duration: '10 minutes' };
+    return { ...common, duration: '5 minutes' };
+  });
 }
 
 function createExercises(

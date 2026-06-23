@@ -4,6 +4,7 @@ import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.mo
 import { AiModule } from '../ai/ai.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
+import { ExerciseSelectionModule } from '../exercise-selection/exercise-selection.module';
 import { HealthModule } from '../health/health.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { ProtocolModule } from '../protocol/protocol.module';
@@ -19,6 +20,7 @@ import { DailyPlansService } from './daily-plans.service';
     AiModule,
     DailyPlanCheckInsModule,
     EntitlementsModule,
+    ExerciseSelectionModule,
     HealthModule,
     OnboardingModule,
     ProtocolModule,

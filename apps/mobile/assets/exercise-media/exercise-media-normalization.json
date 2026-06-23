@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "exercise-media-normalization.v1",
+  "applied": true,
+  "items": [
+    {
+      "fileName": "barbell-hip-thrust_anatomy-01.webp",
+      "needsNormalization": false,
+      "currentDimensions": {
+        "width": 1024,
+        "height": 1536
+      },
+      "currentAspectRatio": 0.666667,
+      "targetDimensions": {
+        "width": 1200,
+        "height": 1500
+      },
+      "containedDimensions": {
+        "width": 1000,
+        "height": 1500
+      },
+      "padding": {
+        "left": 100,
+        "right": 100,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "r": 243,
+        "g": 239,
+        "b": 238,
+        "alpha": 1,
+        "strategy": "median of neutral high-alpha corner and outer-edge samples"
+      },
+      "originalSha256": "c4d0c2298dc6e90b7678523d1bfc7202e17370d65ff422f85cffbc058942c1d9",
+      "outputPath": "apps/mobile/assets/exercise-media/inbox/barbell-hip-thrust_anatomy-01.webp",
+      "backupSha256": "c4d0c2298dc6e90b7678523d1bfc7202e17370d65ff422f85cffbc058942c1d9",
+      "finalSha256": "a59a568b8fb9f8ba9c0814656c4184993048cd00f719d1b476d8e088511cc6ca"
+    },
+    {
+      "fileName": "bodyweight-squat_anatomy-01.webp",
+      "needsNormalization": false,
+      "currentDimensions": {
+        "width": 1024,
+        "height": 1536
+      },
+      "currentAspectRatio": 0.666667,
+      "targetDimensions": {
+        "width": 1200,
+        "height": 1500
+      },
+      "containedDimensions": {
+        "width": 1000,
+        "height": 1500
+      },
+      "padding": {
+        "left": 100,
+        "right": 100,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "r": 244,
+        "g": 241,
+        "b": 242,
+        "alpha": 1,
+        "strategy": "median of neutral high-alpha corner and outer-edge samples"
+      },
+      "originalSha256": "e6a3f63eead51306fa725868a7c72e357f4dd912c9356c7e540a78f768de1167",
+      "outputPath": "apps/mobile/assets/exercise-media/inbox/bodyweight-squat_anatomy-01.webp",
+      "backupSha256": "e6a3f63eead51306fa725868a7c72e357f4dd912c9356c7e540a78f768de1167",
+      "finalSha256": "b15249968c914b080c31c137413b9aaddff1287795e1c8f7e0fcc65cfec8800e"
+    },
+    {
+      "fileName": "cable-triceps-pushdown_anatomy-01.webp",
+      "needsNormalization": false,
+      "currentDimensions": {
+        "width": 1024,
+        "height": 1536
+      },
+      "currentAspectRatio": 0.666667,
+      "targetDimensions": {
+        "width": 1200,
+        "height": 1500
+      },
+      "containedDimensions": {
+        "width": 1000,
+        "height": 1500
+      },
+      "padding": {
+        "left": 100,
+        "right": 100,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "r": 244,
+        "g": 243,
+        "b": 243,
+        "alpha": 1,
+        "strategy": "median of neutral high-alpha corner and outer-edge samples"
+      },
+      "originalSha256": "ce740aa7389eaf0de14bf42c84f1b977ef532d11f22894ef5c1e198e59cbc23b",
+      "outputPath": "apps/mobile/assets/exercise-media/inbox/cable-triceps-pushdown_anatomy-01.webp",
+      "backupSha256": "ce740aa7389eaf0de14bf42c84f1b977ef532d11f22894ef5c1e198e59cbc23b",
+      "finalSha256": "0e8231088641b7ebd097bc180cde58cb65ff64a796fe5a324343bb18e17b4eb0"
+    },
+    {
+      "fileName": "quadruped-leg-kickback_anatomy-01.webp",
+      "needsNormalization": false,
+      "currentDimensions": {
+        "width": 1024,
+        "height": 1536
+      },
+      "currentAspectRatio": 0.666667,
+      "targetDimensions": {
+        "width": 1200,
+        "height": 1500
+      },
+      "containedDimensions": {
+        "width": 1000,
+        "height": 1500
+      },
+      "padding": {
+        "left": 100,
+        "right": 100,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "r": 244,
+        "g": 240,
+        "b": 239,
+        "alpha": 1,
+        "strategy": "median of neutral high-alpha corner and outer-edge samples"
+      },
+      "originalSha256": "4637b63ddef06179d5ac48efcc9690064ca4bddd443d1c3677a5b99587dead24",
+      "outputPath": "apps/mobile/assets/exercise-media/inbox/quadruped-leg-kickback_anatomy-01.webp",
+      "backupSha256": "4637b63ddef06179d5ac48efcc9690064ca4bddd443d1c3677a5b99587dead24",
+      "finalSha256": "bb2b9375cea2c3ac1bc232f5ed818c8d9a3918fefb12014bcc6b764103c77a7d"
+    },
+    {
+      "fileName": "standing-barbell-calf-raise_anatomy-01.webp",
+      "needsNormalization": false,
+      "currentDimensions": {
+        "width": 1024,
+        "height": 1536
+      },
+      "currentAspectRatio": 0.666667,
+      "targetDimensions": {
+        "width": 1200,
+        "height": 1500
+      },
+      "containedDimensions": {
+        "width": 1000,
+        "height": 1500
+      },
+      "padding": {
+        "left": 100,
+        "right": 100,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "r": 248,
+        "g": 243,
+        "b": 242,
+        "alpha": 1,
+        "strategy": "median of neutral high-alpha corner and outer-edge samples"
+      },
+      "originalSha256": "52a1a930237af071814b58e37f5f1936f1c57d9feffe34242b08ad1df06fc6e4",
+      "outputPath": "apps/mobile/assets/exercise-media/inbox/standing-barbell-calf-raise_anatomy-01.webp",
+      "backupSha256": "52a1a930237af071814b58e37f5f1936f1c57d9feffe34242b08ad1df06fc6e4",
+      "finalSha256": "51d3d9f6ad8d331387f2e2e5dd7e1973148ffeb434b12b6db215ad8216fdbc57"
+    }
+  ]
+}

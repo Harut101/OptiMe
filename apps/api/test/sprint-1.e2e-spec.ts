@@ -52,6 +52,7 @@ import { UsageLimitExceededException } from '../src/modules/usage/usage-limit-ex
 import { cleanupDatabase } from './helpers/cleanup';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
+import { seedExerciseCatalog } from '../prisma/seeds/exercises/seed';
 
 describe('Sprint 1 backend vertical slice', () => {
   let ctx: TestApp;
@@ -69,6 +70,7 @@ describe('Sprint 1 backend vertical slice', () => {
     delete process.env.SAFETY_AGENT_ENABLED;
     delete process.env.SAFETY_AGENT_PROVIDER;
     ctx = await createTestApp();
+    await seedExerciseCatalog(ctx.prisma);
   });
 
   beforeEach(async () => {
@@ -242,6 +244,65 @@ describe('Sprint 1 backend vertical slice', () => {
       source: 'default_free',
       features: expectedFeaturesForPlan('FREE')
     });
+  });
+
+  it('retries invented OpenAI exercise identities once, then uses a trusted library fallback', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const invalidPlan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'ExerciseRetry',
+      isMinor: false
+    });
+    invalidPlan.training.exercises = Array.from({ length: 4 }, (_, index) => ({
+      exerciseId: `invented-${index}`,
+      slug: `invented-${index}`,
+      name: 'Invented exercise',
+      targetMuscles: [],
+      equipment: [],
+      sets: '2',
+      reps: '8-10',
+      rest: '60 seconds',
+      intensityCue: 'Move with control.',
+      safetyNotes: 'Use a comfortable range.'
+    }));
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({ output_text: JSON.stringify(invalidPlan) }),
+        () => ({ output_text: JSON.stringify(invalidPlan) })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-exercise-retry@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'ExerciseRetry');
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(response.body.status).toBe('READY');
+      expect(requests).toHaveLength(2);
+      expect(JSON.stringify(requests[1])).toContain('EXERCISE_NOT_ALLOWED');
+      expect(response.body.plan.debug.exerciseSelection).toMatchObject({
+        usedAiRetry: true,
+        usedDeterministicFallback: true
+      });
+      expect(response.body.plan.training.exercises).toHaveLength(4);
+      expect(response.body.plan.training.exercises.every((exercise: Record<string, unknown>) =>
+        typeof exercise.exerciseId === 'string' &&
+        !String(exercise.exerciseId).startsWith('invented-') &&
+        Boolean(exercise.exerciseSnapshot)
+      )).toBe(true);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
   });
 
   it.each([
@@ -3219,7 +3280,7 @@ describe('Sprint 1 backend vertical slice', () => {
         {
           token: AI_PROVIDER,
           value: {
-            generateDailyPlan: async () => {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
               const plan = createMockDailyPlan({
                 planLocalDate: getUtcLocalDate(),
                 planTimezone: 'UTC',
@@ -3285,7 +3346,7 @@ describe('Sprint 1 backend vertical slice', () => {
         {
           token: AI_PROVIDER,
           value: {
-            generateDailyPlan: async () => {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
               const plan = createMockDailyPlan({
                 planLocalDate: getUtcLocalDate(),
                 planTimezone: 'UTC',
@@ -3294,14 +3355,19 @@ describe('Sprint 1 backend vertical slice', () => {
                 planQualityMode: PlanQualityMode.PERSONALIZED
               });
 
-              plan.training.exercises = [
-                {
-                  name: 'Heavy deadlift',
-                  targetMuscles: ['back', 'legs'],
-                  equipment: ['barbell'],
+              plan.training.exercises = input.exerciseSelection.candidates
+                .slice(0, input.exerciseSelection.requestedExerciseCount)
+                .map((candidate) => ({
+                  exerciseId: candidate.exerciseId,
+                  slug: candidate.slug,
+                  name: candidate.name,
+                  targetMuscles: candidate.targetMuscles,
+                  equipment: candidate.equipment,
+                  ...(candidate.category === 'STRENGTH'
+                    ? { sets: '2', reps: '8-10', rest: '60 seconds' }
+                    : { duration: '5 minutes' }),
                   intensityCue: 'Use max effort and train to failure.'
-                }
-              ];
+                }));
 
               return plan;
             }
@@ -5145,7 +5211,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(parsedRequests[0].system).toContain('PlanQualityMode is BASIC');
       expect(parsedRequests[0].system).toContain('Return exactly 1 nutrition.menuOptions');
-      expect(parsedRequests[0].system).toContain('For BASIC, include 0-2 simple');
+      expect(parsedRequests[0].system).toContain('Choose exercise identities only from allowedExerciseCandidates');
       expect(parsedRequests[0].context.planQualityMode).toBe('BASIC');
       expect(parsedRequests[0].context.personalizationContext.contextLevel).toBe('minimal');
       expect(
@@ -5155,7 +5221,7 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(parsedRequests[1].system).toContain('PlanQualityMode is PERSONALIZED');
       expect(parsedRequests[1].system).toContain('Return exactly 2 nutrition.menuOptions');
       expect(parsedRequests[1].system).toContain('sets, reps, and rest');
-      expect(parsedRequests[1].system).toContain('For PERSONALIZED, include 3-4 exercises');
+      expect(parsedRequests[1].system).toContain('Return exactly requestedExerciseCount exercise items');
       expect(parsedRequests[1].context.planQualityMode).toBe('PERSONALIZED');
       expect(parsedRequests[1].context.personalizationContext.contextLevel).toBe('personalized');
       expect(
@@ -5165,7 +5231,7 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(parsedRequests[2].system).toContain('PlanQualityMode is ADAPTIVE');
       expect(parsedRequests[2].system).toContain('Return exactly 3 nutrition.menuOptions');
       expect(parsedRequests[2].system).toContain('readiness placeholders');
-      expect(parsedRequests[2].system).toContain('For ADAPTIVE, include 4-5 individualized exercises');
+      expect(parsedRequests[2].system).toContain('Return exactly requestedExerciseCount exercise items');
       expect(parsedRequests[2].context.planQualityMode).toBe('ADAPTIVE');
       expect(parsedRequests[2].context.personalizationContext.contextLevel).toBe('adaptive');
       expect(
@@ -6205,6 +6271,56 @@ function restoreSafetyAgentEnv(enabled: string | undefined, provider: string | u
 
 type MockOpenAiResponse = { output_text?: string } | { throw: unknown };
 
+function hydrateLegacyDailyPlanResponse(
+  response: MockOpenAiResponse,
+  requestInput: Record<string, unknown>
+): MockOpenAiResponse {
+  if ('throw' in response || typeof response.output_text !== 'string') return response;
+  const formatName = (requestInput.text as { format?: { name?: string } } | undefined)?.format?.name;
+  if (formatName !== 'daily_plan_json') return response;
+
+  try {
+    const requestMessages = requestInput.input as Array<{ content?: string }>;
+    const context = JSON.parse(requestMessages[1]?.content ?? '{}') as {
+      allowedExerciseCandidates?: Array<{
+        exerciseId: string;
+        slug: string;
+        name: string;
+        category: string;
+        targetMuscles: string[];
+        equipment: string[];
+      }>;
+      requestedExerciseCount?: number;
+    };
+    const plan = JSON.parse(response.output_text) as {
+      training?: { exercises?: Array<Record<string, unknown>> };
+    };
+    const candidates = context.allowedExerciseCandidates ?? [];
+    if (!plan.training || !Array.isArray(plan.training.exercises) || !candidates.length) return response;
+    const templates = plan.training.exercises;
+    if (templates.length > 0 && templates.every((exercise) => typeof exercise.exerciseId === 'string')) return response;
+    const count = Math.min(context.requestedExerciseCount ?? templates.length, candidates.length);
+    plan.training.exercises = candidates.slice(0, count).map((candidate, index) => {
+      const template = templates[index % Math.max(templates.length, 1)] ?? {};
+      const common = {
+        ...template,
+        exerciseId: candidate.exerciseId,
+        slug: candidate.slug,
+        name: candidate.name,
+        targetMuscles: candidate.targetMuscles,
+        equipment: candidate.equipment
+      };
+      if (candidate.category === 'STRENGTH') {
+        return { ...common, sets: '2', reps: '8-10', rest: '60 seconds', duration: undefined };
+      }
+      return { ...common, sets: undefined, reps: undefined, rest: undefined, duration: '5 minutes' };
+    });
+    return { output_text: JSON.stringify(plan) };
+  } catch {
+    return response;
+  }
+}
+
 async function createOpenAiModeTestApp(options: {
   responses: Array<() => MockOpenAiResponse>;
   requests?: Array<Record<string, unknown>>;
@@ -6223,7 +6339,10 @@ async function createOpenAiModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = options.responses[Math.min(callIndex, options.responses.length - 1)]();
+              const response = hydrateLegacyDailyPlanResponse(
+                options.responses[Math.min(callIndex, options.responses.length - 1)](),
+                input
+              );
               callIndex += 1;
               if ('throw' in response) {
                 throw response.throw;
@@ -6260,7 +6379,10 @@ async function createOpenAiSafetyAgentModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = options.responses[Math.min(callIndex, options.responses.length - 1)]();
+              const response = hydrateLegacyDailyPlanResponse(
+                options.responses[Math.min(callIndex, options.responses.length - 1)](),
+                input
+              );
               callIndex += 1;
               if ('throw' in response) {
                 throw response.throw;
@@ -6297,7 +6419,10 @@ async function createOpenAiDailyAndSafetyAgentModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = options.responses[Math.min(callIndex, options.responses.length - 1)]();
+              const response = hydrateLegacyDailyPlanResponse(
+                options.responses[Math.min(callIndex, options.responses.length - 1)](),
+                input
+              );
               callIndex += 1;
               if ('throw' in response) {
                 throw response.throw;

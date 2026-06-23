@@ -55,6 +55,9 @@ const requiredEnumValues = {
   healthProvider: ['APPLE_HEALTH', 'HEALTH_CONNECT'],
   subscriptionPlan: ['FREE', 'PLUS', 'PRO'],
   planQualityMode: ['BASIC', 'PERSONALIZED', 'ADAPTIVE'],
+  exerciseEquipment: ['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE'],
+  exerciseCategory: ['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY'],
+  movementPattern: ['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY'],
   readiness: ['PUSH', 'MAINTAIN', 'RECOVER']
 };
 for (const [group, values] of Object.entries(requiredEnumValues)) {
@@ -72,9 +75,10 @@ assert(!languageOptions.includes('es-419') && !languageOptions.includes('de-DE')
 
 const today = read('app/(tabs)/today.tsx');
 const details = read('app/plan-details.tsx');
+const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
 assert(today.includes('plan.summary.title') && today.includes('plan.summary.message'), 'Today must render stored plan text directly.');
-assert(details.includes('exercise.name') && details.includes('plan.reminders.map'), 'Plan Details must render stored AI content directly.');
-assert(!today.includes("t(plan.summary") && !details.includes("t(exercise.name"), 'Stored AI content must not be passed through translation lookup.');
+assert(planContent.includes('exercise.name') && details.includes('plan.reminders.map'), 'Plan Details must render stored AI content directly.');
+assert(!today.includes("t(plan.summary") && !planContent.includes("t(exercise.name"), 'Stored AI content must not be passed through translation lookup.');
 
 const client = read('src/api/client.ts');
 assert(client.includes("'Accept-Language',") && client.includes('resolveSupportedLocale'), 'API requests must propagate a validated locale.');

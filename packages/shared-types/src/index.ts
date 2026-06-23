@@ -144,6 +144,7 @@ export interface ExerciseDetail {
 }
 
 export interface ExerciseListFilters {
+  ids?: string[];
   category?: ExerciseCategory;
   equipment?: ExerciseEquipment;
   targetMuscle?: TargetMuscleGroup;
@@ -311,6 +312,8 @@ export interface DailyPlanMenuOption {
 }
 
 export interface DailyPlanExercise {
+  exerciseId?: string;
+  slug?: string;
   name: string;
   targetMuscles: string[];
   equipment: string[];
@@ -320,6 +323,21 @@ export interface DailyPlanExercise {
   duration?: string;
   intensityCue?: string;
   safetyNotes?: string;
+  notes?: string;
+  exerciseSnapshot?: DailyPlanExerciseSnapshot;
+}
+
+export interface DailyPlanExerciseSnapshot {
+  resolvedLocale: SupportedLocale;
+  category: ExerciseCategory;
+  movementPattern: MovementPattern;
+  equipment: ExerciseEquipment[];
+  targetMuscles: TargetMuscleGroup[];
+  secondaryMuscles: TargetMuscleGroup[];
+  instructions: string[];
+  coachingCues: string[];
+  safetyNotes: string[];
+  exerciseUpdatedAt: string;
 }
 
 export interface DailyPlanJson {
@@ -387,6 +405,14 @@ export interface DailyPlanJson {
       riskLevel?: 'low' | 'medium' | 'high';
       retryUsed?: boolean;
       retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
+    };
+    exerciseSelection?: {
+      candidateCount: number;
+      requestedExerciseCount: number;
+      fallbackMode: 'NONE' | 'BODYWEIGHT_ONLY' | 'RECOVERY_FOCUSED' | 'MINIMAL_SAFE_POOL';
+      usedAiRetry: boolean;
+      usedDeterministicFallback: boolean;
+      resolvedLocale: SupportedLocale;
     };
   };
 }

@@ -58,6 +58,10 @@ for (const [locale, expectedToday] of [['en-US', 'Today'], ['ru-RU', 'Сегод
   await instance.changeLanguage(locale);
   assert(instance.t('tabs.today') === expectedToday, `${locale} runtime switch did not update Today.`);
   assert(instance.t('enums.muscleGroup.BICEPS') !== 'BICEPS', `${locale} BICEPS label is not localized.`);
+  assert(instance.t('plan.foodTab') !== 'plan.foodTab', `${locale} Food tab is not localized.`);
+  assert(instance.t('plan.trainingTab') !== 'plan.trainingTab', `${locale} Training tab is not localized.`);
+  assert(instance.t('plan.mediaPage', { current: '2', total: '3' }).includes('2'), `${locale} media position is invalid.`);
+  assert(instance.t('enums.exerciseEquipment.DUMBBELLS') !== 'DUMBBELLS', `${locale} exercise equipment is not localized.`);
   assert(instance.t('bodyMap.select', { muscle: instance.t('enums.muscleGroup.CALVES'), side: instance.t('bodyMap.sideLeft') }).length > 4, `${locale} Body Map accessibility label is invalid.`);
 }
 assert(instance.t('progressive.trainingLevelTitle') !== 'progressive.trainingLevelTitle', 'Progressive prompts must be localized.');

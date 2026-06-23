@@ -13,6 +13,8 @@ const mealSchema = z.object({
 });
 
 const exerciseSchema = z.object({
+  exerciseId: z.string().trim().min(1).optional(),
+  slug: z.string().trim().min(1).max(120).optional(),
   name: z.string().trim().min(1).max(120),
   targetMuscles: z.array(z.string().trim().min(1).max(60)).max(5),
   equipment: z.array(z.string().trim().min(1).max(60)).max(5),
@@ -21,7 +23,20 @@ const exerciseSchema = z.object({
   rest: z.string().trim().max(40).optional(),
   duration: z.string().trim().max(60).optional(),
   intensityCue: z.string().trim().max(160).optional(),
-  safetyNotes: z.string().trim().max(220).optional()
+  safetyNotes: z.string().trim().max(220).optional(),
+  notes: z.string().trim().max(220).optional(),
+  exerciseSnapshot: z.object({
+    resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN']),
+    category: z.enum(['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY']),
+    movementPattern: z.enum(['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY']),
+    equipment: z.array(z.enum(['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE'])),
+    targetMuscles: z.array(z.string()),
+    secondaryMuscles: z.array(z.string()),
+    instructions: z.array(z.string()),
+    coachingCues: z.array(z.string()),
+    safetyNotes: z.array(z.string()),
+    exerciseUpdatedAt: z.string().datetime()
+  }).optional()
 });
 
 export const dailyPlanJsonSchema = z.object({
@@ -111,7 +126,15 @@ export const dailyPlanJsonSchema = z.object({
           retryUsed: z.boolean().optional(),
           retryResult: z.enum(['approved', 'rejected', 'failed', 'not_used']).optional()
         })
-        .optional()
+        .optional(),
+      exerciseSelection: z.object({
+        candidateCount: z.number().int().min(0).max(16),
+        requestedExerciseCount: z.number().int().min(0).max(8),
+        fallbackMode: z.enum(['NONE', 'BODYWEIGHT_ONLY', 'RECOVERY_FOCUSED', 'MINIMAL_SAFE_POOL']),
+        usedAiRetry: z.boolean(),
+        usedDeterministicFallback: z.boolean(),
+        resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN'])
+      }).optional()
     })
     .optional()
 });

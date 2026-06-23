@@ -223,10 +223,13 @@ export class OpenAiProviderService implements AiProvider {
       'Do not use weight, heart rate, or resting heart rate context; those are intentionally deferred.',
       'If selectedProtocols are present in personalizationContext, customize those protocols rather than inventing a conflicting strategy.',
       'Follow selected protocol safetyRules exactly and never override them.',
-      'training.exercises is optional text-only guidance. Do not invent exercise IDs, images, videos, or ExerciseLibrary references.',
-      'For BASIC, include 0-2 simple beginner-friendly exercises or [] when rest/recovery is more appropriate.',
-      'For PERSONALIZED, include 3-4 exercises when training is appropriate, using target muscle groups, equipment, training level, and schedule.',
-      'For ADAPTIVE, include 4-5 individualized exercises when training is appropriate, using check-ins, limitations, recovery context, and selectedProtocols.',
+      'Choose exercise identities only from allowedExerciseCandidates.',
+      'Never invent, rename, substitute, or output an unlisted exercise.',
+      'Use exerciseId and slug exactly as provided. Do not alter catalog name, target muscles, equipment, instructions, coaching cues, or safety notes.',
+      'Return exactly requestedExerciseCount exercise items from the allowed candidates.',
+      'Provide only plan-specific order, sets, reps, rest, duration, intensityCue, and notes.',
+      'Strength sets must be an integer string from 1 to 5; reps must be a number or safe numeric range up to 30; rest must be 15-300 seconds.',
+      'Mobility, cardio, and recovery duration must fit within workoutDurationMinutes.',
       'For all exercise guidance: avoid max-effort, all-out, to-failure, no-pain-no-gain, or advanced progression language when beginner, safeMode, under-18, pregnancy/postpartum/breastfeeding, pain, dizziness, illness, exhaustion, or limitations are present.',
       'Return training.exercises as [] on rest days, no-training-planned days, or when conservative recovery is safer.',
       'Respect safeMode rules for minors: balanced meals, hydration, sleep, recovery, healthy movement, and consistency.',
@@ -306,6 +309,9 @@ export class OpenAiProviderService implements AiProvider {
       goal: input.goal,
       nutritionPreference: input.nutritionPreference,
       trainingSchedule: input.trainingSchedule,
+      allowedExerciseCandidates: input.exerciseSelection.candidates,
+      requestedExerciseCount: input.exerciseSelection.requestedExerciseCount,
+      workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes,
       safetyConstraints: {
         noBodyShaming: true,
         noExtremeDietAdvice: true,
@@ -333,6 +339,12 @@ export class OpenAiProviderService implements AiProvider {
             requiredChanges: input.safetyFeedback.requiredChanges,
             instruction:
               'Regenerate the complete plan while addressing these safety review findings.'
+          }
+          : undefined,
+      exerciseFeedback: input.exerciseFeedback
+        ? {
+            reasonCodes: input.exerciseFeedback.reasonCodes,
+            instruction: 'Regenerate the complete plan using only allowed exercise IDs and valid conservative prescriptions.'
           }
         : undefined
     };

@@ -52,4 +52,13 @@ const bodyMap = read('src/features/body-map/BodyMapSelector.tsx');
 assert(bodyMap.includes("'#FF2D55'"), 'Body Map selected color changed.');
 assert(bodyMap.includes('BODY_MAP_CARD_ASPECT_RATIO = 4 / 5'), 'Body Map outer ratio changed.');
 
+const rootStack = read('app/_layout.tsx');
+const planDetails = read('app/plan-details.tsx');
+const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
+assert(rootStack.includes('name="exercise-details"'), 'Exercise Details must be a full-screen stack route.');
+assert(planDetails.includes('PlanTabbedContent'), 'Plan Details must own the Food/Training content views.');
+assert(planDetails.includes("t('plan.recovery')") && planDetails.includes("t('plan.reminders')"), 'Shared recovery and reminders are missing.');
+assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Shared sections must not be duplicated inside content tabs.');
+assert(!planContent.includes('generateDailyPlan'), 'Switching plan tabs must not generate a plan.');
+
 console.log('Information architecture validator passed.');

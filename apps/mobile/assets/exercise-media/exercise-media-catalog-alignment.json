@@ -1,0 +1,2308 @@
+{
+  "schemaVersion": "exercise-media-catalog-alignment.v1",
+  "sourceReconciliation": "apps/mobile/assets/exercise-media/exercise-media-reconciliation.json",
+  "summary": {
+    "currentCatalogExercises": 46,
+    "classifiedUnmatchedIdentities": 33,
+    "safeAliases": 2,
+    "proposedNewExercises": 31,
+    "duplicateExercises": 0,
+    "excludedMediaIdentities": 0,
+    "ambiguousIdentities": 0,
+    "projectedCatalogSize": 77,
+    "projectedMediaCoveredExercises": 46,
+    "remainingCatalogExercisesWithoutMedia": 31
+  },
+  "automaticSafeDecisions": [
+    "cable-row",
+    "calf-raise"
+  ],
+  "productApprovalDecisions": [
+    "back-squat",
+    "barbell-bench-press",
+    "barbell-curl",
+    "barbell-hip-thrust",
+    "barbell-shoulder-press",
+    "barbell-shrug",
+    "bench-dip",
+    "bent-over-barbell-row",
+    "butterfly-stretch",
+    "cable-bicep-curl",
+    "cable-hip-adduction",
+    "cable-upright-row",
+    "crunches",
+    "deadlift",
+    "dumbbell-back-fly",
+    "farmers-carry",
+    "incline-back-extension",
+    "kettlebell-sumo-squat",
+    "lateral-lunge-stretch",
+    "leg-raise",
+    "mini-loop-band-side-lying-hip-abduction",
+    "palms-down-barbell-wrist-curl",
+    "palms-down-dumbbell-wrist-curl",
+    "russian-twist",
+    "seated-machine-calf-press",
+    "single-leg-kickback",
+    "standing-barbell-calf-raise",
+    "standing-hip-abduction",
+    "stiff-legged-barbell-good-morning",
+    "superman",
+    "trap-bar-shrugs"
+  ],
+  "unresolvedAmbiguities": [],
+  "projectedCatalogExercisesWithoutMedia": [
+    "assisted-pull-up",
+    "bird-dog",
+    "calf-stretch",
+    "cat-cow",
+    "childs-pose",
+    "dead-bug",
+    "dumbbell-bench-press",
+    "dumbbell-shoulder-press",
+    "elliptical",
+    "face-pull",
+    "front-plank",
+    "glute-bridge",
+    "glute-bridge-march",
+    "goblet-squat",
+    "hammer-curl",
+    "hip-flexor-stretch",
+    "incline-push-up",
+    "leg-extension",
+    "machine-chest-press",
+    "machine-row",
+    "one-arm-dumbbell-row",
+    "pallof-press",
+    "reverse-lunge",
+    "romanian-deadlift",
+    "seated-calf-raise",
+    "side-plank",
+    "stationary-bike",
+    "step-up",
+    "thoracic-rotation",
+    "walking",
+    "wall-push-up"
+  ],
+  "items": [
+    {
+      "imageSlug": "back-squat",
+      "sourceFiles": [
+        "back-squat_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "back-squat",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A barbell back squat is a recognized loaded squat and is materially different from a front-loaded goblet squat.",
+      "closestExistingExercise": {
+        "slug": "goblet-squat",
+        "canonicalEnglishName": "Goblet Squat",
+        "category": "STRENGTH",
+        "movementPattern": "SQUAT",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Goblet Squat is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Back-loaded barbell rather than a front-held dumbbell.",
+        "Higher loading and technique demands justify intermediate and advanced levels."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "back-squat",
+        "canonicalEnglishName": "Back Squat",
+        "category": "STRENGTH",
+        "movementPattern": "SQUAT",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS",
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "HAMSTRINGS",
+          "LOWER_BACK"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds the principal barbell squat pattern without replacing the existing goblet or bodyweight variants.",
+        "translations": {
+          "en-US": "Back Squat",
+          "ru-RU": "Приседание со штангой на спине",
+          "fr-FR": "Squat avec barre sur le dos",
+          "zh-CN": "杠铃后蹲"
+        }
+      }
+    },
+    {
+      "imageSlug": "barbell-bench-press",
+      "sourceFiles": [
+        "barbell-bench-press_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "barbell-bench-press",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The fixed barbell load and bilateral hand position create a distinct press from the dumbbell bench press.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-bench-press",
+        "canonicalEnglishName": "Dumbbell Bench Press",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PUSH",
+        "equipment": [
+          "DUMBBELLS",
+          "BENCH"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "CHEST"
+        ],
+        "secondaryMuscles": [
+          "TRICEPS",
+          "SHOULDERS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Supine",
+        "movementDescription": "Dumbbell Bench Press is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Barbell instead of independent dumbbells.",
+        "Bilateral fixed-bar loading changes stability and range-of-motion characteristics."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "barbell-bench-press",
+        "canonicalEnglishName": "Barbell Bench Press",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PUSH",
+        "equipment": [
+          "BARBELL",
+          "BENCH"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "CHEST"
+        ],
+        "secondaryMuscles": [
+          "TRICEPS",
+          "SHOULDERS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Supine on bench, bilateral",
+        "rationale": "Preserves equipment-specific technique and progression as its own exercise.",
+        "translations": {
+          "en-US": "Barbell Bench Press",
+          "ru-RU": "Жим штанги лёжа",
+          "fr-FR": "Développé couché à la barre",
+          "zh-CN": "杠铃卧推"
+        }
+      }
+    },
+    {
+      "imageSlug": "barbell-curl",
+      "sourceFiles": [
+        "barbell-curl_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "barbell-curl",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A bilateral fixed-bar curl is distinct from independent dumbbell curls.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-biceps-curl",
+        "canonicalEnglishName": "Dumbbell Biceps Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Dumbbell Biceps Curl is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Barbell loading rather than dumbbells.",
+        "Fixed bilateral grip rather than independently moving arms."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "barbell-curl",
+        "canonicalEnglishName": "Barbell Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds a common barbell arm exercise without conflating equipment-specific execution.",
+        "translations": {
+          "en-US": "Barbell Curl",
+          "ru-RU": "Сгибание рук со штангой",
+          "fr-FR": "Curl biceps à la barre",
+          "zh-CN": "杠铃弯举"
+        }
+      }
+    },
+    {
+      "imageSlug": "barbell-hip-thrust",
+      "sourceFiles": [
+        "barbell-hip-thrust_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "barbell-hip-thrust",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "Product review confirmed the approved Barbell Hip Thrust image is a loaded barbell setup and is materially different from the existing non-barbell Hip Thrust media identity.",
+      "closestExistingExercise": {
+        "slug": "hip-thrust",
+        "canonicalEnglishName": "Hip Thrust",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BENCH",
+          "BARBELL"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Supine",
+        "movementDescription": "Hip Thrust is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Requires explicit barbell loading rather than the currently approved non-barbell hip-thrust media.",
+        "Setup and execution context differ because the barbell-loaded variant needs external load placement, padding, and loading-specific prescription.",
+        "Progression options differ because the barbell variant can be prescribed and progressed separately from the non-barbell variation."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "barbell-hip-thrust",
+        "canonicalEnglishName": "Barbell Hip Thrust",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BENCH",
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Supine with upper back supported on bench and loaded barbell across hips, bilateral",
+        "rationale": "Adds the product-confirmed loaded barbell hip-thrust identity without changing the existing hip-thrust exercise or its current media.",
+        "translations": {
+          "en-US": "Barbell Hip Thrust",
+          "ru-RU": "Ягодичный мост со штангой",
+          "fr-FR": "Hip thrust avec barre",
+          "zh-CN": "杠铃臀推"
+        }
+      }
+    },
+    {
+      "imageSlug": "barbell-shoulder-press",
+      "sourceFiles": [
+        "barbell-shoulder-press_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "barbell-shoulder-press",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A fixed barbell overhead press is materially distinct from the dumbbell version.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-shoulder-press",
+        "canonicalEnglishName": "Dumbbell Shoulder Press",
+        "category": "STRENGTH",
+        "movementPattern": "VERTICAL_PUSH",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "TRICEPS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Dumbbell Shoulder Press is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Barbell rather than dumbbells.",
+        "Fixed bilateral bar path changes stability and shoulder mechanics."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "barbell-shoulder-press",
+        "canonicalEnglishName": "Barbell Shoulder Press",
+        "category": "STRENGTH",
+        "movementPattern": "VERTICAL_PUSH",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "TRICEPS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing or seated, bilateral",
+        "rationale": "Adds the standard barbell vertical press as a separate progression.",
+        "translations": {
+          "en-US": "Barbell Shoulder Press",
+          "ru-RU": "Жим штанги над головой",
+          "fr-FR": "Développé épaules à la barre",
+          "zh-CN": "杠铃肩上推举"
+        }
+      }
+    },
+    {
+      "imageSlug": "barbell-shrug",
+      "sourceFiles": [
+        "barbell-shrug_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "barbell-shrug",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A loaded scapular elevation shrug is not a horizontal pulling exercise.",
+      "closestExistingExercise": {
+        "slug": "face-pull",
+        "canonicalEnglishName": "Face Pull",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS",
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "LATS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Face Pull is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Isolation by scapular elevation rather than shoulder external rotation and rowing.",
+        "Barbell loading instead of cable and rope."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "barbell-shrug",
+        "canonicalEnglishName": "Barbell Shrug",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds a direct trapezius isolation movement.",
+        "translations": {
+          "en-US": "Barbell Shrug",
+          "ru-RU": "Шраги со штангой",
+          "fr-FR": "Haussement d’épaules à la barre",
+          "zh-CN": "杠铃耸肩"
+        }
+      }
+    },
+    {
+      "imageSlug": "bench-dip",
+      "sourceFiles": [
+        "bench-dip_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "bench-dip",
+      "existingExerciseSlug": null,
+      "confidence": "MEDIUM",
+      "reason": "A bodyweight bench dip is a compound pressing movement, not an overhead elbow-extension isolation.",
+      "closestExistingExercise": {
+        "slug": "overhead-triceps-extension",
+        "canonicalEnglishName": "Overhead Triceps Extension",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRICEPS"
+        ],
+        "secondaryMuscles": [
+          "SHOULDERS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Overhead Triceps Extension is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Bodyweight closed-chain movement using a bench.",
+        "Greater shoulder extension and wrist loading."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "bench-dip",
+        "canonicalEnglishName": "Bench Dip",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PUSH",
+        "equipment": [
+          "BODYWEIGHT",
+          "BENCH"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRICEPS"
+        ],
+        "secondaryMuscles": [
+          "CHEST",
+          "SHOULDERS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Supported behind a bench, bilateral",
+        "rationale": "Adds a recognizable bodyweight triceps exercise.",
+        "enumLimitations": [
+          "The current MovementPattern enum has no DIP value; HORIZONTAL_PUSH is the closest available representation."
+        ],
+        "translations": {
+          "en-US": "Bench Dip",
+          "ru-RU": "Отжимание от скамьи на трицепс",
+          "fr-FR": "Dips sur banc",
+          "zh-CN": "凳上臂屈伸"
+        }
+      }
+    },
+    {
+      "imageSlug": "bent-over-barbell-row",
+      "sourceFiles": [
+        "bent-over-barbell-row_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "bent-over-barbell-row",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The unsupported hip-hinged barbell row has different loading and torso demands from a seated cable row.",
+      "closestExistingExercise": {
+        "slug": "seated-cable-row",
+        "canonicalEnglishName": "Seated Cable Row",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "LATS"
+        ],
+        "secondaryMuscles": [
+          "BICEPS",
+          "TRAPS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Seated Cable Row is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Barbell instead of cable.",
+        "Unsupported bent-over position adds substantial lower-back isometric load."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "bent-over-barbell-row",
+        "canonicalEnglishName": "Bent-Over Barbell Row",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "LATS",
+          "BACK"
+        ],
+        "secondaryMuscles": [
+          "BICEPS",
+          "TRAPS",
+          "LOWER_BACK"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing hip hinge, bilateral",
+        "rationale": "Adds a free-weight horizontal pull with distinct bracing demands.",
+        "translations": {
+          "en-US": "Bent-Over Barbell Row",
+          "ru-RU": "Тяга штанги в наклоне",
+          "fr-FR": "Rowing buste penché à la barre",
+          "zh-CN": "杠铃俯身划船"
+        }
+      }
+    },
+    {
+      "imageSlug": "butterfly-stretch",
+      "sourceFiles": [
+        "butterfly-stretch_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "butterfly-stretch",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The seated butterfly targets hip adductors, while the existing stretch targets hip flexors.",
+      "closestExistingExercise": {
+        "slug": "hip-flexor-stretch",
+        "canonicalEnglishName": "Hip Flexor Stretch",
+        "category": "MOBILITY",
+        "movementPattern": "MOBILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Hip Flexor Stretch is a gentle mobility exercise for comfortable, controlled movement."
+      },
+      "differencesFromClosestExercise": [
+        "Primary target is adductors rather than hip flexors.",
+        "Seated bilateral hip-abduction position."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "butterfly-stretch",
+        "canonicalEnglishName": "Butterfly Stretch",
+        "category": "MOBILITY",
+        "movementPattern": "MOBILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ADDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Seated, bilateral",
+        "rationale": "Adds a common gentle adductor mobility option.",
+        "translations": {
+          "en-US": "Butterfly Stretch",
+          "ru-RU": "Растяжка «бабочка»",
+          "fr-FR": "Étirement papillon",
+          "zh-CN": "蝴蝶式拉伸"
+        }
+      }
+    },
+    {
+      "imageSlug": "cable-bicep-curl",
+      "sourceFiles": [
+        "cable-bicep-curl_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "cable-bicep-curl",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "Continuous cable resistance is a distinct loading type from dumbbells.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-biceps-curl",
+        "canonicalEnglishName": "Dumbbell Biceps Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Dumbbell Biceps Curl is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Cable machine rather than dumbbells.",
+        "Continuous pulley resistance through the curl."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "cable-bicep-curl",
+        "canonicalEnglishName": "Cable Biceps Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds an equipment-specific curl with distinct resistance.",
+        "translations": {
+          "en-US": "Cable Biceps Curl",
+          "ru-RU": "Сгибание рук на нижнем блоке",
+          "fr-FR": "Curl biceps à la poulie",
+          "zh-CN": "绳索二头肌弯举"
+        }
+      }
+    },
+    {
+      "imageSlug": "cable-hip-adduction",
+      "sourceFiles": [
+        "cable-hip-adduction_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "cable-hip-adduction",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "Standing cable hip adduction is unilateral and balance-dependent, unlike the seated bilateral machine exercise.",
+      "closestExistingExercise": {
+        "slug": "hip-adduction-machine",
+        "canonicalEnglishName": "Hip Adduction Machine",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "MACHINES"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ADDUCTORS"
+        ],
+        "secondaryMuscles": [],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Hip Adduction Machine is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Cable rather than seated machine.",
+        "Standing unilateral execution and balance requirement."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "cable-hip-adduction",
+        "canonicalEnglishName": "Cable Hip Adduction",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ADDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "CORE"
+        ],
+        "isUnilateral": true,
+        "isActive": true,
+        "bodyPosition": "Standing, unilateral",
+        "rationale": "Adds a unilateral cable adduction option.",
+        "translations": {
+          "en-US": "Cable Hip Adduction",
+          "ru-RU": "Приведение бедра на нижнем блоке",
+          "fr-FR": "Adduction de hanche à la poulie",
+          "zh-CN": "绳索髋内收"
+        }
+      }
+    },
+    {
+      "imageSlug": "cable-row",
+      "sourceFiles": [
+        "cable-row_anatomy-01.webp"
+      ],
+      "status": "SAFE_ALIAS",
+      "proposedCanonicalSlug": "seated-cable-row",
+      "existingExerciseSlug": "seated-cable-row",
+      "confidence": "HIGH",
+      "reason": "Visual inspection confirms a seated bilateral cable row with foot support, matching the seeded Seated Cable Row in equipment, body position, loading, and technique.",
+      "closestExistingExercise": {
+        "slug": "seated-cable-row",
+        "canonicalEnglishName": "Seated Cable Row",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "LATS"
+        ],
+        "secondaryMuscles": [
+          "BICEPS",
+          "TRAPS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Seated Cable Row is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "No material movement difference; only the approved media filename differs from the canonical identity."
+      ],
+      "proposedAction": "RENAME_FILE",
+      "proposedExercise": null
+    },
+    {
+      "imageSlug": "cable-upright-row",
+      "sourceFiles": [
+        "cable-upright-row_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "cable-upright-row",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A cable upright row is a vertical elbow-leading pull, not a face pull.",
+      "closestExistingExercise": {
+        "slug": "face-pull",
+        "canonicalEnglishName": "Face Pull",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS",
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "LATS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Face Pull is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Vertical pulling path rather than horizontal rope pull.",
+        "Primary shoulder and upper-trapezius emphasis."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "cable-upright-row",
+        "canonicalEnglishName": "Cable Upright Row",
+        "category": "STRENGTH",
+        "movementPattern": "VERTICAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "SHOULDERS",
+          "TRAPS"
+        ],
+        "secondaryMuscles": [
+          "BICEPS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds a distinct cable shoulder pull.",
+        "translations": {
+          "en-US": "Cable Upright Row",
+          "ru-RU": "Тяга нижнего блока к подбородку",
+          "fr-FR": "Tirage vertical à la poulie",
+          "zh-CN": "绳索直立划船"
+        }
+      }
+    },
+    {
+      "imageSlug": "calf-raise",
+      "sourceFiles": [
+        "calf-raise_anatomy-01.webp"
+      ],
+      "status": "SAFE_ALIAS",
+      "proposedCanonicalSlug": "standing-calf-raise",
+      "existingExerciseSlug": "standing-calf-raise",
+      "confidence": "HIGH",
+      "reason": "Visual inspection confirms an unsupported standing bodyweight calf raise, matching the seeded exercise in loading, position, range of motion, and target muscles.",
+      "closestExistingExercise": {
+        "slug": "standing-calf-raise",
+        "canonicalEnglishName": "Standing Calf Raise",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "CALVES"
+        ],
+        "secondaryMuscles": [],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Standing Calf Raise is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "No material movement difference; only the approved media filename differs from the canonical identity."
+      ],
+      "proposedAction": "RENAME_FILE",
+      "proposedExercise": null
+    },
+    {
+      "imageSlug": "crunches",
+      "sourceFiles": [
+        "crunches_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "crunches",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A crunch actively flexes the trunk; a dead bug trains anti-extension stability.",
+      "closestExistingExercise": {
+        "slug": "dead-bug",
+        "canonicalEnglishName": "Dead Bug",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_STABILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABS"
+        ],
+        "secondaryMuscles": [
+          "OBLIQUES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Supine",
+        "movementDescription": "Dead Bug is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "CORE_FLEXION rather than CORE_STABILITY.",
+        "Bilateral trunk curl rather than alternating limb movement."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "crunches",
+        "canonicalEnglishName": "Crunches",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_FLEXION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABS"
+        ],
+        "secondaryMuscles": [
+          "OBLIQUES"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Supine, bilateral",
+        "rationale": "Adds a basic trunk-flexion exercise.",
+        "translations": {
+          "en-US": "Crunches",
+          "ru-RU": "Скручивания",
+          "fr-FR": "Crunchs",
+          "zh-CN": "卷腹"
+        }
+      }
+    },
+    {
+      "imageSlug": "deadlift",
+      "sourceFiles": [
+        "deadlift_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "deadlift",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A conventional deadlift starts from the floor with more knee flexion; it is not a Romanian deadlift.",
+      "closestExistingExercise": {
+        "slug": "romanian-deadlift",
+        "canonicalEnglishName": "Romanian Deadlift",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BARBELL"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "LOWER_BACK"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Romanian Deadlift is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Floor start and concentric first repetition.",
+        "Greater knee flexion and whole-body loading."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "deadlift",
+        "canonicalEnglishName": "Conventional Deadlift",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "secondaryMuscles": [
+          "LOWER_BACK",
+          "TRAPS",
+          "FOREARMS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing floor pull, bilateral",
+        "rationale": "Adds the conventional hinge while preserving the Romanian variation.",
+        "translations": {
+          "en-US": "Conventional Deadlift",
+          "ru-RU": "Классическая становая тяга",
+          "fr-FR": "Soulevé de terre classique",
+          "zh-CN": "传统硬拉"
+        }
+      }
+    },
+    {
+      "imageSlug": "dumbbell-back-fly",
+      "sourceFiles": [
+        "dumbbell-back-fly_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "incline-dumbbell-reverse-fly",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The approved image shows a chest-supported incline dumbbell reverse fly, distinct from a standing cable face pull.",
+      "closestExistingExercise": {
+        "slug": "face-pull",
+        "canonicalEnglishName": "Face Pull",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS",
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "LATS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Face Pull is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Dumbbells and incline bench instead of cable and rope.",
+        "Prone chest-supported reverse-fly arc."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "incline-dumbbell-reverse-fly",
+        "canonicalEnglishName": "Incline Dumbbell Reverse Fly",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "DUMBBELLS",
+          "BENCH"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "SHOULDERS",
+          "TRAPS"
+        ],
+        "secondaryMuscles": [
+          "BACK"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Prone on incline bench, bilateral",
+        "rationale": "Uses a precise canonical identity for the movement shown by the approved image.",
+        "translations": {
+          "en-US": "Incline Dumbbell Reverse Fly",
+          "ru-RU": "Обратная разводка гантелей на наклонной скамье",
+          "fr-FR": "Oiseau avec haltères sur banc incliné",
+          "zh-CN": "上斜凳哑铃反向飞鸟"
+        }
+      }
+    },
+    {
+      "imageSlug": "farmers-carry",
+      "sourceFiles": [
+        "farmers-carry_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "farmers-carry",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A loaded carry pattern is absent from the current catalog.",
+      "closestExistingExercise": {
+        "slug": "walking",
+        "canonicalEnglishName": "Walking",
+        "category": "CARDIO",
+        "movementPattern": "CARDIO",
+        "equipment": [
+          "NONE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "FULL_BODY"
+        ],
+        "secondaryMuscles": [],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Walking is a steady cardio activity that can be adjusted to your current energy."
+      },
+      "differencesFromClosestExercise": [
+        "External bilateral load rather than unloaded cardio walking.",
+        "Strength-oriented CARRY pattern rather than CARDIO."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "farmers-carry",
+        "canonicalEnglishName": "Farmer’s Carry",
+        "category": "STRENGTH",
+        "movementPattern": "CARRY",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "FULL_BODY",
+          "FOREARMS"
+        ],
+        "secondaryMuscles": [
+          "TRAPS",
+          "CORE"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing and walking, bilateral load",
+        "rationale": "Fills the existing CARRY pattern with a practical full-body exercise.",
+        "translations": {
+          "en-US": "Farmer’s Carry",
+          "ru-RU": "Прогулка фермера",
+          "fr-FR": "Marche du fermier",
+          "zh-CN": "农夫行走"
+        }
+      }
+    },
+    {
+      "imageSlug": "incline-back-extension",
+      "sourceFiles": [
+        "incline-back-extension_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "incline-back-extension",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A supported back extension uses bodyweight and a bench rather than a standing barbell hinge.",
+      "closestExistingExercise": {
+        "slug": "romanian-deadlift",
+        "canonicalEnglishName": "Romanian Deadlift",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BARBELL"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "LOWER_BACK"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Romanian Deadlift is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Torso supported on an incline bench.",
+        "Bodyweight spinal and hip extension rather than barbell loading."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "incline-back-extension",
+        "canonicalEnglishName": "Incline Back Extension",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BODYWEIGHT",
+          "BENCH"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "LOWER_BACK"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Prone on incline bench, bilateral",
+        "rationale": "Adds a supported posterior-chain exercise.",
+        "translations": {
+          "en-US": "Incline Back Extension",
+          "ru-RU": "Разгибание спины на наклонной скамье",
+          "fr-FR": "Extension du dos sur banc incliné",
+          "zh-CN": "上斜凳背部伸展"
+        }
+      }
+    },
+    {
+      "imageSlug": "kettlebell-sumo-squat",
+      "sourceFiles": [
+        "kettlebell-sumo-squat_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "kettlebell-sumo-squat",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The wide sumo stance and kettlebell loading materially change the squat emphasis.",
+      "closestExistingExercise": {
+        "slug": "goblet-squat",
+        "canonicalEnglishName": "Goblet Squat",
+        "category": "STRENGTH",
+        "movementPattern": "SQUAT",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Goblet Squat is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Kettlebell rather than dumbbell.",
+        "Wide externally rotated stance increases adductor emphasis."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "kettlebell-sumo-squat",
+        "canonicalEnglishName": "Kettlebell Sumo Squat",
+        "category": "STRENGTH",
+        "movementPattern": "SQUAT",
+        "equipment": [
+          "KETTLEBELL"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS",
+          "GLUTES",
+          "ADDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing wide stance, bilateral",
+        "rationale": "Adds a valid stance-and-equipment-specific squat.",
+        "translations": {
+          "en-US": "Kettlebell Sumo Squat",
+          "ru-RU": "Приседание сумо с гирей",
+          "fr-FR": "Squat sumo avec kettlebell",
+          "zh-CN": "壶铃相扑深蹲"
+        }
+      }
+    },
+    {
+      "imageSlug": "lateral-lunge-stretch",
+      "sourceFiles": [
+        "lateral-lunge-stretch_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "lateral-lunge-stretch",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A lateral lunge stretch targets adductors in a side-to-side stance rather than the hip flexors.",
+      "closestExistingExercise": {
+        "slug": "hip-flexor-stretch",
+        "canonicalEnglishName": "Hip Flexor Stretch",
+        "category": "MOBILITY",
+        "movementPattern": "MOBILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "QUADRICEPS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Hip Flexor Stretch is a gentle mobility exercise for comfortable, controlled movement."
+      },
+      "differencesFromClosestExercise": [
+        "Lateral lunge position.",
+        "Primary adductor and inner-thigh mobility emphasis."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "lateral-lunge-stretch",
+        "canonicalEnglishName": "Lateral Lunge Stretch",
+        "category": "MOBILITY",
+        "movementPattern": "MOBILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ADDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "isUnilateral": true,
+        "isActive": true,
+        "bodyPosition": "Standing lateral lunge, unilateral",
+        "rationale": "Adds practical frontal-plane mobility.",
+        "translations": {
+          "en-US": "Lateral Lunge Stretch",
+          "ru-RU": "Растяжка в боковом выпаде",
+          "fr-FR": "Étirement en fente latérale",
+          "zh-CN": "侧弓步拉伸"
+        }
+      }
+    },
+    {
+      "imageSlug": "leg-raise",
+      "sourceFiles": [
+        "leg-raise_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "lying-leg-raise",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The approved image shows a supine straight-leg raise, emphasizing hip flexion and lower abdominal control rather than dead-bug stability.",
+      "closestExistingExercise": {
+        "slug": "dead-bug",
+        "canonicalEnglishName": "Dead Bug",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_STABILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABS"
+        ],
+        "secondaryMuscles": [
+          "OBLIQUES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Supine",
+        "movementDescription": "Dead Bug is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Straight-leg hip flexion rather than alternating limb stability.",
+        "Long-lever bilateral movement."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "lying-leg-raise",
+        "canonicalEnglishName": "Lying Leg Raise",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_FLEXION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ABS"
+        ],
+        "secondaryMuscles": [],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Supine, bilateral",
+        "rationale": "Adds the distinct movement shown in the approved image.",
+        "enumLimitations": [
+          "TargetMuscleGroup has no HIP_FLEXORS value, so the valid metadata captures ABS but cannot represent hip-flexor targeting precisely."
+        ],
+        "translations": {
+          "en-US": "Lying Leg Raise",
+          "ru-RU": "Подъём ног лёжа",
+          "fr-FR": "Relevé de jambes allongé",
+          "zh-CN": "仰卧举腿"
+        }
+      }
+    },
+    {
+      "imageSlug": "mini-loop-band-side-lying-hip-abduction",
+      "sourceFiles": [
+        "mini-loop-band-side-lying-hip-abduction_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "mini-loop-band-side-lying-hip-abduction",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A side-lying unilateral mini-band abduction differs from seated machine abduction.",
+      "closestExistingExercise": {
+        "slug": "hip-abduction-machine",
+        "canonicalEnglishName": "Hip Abduction Machine",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "MACHINES"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ABDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Hip Abduction Machine is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Resistance band rather than machine.",
+        "Side-lying unilateral execution."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "mini-loop-band-side-lying-hip-abduction",
+        "canonicalEnglishName": "Mini-Band Side-Lying Hip Abduction",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "RESISTANCE_BANDS"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ABDUCTORS",
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "CORE"
+        ],
+        "isUnilateral": true,
+        "isActive": true,
+        "bodyPosition": "Side-lying, unilateral",
+        "rationale": "Adds a home-friendly banded hip exercise.",
+        "translations": {
+          "en-US": "Mini-Band Side-Lying Hip Abduction",
+          "ru-RU": "Отведение бедра лёжа на боку с мини-лентой",
+          "fr-FR": "Abduction de hanche allongée avec mini-bande",
+          "zh-CN": "迷你弹力带侧卧髋外展"
+        }
+      }
+    },
+    {
+      "imageSlug": "palms-down-barbell-wrist-curl",
+      "sourceFiles": [
+        "palms-down-barbell-wrist-curl_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "palms-down-barbell-wrist-curl",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A pronated wrist curl isolates wrist extensors and is not an elbow-flexion curl.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-biceps-curl",
+        "canonicalEnglishName": "Dumbbell Biceps Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Dumbbell Biceps Curl is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Wrist movement rather than elbow flexion.",
+        "Pronated barbell grip rather than dumbbell elbow flexion."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "palms-down-barbell-wrist-curl",
+        "canonicalEnglishName": "Palms-Down Barbell Wrist Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "FOREARMS"
+        ],
+        "secondaryMuscles": [],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Seated or standing, bilateral",
+        "rationale": "Adds a direct forearm exercise.",
+        "translations": {
+          "en-US": "Palms-Down Barbell Wrist Curl",
+          "ru-RU": "Разгибание запястий со штангой хватом сверху",
+          "fr-FR": "Flexion des poignets à la barre, paumes vers le bas",
+          "zh-CN": "杠铃反握腕弯举"
+        }
+      }
+    },
+    {
+      "imageSlug": "palms-down-dumbbell-wrist-curl",
+      "sourceFiles": [
+        "palms-down-dumbbell-wrist-curl_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "palms-down-dumbbell-wrist-curl",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A palms-down wrist curl isolates the forearms rather than flexing the elbow.",
+      "closestExistingExercise": {
+        "slug": "dumbbell-biceps-curl",
+        "canonicalEnglishName": "Dumbbell Biceps Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "BICEPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Dumbbell Biceps Curl is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Wrist extension rather than elbow flexion.",
+        "Pronated grip and forearm isolation."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "palms-down-dumbbell-wrist-curl",
+        "canonicalEnglishName": "Palms-Down Dumbbell Wrist Curl",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "DUMBBELLS"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "FOREARMS"
+        ],
+        "secondaryMuscles": [],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Seated or standing, bilateral",
+        "rationale": "Adds the independent-dumbbell forearm movement.",
+        "translations": {
+          "en-US": "Palms-Down Dumbbell Wrist Curl",
+          "ru-RU": "Разгибание запястий с гантелями хватом сверху",
+          "fr-FR": "Flexion des poignets avec haltères, paumes vers le bas",
+          "zh-CN": "哑铃反握腕弯举"
+        }
+      }
+    },
+    {
+      "imageSlug": "russian-twist",
+      "sourceFiles": [
+        "russian-twist_anatomy-01.webp",
+        "russian-twist_anatomy-02.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "russian-twist",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A Russian twist is active trunk rotation; a Pallof press is anti-rotation.",
+      "closestExistingExercise": {
+        "slug": "pallof-press",
+        "canonicalEnglishName": "Pallof Press",
+        "category": "STRENGTH",
+        "movementPattern": "ANTI_ROTATION",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "OBLIQUES",
+          "ABS"
+        ],
+        "secondaryMuscles": [
+          "SHOULDERS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Pallof Press is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "ROTATION rather than ANTI_ROTATION.",
+        "Seated bilateral side-to-side movement rather than standing cable resistance."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "russian-twist",
+        "canonicalEnglishName": "Russian Twist",
+        "category": "STRENGTH",
+        "movementPattern": "ROTATION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "OBLIQUES",
+          "ABS"
+        ],
+        "secondaryMuscles": [
+          "CORE"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Seated, bilateral rotation",
+        "rationale": "Adds an active rotational core exercise; both approved files remain media variants of this one identity.",
+        "translations": {
+          "en-US": "Russian Twist",
+          "ru-RU": "Русский твист",
+          "fr-FR": "Rotation russe",
+          "zh-CN": "俄罗斯转体"
+        }
+      }
+    },
+    {
+      "imageSlug": "seated-machine-calf-press",
+      "sourceFiles": [
+        "seated-machine-calf-press_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "seated-machine-calf-press",
+      "existingExerciseSlug": null,
+      "confidence": "MEDIUM",
+      "reason": "The approved identity denotes calf pressing on a seated resistance machine rather than the existing seated calf-raise apparatus.",
+      "closestExistingExercise": {
+        "slug": "seated-calf-raise",
+        "canonicalEnglishName": "Seated Calf Raise",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "MACHINES"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "CALVES"
+        ],
+        "secondaryMuscles": [],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Seated Calf Raise is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Different machine setup and load path.",
+        "Pressing platform execution rather than knee-pad calf raise."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "seated-machine-calf-press",
+        "canonicalEnglishName": "Seated Machine Calf Press",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "MACHINES"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "CALVES"
+        ],
+        "secondaryMuscles": [],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Seated, bilateral",
+        "rationale": "Adds a distinct machine setup while retaining the current seated calf raise.",
+        "translations": {
+          "en-US": "Seated Machine Calf Press",
+          "ru-RU": "Жим носками в тренажёре сидя",
+          "fr-FR": "Presse à mollets assise à la machine",
+          "zh-CN": "坐姿器械小腿推举"
+        }
+      }
+    },
+    {
+      "imageSlug": "single-leg-kickback",
+      "sourceFiles": [
+        "single-leg-kickback_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "quadruped-leg-kickback",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The approved image shows a quadruped straight-leg glute kickback, not the opposing arm-and-leg stability pattern of bird dog.",
+      "closestExistingExercise": {
+        "slug": "bird-dog",
+        "canonicalEnglishName": "Bird Dog",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_STABILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABS",
+          "LOWER_BACK"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Bird Dog is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Single moving leg without contralateral arm reach.",
+        "Glute isolation emphasis rather than core balance."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "quadruped-leg-kickback",
+        "canonicalEnglishName": "Quadruped Leg Kickback",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "HAMSTRINGS",
+          "CORE"
+        ],
+        "isUnilateral": true,
+        "isActive": true,
+        "bodyPosition": "Quadruped, unilateral",
+        "rationale": "Uses a precise canonical identity for the approved movement.",
+        "translations": {
+          "en-US": "Quadruped Leg Kickback",
+          "ru-RU": "Отведение ноги назад на четвереньках",
+          "fr-FR": "Extension de jambe à quatre pattes",
+          "zh-CN": "跪姿单腿后踢"
+        }
+      }
+    },
+    {
+      "imageSlug": "standing-barbell-calf-raise",
+      "sourceFiles": [
+        "standing-barbell-calf-raise_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "standing-barbell-calf-raise",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "External barbell loading makes this a distinct advanced progression from the bodyweight exercise.",
+      "closestExistingExercise": {
+        "slug": "standing-calf-raise",
+        "canonicalEnglishName": "Standing Calf Raise",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "CALVES"
+        ],
+        "secondaryMuscles": [],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Standing Calf Raise is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Barbell rather than bodyweight.",
+        "Greater loading and balance demands."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "standing-barbell-calf-raise",
+        "canonicalEnglishName": "Standing Barbell Calf Raise",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "CALVES"
+        ],
+        "secondaryMuscles": [
+          "CORE"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds the loaded barbell progression.",
+        "translations": {
+          "en-US": "Standing Barbell Calf Raise",
+          "ru-RU": "Подъём на носки стоя со штангой",
+          "fr-FR": "Élévation des mollets debout à la barre",
+          "zh-CN": "站姿杠铃提踵"
+        }
+      }
+    },
+    {
+      "imageSlug": "standing-hip-abduction",
+      "sourceFiles": [
+        "standing-hip-abduction_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "standing-hip-abduction",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "The approved image shows unsupported standing bodyweight hip abduction, distinct from a seated machine.",
+      "closestExistingExercise": {
+        "slug": "hip-abduction-machine",
+        "canonicalEnglishName": "Hip Abduction Machine",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "MACHINES"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "ABDUCTORS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Hip Abduction Machine is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Bodyweight rather than machine.",
+        "Standing unilateral movement with balance demand."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "standing-hip-abduction",
+        "canonicalEnglishName": "Standing Hip Abduction",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABDUCTORS",
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "CORE"
+        ],
+        "isUnilateral": true,
+        "isActive": true,
+        "bodyPosition": "Standing, unilateral",
+        "rationale": "Adds an accessible bodyweight hip exercise.",
+        "translations": {
+          "en-US": "Standing Hip Abduction",
+          "ru-RU": "Отведение бедра стоя",
+          "fr-FR": "Abduction de hanche debout",
+          "zh-CN": "站姿髋外展"
+        }
+      }
+    },
+    {
+      "imageSlug": "stiff-legged-barbell-good-morning",
+      "sourceFiles": [
+        "stiff-legged-barbell-good-morning_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "stiff-legged-barbell-good-morning",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "A good morning carries the bar on the upper back and hinges the torso; it is not a hand-held Romanian deadlift.",
+      "closestExistingExercise": {
+        "slug": "romanian-deadlift",
+        "canonicalEnglishName": "Romanian Deadlift",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BARBELL"
+        ],
+        "trainingLevels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "HAMSTRINGS"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "LOWER_BACK"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Romanian Deadlift is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Bar rests on upper back rather than hanging from the hands.",
+        "Long lever and advanced bracing demands."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "stiff-legged-barbell-good-morning",
+        "canonicalEnglishName": "Stiff-Legged Barbell Good Morning",
+        "category": "STRENGTH",
+        "movementPattern": "HINGE",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "HAMSTRINGS",
+          "GLUTES"
+        ],
+        "secondaryMuscles": [
+          "LOWER_BACK"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds a technically distinct advanced hinge.",
+        "translations": {
+          "en-US": "Stiff-Legged Barbell Good Morning",
+          "ru-RU": "Наклон «доброе утро» со штангой на прямых ногах",
+          "fr-FR": "Good morning jambes tendues à la barre",
+          "zh-CN": "直腿杠铃早安式"
+        }
+      }
+    },
+    {
+      "imageSlug": "superman",
+      "sourceFiles": [
+        "superman_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "superman",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "Superman is a prone bilateral trunk-and-limb extension; bird dog is quadruped and alternating.",
+      "closestExistingExercise": {
+        "slug": "bird-dog",
+        "canonicalEnglishName": "Bird Dog",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_STABILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "ABS",
+          "LOWER_BACK"
+        ],
+        "secondaryMuscles": [
+          "GLUTES"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Bird Dog is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Prone bilateral extension rather than quadruped contralateral movement.",
+        "Greater spinal-extension emphasis."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "superman",
+        "canonicalEnglishName": "Superman",
+        "category": "STRENGTH",
+        "movementPattern": "CORE_STABILITY",
+        "equipment": [
+          "BODYWEIGHT"
+        ],
+        "levels": [
+          "BEGINNER",
+          "INTERMEDIATE"
+        ],
+        "primaryMuscles": [
+          "LOWER_BACK"
+        ],
+        "secondaryMuscles": [
+          "GLUTES",
+          "SHOULDERS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Prone, bilateral",
+        "rationale": "Adds a recognized posterior core exercise.",
+        "translations": {
+          "en-US": "Superman",
+          "ru-RU": "Супермен",
+          "fr-FR": "Superman",
+          "zh-CN": "超人式"
+        }
+      }
+    },
+    {
+      "imageSlug": "trap-bar-shrugs",
+      "sourceFiles": [
+        "trap-bar-shrugs_anatomy-01.webp"
+      ],
+      "status": "NEW_EXERCISE_CANDIDATE",
+      "proposedCanonicalSlug": "trap-bar-shrugs",
+      "existingExerciseSlug": null,
+      "confidence": "HIGH",
+      "reason": "Trap-bar neutral-grip shrugs are a distinct loaded scapular-elevation exercise.",
+      "closestExistingExercise": {
+        "slug": "face-pull",
+        "canonicalEnglishName": "Face Pull",
+        "category": "STRENGTH",
+        "movementPattern": "HORIZONTAL_PULL",
+        "equipment": [
+          "CABLE_MACHINE"
+        ],
+        "trainingLevels": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS",
+          "SHOULDERS"
+        ],
+        "secondaryMuscles": [
+          "LATS"
+        ],
+        "unilateralOrBilateral": "Bilateral or not explicitly modeled",
+        "bodyPosition": "Not explicitly modeled in the current seed",
+        "movementDescription": "Face Pull is a controlled strength exercise for building practical movement capacity."
+      },
+      "differencesFromClosestExercise": [
+        "Isolation by scapular elevation rather than horizontal cable pulling.",
+        "Trap-bar neutral grip rather than cable and rope."
+      ],
+      "proposedAction": "ADD_NEW_EXERCISE",
+      "proposedExercise": {
+        "slug": "trap-bar-shrugs",
+        "canonicalEnglishName": "Trap-Bar Shrugs",
+        "category": "STRENGTH",
+        "movementPattern": "ISOLATION",
+        "equipment": [
+          "BARBELL"
+        ],
+        "levels": [
+          "INTERMEDIATE",
+          "ADVANCED"
+        ],
+        "primaryMuscles": [
+          "TRAPS"
+        ],
+        "secondaryMuscles": [
+          "FOREARMS"
+        ],
+        "isUnilateral": false,
+        "isActive": true,
+        "bodyPosition": "Standing, bilateral",
+        "rationale": "Adds the approved trap-bar variation.",
+        "enumLimitations": [
+          "ExerciseEquipment has no TRAP_BAR value; BARBELL is the closest valid umbrella equipment value."
+        ],
+        "translations": {
+          "en-US": "Trap-Bar Shrugs",
+          "ru-RU": "Шраги с трэп-грифом",
+          "fr-FR": "Haussements d’épaules à la barre hexagonale",
+          "zh-CN": "六角杠铃耸肩"
+        }
+      }
+    }
+  ]
+}

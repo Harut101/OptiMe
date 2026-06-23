@@ -3,7 +3,11 @@ import { EXERCISE_CATEGORIES, EXERCISE_CONTRAINDICATION_TAGS, EXERCISE_EQUIPMENT
 import type { SeedExercise } from './types';
 
 const BROAD_LEGACY_MUSCLES = new Set(['ARMS', 'BACK', 'CORE', 'LEGS']);
-const INTENTIONAL_FULL_BODY = new Set(['walking']);
+const INTENTIONAL_FULL_BODY = new Set(['walking', 'farmers-carry']);
+const INTENTIONAL_BROAD_TARGETS: Record<string, Set<string>> = {
+  'bent-over-barbell-row': new Set(['BACK']),
+  'farmers-carry': new Set(['FULL_BODY'])
+};
 const FORBIDDEN_MEDIA_HOSTS = ['example.com', 'placeholder.com', 'placehold.co', 'via.placeholder.com'];
 
 export function validateExerciseCatalog(catalog: SeedExercise[]) {
@@ -22,7 +26,7 @@ export function validateExerciseCatalog(catalog: SeedExercise[]) {
     if (!exercise.equipment.length || exercise.equipment.some((item) => !EXERCISE_EQUIPMENT.includes(item))) fail('equipment', 'must contain supported values');
     if (!exercise.targetMuscles.length) fail('targetMuscles', 'at least one specific target is required');
     if (exercise.targetMuscles.some((item) => !TARGET_MUSCLE_GROUPS.includes(item))) fail('targetMuscles', 'contains an unsupported muscle group');
-    if (exercise.targetMuscles.some((item) => BROAD_LEGACY_MUSCLES.has(item))) fail('targetMuscles', 'broad legacy muscle groups are not allowed in new seeds');
+    if (exercise.targetMuscles.some((item) => BROAD_LEGACY_MUSCLES.has(item) && !INTENTIONAL_BROAD_TARGETS[exercise.slug]?.has(item))) fail('targetMuscles', 'broad legacy muscle groups are not allowed in new seeds');
     if (exercise.targetMuscles.includes('FULL_BODY') && !INTENTIONAL_FULL_BODY.has(exercise.slug)) fail('targetMuscles', 'FULL_BODY is not documented for this exercise');
     if (new Set(exercise.targetMuscles).size !== exercise.targetMuscles.length) fail('targetMuscles', 'duplicates are not allowed');
     if (new Set(exercise.secondaryMuscles).size !== exercise.secondaryMuscles.length) fail('secondaryMuscles', 'duplicates are not allowed');
@@ -65,7 +69,7 @@ export function validateExerciseCatalog(catalog: SeedExercise[]) {
       if (locales.size !== media.translations.length) fail(`media.${identity}.translations`, 'duplicate locale');
     }
   }
-  if (catalog.length < 35 || catalog.length > 50) errors.push(`catalog: expected 35-50 exercises, received ${catalog.length}`);
+  if (catalog.length < 35 || catalog.length > 80) errors.push(`catalog: expected 35-80 exercises, received ${catalog.length}`);
   if (errors.length) throw new Error(`Exercise catalog validation failed:\n${errors.join('\n')}`);
   return { exerciseCount: catalog.length, translationCount: catalog.reduce((sum, item) => sum + item.translations.length, 0), mediaCount: catalog.reduce((sum, item) => sum + item.media.length, 0) };
 }

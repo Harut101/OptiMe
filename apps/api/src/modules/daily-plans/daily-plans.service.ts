@@ -12,18 +12,24 @@ import {
   AiOperationProvider,
   AiOperationStatus,
   DailyReadinessLevel,
+  ExerciseEquipment,
   PlanFeedbackRating,
   PlanQualityMode,
   PlanStatus,
   Prisma,
+  PreferredLocale,
+  TrainingEquipment,
+  TrainingLevel,
   UsageFeature,
   UsagePeriodType
 } from '@prisma/client';
+import { resolveSupportedLocale, type SupportedLocale } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
 import {
   AiProvider,
+  GenerateDailyPlanExerciseFeedback,
   GenerateDailyPlanPersonalizationContext,
   GenerateDailyPlanSafetyFeedback
 } from '../ai/ai-provider.interface';
@@ -31,6 +37,12 @@ import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
+import {
+  composeDeterministicFallbackWorkout,
+  validateAndNormalizePlannedExercises
+} from '../exercise-selection/exercise-plan-validator';
+import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
+import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { HealthService } from '../health/health.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
@@ -68,6 +80,7 @@ export class DailyPlansService {
     private readonly safetyService: SafetyService,
     private readonly aiOperationLogs: AiOperationLogsService,
     private readonly featureAccessService: FeatureAccessService,
+    private readonly exerciseSelectionService: ExerciseSelectionService,
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
@@ -139,17 +152,36 @@ export class DailyPlansService {
         planQualityMode,
         planLocalDate
       );
+      const exerciseSelection = await this.exerciseSelectionService.selectCandidates(
+        this.buildExerciseSelectionContext(user, planLocalDate, planQualityMode, personalizationContext)
+      );
+      this.logExerciseSelection(exerciseSelection, personalizationContext);
       const blockedFoods = {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
       };
-      const providerPlanResult = await this.generateProviderPlanOrFallback({
+      let providerPlanResult = await this.generateProviderPlanOrFallback({
         user,
         planLocalDate,
         planTimezone,
         planQualityMode,
-        personalizationContext
+        personalizationContext,
+        exerciseSelection
       });
+      let exercisePreparation = await this.prepareLibraryBackedExercises({
+        providerPlanResult,
+        user,
+        planLocalDate,
+        planTimezone,
+        planQualityMode,
+        personalizationContext,
+        exerciseSelection,
+        allowAiRetry: this.getProviderDebugName() === 'openai'
+      });
+      providerPlanResult = {
+        status: exercisePreparation.status,
+        planJson: exercisePreparation.planJson
+      };
       let safePlanResult = await this.validateProviderPlan({
         providerPlan: providerPlanResult.planJson,
         blockedFoods,
@@ -172,22 +204,40 @@ export class DailyPlansService {
           planTimezone,
           planQualityMode,
           personalizationContext,
+          exerciseSelection,
           safetyFeedback: safePlanResult.safetyRetryRequest
         });
+        const retryExercisePreparation = await this.prepareLibraryBackedExercises({
+          providerPlanResult: retryProviderPlanResult,
+          user,
+          planLocalDate,
+          planTimezone,
+          planQualityMode,
+          personalizationContext,
+          exerciseSelection,
+          allowAiRetry: false
+        });
+        exercisePreparation = {
+          ...retryExercisePreparation,
+          usedAiRetry: exercisePreparation.usedAiRetry || retryExercisePreparation.usedAiRetry,
+          usedDeterministicFallback:
+            exercisePreparation.usedDeterministicFallback ||
+            retryExercisePreparation.usedDeterministicFallback
+        };
 
         safePlanResult = await this.validateProviderPlan({
-          providerPlan: retryProviderPlanResult.planJson,
+          providerPlan: retryExercisePreparation.planJson,
           blockedFoods,
           planLocalDate,
           planTimezone,
           user,
           personalizationContext,
-          forcedFallback: retryProviderPlanResult.status === PlanStatus.FALLBACK,
+          forcedFallback: retryExercisePreparation.status === PlanStatus.FALLBACK,
           allowSafetyRetry: false,
           safetyRetryUsed: true
         });
 
-        if (retryProviderPlanResult.status === PlanStatus.FALLBACK) {
+        if (retryExercisePreparation.status === PlanStatus.FALLBACK) {
           const retryFallbackReason =
             this.getFallbackReason(retryProviderPlanResult.planJson) === 'schema_validation_failed'
               ? 'safety_agent_retry_invalid_output'
@@ -215,8 +265,18 @@ export class DailyPlansService {
           personalizationContext.healthPlanningContext
         )
       };
+      safePlanResult.planJson = this.withExerciseSelectionDebug(
+        safePlanResult.planJson,
+        exerciseSelection,
+        exercisePreparation.usedAiRetry,
+        exercisePreparation.usedDeterministicFallback
+      );
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
       const status = safePlanResult.status;
+      const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
+        .map((exercise) => exercise.exerciseId)
+        .filter((exerciseId): exerciseId is string => Boolean(exerciseId));
+      this.logger.log(`exercise selection finalized; exerciseIds=${JSON.stringify(finalExerciseIds)}`);
       this.logger.log(
         `daily plan generation completed; fallback used: ${status === PlanStatus.FALLBACK}; final status=${status}`
       );
@@ -313,10 +373,12 @@ export class DailyPlansService {
         id: true,
         firstName: true,
         timezone: true,
+        locale: true,
         isMinor: true,
         safeMode: true,
         noTrainingPlanned: true,
         privacyConsentedAt: true,
+        settings: { select: { preferredLocale: true } },
         profile: {
           select: {
             gender: true,
@@ -468,6 +530,8 @@ export class DailyPlansService {
     planTimezone: string;
     planQualityMode: PlanQualityMode;
     personalizationContext: GenerateDailyPlanPersonalizationContext;
+    exerciseSelection: ExerciseSelectionResult;
+    exerciseFeedback?: GenerateDailyPlanExerciseFeedback;
     safetyFeedback?: GenerateDailyPlanSafetyFeedback;
   }) {
     try {
@@ -498,6 +562,18 @@ export class DailyPlansService {
         planTimezone: input.planTimezone,
         planQualityMode: input.planQualityMode,
         personalizationContext: input.personalizationContext,
+        exerciseSelection: {
+          candidates: input.exerciseSelection.candidates.map(({
+            internalScore: _score,
+            internalReasonCodes: _reasons,
+            contraindicationTags: _tags,
+            exerciseUpdatedAt: _updatedAt,
+            ...candidate
+          }) => candidate),
+          requestedExerciseCount: input.exerciseSelection.requestedExerciseCount,
+          workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes
+        },
+        exerciseFeedback: input.exerciseFeedback,
         safetyFeedback: input.safetyFeedback
       });
 
@@ -520,6 +596,65 @@ export class DailyPlansService {
 
       throw error;
     }
+  }
+
+  private async prepareLibraryBackedExercises(input: {
+    providerPlanResult: { status: PlanStatus; planJson: DailyPlanJson };
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
+    planLocalDate: string;
+    planTimezone: string;
+    planQualityMode: PlanQualityMode;
+    personalizationContext: GenerateDailyPlanPersonalizationContext;
+    exerciseSelection: ExerciseSelectionResult;
+    allowAiRetry: boolean;
+  }) {
+    const unchanged = {
+      status: input.providerPlanResult.status,
+      planJson: input.providerPlanResult.planJson,
+      usedAiRetry: false,
+      usedDeterministicFallback: false
+    };
+    if (input.providerPlanResult.status === PlanStatus.FALLBACK) return unchanged;
+
+    const parsed = dailyPlanJsonSchema.safeParse(input.providerPlanResult.planJson);
+    if (!parsed.success) return unchanged;
+    const validation = validateAndNormalizePlannedExercises(parsed.data, input.exerciseSelection);
+    if (validation.valid) return { ...unchanged, planJson: validation.planJson };
+
+    this.logger.warn(`exercise selection validation failed; reasons=${validation.reasonCodes.join(',')}`);
+    if (input.allowAiRetry) {
+      this.logger.log(`exercise selection retry triggered=true; reasonCount=${validation.reasonCodes.length}`);
+      const retry = await this.generateProviderPlanOrFallback({
+        user: input.user,
+        planLocalDate: input.planLocalDate,
+        planTimezone: input.planTimezone,
+        planQualityMode: input.planQualityMode,
+        personalizationContext: input.personalizationContext,
+        exerciseSelection: input.exerciseSelection,
+        exerciseFeedback: { reasonCodes: validation.reasonCodes }
+      });
+      if (retry.status === PlanStatus.READY) {
+        const retryParsed = dailyPlanJsonSchema.safeParse(retry.planJson);
+        if (retryParsed.success) {
+          const retryValidation = validateAndNormalizePlannedExercises(retryParsed.data, input.exerciseSelection);
+          if (retryValidation.valid) {
+            this.logger.log('exercise selection retry validation passed=true');
+            return { status: PlanStatus.READY, planJson: retryValidation.planJson, usedAiRetry: true, usedDeterministicFallback: false };
+          }
+          this.logger.warn(`exercise selection retry validation passed=false; reasons=${retryValidation.reasonCodes.join(',')}`);
+        }
+      }
+    } else {
+      this.logger.log('exercise selection retry triggered=false');
+    }
+
+    this.logger.warn('deterministic exercise fallback used=true');
+    return {
+      status: PlanStatus.READY,
+      planJson: composeDeterministicFallbackWorkout(parsed.data, input.exerciseSelection),
+      usedAiRetry: input.allowAiRetry,
+      usedDeterministicFallback: true
+    };
   }
 
   private validateProviderPlan(input: {
@@ -922,6 +1057,105 @@ export class DailyPlansService {
     };
   }
 
+  private buildExerciseSelectionContext(
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>,
+    planLocalDate: string,
+    planQualityMode: PlanQualityMode,
+    personalizationContext: GenerateDailyPlanPersonalizationContext
+  ): ExerciseSelectionContext {
+    const healthSignals = personalizationContext.healthPlanningContext?.signals;
+    return {
+      locale: this.resolvePlanningLocale(user),
+      planDate: planLocalDate,
+      protocol: personalizationContext.selectedProtocols!.trainingProtocol,
+      environment: user.trainingPreference?.equipment.includes(TrainingEquipment.GYM)
+        ? 'GYM'
+        : user.trainingPreference?.equipment.includes(TrainingEquipment.HOME)
+          ? 'HOME'
+          : undefined,
+      availableEquipment: this.mapAvailableExerciseEquipment(user.trainingPreference?.equipment ?? []),
+      trainingLevel: user.trainingPreference?.trainingLevel ?? TrainingLevel.BEGINNER,
+      targetMuscles: user.trainingPreference?.targetMuscleGroups ?? [],
+      workoutDurationMinutes: this.getWorkoutDurationMinutes(user.schedules, planLocalDate, user.noTrainingPlanned),
+      limitationsPresent: (user.trainingPreference?.limitationsOrPainAreas.length ?? 0) > 0,
+      pregnancyStatus: user.profile?.pregnancyStatus,
+      safeMode: user.safeMode,
+      isMinor: user.isMinor,
+      healthSignals: {
+        lowSleep: healthSignals?.lowSleep ?? false,
+        highActivity: healthSignals?.highActivityYesterday ?? false,
+        lowStepTrend: healthSignals?.lowStepTrend ?? false
+      },
+      qualityMode: planQualityMode
+    };
+  }
+
+  private mapAvailableExerciseEquipment(equipment: TrainingEquipment[]) {
+    const mapped = new Set<ExerciseEquipment>();
+    if (equipment.includes(TrainingEquipment.DUMBBELLS)) mapped.add(ExerciseEquipment.DUMBBELLS);
+    if (equipment.includes(TrainingEquipment.MACHINES)) mapped.add(ExerciseEquipment.MACHINES);
+    return [...mapped];
+  }
+
+  private getWorkoutDurationMinutes(
+    schedules: Array<{ dayOfWeek: number; durationMinutes: number }>,
+    planLocalDate: string,
+    noTrainingPlanned: boolean
+  ) {
+    if (noTrainingPlanned) return 15;
+    const dayOfWeek = new Date(`${planLocalDate}T00:00:00Z`).getUTCDay();
+    const scheduled = schedules.filter((item) => item.dayOfWeek === dayOfWeek);
+    return scheduled.length ? Math.max(...scheduled.map((item) => item.durationMinutes)) : 30;
+  }
+
+  private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
+    switch (user.settings?.preferredLocale) {
+      case PreferredLocale.RU_RU: return 'ru-RU';
+      case PreferredLocale.FR_FR: return 'fr-FR';
+      case PreferredLocale.ZH_CN: return 'zh-CN';
+      case PreferredLocale.EN_US: return 'en-US';
+      default: return resolveSupportedLocale(user.locale);
+    }
+  }
+
+  private logExerciseSelection(
+    selection: ExerciseSelectionResult,
+    personalizationContext: GenerateDailyPlanPersonalizationContext
+  ) {
+    this.logger.log([
+      `exercise selection completed; protocol=${personalizationContext.selectedProtocols?.trainingProtocol.id ?? 'unknown'}`,
+      `qualityMode=${personalizationContext.mode}`,
+      `candidateCount=${selection.candidates.length}`,
+      `requestedExerciseCount=${selection.requestedExerciseCount}`,
+      `fallbackMode=${selection.fallbackMode}`,
+      `resolvedLocale=${selection.candidates[0]?.resolvedLocale ?? 'en-US'}`,
+      `exclusions=${JSON.stringify(selection.internalExclusionSummary)}`
+    ].join('; '));
+  }
+
+  private withExerciseSelectionDebug(
+    planJson: DailyPlanJson,
+    selection: ExerciseSelectionResult,
+    usedAiRetry: boolean,
+    usedDeterministicFallback: boolean
+  ): DailyPlanJson {
+    if (!planJson.debug) return planJson;
+    return {
+      ...planJson,
+      debug: {
+        ...planJson.debug,
+        exerciseSelection: {
+          candidateCount: selection.candidates.length,
+          requestedExerciseCount: selection.requestedExerciseCount,
+          fallbackMode: selection.fallbackMode,
+          usedAiRetry,
+          usedDeterministicFallback,
+          resolvedLocale: selection.candidates[0]?.resolvedLocale ?? 'en-US'
+        }
+      }
+    };
+  }
+
   private getProviderDebugName() {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
   }
@@ -1203,7 +1437,7 @@ export class DailyPlansService {
   }
 
   private getSafetyRetryUsed(planJson: DailyPlanJson) {
-    return planJson.debug?.safetyAgent?.retryUsed === true;
+    return planJson.debug?.safetyAgent?.retryUsed === true || planJson.debug?.exerciseSelection?.usedAiRetry === true;
   }
 
   private getSafeAiOperationErrorReason(error: unknown) {

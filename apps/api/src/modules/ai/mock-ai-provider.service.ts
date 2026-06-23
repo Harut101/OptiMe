@@ -11,7 +11,8 @@ export class MockAiProviderService implements AiProvider {
       planTimezone: input.planTimezone,
       firstName: input.user.firstName,
       isMinor: input.safeMode,
-      planQualityMode: input.planQualityMode
+      planQualityMode: input.planQualityMode,
+      exerciseSelection: input.exerciseSelection
     });
   }
 }

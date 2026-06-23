@@ -29,4 +29,11 @@ export const zhCN = createLocaleResource({
   health: { connectionEnabled: '已启用 {{provider}} 连接。', disconnectedMessage: '已断开 {{provider}}。同步摘要会保留，直到你将其删除。', deletedCount: '已删除 {{count}} 条健康摘要。', synced: '健康摘要已同步。', syncedEmpty: '健康同步已完成，暂无可用的每日摘要。', nativeBuildHelp: '原生同步需要支持健康数据的开发版本。Expo Go 会显示安全的不可用提示。', syncHelp: 'OptiMe 可请求步数、睡眠、训练和活动权限，并同步最近 7 天的每日摘要。', syncScope: '当前基础版本不包含体重和心率数据。', beforeConnect: '连接前', manageHelp: '断开连接会停止后续使用，但不会删除已保存的摘要。' },
   settings: { signedIn: '已登录' },
   enums: { readiness: { PUSH: '加强', MAINTAIN: '保持', RECOVER: '恢复' } }
+}, {
+  plan: { foodTab: '饮食', trainingTab: '训练', trainingRecommendation: '今日训练', openExerciseDetails: '打开动作详情', mediaUnavailableCards: '图片暂不可用，动作计划仍可查看。', limitedDetails: '部分旧动作仅提供有限详情。', noExercises: '今天没有安排动作。', exerciseDetailsTitle: '动作详情', exerciseUnavailable: '动作详情不可用', exerciseUnavailableMessage: '当前计划中没有此动作。', imageLoading: '正在加载动作图片', imageUnavailable: '动作图片不可用', mediaPage: '第 {{current}} 张，共 {{total}} 张', planPrescription: '你的计划', prescriptionUnavailable: '请遵循训练建议中的指导。', targetMuscles: '目标肌群', secondaryMuscles: '辅助肌群', equipmentLabel: '器械', noEquipment: '无需器械', aboutExercise: '动作简介', instructions: '动作步骤', coachingCues: '技术提示', safetyNotes: '安全提示', setCount_one: '{{count}} 组', setCount_other: '{{count}} 组' },
+  enums: {
+    exerciseEquipment: { NONE: '无需器械', BODYWEIGHT: '自重', DUMBBELLS: '哑铃', BARBELL: '杠铃', KETTLEBELL: '壶铃', RESISTANCE_BANDS: '弹力带', MACHINES: '训练器械', BENCH: '训练凳', PULL_UP_BAR: '引体向上杆', CABLE_MACHINE: '绳索器械', CARDIO_MACHINE: '有氧器械' },
+    exerciseCategory: { STRENGTH: '力量', MOBILITY: '灵活性', CARDIO: '有氧', RECOVERY: '恢复' },
+    movementPattern: { SQUAT: '深蹲', HINGE: '髋部铰链', HORIZONTAL_PUSH: '水平推', VERTICAL_PUSH: '垂直推', HORIZONTAL_PULL: '水平拉', VERTICAL_PULL: '垂直拉', LUNGE: '弓步', CARRY: '负重行走', ROTATION: '旋转', ANTI_ROTATION: '抗旋转', CORE_FLEXION: '核心屈曲', CORE_STABILITY: '核心稳定', ISOLATION: '孤立动作', MOBILITY: '灵活性', CARDIO: '有氧', RECOVERY: '恢复' }
+  }
 });

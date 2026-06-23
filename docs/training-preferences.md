@@ -12,7 +12,7 @@ Training uses the shared draft comparison and unsaved-change guard used by Food,
 
 Training preferences are optional profile details used to improve training recommendations. They must not block first plan generation.
 
-ExerciseLibrary reuses the existing `TrainingLevel` and canonical `TargetMuscleGroup` values but does not currently select or attach catalog exercises to a plan. The future selection layer will map broad environment preferences such as `GYM` or `HOME` to concrete library equipment without changing persisted TrainingPreference values.
+ExerciseLibrary reuses the existing `TrainingLevel` and canonical `TargetMuscleGroup` values. Selection keeps broad environment preferences such as `GYM` or `HOME` separate from concrete equipment and does not change persisted values. Gym does not imply access to every equipment type.
 
 Stage 1 onboarding remains safety-first and short. Training preferences belong mostly to Stage 2 progressive profile prompts.
 
@@ -259,8 +259,11 @@ Sprint 6 Batch 3 uses them for protocol selection.
 Still deferred:
 
 - mobile training preference UI
-- ExerciseLibrary
 - exercise media
+
+## Exercise selection integration
+
+Saved target muscles, concrete equipment, level, limitations presence, and schedule duration now feed deterministic ExerciseLibrary selection. Missing equipment uses bodyweight/NONE candidates. Legacy broad muscle groups normalize at the read boundary and are not saved back. Preferences affect future generation only.
 
 Implemented after Batch 3:
 
