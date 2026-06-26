@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTrainingScheduleItemDto } from './dto/create-training-schedule-item.dto';
 import { UpdateTrainingIntentDto } from './dto/update-training-intent.dto';
 import { UpdateTrainingScheduleItemDto } from './dto/update-training-schedule-item.dto';
+import { UpsertWeeklyTrainingScheduleDto } from './dto/upsert-weekly-training-schedule.dto';
 import { TrainingScheduleService } from './training-schedule.service';
 
 @UseGuards(JwtAuthGuard)
@@ -16,6 +17,24 @@ export class TrainingScheduleController {
   constructor(private readonly scheduleService: TrainingScheduleService) {}
 
   @Get()
+  getWeeklySchedule(@CurrentUser() user: AuthenticatedUser) {
+    return this.scheduleService.getWeeklySchedule(user.userId);
+  }
+
+  @Put()
+  saveWeeklySchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpsertWeeklyTrainingScheduleDto
+  ) {
+    return this.scheduleService.saveWeeklySchedule(user.userId, dto);
+  }
+
+  @Delete()
+  deactivateWeeklySchedule(@CurrentUser() user: AuthenticatedUser) {
+    return this.scheduleService.deactivateWeeklySchedule(user.userId);
+  }
+
+  @Get('items')
   listItems(@CurrentUser() user: AuthenticatedUser) {
     return this.scheduleService.listItems(user.userId);
   }

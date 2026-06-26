@@ -28,7 +28,7 @@ export default function EditTrainingScheduleScreen() {
         description: values.description || undefined
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
+      await queryClient.invalidateQueries({ queryKey: ['training-schedule-items'] });
       router.back();
     },
     onError: () => Alert.alert(t('schedule.updateFailed'), t('errors.unableSave'))

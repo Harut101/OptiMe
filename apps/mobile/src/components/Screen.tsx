@@ -1,20 +1,33 @@
 import { PropsWithChildren } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/theme/colors';
 
 interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-export function Screen({ children, scroll = true }: ScreenProps) {
+export function Screen({ children, scroll = true, refreshing = false, onRefresh }: ScreenProps) {
   const content = <View style={styles.content}>{children}</View>;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}
+          refreshControl={onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          ) : undefined}
+        >
           {content}
         </ScrollView>
       ) : (

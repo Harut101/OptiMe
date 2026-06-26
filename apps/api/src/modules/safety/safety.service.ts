@@ -121,7 +121,7 @@ export class SafetyService {
         goalType: input.goalType,
         targetWeightKg: null,
         targetTimelineDays: null,
-        impactMode: null,
+        impactMode: input.impactMode ?? null,
         adjustedForSafety: false
       };
     }
@@ -131,7 +131,7 @@ export class SafetyService {
         goalType: MINOR_SAFE_GOAL_TYPE,
         targetWeightKg: null,
         targetTimelineDays: null,
-        impactMode: null,
+        impactMode: input.impactMode ?? null,
         adjustedForSafety: true
       };
     }

@@ -1,12 +1,31 @@
 import { apiRequest } from './client';
 import type {
   TrainingIntentRequest,
+  TrainingScheduleRequest,
+  TrainingScheduleResponse,
   TrainingScheduleItem,
   TrainingScheduleItemRequest
 } from '@/types/api';
 
 export function getTrainingSchedule() {
-  return apiRequest<TrainingScheduleItem[]>('/training-schedule');
+  return apiRequest<TrainingScheduleResponse>('/training-schedule');
+}
+
+export function saveTrainingSchedule(body: TrainingScheduleRequest) {
+  return apiRequest<TrainingScheduleResponse>('/training-schedule', {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+}
+
+export function deactivateTrainingSchedule() {
+  return apiRequest<TrainingScheduleResponse>('/training-schedule', {
+    method: 'DELETE'
+  });
+}
+
+export function getTrainingScheduleItems() {
+  return apiRequest<TrainingScheduleItem[]>('/training-schedule/items');
 }
 
 export function createTrainingScheduleItem(body: TrainingScheduleItemRequest) {

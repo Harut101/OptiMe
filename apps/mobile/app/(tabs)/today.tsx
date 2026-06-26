@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
+import { getGoal } from '@/api/goals';
 import {
   answerProgressivePrompt,
   getNextProgressivePrompt,
@@ -47,6 +48,7 @@ export default function TodayScreen() {
     queryKey: ['usage-summary'],
     queryFn: getUsageSummary
   });
+  const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const progressivePrompt = useQuery({
     queryKey: ['progressive-profile', 'next-prompt'],
     queryFn: getNextProgressivePrompt
@@ -107,6 +109,17 @@ export default function TodayScreen() {
       Alert.alert(t('today.updateFailed'), t('errors.network'));
     }
   });
+  const handleRefresh = async () => {
+    await Promise.all([
+      today.refetch(),
+      usage.refetch(),
+      progressivePrompt.refetch()
+    ]);
+  };
+  const refreshing =
+    today.isRefetching ||
+    usage.isRefetching ||
+    progressivePrompt.isRefetching;
 
   if (today.isLoading) {
     return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
@@ -114,7 +127,7 @@ export default function TodayScreen() {
 
   if (today.isError) {
     return (
-      <Screen>
+      <Screen refreshing={refreshing} onRefresh={handleRefresh}>
         <StateBlock
           title={t('today.unavailable')}
           message={t('errors.unableLoad')}
@@ -126,6 +139,8 @@ export default function TodayScreen() {
   }
 
   const plan = today.data?.plan;
+  const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
+  const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
   const safetyMessage = getPlanSafetyMessage(today.data);
   const generationUsage = usage.data?.items.find(
     (item) => item.feature === 'DAILY_PLAN_GENERATION'
@@ -133,7 +148,7 @@ export default function TodayScreen() {
   const refreshUsage = usage.data?.items.find((item) => item.feature === 'DAILY_PLAN_REFRESH');
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={handleRefresh}>
       <View style={styles.header}>
         <Text variant="label">{t('today.title')}</Text>
         <Text variant="title">{t('today.tagline')}</Text>
@@ -193,6 +208,7 @@ export default function TodayScreen() {
 
           <Card>
             <Text variant="label">{t('today.nutrition')}</Text>
+            {!trainingEnabled ? <Text style={styles.modeBadge}>{t('appModes.nutritionOnly')}</Text> : null}
             <Text variant="body">{plan.nutrition.calorieGuidance.notes}</Text>
             <Text variant="muted">{plan.nutrition.macroGuidance.notes}</Text>
             <Text variant="muted">
@@ -201,11 +217,19 @@ export default function TodayScreen() {
             </Text>
           </Card>
 
-          <Card>
-            <Text variant="label">{t('today.training')}</Text>
-            <Text variant="body">{plan.training.recommendation}</Text>
-            <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
-          </Card>
+          {!trainingEnabled ? (
+            <Card>
+              <Text variant="label">{t('today.trainingOffTitle')}</Text>
+              <Text variant="body">{t('today.trainingOffMessage')}</Text>
+              <Button title={t('today.enableTraining')} variant="secondary" onPress={() => router.push('/goal-editor')} />
+            </Card>
+          ) : (
+            <Card>
+              <Text variant="label">{t('today.training')}</Text>
+              <Text variant="body">{plan.training.recommendation}</Text>
+              <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
+            </Card>
+          )}
 
           <Card>
             <Text variant="label">{t('today.recovery')}</Text>
@@ -524,6 +548,15 @@ const styles = StyleSheet.create({
   successText: {
     color: colors.success,
     fontWeight: '700'
+  },
+  modeBadge: {
+    alignSelf: 'flex-start',
+    color: colors.primaryDark,
+    backgroundColor: '#FFE8EE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontWeight: '800'
   },
   promptHeader: {
     gap: 6

@@ -18,3 +18,12 @@ Food and Training are two local views of one Daily Plan record, never separately
 Newly generated plans may include optional `exerciseId`, `slug`, plan notes, and `exerciseSnapshot` while retaining existing name, sets/reps/rest/duration, intensity cue, and safety note fields. Old free-text items continue to parse and render. Existing rows are not migrated or regenerated.
 
 Snapshots preserve localized trusted catalog content and generation-time `exerciseUpdatedAt`; later library edits or language changes do not mutate history. Media is not snapshotted. Exercise Details combines immutable snapshot text with current active media without mutating the plan.
+# Daily Plan Notes
+
+Daily Plan generation now respects the persisted app mode.
+
+When the current app mode is `NUTRITION_ONLY`, the backend keeps nutrition, hydration, recovery, and reminders available while skipping exercise selection. The returned `DailyPlanJson.training` section remains present for schema compatibility, but it is normalized to a REST state with an empty `training.exercises` array.
+
+When the current app mode is `NUTRITION_AND_TRAINING`, existing protocol selection, weekly schedule context, exercise selection, deterministic safety, and AI Safety Agent review remain active.
+
+Changing app mode or primary goal affects future plans only. Existing saved Daily Plans are not regenerated automatically.

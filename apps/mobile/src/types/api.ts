@@ -13,9 +13,16 @@ import type {
   PlanFeedbackRating,
   PlanFeedbackTag,
   PregnancyStatus,
+  PrimaryGoal,
   SubmitDailyPlanFeedbackRequest,
   SportType,
   TargetMuscleGroup,
+  TrainingEnvironment,
+  ExerciseEquipment,
+  DayOfWeek,
+  TrainingScheduleOverrideMode,
+  TrainingScheduleResponse,
+  TrainingScheduleRequest,
   TrainingEquipment,
   TrainingLevel,
   TrainingOutcome
@@ -34,6 +41,12 @@ export type {
   PregnancyStatus,
   SubmitDailyPlanFeedbackRequest,
   TargetMuscleGroup,
+  TrainingEnvironment,
+  ExerciseEquipment,
+  DayOfWeek,
+  TrainingScheduleOverrideMode,
+  TrainingScheduleResponse,
+  TrainingScheduleRequest,
   TrainingEquipment,
   TrainingLevel,
   TrainingOutcome,
@@ -116,18 +129,22 @@ export interface ProfileResponse {
 }
 
 export interface GoalRequest {
-  goalType: GoalType;
+  goalType?: GoalType;
+  primaryGoal?: PrimaryGoal;
   targetWeightKg?: number;
   targetTimelineDays?: number;
   impactMode?: GoalImpactMode;
+  appMode?: GoalImpactMode;
 }
 
 export interface GoalResponse {
   id: string;
   goalType: GoalType;
+  primaryGoal?: PrimaryGoal | null;
   targetWeightKg?: number | null;
   targetTimelineDays?: number | null;
   impactMode?: GoalImpactMode | null;
+  appMode?: GoalImpactMode | null;
 }
 
 export interface NutritionPreferencesRequest {

@@ -31,6 +31,7 @@ type Stage1Input = {
     preferredFoods?: Array<{ name: string }>;
   } | null;
   schedules?: unknown[];
+  weeklyTrainingSchedule?: { isActive?: boolean | null } | null;
 };
 
 @Injectable()
@@ -77,6 +78,9 @@ export class OnboardingService {
         },
         schedules: {
           select: { id: true }
+        },
+        weeklyTrainingSchedule: {
+          select: { isActive: true }
         }
       }
     });
@@ -85,7 +89,7 @@ export class OnboardingService {
     const profileCompleted = Boolean(user.profile);
     const goalCompleted = Boolean(user.goal);
     const nutritionPreferencesCompleted = Boolean(user.nutritionPref);
-    const trainingScheduleCompleted = user.schedules.length > 0;
+    const trainingScheduleCompleted = user.schedules.length > 0 || Boolean(user.weeklyTrainingSchedule?.isActive);
     const privacyConsentCompleted = Boolean(user.privacyConsentedAt);
 
     return {
@@ -145,8 +149,9 @@ export class OnboardingService {
     }
 
     const scheduleCount = input.schedules?.length ?? 0;
+    const hasWeeklyTrainingIntent = Boolean(input.weeklyTrainingSchedule?.isActive);
 
-    if (scheduleCount === 0 && !input.noTrainingPlanned) {
+    if (scheduleCount === 0 && !hasWeeklyTrainingIntent && !input.noTrainingPlanned) {
       missingStage1Fields.push('basicTrainingIntent');
     }
 

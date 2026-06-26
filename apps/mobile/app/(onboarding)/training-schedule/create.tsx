@@ -12,7 +12,7 @@ export default function CreateTrainingScheduleScreen() {
   const mutation = useMutation({
     mutationFn: createTrainingScheduleItem,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
+      await queryClient.invalidateQueries({ queryKey: ['training-schedule-items'] });
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.replace('/(onboarding)/training-schedule');
     },

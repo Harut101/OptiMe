@@ -28,13 +28,14 @@ import {
   toProfileRequest
 } from '@/features/profile/PersonalProfileForm';
 import { isDraftDirty } from '@/features/editor/draft-state';
-import { getGoalLabel } from '@/features/goals/GoalsForm';
+import { getPrimaryGoalDisplayLabel } from '@/features/goals/GoalsForm';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
 import { formatDate, formatHeight, formatWeight } from '@/i18n/formatters';
 import {
   getActivityLevelLabel,
+  getGoalImpactLabel,
   getHealthProviderLabel,
   getMeasurementSystemLabel,
   getPlanQualityModeLabel,
@@ -153,9 +154,14 @@ function PersonalSection() {
             <Text variant="muted">{t('profile.activitySummary', { value: getActivityLevelLabel(t, savedValue.activityLevel) })}</Text>
           </Card>
           <Card>
-            <Text variant="label">{t('profile.currentGoal')}</Text>
-            <Text>{goal.data ? getGoalLabel(goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}</Text>
-            <Text variant="muted">{t('profile.goalHelp')}</Text>
+            <Text variant="label">{t('profile.goalsAndMode')}</Text>
+            <Text>{goal.data ? getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}</Text>
+            <Text variant="muted">
+              {goal.data
+                ? t('profile.modeSummary', { mode: getGoalImpactLabel(t, goal.data.appMode ?? goal.data.impactMode ?? 'NUTRITION_AND_TRAINING') })
+                : t('profile.goalHelp')}
+            </Text>
+            <Text variant="muted">{t('profile.trainingOptional')}</Text>
             <Button
               title={goal.data ? t('profile.editGoals') : t('profile.addGoals')}
               variant="secondary"
@@ -289,6 +295,9 @@ function SettingsSection() {
           </>
         ) : null}
         <Text variant="muted">{t('settings.futureControls')}</Text>
+        {__DEV__ ? (
+          <Button title={t('designSystem.title')} variant="secondary" onPress={() => router.push('/design-system-preview' as never)} />
+        ) : null}
       </Card>
       <Card><Text variant="label">{t('settings.privacyAccount')}</Text><Text variant="muted">{t('settings.privacyCopy')}</Text></Card>
       <Button title={t('settings.logout')} variant="secondary" onPress={async () => { await clearSession(); queryClient.clear(); router.replace('/(auth)/welcome'); }} />

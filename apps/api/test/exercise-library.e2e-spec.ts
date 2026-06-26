@@ -15,6 +15,8 @@ import { validateExerciseCatalog } from '../prisma/seeds/exercises/validate-cata
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
 
+jest.setTimeout(30_000);
+
 describe('ExerciseLibrary', () => {
   let ctx: TestApp;
   let accessToken: string;

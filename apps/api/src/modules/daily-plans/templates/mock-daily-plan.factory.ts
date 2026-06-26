@@ -9,6 +9,7 @@ export interface MockDailyPlanInput {
   firstName?: string | null;
   isMinor: boolean;
   planQualityMode?: PlanQualityMode;
+  trainingEnabled?: boolean;
   exerciseSelection?: GenerateDailyPlanExerciseSelection;
 }
 
@@ -18,6 +19,7 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
   const planQualityMode = input.planQualityMode ?? PlanQualityMode.BASIC;
   const summaryByMode = getSummaryByMode(planQualityMode);
   const primaryMeals = createPrimaryMeals();
+  const trainingEnabled = input.trainingEnabled ?? true;
 
   return {
     schemaVersion: 'sprint-2.v1',
@@ -54,12 +56,18 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
       }
     },
     training: {
-      recommendation: summaryByMode.trainingRecommendation,
-      intensity: 'MODERATE',
-      notes: 'Adjust effort down if energy, sleep, or recovery feels off.',
-      exercises: input.exerciseSelection
-        ? createLibraryExercises(input.exerciseSelection)
-        : createExercises(planQualityMode)
+      recommendation: trainingEnabled
+        ? summaryByMode.trainingRecommendation
+        : 'Training is off for this plan.',
+      intensity: trainingEnabled ? 'MODERATE' : 'REST',
+      notes: trainingEnabled
+        ? 'Adjust effort down if energy, sleep, or recovery feels off.'
+        : 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
+      exercises: !trainingEnabled
+        ? []
+        : input.exerciseSelection
+          ? createLibraryExercises(input.exerciseSelection)
+          : createExercises(planQualityMode)
     },
     recovery: {
       recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',

@@ -1,10 +1,15 @@
-import { GoalImpactMode, GoalType } from '@prisma/client';
+import { GoalImpactMode, GoalType, PrimaryGoal } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 
 export class UpsertGoalDto {
+  @IsOptional()
   @IsEnum(GoalType)
-  goalType!: GoalType;
+  goalType?: GoalType;
+
+  @IsOptional()
+  @IsEnum(PrimaryGoal)
+  primaryGoal?: PrimaryGoal;
 
   @ValidateIf((dto: UpsertGoalDto) => dto.goalType === GoalType.REDUCE_WEIGHT)
   @Type(() => Number)
@@ -23,4 +28,8 @@ export class UpsertGoalDto {
   @IsOptional()
   @IsEnum(GoalImpactMode)
   impactMode?: GoalImpactMode;
+
+  @IsOptional()
+  @IsEnum(GoalImpactMode)
+  appMode?: GoalImpactMode;
 }

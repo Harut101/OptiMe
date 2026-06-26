@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { goalSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,7 @@ import {
   EMPTY_GOALS_FORM,
   fromGoalResponse,
   getGoalLabel,
+  getPrimaryGoalDisplayLabel,
   GoalsForm,
   GoalsFormValue,
   toGoalRequest
@@ -76,6 +77,21 @@ export default function GoalEditorScreen() {
       return;
     }
     setValidationError(null);
+    const modeChanged = value.impactMode !== persistedValue.impactMode;
+    const goalChanged = value.primaryGoal !== persistedValue.primaryGoal;
+
+    if (modeChanged || goalChanged) {
+      Alert.alert(
+        t('goals.confirmTitle'),
+        getGoalChangeConfirmationCopy(value.impactMode, persistedValue.impactMode, goalChanged, t),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.save'), onPress: () => mutation.mutate(result.data) }
+        ]
+      );
+      return;
+    }
+
     mutation.mutate(result.data);
   };
 
@@ -114,7 +130,8 @@ export default function GoalEditorScreen() {
         <>
           <Card>
             <Text variant="label">{t('goals.current')}</Text>
-            <Text>{getGoalLabel(goal.data.goalType, t)}</Text>
+            <Text>{getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t)}</Text>
+            <Text variant="muted">{t('goals.modeSummary', { mode: t(`enums.goalImpact.${goal.data.appMode ?? goal.data.impactMode ?? 'NUTRITION_AND_TRAINING'}` as never) })}</Text>
             {goal.data.goalType === 'REDUCE_WEIGHT' ? (
               <Text variant="muted">
                 {t('goals.targetSummary', {
@@ -139,3 +156,24 @@ const styles = StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' }
 });
+
+function getGoalChangeConfirmationCopy(
+  nextMode: GoalsFormValue['impactMode'],
+  previousMode: GoalsFormValue['impactMode'],
+  goalChanged: boolean,
+  t: ReturnType<typeof useTranslation>['t']
+) {
+  if (nextMode !== previousMode && nextMode === 'NUTRITION_AND_TRAINING') {
+    return t('goals.enableTrainingConfirm');
+  }
+
+  if (nextMode !== previousMode && nextMode === 'NUTRITION_ONLY') {
+    return t('goals.disableTrainingConfirm');
+  }
+
+  if (goalChanged) {
+    return t('goals.goalChangeConfirm');
+  }
+
+  return t('goals.futurePlansOnly');
+}

@@ -41,9 +41,10 @@ assertIncludes(food, [
 const training = read('app/(tabs)/training.tsx');
 assertIncludes(training, [
   "queryKey: ['training-preferences']", "t('common.loading')",
-  "t('training.emptyTitle')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
+  "t('training.disabledTitle')", "t('training.disabledMessage')", "t('training.enableTraining')",
+  "router.push('/goal-editor')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
   "t('training.savedMessage')", 'useUnsavedChangesGuard',
-  'setValue(savedValue)', 'saveTrainingPreferences', 'saveMutation.isPending || !dirty'
+  'setValue(savedValue)', 'saveTrainingPreferences', 'saveSettings.isPending || !settingsDirty'
 ], 'Training');
 
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
@@ -94,13 +95,16 @@ assertIncludes(planContent, [
   "plan.nutrition.meals.length > 0 ? 'food'", "exercises.length > 0 ? 'training'", "useState<PlanContentTab>(defaultTab)",
   "queryKey: ['exercise-summaries', locale, exerciseIds]", 'FoodContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
 ], 'Plan tab content');
-assertIncludes(exerciseCard, ['exercise.name', 'formatExercisePrescription', 'getMuscleGroupLabel', 'getExerciseEquipmentLabel', 'summary?.thumbnail', 'barbell-outline'], 'Exercise card');
+assertIncludes(exerciseCard, [
+  'exercise.name', 'formatExercisePrescription', 'getMuscleGroupLabel', 'getExerciseEquipmentLabel',
+  'summary?.thumbnail', 'summary?.thumbnail?.url', 'resizeMode="contain"', 'barbell-outline'
+], 'Exercise card');
 assert(exerciseCard.includes('return onPress ?') && exerciseCard.includes('<Pressable'), 'Only supported library exercises should open details.');
 assertIncludes(exerciseDetails, [
   "queryKey: ['today-plan']", "queryKey: ['exercise-detail', locale, exerciseId]", 'exercise.exerciseSnapshot',
   'formatExercisePrescription', 'ExerciseMediaCarousel', 'snapshot.instructions', 'snapshot.coachingCues', 'snapshot.safetyNotes'
 ], 'Exercise details');
-assertIncludes(mediaCarousel, ['horizontal', 'pagingEnabled', 'aspectRatio: 4 / 5', 'resizeMode="contain"', 'available.length > 1', "available.length === 0"], 'Exercise media carousel');
+assertIncludes(mediaCarousel, ['source={{ uri: urlOverrides[item.id] ?? getExerciseMediaDisplayUrl(item.url) }}', 'horizontal', 'pagingEnabled', 'aspectRatio: 4 / 5', 'resizeMode="contain"', 'available.length > 1', "available.length === 0"], 'Exercise media carousel');
 assert(!mediaCarousel.includes('autoplay') && !mediaCarousel.includes('infinite'), 'Exercise media must not autoplay or loop infinitely.');
 assertIncludes(exerciseApi, ['`/exercises?${params.toString()}`', 'ids: uniqueIds.join', '`/exercises/${encodeURIComponent(exerciseId)}`'], 'Exercise API client');
 for (const source of [planContent, planTabs, exerciseCard, exerciseDetails, mediaCarousel, exerciseApi]) {

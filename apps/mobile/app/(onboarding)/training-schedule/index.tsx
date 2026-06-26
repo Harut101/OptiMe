@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
   deleteTrainingScheduleItem,
-  getTrainingSchedule,
+  getTrainingScheduleItems,
   updateTrainingIntent
 } from '@/api/training-schedule';
 import { Button } from '@/components/Button';
@@ -22,12 +22,12 @@ export default function TrainingScheduleScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const schedule = useQuery({
-    queryKey: ['training-schedule'],
-    queryFn: getTrainingSchedule
+    queryKey: ['training-schedule-items'],
+    queryFn: getTrainingScheduleItems
   });
   const deleteMutation = useMutation({
     mutationFn: deleteTrainingScheduleItem,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-schedule'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['training-schedule-items'] }),
     onError: () => Alert.alert(t('schedule.deleteFailed'), t('errors.unableSave'))
   });
   const intentMutation = useMutation({

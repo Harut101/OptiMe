@@ -28,7 +28,8 @@ const SCORE = {
   LEVEL: 10,
   LOW_COMPLEXITY: 6,
   RECOVERY: 70,
-  ACCESSIBLE_MOVEMENT: 20
+  ACCESSIBLE_MOVEMENT: 20,
+  MEDIA_AVAILABLE: 250
 } as const;
 
 const UNIVERSAL_EQUIPMENT = new Set<ExerciseEquipment>([
@@ -135,6 +136,7 @@ export class ExerciseSelectionService {
     if (this.getPreferredPatterns(context.protocol.id).includes(record.movementPattern)) { internalScore += SCORE.PATTERN; reasons.push('PATTERN_MATCH'); }
     internalScore += SCORE.EQUIPMENT; reasons.push('EQUIPMENT_MATCH');
     internalScore += SCORE.LEVEL; reasons.push('LEVEL_MATCH');
+    if (record.hasMedia) { internalScore += SCORE.MEDIA_AVAILABLE; reasons.push('MEDIA_AVAILABLE'); }
 
     if (!HIGH_COMPLEXITY_PATTERNS.has(record.movementPattern) && record.trainingLevels.includes(TrainingLevel.BEGINNER)) {
       internalScore += SCORE.LOW_COMPLEXITY;

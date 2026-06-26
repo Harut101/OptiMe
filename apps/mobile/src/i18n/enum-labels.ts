@@ -4,13 +4,16 @@ import type {
   DietType,
   ExerciseCategory,
   ExerciseEquipment,
+  DayOfWeek,
   GoalImpactMode,
   GoalType,
+  PrimaryGoal,
   IntensityLevel,
   MovementPattern,
   PregnancyStatus,
   SportType,
   TargetMuscleGroup,
+  TrainingEnvironment,
   TrainingEquipment,
   TrainingLevel,
   TrainingOutcome
@@ -22,6 +25,7 @@ export type GenderValue = 'female' | 'male' | 'other' | 'prefer_not_to_say';
 const maps = {
   goalType: map<GoalType>('goalType', ['HEALTHY_LIFESTYLE', 'IMPROVE_FITNESS', 'BUILD_MUSCLE', 'IMPROVE_ENDURANCE', 'REDUCE_WEIGHT']),
   goalImpact: map<GoalImpactMode>('goalImpact', ['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']),
+  primaryGoal: map<PrimaryGoal>('primaryGoal', ['WEIGHT_LOSS', 'WEIGHT_MAINTENANCE', 'WEIGHT_GAIN', 'HEALTHY_EATING']),
   gender: map<GenderValue>('gender', ['female', 'male', 'other', 'prefer_not_to_say']),
   pregnancyStatus: map<PregnancyStatus>('pregnancyStatus', ['NOT_PREGNANT', 'PREGNANT', 'POSTPARTUM', 'BREASTFEEDING', 'PREFER_NOT_TO_SAY', 'UNKNOWN']),
   activityLevel: map<ActivityLevel>('activityLevel', ['LOW', 'LIGHT', 'MODERATE', 'HIGH', 'ATHLETE']),
@@ -37,6 +41,8 @@ const maps = {
   subscriptionPlan: map<SubscriptionPlan>('subscriptionPlan', ['FREE', 'PLUS', 'PRO']),
   planQualityMode: map<PlanQualityMode>('planQualityMode', ['BASIC', 'PERSONALIZED', 'ADAPTIVE']),
   exerciseEquipment: map<ExerciseEquipment>('exerciseEquipment', ['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE']),
+  trainingEnvironment: map<TrainingEnvironment>('trainingEnvironment', ['HOME', 'GYM', 'OUTDOOR']),
+  dayOfWeek: map<DayOfWeek>('dayOfWeek', ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
   exerciseCategory: map<ExerciseCategory>('exerciseCategory', ['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY']),
   movementPattern: map<MovementPattern>('movementPattern', ['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY'])
 } as const;
@@ -52,6 +58,7 @@ function label<T extends string>(t: TFunction, values: Record<T, string>, value:
 
 export const getGoalTypeLabel = (t: TFunction, value: GoalType) => label(t, maps.goalType, value);
 export const getGoalImpactLabel = (t: TFunction, value: GoalImpactMode) => label(t, maps.goalImpact, value);
+export const getPrimaryGoalLabel = (t: TFunction, value: PrimaryGoal) => label(t, maps.primaryGoal, value);
 export const getGenderLabel = (t: TFunction, value: GenderValue) => label(t, maps.gender, value);
 export const getPregnancyStatusLabel = (t: TFunction, value: PregnancyStatus) => label(t, maps.pregnancyStatus, value);
 export const getActivityLevelLabel = (t: TFunction, value: ActivityLevel) => label(t, maps.activityLevel, value);
@@ -67,6 +74,8 @@ export const getHealthProviderLabel = (t: TFunction, value: HealthProvider) => l
 export const getSubscriptionPlanLabel = (t: TFunction, value: SubscriptionPlan) => label(t, maps.subscriptionPlan, value);
 export const getPlanQualityModeLabel = (t: TFunction, value: PlanQualityMode) => label(t, maps.planQualityMode, value);
 export const getExerciseEquipmentLabel = (t: TFunction, value: ExerciseEquipment) => label(t, maps.exerciseEquipment, value);
+export const getTrainingEnvironmentLabel = (t: TFunction, value: TrainingEnvironment) => label(t, maps.trainingEnvironment, value);
+export const getDayOfWeekLabel = (t: TFunction, value: DayOfWeek) => label(t, maps.dayOfWeek, value);
 export const getExerciseCategoryLabel = (t: TFunction, value: ExerciseCategory) => label(t, maps.exerciseCategory, value);
 export const getMovementPatternLabel = (t: TFunction, value: MovementPattern) => label(t, maps.movementPattern, value);
 

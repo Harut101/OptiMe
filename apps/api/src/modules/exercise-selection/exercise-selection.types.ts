@@ -21,7 +21,8 @@ export type ExerciseSelectionReason =
   | 'LEVEL_MATCH'
   | 'LOW_COMPLEXITY_PREFERENCE'
   | 'HEALTH_RECOVERY_PREFERENCE'
-  | 'LOW_STEP_ACCESSIBLE_MOVEMENT';
+  | 'LOW_STEP_ACCESSIBLE_MOVEMENT'
+  | 'MEDIA_AVAILABLE';
 
 export type ExerciseExclusionReason =
   | 'EQUIPMENT_UNAVAILABLE'
@@ -40,7 +41,7 @@ export interface ExerciseSelectionContext {
   locale: SupportedLocale;
   planDate: string;
   protocol: TrainingProtocol;
-  environment?: 'GYM' | 'HOME';
+  environment?: 'GYM' | 'HOME' | 'OUTDOOR';
   availableEquipment: ExerciseEquipment[];
   trainingLevel: TrainingLevel;
   targetMuscles: TargetMuscleGroup[];
@@ -71,6 +72,7 @@ export interface ExerciseCandidate {
   coachingCues: string[];
   safetyNotes: string[];
   contraindicationTags: ExerciseContraindicationTag[];
+  hasMedia: boolean;
   exerciseUpdatedAt: string;
   internalScore: number;
   internalReasonCodes: ExerciseSelectionReason[];

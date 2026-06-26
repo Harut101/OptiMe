@@ -12,6 +12,7 @@ export class MockAiProviderService implements AiProvider {
       firstName: input.user.firstName,
       isMinor: input.safeMode,
       planQualityMode: input.planQualityMode,
+      trainingEnabled: input.personalizationContext.trainingEnabled,
       exerciseSelection: input.exerciseSelection
     });
   }

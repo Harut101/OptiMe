@@ -14,7 +14,14 @@ Daily Plan Food/Training views, library-backed exercise cards, and the Exercise 
 
 Exercise-media filename reconciliation now gates ingestion with strict parsing, explicit reviewed aliases, deterministic coverage reports, and conflict-safe optional renames. Ingestion remains blocked until every approved image identity and every catalog exercise has an explicit decision. The next media batch begins only after reconciliation reports zero blockers.
 
-Exercise-media catalog expansion is applied: the seed now contains 77 exercises and 308 translations, while preserving all original slugs. Approved aliases were applied and reconciliation now reports 47 canonical WebPs, 46 media-covered exercise identities, and zero filename blockers. The five 2:3 WebP assets were normalized to exact 4:5 with private byte-identical backups, and ExerciseMedia ingestion now registers 47 media rows plus 188 localized media translations.
+Exercise-media catalog expansion is applied: the seed now contains 77 exercises and 308 translations, while preserving all original slugs. Approved aliases were applied and reconciliation now reports 47 canonical WebPs, 46 media-covered exercise identities, and zero filename blockers. The five 2:3 WebP assets were normalized to exact 4:5 with private byte-identical backups, and ExerciseMedia ingestion now registers 47 media rows plus 188 localized media translations. Optimized `480x600` WebP thumbnails are generated for list/card views, while Exercise Details keeps full-size media. Production CDN upload remains pending provider selection.
 ## Sprint 9A Batch 2 complete
 
 Core mobile UI localization and typed domain-enum labels now cover English, Russian, French, and Simplified Chinese. Historical/AI plan localization, ExerciseLibrary translations, Spanish, German, and RTL remain deferred.
+# Roadmap Notes
+
+Completed foundation: app modes and primary goal switching. Nutrition-only is now a first-class mode, and training can be enabled or disabled without deleting saved training settings. Goal and mode changes affect future plans only.
+
+Next recommended batch: Weekly Training Schedule with day-specific muscles, location, equipment including `BARBELL`, duration, rest days, timezone resolution, and Daily Plan integration.
+
+Still deferred: Nutrition Engine, specialized Nutrition Agent, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.

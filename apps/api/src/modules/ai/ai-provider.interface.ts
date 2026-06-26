@@ -6,6 +6,7 @@ import {
   IntensityLevel,
   PlanQualityMode,
   PregnancyStatus,
+  PrimaryGoal,
   SportType,
   TargetMuscleGroup,
   TrainingEquipment,
@@ -41,6 +42,8 @@ export interface GenerateDailyPlanPersonalizationContext {
   mode: PlanQualityMode;
   contextLevel: 'minimal' | 'personalized' | 'adaptive';
   guidance: string[];
+  appMode: GoalImpactMode;
+  trainingEnabled: boolean;
   historySummary?: {
     recentPlanCount: number;
     readinessLevels: string[];
@@ -98,6 +101,7 @@ export interface GenerateDailyPlanInput {
   } | null;
   goal: {
     goalType: GoalType;
+    primaryGoal: PrimaryGoal | null;
     targetWeightKg: number | null;
     targetTimelineDays: number | null;
     impactMode: GoalImpactMode | null;

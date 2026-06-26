@@ -2212,7 +2212,7 @@ describe('Sprint 1 backend vertical slice', () => {
       .expect(201);
 
     const listed = await request(ctx.app.getHttpServer())
-      .get('/v1/training-schedule')
+      .get('/v1/training-schedule/items')
       .set(authHeader(user.accessToken))
       .expect(200);
 
@@ -2232,7 +2232,7 @@ describe('Sprint 1 backend vertical slice', () => {
       .expect(200);
 
     const afterDelete = await request(ctx.app.getHttpServer())
-      .get('/v1/training-schedule')
+      .get('/v1/training-schedule/items')
       .set(authHeader(user.accessToken))
       .expect(200);
 

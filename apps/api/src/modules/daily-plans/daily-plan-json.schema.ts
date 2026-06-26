@@ -39,6 +39,23 @@ const exerciseSchema = z.object({
   }).optional()
 });
 
+const resolvedTrainingDayContextSchema = z.object({
+  source: z.enum(['WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
+  localDate: z.string(),
+  dayOfWeek: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
+  isTrainingDay: z.boolean(),
+  targetMuscles: z.array(z.enum([
+    'CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS',
+    'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',
+    'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY'
+  ])),
+  environment: z.enum(['HOME', 'GYM', 'OUTDOOR']).nullable(),
+  availableEquipment: z.array(z.enum(['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE'])),
+  durationMinutes: z.number().int().min(1).max(300),
+  protocolPreference: z.string().nullable(),
+  inheritedFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']))
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -86,6 +103,7 @@ export const dailyPlanJsonSchema = z.object({
     notes: z.string(),
     exercises: z.array(exerciseSchema).max(8).optional()
   }),
+  trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),
     sleepTip: z.string().optional(),

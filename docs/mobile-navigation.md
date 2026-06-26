@@ -1,23 +1,16 @@
-# Mobile navigation
+# Mobile Navigation
 
-OptiMe's primary mobile navigation has four domain-owned tabs:
+OptiMe uses Expo Router.
 
-- **Today** owns the current daily plan, daily progress, and check-ins.
-- **Food** owns nutrition preferences and foods to prefer or avoid.
-- **Training** owns training preferences, target muscles, equipment, and schedule.
-- **Profile** owns personal data, health context, connections, and application settings.
+Primary tabs remain:
 
-Health and Connections are Profile sections, not primary tabs. Workout create/edit screens are stack routes above Training, so returning preserves the Training tab state. Expo Router remains the navigation system and Ionicons remains the icon system.
+- Today
+- Food
+- Training
+- Profile
 
-Standalone editors keep local draft state. Switching tabs does not save or reset a draft; removing an editor with unsaved changes prompts before discarding it.
+Training remains visible even when app mode is `NUTRITION_ONLY`. In that state, the Training tab shows a disabled state and an Enable Training action instead of hiding the module.
 
-Bottom-tab and stack shell labels now use i18next translation keys for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. Stable route names and persisted enums remain unchanged. Feature-screen copy that has not yet moved into resources falls back to its current English text.
+Goal and mode editing uses the existing standalone `goal-editor` route. Mode and primary goal changes show a confirmation before saving and do not regenerate Daily Plans.
 
-Profile → Personal opens the nested `/goal-editor` route for post-onboarding goal changes. Food, Training, Personal, and Goals compare each draft with its last persisted baseline. Save is disabled without a real change or while saving; Cancel restores that baseline; guarded back navigation prompts only while dirty.
-
-See `sprint-8b-mobile-qa.md` for the manual iPhone checklist covering safe areas, keyboards, scrolling, and tab fit.
-
-Plan Details owns local Food/Training content tabs inside the existing Today flow. Library-backed exercise cards open the full-screen `/exercise-details` stack route with stable plan and exercise IDs. Returning preserves the mounted Plan Details state and does not regenerate or mutate the plan.
-## Localized navigation
-
-The four tab labels and stack titles use translation keys. Profile's internal Personal, Health, Connections, and Settings navigation supports wrapping/longer labels without adding locale-specific routes. Route names and persisted navigation state remain language-neutral.
+The Design System Preview is an internal route and is reachable from Profile settings only in development.

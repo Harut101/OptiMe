@@ -43,10 +43,17 @@ export const goalSchema = z.object({
     'BUILD_MUSCLE',
     'IMPROVE_ENDURANCE',
     'REDUCE_WEIGHT'
-  ]),
+  ]).optional(),
+  primaryGoal: z
+    .enum(['WEIGHT_LOSS', 'WEIGHT_MAINTENANCE', 'WEIGHT_GAIN', 'HEALTHY_EATING'])
+    .optional(),
   targetWeightKg: z.coerce.number().min(20).max(350).optional(),
   targetTimelineDays: z.coerce.number().int().min(14).max(730).optional(),
-  impactMode: z.enum(['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']).optional()
+  impactMode: z.enum(['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']).optional(),
+  appMode: z.enum(['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']).optional()
+}).refine((value) => value.goalType || value.primaryGoal, {
+  message: 'Either goalType or primaryGoal is required.',
+  path: ['primaryGoal']
 });
 
 export const nutritionPreferencesSchema = z.object({
@@ -114,6 +121,61 @@ export const trainingPreferenceSchema = z.object({
   trainingLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).nullable().optional(),
   limitationsOrPainAreas: z.array(z.string().max(120)).max(20).optional(),
   preferredTrainingDays: z.array(z.coerce.number().int().min(0).max(6)).max(7).optional()
+});
+
+const targetMuscleGroupSchema = z.enum([
+  'CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS',
+  'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',
+  'GLUTES', 'SHOULDERS', 'BACK', 'LEGS', 'CORE', 'ARMS', 'FULL_BODY'
+]);
+const exerciseEquipmentSchema = z.enum([
+  'NONE',
+  'BODYWEIGHT',
+  'DUMBBELLS',
+  'BARBELL',
+  'KETTLEBELL',
+  'RESISTANCE_BANDS',
+  'MACHINES',
+  'BENCH',
+  'PULL_UP_BAR',
+  'CABLE_MACHINE',
+  'CARDIO_MACHINE'
+]);
+export const dayOfWeekSchema = z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
+export const trainingEnvironmentSchema = z.enum(['HOME', 'GYM', 'OUTDOOR']);
+export const trainingScheduleOverrideModeSchema = z.enum(['USE_DEFAULT', 'CUSTOM']);
+
+export const trainingScheduleDaySchema = z.object({
+  dayOfWeek: dayOfWeekSchema,
+  isTrainingDay: z.boolean(),
+  targetMusclesMode: trainingScheduleOverrideModeSchema,
+  targetMuscles: z.array(targetMuscleGroupSchema).max(20).optional(),
+  environmentMode: trainingScheduleOverrideModeSchema,
+  environment: trainingEnvironmentSchema.nullable().optional(),
+  equipmentMode: trainingScheduleOverrideModeSchema,
+  availableEquipment: z.array(exerciseEquipmentSchema).max(20).optional(),
+  durationMode: trainingScheduleOverrideModeSchema,
+  durationMinutes: z.coerce.number().int().min(1).max(300).nullable().optional(),
+  protocolMode: trainingScheduleOverrideModeSchema.optional(),
+  protocolPreference: z.string().trim().max(80).nullable().optional()
+});
+
+export const trainingScheduleSchema = z.object({
+  isActive: z.boolean(),
+  days: z.array(trainingScheduleDaySchema).length(7)
+});
+
+export const resolvedTrainingDayContextSchema = z.object({
+  source: z.enum(['WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
+  localDate: z.string(),
+  dayOfWeek: dayOfWeekSchema,
+  isTrainingDay: z.boolean(),
+  targetMuscles: z.array(targetMuscleGroupSchema),
+  environment: trainingEnvironmentSchema.nullable(),
+  availableEquipment: z.array(exerciseEquipmentSchema),
+  durationMinutes: z.number().int().min(1).max(300),
+  protocolPreference: z.string().nullable(),
+  inheritedFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']))
 });
 
 export const progressivePromptAnswerSchema = z.object({
@@ -203,6 +265,7 @@ export const dailyPlanJsonSchema = z.object({
     notes: z.string(),
     exercises: z.array(dailyPlanExerciseSchema).max(8).optional()
   }),
+  trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),
     sleepTip: z.string().optional(),

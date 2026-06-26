@@ -12,18 +12,17 @@ import {
   AiOperationProvider,
   AiOperationStatus,
   DailyReadinessLevel,
-  ExerciseEquipment,
+  GoalImpactMode,
   PlanFeedbackRating,
   PlanQualityMode,
   PlanStatus,
   Prisma,
   PreferredLocale,
-  TrainingEquipment,
   TrainingLevel,
   UsageFeature,
   UsagePeriodType
 } from '@prisma/client';
-import { resolveSupportedLocale, type SupportedLocale } from '@optime/shared-types';
+import { resolveSupportedLocale, type ResolvedTrainingDayContext, type SupportedLocale } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
@@ -58,6 +57,7 @@ import {
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
 import { UsageGuardService } from '../usage/usage-guard.service';
+import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
@@ -86,6 +86,7 @@ export class DailyPlansService {
     private readonly checkInsService: DailyPlanCheckInsService,
     private readonly healthService: HealthService,
     private readonly protocolSelector: ProtocolSelectorService,
+    private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -147,15 +148,32 @@ export class DailyPlansService {
     try {
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
+      const appMode = this.resolveAppMode(user);
+      const trainingEnabled = appMode === GoalImpactMode.NUTRITION_AND_TRAINING;
+      const resolvedTrainingDay = await this.trainingScheduleResolver.resolveForUser({
+        userId,
+        planLocalDate,
+        trainingPreference: user.trainingPreference,
+        legacyScheduleItems: user.schedules,
+        noTrainingPlanned: !trainingEnabled || user.noTrainingPlanned
+      });
       const personalizationContext = await this.buildPersonalizationContext(
         user,
         planQualityMode,
-        planLocalDate
+        planLocalDate,
+        resolvedTrainingDay,
+        appMode
       );
-      const exerciseSelection = await this.exerciseSelectionService.selectCandidates(
-        this.buildExerciseSelectionContext(user, planLocalDate, planQualityMode, personalizationContext)
-      );
-      this.logExerciseSelection(exerciseSelection, personalizationContext);
+      const exerciseSelection = trainingEnabled
+        ? await this.exerciseSelectionService.selectCandidates(
+            this.buildExerciseSelectionContext(user, planLocalDate, planQualityMode, personalizationContext, resolvedTrainingDay)
+          )
+        : this.createEmptyExerciseSelection();
+      if (trainingEnabled) {
+        this.logExerciseSelection(exerciseSelection, personalizationContext);
+      } else {
+        this.logger.log('exercise selection skipped; appMode=NUTRITION_ONLY');
+      }
       const blockedFoods = {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
@@ -168,6 +186,13 @@ export class DailyPlansService {
         personalizationContext,
         exerciseSelection
       });
+      providerPlanResult = {
+        ...providerPlanResult,
+        planJson: this.withTrainingStateForAppMode(
+          this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
+          appMode
+        )
+      };
       let exercisePreparation = await this.prepareLibraryBackedExercises({
         providerPlanResult,
         user,
@@ -207,6 +232,14 @@ export class DailyPlansService {
           exerciseSelection,
           safetyFeedback: safePlanResult.safetyRetryRequest
         });
+        retryProviderPlanResult.planJson = this.withTrainingScheduleSnapshot(
+          retryProviderPlanResult.planJson,
+          resolvedTrainingDay
+        );
+        retryProviderPlanResult.planJson = this.withTrainingStateForAppMode(
+          retryProviderPlanResult.planJson,
+          appMode
+        );
         const retryExercisePreparation = await this.prepareLibraryBackedExercises({
           providerPlanResult: retryProviderPlanResult,
           user,
@@ -392,6 +425,7 @@ export class DailyPlansService {
         goal: {
           select: {
             goalType: true,
+            primaryGoal: true,
             targetWeightKg: true,
             targetTimelineDays: true,
             impactMode: true
@@ -424,6 +458,9 @@ export class DailyPlansService {
             description: true
           },
           orderBy: [{ dayOfWeek: 'asc' }, { localTime: 'asc' }]
+        },
+        weeklyTrainingSchedule: {
+          select: { isActive: true }
         },
         trainingPreference: {
           select: {
@@ -1061,22 +1098,19 @@ export class DailyPlansService {
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>,
     planLocalDate: string,
     planQualityMode: PlanQualityMode,
-    personalizationContext: GenerateDailyPlanPersonalizationContext
+    personalizationContext: GenerateDailyPlanPersonalizationContext,
+    resolvedTrainingDay: ResolvedTrainingDayContext
   ): ExerciseSelectionContext {
     const healthSignals = personalizationContext.healthPlanningContext?.signals;
     return {
       locale: this.resolvePlanningLocale(user),
       planDate: planLocalDate,
       protocol: personalizationContext.selectedProtocols!.trainingProtocol,
-      environment: user.trainingPreference?.equipment.includes(TrainingEquipment.GYM)
-        ? 'GYM'
-        : user.trainingPreference?.equipment.includes(TrainingEquipment.HOME)
-          ? 'HOME'
-          : undefined,
-      availableEquipment: this.mapAvailableExerciseEquipment(user.trainingPreference?.equipment ?? []),
+      environment: resolvedTrainingDay.environment ?? undefined,
+      availableEquipment: resolvedTrainingDay.availableEquipment,
       trainingLevel: user.trainingPreference?.trainingLevel ?? TrainingLevel.BEGINNER,
-      targetMuscles: user.trainingPreference?.targetMuscleGroups ?? [],
-      workoutDurationMinutes: this.getWorkoutDurationMinutes(user.schedules, planLocalDate, user.noTrainingPlanned),
+      targetMuscles: resolvedTrainingDay.targetMuscles,
+      workoutDurationMinutes: resolvedTrainingDay.isTrainingDay ? resolvedTrainingDay.durationMinutes : 0,
       limitationsPresent: (user.trainingPreference?.limitationsOrPainAreas.length ?? 0) > 0,
       pregnancyStatus: user.profile?.pregnancyStatus,
       safeMode: user.safeMode,
@@ -1088,24 +1122,6 @@ export class DailyPlansService {
       },
       qualityMode: planQualityMode
     };
-  }
-
-  private mapAvailableExerciseEquipment(equipment: TrainingEquipment[]) {
-    const mapped = new Set<ExerciseEquipment>();
-    if (equipment.includes(TrainingEquipment.DUMBBELLS)) mapped.add(ExerciseEquipment.DUMBBELLS);
-    if (equipment.includes(TrainingEquipment.MACHINES)) mapped.add(ExerciseEquipment.MACHINES);
-    return [...mapped];
-  }
-
-  private getWorkoutDurationMinutes(
-    schedules: Array<{ dayOfWeek: number; durationMinutes: number }>,
-    planLocalDate: string,
-    noTrainingPlanned: boolean
-  ) {
-    if (noTrainingPlanned) return 15;
-    const dayOfWeek = new Date(`${planLocalDate}T00:00:00Z`).getUTCDay();
-    const scheduled = schedules.filter((item) => item.dayOfWeek === dayOfWeek);
-    return scheduled.length ? Math.max(...scheduled.map((item) => item.durationMinutes)) : 30;
   }
 
   private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
@@ -1156,6 +1172,46 @@ export class DailyPlansService {
     };
   }
 
+  private withTrainingScheduleSnapshot(
+    planJson: DailyPlanJson,
+    resolvedTrainingDay: ResolvedTrainingDayContext
+  ): DailyPlanJson {
+    return {
+      ...planJson,
+      trainingScheduleSnapshot: resolvedTrainingDay
+    };
+  }
+
+  private withTrainingStateForAppMode(planJson: DailyPlanJson, appMode: GoalImpactMode): DailyPlanJson {
+    if (appMode !== GoalImpactMode.NUTRITION_ONLY) return planJson;
+
+    return {
+      ...planJson,
+      training: {
+        recommendation: 'Training is off for this plan.',
+        intensity: 'REST',
+        notes: 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
+        exercises: []
+      }
+    };
+  }
+
+  private resolveAppMode(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>) {
+    return user.goal?.impactMode ?? (user.noTrainingPlanned ? GoalImpactMode.NUTRITION_ONLY : GoalImpactMode.NUTRITION_AND_TRAINING);
+  }
+
+  private createEmptyExerciseSelection(): ExerciseSelectionResult {
+    return {
+      candidates: [],
+      requestedExerciseCount: 0,
+      candidatePoolLimit: 0,
+      workoutDurationMinutes: 0,
+      normalizedTargetMuscles: [],
+      fallbackMode: 'NONE',
+      internalExclusionSummary: {}
+    };
+  }
+
   private getProviderDebugName() {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
   }
@@ -1176,8 +1232,11 @@ export class DailyPlansService {
   private async buildPersonalizationContext(
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>,
     planQualityMode: PlanQualityMode,
-    planLocalDate: string
+    planLocalDate: string,
+    resolvedTrainingDay: ResolvedTrainingDayContext,
+    appMode: GoalImpactMode
   ): Promise<GenerateDailyPlanPersonalizationContext> {
+    const trainingEnabled = appMode === GoalImpactMode.NUTRITION_AND_TRAINING;
     const checkInSummary = await this.checkInsService.getRecentSummary(user.id);
     const healthPlanningContext = await this.healthService.getRecentHealthSummariesForPlanning(
       user.id,
@@ -1192,8 +1251,16 @@ export class DailyPlansService {
       goal: user.goal,
       safeMode: user.safeMode,
       isMinor: user.isMinor,
-      noTrainingPlanned: user.noTrainingPlanned,
-      trainingSchedule: user.schedules,
+      noTrainingPlanned: !trainingEnabled || !resolvedTrainingDay.isTrainingDay,
+      trainingSchedule: trainingEnabled && resolvedTrainingDay.isTrainingDay
+        ? [{
+            durationMinutes: resolvedTrainingDay.durationMinutes,
+            intensity: 'MODERATE',
+            description: resolvedTrainingDay.source === 'WEEKLY_SCHEDULE'
+              ? `Weekly schedule: ${resolvedTrainingDay.dayOfWeek}`
+              : null
+          }]
+        : [],
       trainingPreference,
       checkInSummary,
       healthPlanningContext,
@@ -1203,6 +1270,8 @@ export class DailyPlansService {
       mode: planQualityMode,
       contextLevel: this.getContextLevel(planQualityMode),
       guidance: this.getPersonalizationGuidance(planQualityMode),
+      appMode,
+      trainingEnabled,
       ...(trainingPreference
         ? {
             trainingPreference: {
@@ -1216,7 +1285,14 @@ export class DailyPlansService {
             }
           }
         : {}),
-      trainingPersonalization: this.getTrainingPersonalizationContext(planQualityMode),
+      trainingPersonalization: trainingEnabled
+        ? this.getTrainingPersonalizationContext(planQualityMode)
+          : {
+              usesSchedule: false,
+              usesTrainingDescriptions: false,
+              exerciseDetailLevel: 'simple' as const,
+              futureSignals: []
+            },
       selectedProtocols,
       checkInSummary,
       healthPlanningContext

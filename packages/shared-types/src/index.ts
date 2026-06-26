@@ -41,6 +41,12 @@ export type GoalType =
   | 'IMPROVE_ENDURANCE'
   | 'REDUCE_WEIGHT';
 export type GoalImpactMode = 'NUTRITION_ONLY' | 'NUTRITION_AND_TRAINING';
+export type AppMode = GoalImpactMode;
+export type PrimaryGoal =
+  | 'WEIGHT_LOSS'
+  | 'WEIGHT_MAINTENANCE'
+  | 'WEIGHT_GAIN'
+  | 'HEALTHY_EATING';
 export type DietType =
   | 'NONE'
   | 'OMNIVORE'
@@ -82,6 +88,17 @@ export type TrainingLevel = (typeof TRAINING_LEVELS)[number];
 export const TARGET_MUSCLE_GROUPS = ['CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES', 'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY'] as const;
 export type TargetMuscleGroup = (typeof TARGET_MUSCLE_GROUPS)[number];
 export type TrainingEquipment = 'GYM' | 'HOME' | 'DUMBBELLS' | 'BODYWEIGHT' | 'MACHINES';
+export const TRAINING_ENVIRONMENTS = ['HOME', 'GYM', 'OUTDOOR'] as const;
+export type TrainingEnvironment = (typeof TRAINING_ENVIRONMENTS)[number];
+export const DAYS_OF_WEEK = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as const;
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+export type TrainingScheduleOverrideMode = 'USE_DEFAULT' | 'CUSTOM';
+export type TrainingScheduleInheritedField =
+  | 'TARGET_MUSCLES'
+  | 'ENVIRONMENT'
+  | 'EQUIPMENT'
+  | 'DURATION'
+  | 'PROTOCOL';
 
 export const EXERCISE_CATEGORIES = ['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY'] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
@@ -193,10 +210,12 @@ export interface UpsertProfileRequest {
 }
 
 export interface UpsertGoalRequest {
-  goalType: GoalType;
+  goalType?: GoalType;
+  primaryGoal?: PrimaryGoal;
   targetWeightKg?: number;
   targetTimelineDays?: number;
   impactMode?: GoalImpactMode;
+  appMode?: AppMode;
 }
 
 export interface UpsertNutritionPreferencesRequest {
@@ -238,6 +257,59 @@ export interface TrainingPreferenceResponse {
   trainingLevel: TrainingLevel | null;
   limitationsOrPainAreas: string[];
   preferredTrainingDays: number[];
+}
+
+export interface ResolvedTrainingDayContext {
+  source: 'WEEKLY_SCHEDULE' | 'GLOBAL_DEFAULTS';
+  localDate: string;
+  dayOfWeek: DayOfWeek;
+  isTrainingDay: boolean;
+  targetMuscles: TargetMuscleGroup[];
+  environment: TrainingEnvironment | null;
+  availableEquipment: ExerciseEquipment[];
+  durationMinutes: number;
+  protocolPreference: string | null;
+  inheritedFields: TrainingScheduleInheritedField[];
+}
+
+export interface TrainingScheduleDayRequest {
+  dayOfWeek: DayOfWeek;
+  isTrainingDay: boolean;
+  targetMusclesMode: TrainingScheduleOverrideMode;
+  targetMuscles?: TargetMuscleGroup[];
+  environmentMode: TrainingScheduleOverrideMode;
+  environment?: TrainingEnvironment | null;
+  equipmentMode: TrainingScheduleOverrideMode;
+  availableEquipment?: ExerciseEquipment[];
+  durationMode: TrainingScheduleOverrideMode;
+  durationMinutes?: number | null;
+  protocolMode?: TrainingScheduleOverrideMode;
+  protocolPreference?: string | null;
+}
+
+export interface TrainingScheduleRequest {
+  isActive: boolean;
+  days: TrainingScheduleDayRequest[];
+}
+
+export interface TrainingScheduleDayResponse extends TrainingScheduleDayRequest {
+  id: string;
+  resolved: ResolvedTrainingDayContext;
+}
+
+export interface TrainingScheduleResponse {
+  id: string | null;
+  isActive: boolean;
+  weekStartsOn: 'MONDAY';
+  derivedWeeklyFrequency: number;
+  days: TrainingScheduleDayResponse[];
+  defaults: {
+    targetMuscles: TargetMuscleGroup[];
+    environment: TrainingEnvironment | null;
+    availableEquipment: ExerciseEquipment[];
+    durationMinutes: number;
+    protocolPreference: string | null;
+  };
 }
 
 export interface OnboardingProgressivePrompt {
@@ -379,6 +451,7 @@ export interface DailyPlanJson {
     notes: string;
     exercises?: DailyPlanExercise[];
   };
+  trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   recovery: {
     recommendation: string;
     sleepTip?: string;
