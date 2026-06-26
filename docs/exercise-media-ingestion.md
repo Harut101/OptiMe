@@ -19,11 +19,15 @@ pnpm --filter @optime/api exercise-media:normalize-blocked
 pnpm --filter @optime/api exercise-media:normalize-blocked -- --apply
 $env:DATABASE_URL='postgresql://optime:optime@localhost:5432/optime?schema=public'
 pnpm --filter @optime/api exercise-media:ingest
+pnpm --filter @optime/api exercise-media:thumbnails -- --apply
+pnpm --filter @optime/api exercise-media:thumbnails:validate
 ```
 
 `exercise-media:validate` is read-only. It writes a deterministic manifest and validation report, but does not copy files or write the database.
 
 `exercise-media:ingest` reruns validation, refuses mutation if blockers exist, copies approved files to `apps/api/public/exercise-media/<exercise-slug>/`, and upserts `ExerciseMedia` plus `ExerciseMediaTranslation` rows only when validation passes.
+
+`exercise-media:thumbnails` derives optimized `480x600` WebP thumbnails from copied public full media and updates the same `ExerciseMedia.thumbnailUrl` rows. It does not create new media rows.
 
 ## Normalized Validation Blockers
 
@@ -52,6 +56,7 @@ ExerciseMedia: 47
 ExerciseMediaTranslation: 188
 Media-covered exercises: 46
 Fallback-only exercises: 31
+Thumbnails: 47
 ```
 
 `russian-twist_anatomy-01.webp` is primary with `sortOrder: 0`; `russian-twist_anatomy-02.webp` is non-primary with `sortOrder: 1`. `hip-thrust_anatomy-01.webp` and `barbell-hip-thrust_anatomy-01.webp` remain separate primary media for separate exercises.
@@ -71,6 +76,7 @@ The API serves approved destination media under:
 ```
 
 The inbox, backup directory, and preview directory are never publicly exposed.
+Thumbnail files are public only under `apps/api/public/exercise-media/<exercise-slug>/thumbnails/`.
 
 ## CDN-Ready URLs
 
@@ -87,5 +93,4 @@ API responses resolve these against `EXERCISE_MEDIA_PUBLIC_BASE_URL` when config
 - Optimized thumbnails
 - Cloud storage/CDN deployment
 - Admin media upload UI
-- Thumbnail optimization
 - Manual physical-device visual approval for normalized assets

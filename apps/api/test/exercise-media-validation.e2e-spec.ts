@@ -2,6 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { validateExerciseMediaAssets } from '../scripts/exercise-media/media-manifest';
+import { buildThumbnailReport, thumbnailSettings } from '../scripts/exercise-media/thumbnails-manifest';
 
 const normalizedFiles = [
   'barbell-hip-thrust_anatomy-01.webp',
@@ -10,6 +11,8 @@ const normalizedFiles = [
   'quadruped-leg-kickback_anatomy-01.webp',
   'standing-barbell-calf-raise_anatomy-01.webp'
 ] as const;
+
+jest.setTimeout(30_000);
 
 describe('Exercise media validation', () => {
   it('accepts all approved source media and keeps normalized blockers at exact 4:5', async () => {
@@ -70,5 +73,24 @@ describe('Exercise media validation', () => {
 
     expect(report.manifest.some((item) => item.sourceFileName.includes('.tmp-'))).toBe(false);
     expect(validationJson).not.toContain('.tmp-');
+  });
+
+  it('validates deterministic optimized thumbnails without changing full media identities', async () => {
+    const report = await buildThumbnailReport({ apply: false });
+
+    expect(report.summary).toMatchObject({
+      fullMediaItems: 47,
+      thumbnails: 47,
+      validationFailures: 0
+    });
+    expect(report.summary.totalThumbnailBytes).toBeLessThan(report.summary.totalFullBytes);
+    expect(report.summary.estimatedListViewTransferReductionPercent).toBeGreaterThan(80);
+    expect(report.failures).toEqual([]);
+    expect(report.items.every((item) => item.thumbnailWidth === thumbnailSettings.width)).toBe(true);
+    expect(report.items.every((item) => item.thumbnailHeight === thumbnailSettings.height)).toBe(true);
+    expect(report.items.every((item) => item.thumbnailBytes && item.thumbnailBytes < item.fullBytes)).toBe(true);
+    expect(report.items.every((item) => item.thumbnailRelativeUrl.includes('/thumbnails/'))).toBe(true);
+    expect(report.items.every((item) => item.thumbnailRelativeUrl.endsWith('_thumb.webp'))).toBe(true);
+    expect(report.items.some((item) => item.thumbnailRelativeUrl.includes('source-originals') || item.thumbnailRelativeUrl.includes('previews'))).toBe(false);
   });
 });

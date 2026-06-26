@@ -78,6 +78,15 @@ export default function PlanDetailsScreen() {
     onSuccess: () => setFeedbackMessage(t('plan.feedbackThanks')),
     onError: () => Alert.alert(t('plan.feedbackFailed'), t('errors.unableSave'))
   });
+  const handleRefresh = async () => {
+    const refreshedToday = await today.refetch();
+    const planId = refreshedToday.data?.id ?? today.data?.id;
+
+    if (planId) {
+      await queryClient.refetchQueries({ queryKey: ['daily-plan-check-ins', planId], type: 'active' });
+    }
+  };
+  const refreshing = today.isRefetching || checkIns.isRefetching;
 
   if (today.isLoading) {
     return <StateBlock title={t('plan.loading')} message={t('plan.loadingMessage')} />;
@@ -88,7 +97,7 @@ export default function PlanDetailsScreen() {
 
   if (!plan) {
     return (
-      <Screen>
+      <Screen refreshing={refreshing} onRefresh={handleRefresh}>
         <StateBlock title={t('plan.noPlan')} message={t('plan.noPlanMessage')} />
       </Screen>
     );
@@ -98,7 +107,7 @@ export default function PlanDetailsScreen() {
   const locale = resolveSupportedLocale(i18n.resolvedLanguage);
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={handleRefresh}>
       <Text variant="heading">{t('plan.title')}</Text>
       <Text variant="muted">{plan.summary.message}</Text>
 

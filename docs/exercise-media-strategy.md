@@ -24,4 +24,4 @@ The approved proposal preserves all 46 original exercises, adds 31 candidates, a
 
 Approved filename reconciliation has been applied. The inbox now has 47 canonical files, 46 canonical media exercise identities, zero unmatched image slugs, and zero filename blockers. The five formerly blocked `2:3` WebPs were normalized with contain plus side padding; all 47 files now pass validation and are registered as `ExerciseMedia`.
 
-Normalization details, backup paths, and preview artifacts are documented in [exercise-media-normalization.md](./exercise-media-normalization.md). Thumbnail optimization and production CDN delivery remain deferred.
+Normalization details, backup paths, and preview artifacts are documented in [exercise-media-normalization.md](./exercise-media-normalization.md). Optimized `480x600` thumbnails are generated from public full media and stored beside each exercise under `thumbnails/`; details are documented in [exercise-media-thumbnails.md](./exercise-media-thumbnails.md). Production CDN upload remains deferred until a provider is selected.

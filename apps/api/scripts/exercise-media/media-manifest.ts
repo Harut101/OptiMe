@@ -207,6 +207,9 @@ export async function ingestExerciseMediaAssets() {
   try {
     for (const item of report.manifest) {
       const exercise = await prisma.exercise.findUniqueOrThrow({ where: { slug: item.exerciseSlug }, include: { translations: true } });
+      const thumbnailUrl = await fileExists(resolve(publicMediaRoot, item.exerciseSlug, 'thumbnails', item.destinationFileName.replace(/\.webp$/i, '_thumb.webp')))
+        ? `/exercise-media/${item.exerciseSlug}/thumbnails/${item.destinationFileName.replace(/\.webp$/i, '_thumb.webp')}`
+        : null;
       const media = await prisma.exerciseMedia.upsert({
         where: { seedKey: item.seedKey },
         create: {
@@ -214,7 +217,7 @@ export async function ingestExerciseMediaAssets() {
           exerciseId: exercise.id,
           type: item.type,
           url: item.relativeUrl,
-          thumbnailUrl: item.relativeUrl,
+          thumbnailUrl,
           width: item.width,
           height: item.height,
           sortOrder: item.sortOrder,
@@ -228,7 +231,7 @@ export async function ingestExerciseMediaAssets() {
           exerciseId: exercise.id,
           type: item.type,
           url: item.relativeUrl,
-          thumbnailUrl: item.relativeUrl,
+          thumbnailUrl,
           width: item.width,
           height: item.height,
           sortOrder: item.sortOrder,

@@ -21,10 +21,14 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'public', 'exercise-media'), {
     prefix: '/exercise-media/',
     index: false,
-    immutable: true,
-    maxAge: '1y',
+    maxAge: '1d',
     setHeaders: (res, path) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       if (path.toLowerCase().endsWith('.webp')) res.setHeader('Content-Type', 'image/webp');
+      if (path.toLowerCase().endsWith('.jpg') || path.toLowerCase().endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      }
     }
   });
   app.useGlobalPipes(

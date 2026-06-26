@@ -5,13 +5,22 @@ import type { TFunction } from 'i18next';
 
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
+import { getExerciseMediaDisplayUrl, getExerciseMediaFallbackUrl } from './exercise-media-url';
 
 export function ExerciseMediaCarousel({ media, t }: { media: ExerciseMediaItem[]; t: TFunction }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
+  const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({});
   const available = media.filter((item) => !failed.has(item.id));
+  const mediaSignature = media.map((item) => `${item.id}:${item.url}`).join('|');
+
+  useEffect(() => {
+    setFailed(new Set());
+    setLoaded(new Set());
+    setUrlOverrides({});
+  }, [mediaSignature]);
 
   useEffect(() => {
     setIndex((current) => Math.min(current, Math.max(available.length - 1, 0)));
@@ -46,13 +55,26 @@ export function ExerciseMediaCarousel({ media, t }: { media: ExerciseMediaItem[]
               <View style={[styles.page, { width }]}>
                 {!loaded.has(item.id) ? <Text variant="muted">{t('plan.imageLoading')}</Text> : null}
                 <Image
-                  source={{ uri: item.url }}
+                  source={{ uri: urlOverrides[item.id] ?? getExerciseMediaDisplayUrl(item.url) }}
                   resizeMode="contain"
                   style={[styles.image, !loaded.has(item.id) && styles.imageLoading]}
                   accessible
                   accessibilityLabel={item.altText}
                   onLoad={() => setLoaded((current) => new Set(current).add(item.id))}
-                  onError={() => setFailed((current) => new Set(current).add(item.id))}
+                  onError={() => {
+                    const currentUrl = urlOverrides[item.id] ?? getExerciseMediaDisplayUrl(item.url);
+                    const fallbackUrl = getExerciseMediaFallbackUrl(currentUrl, item.url);
+                    if (fallbackUrl && fallbackUrl !== currentUrl) {
+                      setLoaded((current) => {
+                        const next = new Set(current);
+                        next.delete(item.id);
+                        return next;
+                      });
+                      setUrlOverrides((current) => ({ ...current, [item.id]: fallbackUrl }));
+                      return;
+                    }
+                    setFailed((current) => new Set(current).add(item.id));
+                  }}
                 />
                 {item.caption ? <Text variant="muted" style={styles.caption}>{item.caption}</Text> : null}
               </View>

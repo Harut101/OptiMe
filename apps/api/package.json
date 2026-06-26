@@ -22,7 +22,11 @@
     "exercise-media:align-catalog": "ts-node scripts/exercise-media/align-catalog.ts",
     "exercise-media:normalize-blocked": "ts-node scripts/exercise-media/normalize-blocked.ts",
     "exercise-media:validate": "ts-node scripts/exercise-media/validate.ts",
-    "exercise-media:ingest": "ts-node scripts/exercise-media/ingest.ts"
+    "exercise-media:ingest": "ts-node scripts/exercise-media/ingest.ts",
+    "exercise-media:thumbnails": "ts-node scripts/exercise-media/thumbnails.ts",
+    "exercise-media:thumbnails:validate": "ts-node scripts/exercise-media/thumbnails-validate.ts",
+    "exercise-media:package": "ts-node scripts/exercise-media/package.ts",
+    "exercise-media:smoke": "ts-node scripts/exercise-media/smoke.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

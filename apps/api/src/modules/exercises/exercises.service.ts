@@ -33,7 +33,14 @@ export class ExercisesService {
   async getActiveForSelection(locale: SupportedLocale) {
     const records = await this.prisma.exercise.findMany({
       where: { isActive: true },
-      include: { translations: true },
+      include: {
+        translations: true,
+        _count: {
+          select: {
+            media: { where: { isActive: true } }
+          }
+        }
+      },
       orderBy: [{ sortOrder: 'asc' }, { slug: 'asc' }]
     });
 
@@ -54,6 +61,7 @@ export class ExercisesService {
         coachingCues: translation.value.coachingCues,
         safetyNotes: translation.value.safetyNotes,
         contraindicationTags: record.contraindicationTags,
+        hasMedia: record._count.media > 0,
         exerciseUpdatedAt: record.updatedAt.toISOString(),
         sortOrder: record.sortOrder
       };
@@ -178,6 +186,12 @@ export class ExercisesService {
     const path = value.startsWith('/') ? value : `/${value}`;
     const base = this.config.get<string>('EXERCISE_MEDIA_PUBLIC_BASE_URL')?.trim();
     if (!base) return path;
-    return `${base.replace(/\/+$/, '')}${path}`;
+    try {
+      const parsed = new URL(base);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return path;
+      return `${parsed.toString().replace(/\/+$/, '')}${path}`;
+    } catch {
+      return path;
+    }
   }
 }

@@ -7,6 +7,7 @@ import type { TFunction } from 'i18next';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
 import { getExerciseEquipmentLabel, getMuscleGroupLabel } from '@/i18n/enum-labels';
+import { getExerciseMediaDisplayUrl, getExerciseMediaFallbackUrl } from './exercise-media-url';
 import { formatExercisePrescription } from './exercise-formatters';
 
 interface ExerciseCardProps {
@@ -20,10 +21,16 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise, summary, locale, t, onPress }: ExerciseCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const sourceUrl = summary?.thumbnail?.url ?? null;
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    sourceUrl ? getExerciseMediaDisplayUrl(sourceUrl) : null
+  );
+
   useEffect(() => {
     setImageFailed(false);
     setImageLoaded(false);
-  }, [summary?.thumbnail?.url]);
+    setImageUrl(sourceUrl ? getExerciseMediaDisplayUrl(sourceUrl) : null);
+  }, [sourceUrl]);
   const targets = (exercise.exerciseSnapshot?.targetMuscles ?? exercise.targetMuscles ?? [])
     .map((value) => getMuscleGroupLabel(t, value as never));
   const equipment = (exercise.exerciseSnapshot?.equipment ?? exercise.equipment ?? [])
@@ -38,14 +45,22 @@ export function ExerciseCard({ exercise, summary, locale, t, onPress }: Exercise
         {!summary?.thumbnail || imageFailed || !imageLoaded ? (
           <Ionicons name="barbell-outline" size={28} color={colors.primary} accessible={false} />
         ) : null}
-        {summary?.thumbnail && !imageFailed ? (
+        {imageUrl && !imageFailed ? (
           <Image
-            source={{ uri: summary.thumbnail.url }}
+            source={{ uri: imageUrl }}
             resizeMode="contain"
             style={[styles.image, !imageLoaded && styles.imageLoading]}
             accessible={false}
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageFailed(true)}
+            onError={() => {
+              const fallbackUrl = sourceUrl ? getExerciseMediaFallbackUrl(imageUrl, sourceUrl) : null;
+              if (fallbackUrl && fallbackUrl !== imageUrl) {
+                setImageLoaded(false);
+                setImageUrl(fallbackUrl);
+                return;
+              }
+              setImageFailed(true);
+            }}
           />
         ) : null}
       </View>

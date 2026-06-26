@@ -5,9 +5,10 @@ Use this checklist after ExerciseMedia ingestion and API verification.
 ## Physical Device
 
 - Generate or open a plan containing library-backed exercises with media.
-- Confirm Training cards show anatomy thumbnails when media is available.
+- Confirm Training cards show optimized anatomy thumbnails when media is available.
 - Confirm exercises without media keep the existing text fallback.
 - Open Exercise Details for a single-media exercise and confirm the 4:5 frame uses contain behavior without cropping.
+- Confirm Exercise Details uses the full media asset, not the thumbnail.
 - Open Exercise Details for `russian-twist` and confirm two ordered slides appear with pagination dots.
 - Confirm single-image exercises hide pagination dots.
 - Confirm media loading errors preserve the exercise snapshot text.
@@ -27,6 +28,12 @@ For each one, confirm the full body, relevant equipment, and highlighted anatomy
 
 ## Deferred
 
-- Optimized thumbnail generation
 - Production CDN verification
 - Exercise media upload/admin tooling
+
+## Platform Status
+
+```txt
+iPhone physical device: pending
+Android physical device: pending
+```
