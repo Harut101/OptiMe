@@ -24,4 +24,6 @@ Completed foundation: app modes and primary goal switching. Nutrition-only is no
 
 Next recommended batch: Weekly Training Schedule with day-specific muscles, location, equipment including `BARBELL`, duration, rest days, timezone resolution, and Daily Plan integration.
 
-Still deferred: Nutrition Engine, specialized Nutrition Agent, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.
+Completed foundation: deterministic Nutrition Engine with backend-owned calorie/macro targets, training-aware day types, DailyPlan target snapshots, and mobile-localized reason-code explanations.
+
+Still deferred: specialized Nutrition Agent, meal generation, recipe generation, ingredient database, food tracking, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.

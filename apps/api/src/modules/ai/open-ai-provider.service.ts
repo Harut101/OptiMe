@@ -191,6 +191,10 @@ export class OpenAiProviderService implements AiProvider {
       'Do not include schemaVersion, generatedAt, mockVersion, or debug.',
       'Use planLocalDate from the user context for any user-facing date reference in title or message.',
       'Never derive user-facing dates from generatedAt.',
+      'personalizationContext.nutritionTarget is backend-owned and is the source of truth for calorie and macro targets.',
+      'Do not invent calorie or macro targets. Align nutrition.calorieGuidance and nutrition.macroGuidance to personalizationContext.nutritionTarget.',
+      'If nutritionTarget.safety.status is NEEDS_MORE_INFO, do not output exact calorie or macro targets; use supportive guidance about completing profile basics.',
+      'If nutritionTarget.safety.status is LIMITED, keep wording conservative and avoid deficit or aggressive weight-loss framing.',
       'Keep copy calm, practical, premium, and safe.',
       'Make the plan specific to the provided goal, nutrition preferences, preferred foods, and training schedule.',
       'Use appMode from personalizationContext as the source of truth for whether training is active.',
@@ -290,6 +294,7 @@ export class OpenAiProviderService implements AiProvider {
       planTimezone: input.planTimezone,
       planQualityMode: input.planQualityMode,
       personalizationContext: input.personalizationContext,
+      deterministicNutritionTarget: input.personalizationContext.nutritionTarget,
       userFacingDateRule: {
         usePlanLocalDateForTitleAndMessage: true,
         planLocalDate: input.planLocalDate,

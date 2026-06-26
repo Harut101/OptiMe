@@ -26,6 +26,8 @@ Daily plan exercise selection resolves the saved preferred locale and falls back
 Known backend codes are presented with localized application messages; unknown failures use localized generic fallbacks while technical errors remain available to development logging.
 
 Daily Plan Food/Training tabs, Exercise Details headings and states, media position announcements, and exercise prescription labels are available in all four supported locales. Exercise equipment, category, movement pattern, and muscle labels use the centralized enum map. Stored snapshot prose and plan-specific AI text are displayed as persisted and are never translated at render time.
+
+Deterministic nutrition target explanations are an exception to free-text plan prose: the backend returns `titleCode`, `reasonCodes`, and safe params, and mobile maps them to localized copy. Missing profile fields are mapped to localized labels before display. New nutrition target previews and snapshots should not use backend-authored English bullets as the primary UI contract.
 # Localization Notes
 
 The mobile app currently supports `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.

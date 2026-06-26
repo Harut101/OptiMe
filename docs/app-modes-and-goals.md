@@ -21,6 +21,8 @@ Mode and goal changes affect future plans only. Existing Daily Plans are not reg
 When app mode is `NUTRITION_ONLY`:
 
 - Daily food planning remains enabled.
+- Deterministic nutrition targets use `dayType = NUTRITION_ONLY`.
+- Training schedule and workout energy do not affect calorie or macro targets.
 - Exercise selection is skipped.
 - Training exercises are normalized to an empty list.
 - The saved weekly schedule and training preferences remain stored.

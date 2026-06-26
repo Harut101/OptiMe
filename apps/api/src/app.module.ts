@@ -9,6 +9,7 @@ import { ExercisesModule } from './modules/exercises/exercises.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { HealthModule } from './modules/health/health.module';
 import { NutritionPreferencesModule } from './modules/nutrition-preferences/nutrition-preferences.module';
+import { NutritionTargetsModule } from './modules/nutrition-targets/nutrition-targets.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ProgressiveProfileModule } from './modules/progressive-profile/progressive-profile.module';
@@ -35,6 +36,7 @@ import { PrismaModule } from './prisma/prisma.module';
     GoalsModule,
     HealthModule,
     NutritionPreferencesModule,
+    NutritionTargetsModule,
     TrainingScheduleModule,
     TrainingPreferencesModule,
     ProgressiveProfileModule,

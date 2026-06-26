@@ -13,6 +13,7 @@ import {
   TrainingLevel,
   TrainingOutcome
 } from '@prisma/client';
+import type { NutritionTarget } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { HealthPlanningContext } from '../health/health-planning.types';
@@ -81,6 +82,7 @@ export interface GenerateDailyPlanPersonalizationContext {
   };
   selectedProtocols?: SelectedProtocols;
   healthPlanningContext?: HealthPlanningContext;
+  nutritionTarget?: NutritionTarget;
 }
 
 export interface GenerateDailyPlanInput {

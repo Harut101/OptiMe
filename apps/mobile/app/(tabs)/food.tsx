@@ -7,6 +7,7 @@ import {
   getNutritionPreferences,
   saveNutritionPreferences
 } from '@/api/nutrition-preferences';
+import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
@@ -24,6 +25,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDietTypeLabel } from '@/i18n/enum-labels';
+import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
 
 export default function FoodScreen() {
   const { t } = useTranslation();
@@ -31,6 +33,10 @@ export default function FoodScreen() {
   const preferences = useQuery({
     queryKey: ['nutrition-preferences'],
     queryFn: getNutritionPreferences
+  });
+  const nutritionTarget = useQuery({
+    queryKey: ['nutrition-target-preview'],
+    queryFn: () => getNutritionTargetPreview()
   });
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<FoodPreferencesFormValue>(EMPTY_FOOD_PREFERENCES);
@@ -94,6 +100,11 @@ export default function FoodScreen() {
     <Screen>
       <Text variant="heading">{t('food.title')}</Text>
       <Text variant="muted">{t('food.intro')}</Text>
+
+      <NutritionTargetSummaryCard
+        target={nutritionTarget.data}
+        isUnavailable={!nutritionTarget.data && nutritionTarget.isError}
+      />
 
       {!preferences.data && !editing ? (
         <StateBlock

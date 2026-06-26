@@ -1,4 +1,5 @@
 import { DailyReadinessLevel, PlanQualityMode } from '@prisma/client';
+import type { NutritionTarget } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plan-json.schema';
 import type { GenerateDailyPlanExerciseSelection } from '../../ai/ai-provider.interface';
@@ -11,6 +12,7 @@ export interface MockDailyPlanInput {
   planQualityMode?: PlanQualityMode;
   trainingEnabled?: boolean;
   exerciseSelection?: GenerateDailyPlanExerciseSelection;
+  nutritionTarget?: NutritionTarget;
 }
 
 export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
@@ -37,15 +39,23 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
     },
     nutrition: {
       calorieGuidance: {
-        label: input.isMinor ? 'Balanced meals' : 'Steady energy target',
+        label: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
+          ? `${input.nutritionTarget.calories.targetKcal} kcal target`
+          : input.isMinor ? 'Balanced meals' : 'Steady energy target',
         notes: input.isMinor
           ? 'Today focuses on balanced meals, hydration, rest, and healthy movement.'
-          : 'A balanced target for steady energy today.'
+          : input.nutritionTarget?.calories.adjustmentReason ?? 'A balanced target for steady energy today.'
       },
       macroGuidance: {
-        protein: input.isMinor ? 'Include a protein food at meals' : 'Protein with each meal',
-        carbs: 'Choose steady-energy carbs around activity',
-        fat: 'Include satisfying fats in moderate portions',
+        protein: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
+          ? `${input.nutritionTarget.macros.proteinGrams}g`
+          : input.isMinor ? 'Include a protein food at meals' : 'Protein with each meal',
+        carbs: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
+          ? `${input.nutritionTarget.macros.carbsGrams}g`
+          : 'Choose steady-energy carbs around activity',
+        fat: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
+          ? `${input.nutritionTarget.macros.fatGrams}g`
+          : 'Include satisfying fats in moderate portions',
         notes: 'Use this as practical direction, not a strict rule.'
       },
       meals: primaryMeals,

@@ -25,6 +25,7 @@ export interface AiProvider {
 - profile
 - goal
 - nutrition preferences
+- deterministic nutrition target
 - training schedule
 - safe mode
 - plan local date
@@ -89,6 +90,7 @@ Flow:
 
 ```text
 DailyPlansService
+-> NutritionTargetsService calculates backend-owned calorie/macro targets
 -> AiProvider.generateDailyPlan()
 -> validate DailyPlanJson schema
 -> SafetyService checks
@@ -102,6 +104,8 @@ Provider output is never trusted directly.
 
 The backend must:
 
+- calculate nutrition targets before provider generation
+- treat `personalizationContext.nutritionTarget` as the source of truth for calories and macros
 - validate the JSON schema
 - check allergies and excluded foods
 - enforce safe fallback on invalid or unsafe output
@@ -110,6 +114,10 @@ The backend must:
 - keep `generatedAt` as backend metadata only
 
 If `OpenAiProviderService` throws `OpenAiProviderError`, `DailyPlansService` uses the existing safe fallback plan.
+
+AI providers may explain nutrition targets and shape meals around them, but they must not invent alternate calorie or macro values. Saved plans include `nutritionTargetSnapshot` so historical plans remain stable after profile, goal, app mode, or schedule changes.
+
+Nutrition target explanations are reason codes and params. Providers should receive them as neutral planning context, not as user-facing English copy to preserve mobile localization.
 
 ## Debug Metadata
 

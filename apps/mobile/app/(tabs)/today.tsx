@@ -8,6 +8,7 @@ import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getGoal } from '@/api/goals';
+import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import {
   answerProgressivePrompt,
   getNextProgressivePrompt,
@@ -21,6 +22,7 @@ import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
+import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
@@ -47,6 +49,10 @@ export default function TodayScreen() {
   const usage = useQuery({
     queryKey: ['usage-summary'],
     queryFn: getUsageSummary
+  });
+  const nutritionTarget = useQuery({
+    queryKey: ['nutrition-target-preview'],
+    queryFn: () => getNutritionTargetPreview()
   });
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const progressivePrompt = useQuery({
@@ -78,8 +84,10 @@ export default function TodayScreen() {
       queryClient.setQueryData(['today-plan'], data);
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
       await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
       await queryClient.refetchQueries({ queryKey: ['usage-summary'], type: 'active' });
+      await queryClient.refetchQueries({ queryKey: ['nutrition-target-preview'], type: 'active' });
       setLimitMessage(null);
       setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
     },
@@ -113,12 +121,14 @@ export default function TodayScreen() {
     await Promise.all([
       today.refetch(),
       usage.refetch(),
+      nutritionTarget.refetch(),
       progressivePrompt.refetch()
     ]);
   };
   const refreshing =
     today.isRefetching ||
     usage.isRefetching ||
+    nutritionTarget.isRefetching ||
     progressivePrompt.isRefetching;
 
   if (today.isLoading) {
@@ -146,6 +156,7 @@ export default function TodayScreen() {
     (item) => item.feature === 'DAILY_PLAN_GENERATION'
   );
   const refreshUsage = usage.data?.items.find((item) => item.feature === 'DAILY_PLAN_REFRESH');
+  const displayedNutritionTarget = plan?.nutritionTargetSnapshot ?? nutritionTarget.data;
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
@@ -205,6 +216,11 @@ export default function TodayScreen() {
               <Text variant="body">{safetyMessage}</Text>
             </Card>
           ) : null}
+
+          <NutritionTargetSummaryCard
+            target={displayedNutritionTarget}
+            isUnavailable={!displayedNutritionTarget && nutritionTarget.isError}
+          />
 
           <Card>
             <Text variant="label">{t('today.nutrition')}</Text>

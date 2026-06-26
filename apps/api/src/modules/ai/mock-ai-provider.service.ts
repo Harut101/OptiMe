@@ -13,7 +13,8 @@ export class MockAiProviderService implements AiProvider {
       isMinor: input.safeMode,
       planQualityMode: input.planQualityMode,
       trainingEnabled: input.personalizationContext.trainingEnabled,
-      exerciseSelection: input.exerciseSelection
+      exerciseSelection: input.exerciseSelection,
+      nutritionTarget: input.personalizationContext.nutritionTarget
     });
   }
 }

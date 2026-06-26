@@ -88,6 +88,42 @@ type DailyPlanJson = {
       safetyNotes?: string;
     }>;
   };
+  trainingScheduleSnapshot?: ResolvedTrainingDayContext;
+  nutritionTargetSnapshot?: {
+    engineVersion: number;
+    localDate: string;
+    dayType: "NUTRITION_ONLY" | "TRAINING_DAY" | "REST_DAY" | "TRAINING_DISABLED";
+    appMode: "NUTRITION_ONLY" | "NUTRITION_AND_TRAINING";
+    primaryGoal: "WEIGHT_LOSS" | "WEIGHT_MAINTENANCE" | "WEIGHT_GAIN" | "HEALTHY_EATING";
+    targetKcal: number;
+    minKcal: number;
+    maxKcal: number;
+    maintenanceEstimateKcal: number;
+    proteinGrams: number;
+    carbsGrams: number;
+    fatGrams: number;
+    safetyStatus: "OK" | "LIMITED" | "NEEDS_MORE_INFO";
+    safetyReasons: string[];
+    explanation: {
+      titleCode: "TODAY_TARGET" | "MORE_INFO_NEEDED";
+      reasonCodes: Array<{
+        code: NutritionTargetReasonCode;
+        params?: {
+          primaryGoal?: string;
+          appMode?: string;
+          dayType?: string;
+          durationMinutes?: number;
+          targetKcal?: number;
+          minKcal?: number;
+          maxKcal?: number;
+          proteinGrams?: number;
+          carbsGrams?: number;
+          fatGrams?: number;
+          missingFields?: string[];
+        };
+      }>;
+    };
+  };
   recovery: {
     recommendation: string;
     sleepTip?: string;
@@ -111,6 +147,16 @@ type DailyPlanJson = {
 ```
 
 `debug` is internal development metadata. Mobile must not render it.
+
+## Nutrition Target Snapshot
+
+`nutritionTargetSnapshot` is optional for backward compatibility, but new generated plans should include it. It is the immutable deterministic backend target used when that plan was generated.
+
+The backend calculates calories, macros, safety status, and day type before AI generation. AI providers must align copy and meals to this target and must not invent alternate calorie or macro targets.
+
+New snapshots store explanation `titleCode` and `reasonCodes` so mobile can localize explanation copy. Legacy snapshots with `explanation.title` and `explanation.bullets` remain readable, but they are not the forward contract.
+
+Old Sprint 1-7 plans without `nutritionTargetSnapshot` remain valid and mobile must not crash when it is missing.
 
 ## Nutrition Menu Options
 

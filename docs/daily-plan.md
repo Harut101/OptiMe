@@ -27,3 +27,7 @@ When the current app mode is `NUTRITION_ONLY`, the backend keeps nutrition, hydr
 When the current app mode is `NUTRITION_AND_TRAINING`, existing protocol selection, weekly schedule context, exercise selection, deterministic safety, and AI Safety Agent review remain active.
 
 Changing app mode or primary goal affects future plans only. Existing saved Daily Plans are not regenerated automatically.
+
+Daily Plans generated after the deterministic nutrition target batch include `plan.nutritionTargetSnapshot`. The snapshot stores backend-owned calorie and macro targets plus localized-ready explanation reason codes. Mobile renders those codes in the selected app language.
+
+Older Daily Plans without the snapshot, or with legacy `explanation.title` and `explanation.bullets`, remain readable and are not migrated or rewritten.

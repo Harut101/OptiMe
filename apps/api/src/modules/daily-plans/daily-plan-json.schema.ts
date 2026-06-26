@@ -56,6 +56,77 @@ const resolvedTrainingDayContextSchema = z.object({
   inheritedFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']))
 });
 
+const nutritionDayTypeSchema = z.enum([
+  'NUTRITION_ONLY',
+  'TRAINING_DAY',
+  'REST_DAY',
+  'TRAINING_DISABLED'
+]);
+
+const nutritionTargetReasonCodeSchema = z.enum([
+  'BASED_ON_PRIMARY_GOAL',
+  'BASED_ON_NORMAL_ACTIVITY',
+  'NUTRITION_ONLY_MODE',
+  'ADJUSTED_FOR_TRAINING_DAY',
+  'SCHEDULED_REST_DAY',
+  'TRAINING_DISABLED',
+  'CONSERVATIVE_SAFETY_TARGET',
+  'NEEDS_PROFILE_DETAILS',
+  'LIMITED_BY_HEALTH_CONTEXT',
+  'MACROS_DERIVED_FROM_TARGET',
+  'USING_MAINTENANCE_ESTIMATE',
+  'WEIGHT_LOSS_DEFICIT_APPLIED',
+  'WEIGHT_GAIN_SURPLUS_APPLIED',
+  'HEALTHY_EATING_BALANCED_TARGET'
+]);
+
+const nutritionTargetExplanationSchema = z.object({
+  titleCode: z.enum(['TODAY_TARGET', 'MORE_INFO_NEEDED']),
+  reasonCodes: z.array(
+    z.object({
+      code: nutritionTargetReasonCodeSchema,
+      params: z
+        .object({
+          primaryGoal: z.enum(['WEIGHT_LOSS', 'WEIGHT_MAINTENANCE', 'WEIGHT_GAIN', 'HEALTHY_EATING']).optional(),
+          appMode: z.enum(['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']).optional(),
+          dayType: nutritionDayTypeSchema.optional(),
+          durationMinutes: z.number().int().min(1).max(300).optional(),
+          targetKcal: z.number().int().min(0).optional(),
+          minKcal: z.number().int().min(0).optional(),
+          maxKcal: z.number().int().min(0).optional(),
+          proteinGrams: z.number().int().min(0).optional(),
+          carbsGrams: z.number().int().min(0).optional(),
+          fatGrams: z.number().int().min(0).optional(),
+          missingFields: z.array(z.enum(['profile', 'dateOfBirth', 'heightCm', 'weightKg', 'activityLevel'])).optional()
+        })
+        .optional()
+    })
+  )
+});
+
+const legacyNutritionTargetExplanationSchema = z.object({
+  title: z.string(),
+  bullets: z.array(z.string())
+});
+
+const nutritionTargetSnapshotSchema = z.object({
+  engineVersion: z.number().int().min(1),
+  localDate: z.string(),
+  dayType: nutritionDayTypeSchema,
+  appMode: z.enum(['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING']),
+  primaryGoal: z.enum(['WEIGHT_LOSS', 'WEIGHT_MAINTENANCE', 'WEIGHT_GAIN', 'HEALTHY_EATING']),
+  targetKcal: z.number().int().min(0),
+  minKcal: z.number().int().min(0),
+  maxKcal: z.number().int().min(0),
+  maintenanceEstimateKcal: z.number().int().min(0),
+  proteinGrams: z.number().int().min(0),
+  carbsGrams: z.number().int().min(0),
+  fatGrams: z.number().int().min(0),
+  safetyStatus: z.enum(['OK', 'LIMITED', 'NEEDS_MORE_INFO']),
+  safetyReasons: z.array(z.string()),
+  explanation: z.union([nutritionTargetExplanationSchema, legacyNutritionTargetExplanationSchema])
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -104,6 +175,7 @@ export const dailyPlanJsonSchema = z.object({
     exercises: z.array(exerciseSchema).max(8).optional()
   }),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
+  nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),
     sleepTip: z.string().optional(),

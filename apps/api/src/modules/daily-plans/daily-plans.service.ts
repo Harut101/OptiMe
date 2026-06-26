@@ -22,7 +22,12 @@ import {
   UsageFeature,
   UsagePeriodType
 } from '@prisma/client';
-import { resolveSupportedLocale, type ResolvedTrainingDayContext, type SupportedLocale } from '@optime/shared-types';
+import {
+  resolveSupportedLocale,
+  type NutritionTarget,
+  type ResolvedTrainingDayContext,
+  type SupportedLocale
+} from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
@@ -43,6 +48,7 @@ import {
 import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { HealthService } from '../health/health.service';
+import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
@@ -85,6 +91,7 @@ export class DailyPlansService {
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
     private readonly healthService: HealthService,
+    private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly protocolSelector: ProtocolSelectorService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
@@ -157,6 +164,7 @@ export class DailyPlansService {
         legacyScheduleItems: user.schedules,
         noTrainingPlanned: !trainingEnabled || user.noTrainingPlanned
       });
+      const nutritionTarget = await this.nutritionTargetsService.getPreview(userId, planLocalDate);
       const personalizationContext = await this.buildPersonalizationContext(
         user,
         planQualityMode,
@@ -164,6 +172,7 @@ export class DailyPlansService {
         resolvedTrainingDay,
         appMode
       );
+      personalizationContext.nutritionTarget = nutritionTarget;
       const exerciseSelection = trainingEnabled
         ? await this.exerciseSelectionService.selectCandidates(
             this.buildExerciseSelectionContext(user, planLocalDate, planQualityMode, personalizationContext, resolvedTrainingDay)
@@ -189,7 +198,10 @@ export class DailyPlansService {
       providerPlanResult = {
         ...providerPlanResult,
         planJson: this.withTrainingStateForAppMode(
-          this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
+          this.withNutritionTargetSnapshot(
+            this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
+            nutritionTarget
+          ),
           appMode
         )
       };
@@ -235,6 +247,10 @@ export class DailyPlansService {
         retryProviderPlanResult.planJson = this.withTrainingScheduleSnapshot(
           retryProviderPlanResult.planJson,
           resolvedTrainingDay
+        );
+        retryProviderPlanResult.planJson = this.withNutritionTargetSnapshot(
+          retryProviderPlanResult.planJson,
+          nutritionTarget
         );
         retryProviderPlanResult.planJson = this.withTrainingStateForAppMode(
           retryProviderPlanResult.planJson,
@@ -292,7 +308,7 @@ export class DailyPlansService {
       safePlanResult = {
         ...safePlanResult,
         planJson: this.withPlanDebugContext(
-          safePlanResult.planJson,
+          this.withNutritionTargetSnapshot(safePlanResult.planJson, nutritionTarget),
           planQualityMode,
           personalizationContext.selectedProtocols,
           personalizationContext.healthPlanningContext
@@ -1179,6 +1195,16 @@ export class DailyPlansService {
     return {
       ...planJson,
       trainingScheduleSnapshot: resolvedTrainingDay
+    };
+  }
+
+  private withNutritionTargetSnapshot(
+    planJson: DailyPlanJson,
+    nutritionTarget: NutritionTarget
+  ): DailyPlanJson {
+    return {
+      ...planJson,
+      nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget)
     };
   }
 

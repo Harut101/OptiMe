@@ -312,6 +312,135 @@ export interface TrainingScheduleResponse {
   };
 }
 
+export type NutritionDayType =
+  | 'NUTRITION_ONLY'
+  | 'TRAINING_DAY'
+  | 'REST_DAY'
+  | 'TRAINING_DISABLED';
+
+export type NutritionSafetyStatus = 'OK' | 'LIMITED' | 'NEEDS_MORE_INFO';
+
+export type NutritionTargetSource = 'DETERMINISTIC_ENGINE';
+
+export type NutritionTargetTitleCode =
+  | 'TODAY_TARGET'
+  | 'MORE_INFO_NEEDED';
+
+export type NutritionTargetReasonCode =
+  | 'BASED_ON_PRIMARY_GOAL'
+  | 'BASED_ON_NORMAL_ACTIVITY'
+  | 'NUTRITION_ONLY_MODE'
+  | 'ADJUSTED_FOR_TRAINING_DAY'
+  | 'SCHEDULED_REST_DAY'
+  | 'TRAINING_DISABLED'
+  | 'CONSERVATIVE_SAFETY_TARGET'
+  | 'NEEDS_PROFILE_DETAILS'
+  | 'LIMITED_BY_HEALTH_CONTEXT'
+  | 'MACROS_DERIVED_FROM_TARGET'
+  | 'USING_MAINTENANCE_ESTIMATE'
+  | 'WEIGHT_LOSS_DEFICIT_APPLIED'
+  | 'WEIGHT_GAIN_SURPLUS_APPLIED'
+  | 'HEALTHY_EATING_BALANCED_TARGET';
+
+export type NutritionTargetMissingField =
+  | 'profile'
+  | 'dateOfBirth'
+  | 'heightCm'
+  | 'weightKg'
+  | 'activityLevel';
+
+export interface NutritionTargetReason {
+  code: NutritionTargetReasonCode;
+  params?: {
+    primaryGoal?: PrimaryGoal;
+    appMode?: AppMode;
+    dayType?: NutritionDayType;
+    durationMinutes?: number;
+    targetKcal?: number;
+    minKcal?: number;
+    maxKcal?: number;
+    proteinGrams?: number;
+    carbsGrams?: number;
+    fatGrams?: number;
+    missingFields?: NutritionTargetMissingField[];
+  };
+}
+
+export interface NutritionCalorieTarget {
+  targetKcal: number;
+  minKcal: number;
+  maxKcal: number;
+  maintenanceEstimateKcal: number;
+  adjustmentKcal: number;
+  adjustmentReason: string;
+}
+
+export interface NutritionMacroTarget {
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  proteinKcal: number;
+  carbsKcal: number;
+  fatKcal: number;
+}
+
+export interface NutritionTargetContext {
+  trainingEnabled: boolean;
+  scheduledTrainingDay: boolean;
+  plannedWorkoutDurationMinutes: number | null;
+  plannedWorkoutIntensity: string | null;
+  normalActivityLevel: ActivityLevel | null;
+  inheritedScheduleFields?: TrainingScheduleInheritedField[];
+}
+
+export interface NutritionTargetSafety {
+  status: NutritionSafetyStatus;
+  reasons: string[];
+  warnings: string[];
+}
+
+export interface NutritionTargetExplanation {
+  titleCode: NutritionTargetTitleCode;
+  reasonCodes: NutritionTargetReason[];
+}
+
+export interface NutritionTarget {
+  engineVersion: number;
+  localDate: string;
+  source: NutritionTargetSource;
+  appMode: AppMode;
+  primaryGoal: PrimaryGoal;
+  dayType: NutritionDayType;
+  calories: NutritionCalorieTarget;
+  macros: NutritionMacroTarget;
+  context: NutritionTargetContext;
+  safety: NutritionTargetSafety;
+  explanation: NutritionTargetExplanation;
+}
+
+export interface NutritionTargetInput {
+  userId: string;
+  planLocalDate?: string;
+}
+
+export interface NutritionTargetSnapshot {
+  engineVersion: number;
+  localDate: string;
+  dayType: NutritionDayType;
+  appMode: AppMode;
+  primaryGoal: PrimaryGoal;
+  targetKcal: number;
+  minKcal: number;
+  maxKcal: number;
+  maintenanceEstimateKcal: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  safetyStatus: NutritionSafetyStatus;
+  safetyReasons: string[];
+  explanation: NutritionTargetExplanation;
+}
+
 export interface OnboardingProgressivePrompt {
   key: string;
   title: string;
@@ -452,6 +581,7 @@ export interface DailyPlanJson {
     exercises?: DailyPlanExercise[];
   };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
+  nutritionTargetSnapshot?: NutritionTargetSnapshot;
   recovery: {
     recommendation: string;
     sleepTip?: string;
