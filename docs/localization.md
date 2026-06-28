@@ -41,3 +41,7 @@ Avoid concatenating English fragments manually. Add full user-facing strings to 
 Food preference, ingredient exclusion, meal regeneration, and menu regeneration copy is localized in `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
 
 Use complete translation keys for confirmation dialogs and loading/error states. Do not assemble confirmation text from English fragments, especially for nutrition-target preservation copy.
+
+## Workout Execution Strings
+
+Workout execution uses the `workout` namespace in all supported mobile locales. Set labels, progress labels, partial-completion confirmation, read-only completed state, friendly save errors, and safety reminders are localized. Exercise names, cues, and safety notes remain saved plan or ExerciseLibrary content and are not translated at render time.

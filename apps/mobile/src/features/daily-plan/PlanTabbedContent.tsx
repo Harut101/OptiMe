@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   DailyPlanCheckInResponse,
   DailyPlanJson,
@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
+import { getWorkoutSessionByPlan, startWorkoutSession } from '@/api/workout-sessions';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
@@ -33,6 +34,7 @@ interface PlanTabbedContentProps {
 export function PlanTabbedContent(props: PlanTabbedContentProps) {
   const { plan, planId, locale, t } = props;
   const router = useRouter();
+  const queryClient = useQueryClient();
   const exercises = Array.isArray(plan.training.exercises) ? plan.training.exercises : [];
   const exerciseIds = useMemo(() => [...new Set(exercises.flatMap((item) => item.exerciseId ? [item.exerciseId] : []))], [exercises]);
   const summaries = useQuery({
@@ -40,6 +42,18 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
     queryFn: () => getExerciseSummaries(exerciseIds),
     enabled: exerciseIds.length > 0,
     staleTime: 5 * 60 * 1000
+  });
+  const workoutSession = useQuery({
+    queryKey: ['workout-session-by-plan', planId],
+    queryFn: () => getWorkoutSessionByPlan(planId),
+    enabled: exercises.length > 0
+  });
+  const startWorkout = useMutation({
+    mutationFn: () => startWorkoutSession({ dailyPlanId: planId }),
+    onSuccess: async (session) => {
+      queryClient.setQueryData(['workout-session-by-plan', planId], session);
+      router.push({ pathname: '/workout-session' as never, params: { sessionId: session.id } });
+    }
   });
   const summaryById = new Map((summaries.data?.items ?? []).map((item) => [item.id, item] as const));
   const defaultTab: PlanContentTab = plan.nutrition.meals.length > 0 ? 'food' : exercises.length > 0 ? 'training' : 'food';
@@ -65,6 +79,15 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
           summaryById={summaryById}
           summariesFailed={summaries.isError}
           onRetrySummaries={() => summaries.refetch()}
+          workoutSession={workoutSession.data ?? null}
+          workoutSessionUnavailable={workoutSession.isError}
+          workoutSessionLoading={workoutSession.isLoading}
+          workoutStartPending={startWorkout.isPending}
+          workoutStartFailed={startWorkout.isError}
+          onStartWorkout={() => startWorkout.mutate()}
+          onOpenWorkout={(sessionId) =>
+            router.push({ pathname: '/workout-session' as never, params: { sessionId } })
+          }
           onOpenExercise={(exerciseId) => router.push({
             pathname: '/exercise-details' as never,
             params: { planId, exerciseId }
@@ -114,6 +137,13 @@ function TrainingContent(props: PlanTabbedContentProps & {
   summaryById: Map<string, ExerciseListItem>;
   summariesFailed: boolean;
   onRetrySummaries: () => void;
+  workoutSession: import('@optime/shared-types').WorkoutSessionResponse | null;
+  workoutSessionUnavailable: boolean;
+  workoutSessionLoading: boolean;
+  workoutStartPending: boolean;
+  workoutStartFailed: boolean;
+  onStartWorkout: () => void;
+  onOpenWorkout: (sessionId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
 }) {
   const { plan, exercises = [], checkIns, checkInPending, locale, t, summaryById } = props;
@@ -148,6 +178,18 @@ function TrainingContent(props: PlanTabbedContentProps & {
         <Text variant="muted">{t('plan.painHelp')}</Text>
       </Card>
       {exercises.length ? (
+        <WorkoutSessionCard
+          t={t}
+          session={props.workoutSession}
+          loading={props.workoutSessionLoading}
+          unavailable={props.workoutSessionUnavailable}
+          startPending={props.workoutStartPending}
+          startFailed={props.workoutStartFailed}
+          onStart={props.onStartWorkout}
+          onOpen={props.onOpenWorkout}
+        />
+      ) : null}
+      {exercises.length ? (
         <Card>
           <Text variant="label">{t('plan.exercises')}</Text>
           {props.summariesFailed ? (
@@ -172,6 +214,60 @@ function TrainingContent(props: PlanTabbedContentProps & {
         </Card>
       ) : <Card><Text variant="muted">{t('plan.noExercises')}</Text></Card>}
     </>
+  );
+}
+
+function WorkoutSessionCard({
+  t,
+  session,
+  loading,
+  unavailable,
+  startPending,
+  startFailed,
+  onStart,
+  onOpen
+}: {
+  t: TFunction;
+  session: import('@optime/shared-types').WorkoutSessionResponse | null;
+  loading: boolean;
+  unavailable: boolean;
+  startPending: boolean;
+  startFailed: boolean;
+  onStart: () => void;
+  onOpen: (sessionId: string) => void;
+}) {
+  const completed = session?.status === 'COMPLETED';
+  const progress = session
+    ? t('workout.setsCompleted', {
+        completed: String(session.completedSetCount),
+        total: String(session.plannedSetCount)
+      })
+    : null;
+
+  return (
+    <Card>
+      <Text variant="label">{t('workout.progress')}</Text>
+      {loading ? <Text variant="muted">{t('common.loading')}</Text> : null}
+      {unavailable ? <Text variant="muted">{t('workout.statusUnavailable')}</Text> : null}
+      {session ? <Text variant="body">{progress}</Text> : <Text variant="muted">{t('workout.readyToStart')}</Text>}
+      {startFailed ? <Text style={styles.errorText}>{t('workout.saveFailed')}</Text> : null}
+      {session ? (
+        <Button
+          title={completed ? t('workout.viewWorkout') : t('workout.continueWorkout')}
+          variant={completed ? 'secondary' : 'primary'}
+          accessibilityLabel={completed ? t('workout.workoutCompleted') : t('workout.continueWorkout')}
+          onPress={() => onOpen(session.id)}
+        />
+      ) : (
+        <Button
+          title={startPending ? t('workout.saving') : t('workout.startWorkout')}
+          disabled={startPending || loading || unavailable}
+          accessibilityLabel={t('workout.startWorkout')}
+          onPress={onStart}
+        />
+      )}
+      {completed ? <Text variant="muted">{t('workout.workoutCompleted')}</Text> : null}
+    </Card>
   );
 }
 
@@ -204,5 +300,6 @@ const styles = StyleSheet.create({
   block: { gap: 8, paddingTop: 6 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
-  mediaError: { gap: 8 }
+  mediaError: { gap: 8 },
+  errorText: { color: '#b44848', fontWeight: '700' }
 });

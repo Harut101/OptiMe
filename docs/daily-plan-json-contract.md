@@ -87,6 +87,9 @@ type DailyPlanJson = {
       duration?: string;
       intensityCue?: string;
       safetyNotes?: string;
+      exerciseId?: string;
+      slug?: string;
+      exerciseSnapshot?: DailyPlanExerciseSnapshot;
     }>;
   };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
@@ -146,6 +149,8 @@ type DailyPlanJson = {
   };
 };
 ```
+
+`training.exercises` is optional for compatibility. Workout execution can start only when the normalized plan has non-empty exercises and the training intensity is not `REST`.
 
 ## Structured Food Plan
 

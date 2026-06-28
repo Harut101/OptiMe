@@ -7,6 +7,12 @@ Food keeps the existing meals, meal check-ins, and hydration rendering. Training
 Library-backed cards use the immutable planned name and snapshot metadata plus the plan prescription. Live list data supplies only the optional optimized primary thumbnail. Exercise Details fetches full media separately. Older free-text exercises remain text-only, make no library lookup, and do not open details.
 
 Recovery and reminders are rendered once after the selected content. Feedback state stays in Plan Details and is not owned by either tab.
+
+## Workout execution entry point
+
+The Training view may show a workout execution card when the plan has suggested exercises. It supports Start, Continue, and View completed workout states. Starting a workout opens the standalone `workout-session` route and does not mutate the Daily Plan.
+
+Today remains clean and does not show workout execution controls.
 # Daily Plan UI
 
 ## Structured Food Plans

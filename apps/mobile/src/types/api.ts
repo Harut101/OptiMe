@@ -29,7 +29,14 @@ import type {
   TrainingScheduleRequest,
   TrainingEquipment,
   TrainingLevel,
-  TrainingOutcome
+  TrainingOutcome,
+  CompleteWorkoutSessionRequest,
+  StartWorkoutSessionRequest,
+  ToggleWorkoutSetRequest,
+  UpdateWorkoutExerciseProgressRequest,
+  WorkoutExerciseProgressResponse,
+  WorkoutSessionResponse,
+  WorkoutSessionStatus
 } from '@optime/shared-types';
 import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
 
@@ -58,6 +65,13 @@ export type {
   TrainingEquipment,
   TrainingLevel,
   TrainingOutcome,
+  CompleteWorkoutSessionRequest,
+  StartWorkoutSessionRequest,
+  ToggleWorkoutSetRequest,
+  UpdateWorkoutExerciseProgressRequest,
+  WorkoutExerciseProgressResponse,
+  WorkoutSessionResponse,
+  WorkoutSessionStatus,
   TrainingPreferenceResponse
 } from '@optime/shared-types';
 

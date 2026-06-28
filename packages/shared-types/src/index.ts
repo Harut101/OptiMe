@@ -803,3 +803,57 @@ export interface DailyPlanCheckInResponse {
 export interface DailyPlanCheckInsResponse {
   items: DailyPlanCheckInResponse[];
 }
+
+export type WorkoutSessionStatus = 'IN_PROGRESS' | 'COMPLETED';
+
+export interface StartWorkoutSessionRequest {
+  dailyPlanId: string;
+}
+
+export interface ToggleWorkoutSetRequest {
+  setIndex: number;
+  completed: boolean;
+}
+
+export interface UpdateWorkoutExerciseProgressRequest {
+  isExerciseCompleted: boolean;
+}
+
+export interface CompleteWorkoutSessionRequest {
+  confirmPartialCompletion?: boolean;
+}
+
+export interface WorkoutExerciseProgressResponse {
+  id: string;
+  workoutSessionId: string;
+  planExerciseKey: string;
+  planExerciseOrder: number;
+  exerciseId: string | null;
+  exerciseSlug: string | null;
+  exerciseNameSnapshot: string;
+  plannedSets: number | null;
+  plannedReps: string | null;
+  plannedDurationSeconds: number | null;
+  plannedRestSeconds: number | null;
+  completedSetIndexes: number[];
+  isExerciseCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkoutSessionResponse {
+  id: string;
+  userId: string;
+  dailyPlanId: string;
+  status: WorkoutSessionStatus;
+  startedAt: string;
+  completedAt: string | null;
+  plannedExerciseCount: number;
+  completedExerciseCount: number;
+  plannedSetCount: number;
+  completedSetCount: number;
+  progressPercent: number;
+  exerciseProgress: WorkoutExerciseProgressResponse[];
+  createdAt: string;
+  updatedAt: string;
+}

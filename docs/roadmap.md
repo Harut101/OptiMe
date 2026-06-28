@@ -29,3 +29,5 @@ Completed foundation: deterministic Nutrition Engine with backend-owned calorie/
 Food preferences refinement adds disliked-food persistence, standalone `/v1/food-preferences`, ingredient exclusion from Meal Details, meal-level regeneration, and full-menu regeneration. Regeneration preserves stored Nutrition Engine targets and updates only the selected Daily Plan food snapshot after validation.
 
 Still deferred: ingredient database, food tracking, meal completion, grocery list, recipe image generation, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.
+
+Workout Execution MVP adds plan-linked workout sessions, set completion, duration exercise completion, partial-finish confirmation, and Plan Details Training entry points. Still deferred: workout history screens, rest timers, workout notes, RPE, replacing exercises during execution, and analytics.

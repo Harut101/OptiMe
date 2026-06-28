@@ -67,3 +67,9 @@ It must preserve:
 - exercise selection and exercise media
 
 The backend validates the regenerated full food plan before writing it. Failed meal or menu regeneration keeps the old food plan visible and returns a safe error. Old text-only plans without `nutrition.foodPlan` are not eligible for regeneration.
+
+## Workout execution snapshots
+
+Workout sessions are linked to a saved Daily Plan and snapshot the current `training.exercises` list at session start. This preserves the execution record even if a future plan regeneration or ExerciseLibrary update changes recommendations later.
+
+Daily Plans with `training.intensity=REST` or no exercises cannot start workout execution.

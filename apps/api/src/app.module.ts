@@ -20,6 +20,7 @@ import { TrainingPreferencesModule } from './modules/training-preferences/traini
 import { TrainingScheduleModule } from './modules/training-schedule/training-schedule.module';
 import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
+import { WorkoutSessionsModule } from './modules/workout-sessions/workout-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -46,7 +47,8 @@ import { PrismaModule } from './prisma/prisma.module';
     SettingsModule,
     UsageModule,
     DailyPlanCheckInsModule,
-    DailyPlansModule
+    DailyPlansModule,
+    WorkoutSessionsModule
   ]
 })
 export class AppModule {}
