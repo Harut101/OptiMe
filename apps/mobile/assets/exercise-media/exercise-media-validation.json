@@ -5,10 +5,7 @@
     "manifestItems": 47,
     "mediaCoveredExercises": 46,
     "fallbackOnlyExercises": 31,
-    "validationFailures": 0,
-    "copiedFiles": 0,
-    "exerciseMediaRows": 47,
-    "exerciseMediaTranslationRows": 188
+    "validationFailures": 0
   },
   "failures": [],
   "manifest": [

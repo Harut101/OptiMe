@@ -41,4 +41,42 @@ export const ruRU = createLocaleResource({
     exerciseCategory: { STRENGTH: 'Силовое', MOBILITY: 'Подвижность', CARDIO: 'Кардио', RECOVERY: 'Восстановление' },
     movementPattern: { SQUAT: 'Приседание', HINGE: 'Наклон', HORIZONTAL_PUSH: 'Горизонтальный жим', VERTICAL_PUSH: 'Вертикальный жим', HORIZONTAL_PULL: 'Горизонтальная тяга', VERTICAL_PULL: 'Вертикальная тяга', LUNGE: 'Выпад', CARRY: 'Перенос', ROTATION: 'Вращение', ANTI_ROTATION: 'Сопротивление вращению', CORE_FLEXION: 'Сгибание корпуса', CORE_STABILITY: 'Стабилизация корпуса', ISOLATION: 'Изоляция', MOBILITY: 'Подвижность', CARDIO: 'Кардио', RECOVERY: 'Восстановление' }
   }
+}, {
+  health: {
+    connectionsTitle: 'Подключения здоровья',
+    connectionsIntro: 'Интеграции здоровья помогут OptiMe учитывать активность, сон и восстановление при планировании питания, тренировок и восстановления.',
+    optional: 'Необязательно. Приложение полностью работает без подключения данных здоровья.',
+    loadingConnections: 'Загружаем подключения здоровья.',
+    appleHealthDescription: 'Основа для Apple Health. Реальные разрешения появятся позже.',
+    healthConnect: 'Health Connect',
+    healthConnectDescription: 'Основа для Health Connect на Android. Реальные разрешения появятся позже.',
+    whoopDescription: 'Основа для WHOOP. OAuth и синхронизация появятся позже.',
+    wearableSnapshot: 'Снимок wearable-данных',
+    wearableDataConnected: 'Свежие wearable-данные могут помочь адаптировать план.',
+    wearableDataStale: 'Wearable-данные устарели, поэтому план остаётся осторожным.',
+    noRecentWearableData: 'Нет свежих wearable-данных',
+    noRecentWearableDataHelp: 'План использует профиль, предпочтения и расписание.',
+    activity: 'Активность',
+    sleep: 'Сон',
+    recovery: 'Восстановление',
+    strain: 'Нагрузка',
+    steps: 'Шаги',
+    activeCalories: 'Активные калории',
+    sleepDuration: 'Длительность сна',
+    recoveryScore: 'Оценка восстановления',
+    mockData: 'Тестовые данные здоровья',
+    mockDataHelp: 'Только для разработки, чтобы проверить план с wearable-снимком.',
+    createMockSnapshot: 'Создать тестовый снимок',
+    mockSnapshotCreated: 'Тестовый снимок создан.',
+    mockSnapshotFailed: 'Не удалось создать тестовый снимок.',
+    connectionAccessibility: '{{provider}}, статус {{status}}',
+    snapshotAccessibility: 'Снимок {{source}} за {{date}}',
+    noConnectedSource: 'Пока нет подключённого источника здоровья.',
+    connectSourceToSync: 'Подключите источник, чтобы синхронизировать данные здоровья.',
+    needsAttention: 'Требует внимания',
+    disabled: 'Отключено',
+    comingSoon: 'Скоро',
+    lastSynced: 'Последняя синхронизация: {{value}}'
+  },
+  enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Вручную', MOCK: 'Тестовый' } }
 });

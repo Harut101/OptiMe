@@ -278,6 +278,14 @@ export const dailyPlanJsonSchema = z.object({
           lowStepTrend: z.boolean()
         })
         .optional(),
+      wearableContext: z
+        .object({
+          source: z.enum(['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'MANUAL', 'MOCK']),
+          hasRecentData: z.boolean(),
+          isStale: z.boolean(),
+          localDate: z.string().optional()
+        })
+        .optional(),
       fallbackReason: z.string().optional(),
       safetyAgent: z
         .object({

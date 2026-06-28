@@ -14,7 +14,8 @@ export class MockAiProviderService implements AiProvider {
       planQualityMode: input.planQualityMode,
       trainingEnabled: input.personalizationContext.trainingEnabled,
       exerciseSelection: input.exerciseSelection,
-      nutritionTarget: input.personalizationContext.nutritionTarget
+      nutritionTarget: input.personalizationContext.nutritionTarget,
+      healthPlanningContext: input.personalizationContext.healthPlanningContext
     });
   }
 }

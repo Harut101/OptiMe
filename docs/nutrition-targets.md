@@ -74,3 +74,19 @@ The mobile app renders a summary card on Today and Food:
 The app prefers saved `DailyPlan.plan.nutritionTargetSnapshot` when rendering an existing plan, so old plans do not silently change when profile or schedule data changes later.
 
 Missing profile fields are sent as safe identifiers such as `heightCm` and `weightKg`. Mobile maps those identifiers to localized labels and must not render raw DTO field names.
+
+## Wearable Context Boundary
+
+`NutritionTargetsService` may receive `wearableContext` as part of the calculated target context. In this foundation batch, wearable data does not aggressively change calorie or macro formulas.
+
+Allowed behavior:
+
+- keep nutrition targets steady when recent sleep/recovery signals suggest caution
+- attach safe context to `NutritionTarget.context`
+- add conservative warnings when wearable data is stale or recovery-oriented
+
+Not allowed:
+
+- large calorie changes based only on wearable data
+- medical interpretation of HRV, resting heart rate, or respiratory rate
+- overriding user goal, app mode, or deterministic safety rules

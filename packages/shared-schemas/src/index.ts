@@ -243,6 +243,22 @@ export const legacyNutritionTargetExplanationSchema = z.object({
   bullets: z.array(z.string())
 });
 
+export const healthDataSourceSchema = z.enum([
+  'APPLE_HEALTH',
+  'HEALTH_CONNECT',
+  'WHOOP',
+  'MANUAL',
+  'MOCK'
+]);
+
+export const healthConnectionStatusSchema = z.enum([
+  'NOT_CONNECTED',
+  'CONNECTED',
+  'NEEDS_REAUTH',
+  'ERROR',
+  'DISABLED'
+]);
+
 export const nutritionTargetSchema = z.object({
   engineVersion: z.number().int().min(1),
   localDate: z.string(),
@@ -272,7 +288,22 @@ export const nutritionTargetSchema = z.object({
     plannedWorkoutDurationMinutes: z.number().int().min(1).max(300).nullable(),
     plannedWorkoutIntensity: z.string().nullable(),
     normalActivityLevel: z.enum(['LOW', 'LIGHT', 'MODERATE', 'HIGH', 'ATHLETE']).nullable(),
-    inheritedScheduleFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL'])).optional()
+    inheritedScheduleFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL'])).optional(),
+    wearableContext: z
+      .object({
+        source: healthDataSourceSchema,
+        hasRecentData: z.boolean(),
+        isStale: z.boolean(),
+        localDate: z.string(),
+        steps: z.number().int().optional(),
+        activeCaloriesKcal: z.number().int().optional(),
+        workoutMinutes: z.number().int().optional(),
+        sleepMinutes: z.number().int().optional(),
+        sleepQualityScore: z.number().int().optional(),
+        recoveryScore: z.number().int().optional(),
+        strainScore: z.number().optional()
+      })
+      .optional()
   }),
   safety: z.object({
     status: nutritionSafetyStatusSchema,
@@ -311,6 +342,58 @@ export const progressivePromptAnswerSchema = z.object({
 
 export const generateDailyPlanSchema = z.object({
   forceRegenerate: z.boolean().optional()
+});
+
+export const updateHealthConnectionStatusSchema = z.object({
+  status: healthConnectionStatusSchema,
+  errorCode: z.string().trim().max(80).nullable().optional()
+});
+
+export const wearableDailySnapshotSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  localDate: z.string(),
+  timezone: z.string(),
+  source: healthDataSourceSchema,
+  steps: z.number().int().nullable(),
+  activeCaloriesKcal: z.number().int().nullable(),
+  workoutMinutes: z.number().int().nullable(),
+  sleepMinutes: z.number().int().nullable(),
+  sleepQualityScore: z.number().int().nullable(),
+  recoveryScore: z.number().int().nullable(),
+  strainScore: z.number().nullable(),
+  restingHeartRateBpm: z.number().int().nullable(),
+  hrvMs: z.number().int().nullable(),
+  respiratoryRate: z.number().nullable(),
+  capturedAt: z.string(),
+  isStale: z.boolean()
+});
+
+export const wearableSnapshotResponseSchema = z.object({
+  snapshot: wearableDailySnapshotSchema.nullable(),
+  hasRecentData: z.boolean(),
+  messageCode: z.enum([
+    'WEARABLE_DATA_CONNECTED',
+    'WEARABLE_DATA_STALE',
+    'NO_WEARABLE_DATA'
+  ])
+});
+
+export const createMockWearableSnapshotSchema = z.object({
+  source: z.enum(['MOCK', 'MANUAL']).optional(),
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  timezone: z.string().optional(),
+  steps: z.number().int().min(0).max(100000).optional(),
+  activeCaloriesKcal: z.number().int().min(0).max(10000).optional(),
+  workoutMinutes: z.number().int().min(0).max(1440).optional(),
+  sleepMinutes: z.number().int().min(0).max(1440).optional(),
+  sleepQualityScore: z.number().int().min(0).max(100).optional(),
+  recoveryScore: z.number().int().min(0).max(100).optional(),
+  strainScore: z.number().min(0).max(21).optional(),
+  restingHeartRateBpm: z.number().int().min(30).max(220).optional(),
+  hrvMs: z.number().int().min(1).max(300).optional(),
+  respiratoryRate: z.number().min(5).max(40).optional(),
+  capturedAt: z.string().datetime().optional()
 });
 
 export const dailyPlanReadinessSchema = z.enum(['PUSH', 'MAINTAIN', 'RECOVER']);
@@ -481,6 +564,22 @@ export const dailyPlanJsonSchema = z.object({
           nutritionProtocolId: z.string(),
           trainingProtocolId: z.string(),
           recoveryProtocolId: z.string()
+        })
+        .optional(),
+      healthSignals: z
+        .object({
+          lowSleep: z.boolean(),
+          highActivityYesterday: z.boolean(),
+          recentWorkout: z.boolean(),
+          lowStepTrend: z.boolean()
+        })
+        .optional(),
+      wearableContext: z
+        .object({
+          source: healthDataSourceSchema,
+          hasRecentData: z.boolean(),
+          isStale: z.boolean(),
+          localDate: z.string().optional()
         })
         .optional(),
       fallbackReason: z.string().optional(),

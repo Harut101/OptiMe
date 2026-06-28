@@ -370,8 +370,17 @@ export interface UsageLimitExceededError {
   upgradeSuggestion: 'PLUS' | 'PRO' | null;
 }
 
-export type HealthProvider = 'APPLE_HEALTH' | 'HEALTH_CONNECT';
-export type HealthConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'PERMISSION_DENIED' | 'ERROR';
+export type HealthProvider = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+export type HealthConnectionStatus =
+  | 'CONNECTED'
+  | 'DISCONNECTED'
+  | 'NOT_CONNECTED'
+  | 'NEEDS_REAUTH'
+  | 'PERMISSION_DENIED'
+  | 'ERROR'
+  | 'DISABLED';
+export type HealthDataSource = HealthProvider;
+export type WearableConnectionStatus = 'NOT_CONNECTED' | 'CONNECTED' | 'NEEDS_REAUTH' | 'ERROR' | 'DISABLED';
 
 export interface HealthPermissions {
   steps?: boolean;
@@ -385,12 +394,32 @@ export interface HealthPermissions {
 
 export interface HealthConnection {
   provider: HealthProvider;
+  source?: HealthDataSource;
   status: HealthConnectionStatus;
   consentedAt: string | null;
   disconnectedAt: string | null;
   lastSyncAt: string | null;
   permissionsGranted: HealthPermissions | null;
   errorReason: string | null;
+}
+
+export interface HealthConnectionFoundation {
+  id: string | null;
+  source: HealthDataSource;
+  status: WearableConnectionStatus;
+  connectedAt: string | null;
+  lastSyncAt: string | null;
+  errorCode: string | null;
+  updatedAt: string | null;
+}
+
+export interface HealthConnectionsResponse {
+  connections: HealthConnectionFoundation[];
+}
+
+export interface UpdateHealthConnectionStatusRequest {
+  status: WearableConnectionStatus;
+  errorCode?: string | null;
 }
 
 export interface HealthStatusResponse {
@@ -447,4 +476,47 @@ export interface HealthDailySummary {
 
 export interface UpsertHealthDailySummaryResponse {
   summary: HealthDailySummary;
+}
+
+export interface WearableDailySnapshot {
+  id: string;
+  userId: string;
+  localDate: string;
+  timezone: string;
+  source: HealthDataSource;
+  steps: number | null;
+  activeCaloriesKcal: number | null;
+  workoutMinutes: number | null;
+  sleepMinutes: number | null;
+  sleepQualityScore: number | null;
+  recoveryScore: number | null;
+  strainScore: number | null;
+  restingHeartRateBpm: number | null;
+  hrvMs: number | null;
+  respiratoryRate: number | null;
+  capturedAt: string;
+  isStale: boolean;
+}
+
+export interface WearableSnapshotResponse {
+  snapshot: WearableDailySnapshot | null;
+  hasRecentData: boolean;
+  messageCode: 'NO_WEARABLE_DATA' | 'WEARABLE_DATA_CONNECTED' | 'WEARABLE_DATA_STALE';
+}
+
+export interface CreateMockWearableSnapshotRequest {
+  localDate?: string;
+  timezone?: string;
+  source?: Extract<HealthDataSource, 'MOCK' | 'MANUAL'>;
+  steps?: number;
+  activeCaloriesKcal?: number;
+  workoutMinutes?: number;
+  sleepMinutes?: number;
+  sleepQualityScore?: number;
+  recoveryScore?: number;
+  strainScore?: number;
+  restingHeartRateBpm?: number;
+  hrvMs?: number;
+  respiratoryRate?: number;
+  capturedAt?: string;
 }

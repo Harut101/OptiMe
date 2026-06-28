@@ -385,6 +385,28 @@ export interface NutritionMacroTarget {
   fatKcal: number;
 }
 
+export type HealthDataSource = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+export type HealthConnectionStatus =
+  | 'NOT_CONNECTED'
+  | 'CONNECTED'
+  | 'NEEDS_REAUTH'
+  | 'ERROR'
+  | 'DISABLED';
+
+export interface WearableContext {
+  source: HealthDataSource;
+  hasRecentData: boolean;
+  isStale: boolean;
+  localDate: string;
+  steps?: number;
+  activeCaloriesKcal?: number;
+  workoutMinutes?: number;
+  sleepMinutes?: number;
+  sleepQualityScore?: number;
+  recoveryScore?: number;
+  strainScore?: number;
+}
+
 export interface NutritionTargetContext {
   trainingEnabled: boolean;
   scheduledTrainingDay: boolean;
@@ -392,6 +414,7 @@ export interface NutritionTargetContext {
   plannedWorkoutIntensity: string | null;
   normalActivityLevel: ActivityLevel | null;
   inheritedScheduleFields?: TrainingScheduleInheritedField[];
+  wearableContext?: WearableContext;
 }
 
 export interface NutritionTargetSafety {
@@ -470,6 +493,68 @@ export interface OnboardingStatusResponse {
     nextPrompt?: OnboardingProgressivePrompt;
     completionPercent: number;
   };
+}
+
+export interface HealthConnectionResponse {
+  id: string | null;
+  source: HealthDataSource;
+  status: HealthConnectionStatus;
+  connectedAt: string | null;
+  lastSyncAt: string | null;
+  errorCode: string | null;
+  updatedAt: string | null;
+}
+
+export interface HealthConnectionsResponse {
+  connections: HealthConnectionResponse[];
+}
+
+export interface UpdateHealthConnectionStatusRequest {
+  status: HealthConnectionStatus;
+  errorCode?: string | null;
+}
+
+export interface WearableDailySnapshot {
+  id: string;
+  userId: string;
+  localDate: string;
+  timezone: string;
+  source: HealthDataSource;
+  steps: number | null;
+  activeCaloriesKcal: number | null;
+  workoutMinutes: number | null;
+  sleepMinutes: number | null;
+  sleepQualityScore: number | null;
+  recoveryScore: number | null;
+  strainScore: number | null;
+  restingHeartRateBpm: number | null;
+  hrvMs: number | null;
+  respiratoryRate: number | null;
+  capturedAt: string;
+  isStale: boolean;
+}
+
+export interface WearableSnapshotResponse {
+  snapshot: WearableDailySnapshot | null;
+  hasRecentData: boolean;
+  messageCode: 'NO_WEARABLE_DATA' | 'WEARABLE_DATA_CONNECTED' | 'WEARABLE_DATA_STALE';
+}
+
+export interface CreateMockWearableSnapshotRequest {
+  localDate?: string;
+  timezone?: string;
+  source?: Extract<HealthDataSource, 'MOCK' | 'MANUAL'>;
+  steps?: number;
+  activeCaloriesKcal?: number;
+  workoutMinutes?: number;
+  sleepMinutes?: number;
+  sleepQualityScore?: number;
+  recoveryScore?: number;
+  strainScore?: number;
+  restingHeartRateBpm?: number;
+  hrvMs?: number;
+  respiratoryRate?: number;
+  capturedAt?: string;
 }
 
 export type ProgressivePromptInputType = 'stringList' | 'singleSelect' | 'multiSelect' | 'number';

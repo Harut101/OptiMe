@@ -1,15 +1,25 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HealthConnectionStatus, HealthProvider, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConnectHealthDto } from './dto/connect-health.dto';
 import { DeleteHealthDataDto } from './dto/delete-health-data.dto';
 import { DisconnectHealthDto } from './dto/disconnect-health.dto';
+import { CreateMockWearableSnapshotDto } from './dto/create-mock-wearable-snapshot.dto';
 import { HealthPermissionsDto } from './dto/health-permissions.dto';
+import { UpdateHealthConnectionStatusDto } from './dto/update-health-connection-status.dto';
 import { UpsertHealthDailySummaryDto } from './dto/upsert-health-daily-summary.dto';
 import { EMPTY_HEALTH_PLANNING_CONTEXT, HealthPlanningContext } from './health-planning.types';
 
 const HEALTH_PROVIDERS = [HealthProvider.APPLE_HEALTH, HealthProvider.HEALTH_CONNECT] as const;
+const HEALTH_SOURCES = [
+  HealthProvider.APPLE_HEALTH,
+  HealthProvider.HEALTH_CONNECT,
+  HealthProvider.WHOOP,
+  HealthProvider.MANUAL,
+  HealthProvider.MOCK
+] as const;
+const SNAPSHOT_STALE_HOURS = 36;
 const LOW_SLEEP_MINUTES_THRESHOLD = 360;
 const HIGH_ACTIVITY_STEPS_THRESHOLD = 12000;
 const HIGH_ACTIVITY_WORKOUT_MINUTES_THRESHOLD = 60;
@@ -19,6 +29,8 @@ const LOW_STEP_TREND_MIN_DAYS = 3;
 
 @Injectable()
 export class HealthService {
+  private readonly logger = new Logger(HealthService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getStatus(userId: string) {
@@ -42,6 +54,60 @@ export class HealthService {
         )
       )
     };
+  }
+
+  async getConnections(userId: string) {
+    const connections = await this.prisma.healthConnection.findMany({
+      where: { userId }
+    });
+    const byProvider = new Map(connections.map((connection) => [connection.provider, connection]));
+
+    return {
+      connections: HEALTH_SOURCES.map((source) =>
+        this.toFoundationConnectionResponse(byProvider.get(source), source)
+      )
+    };
+  }
+
+  async updateConnectionStatus(
+    userId: string,
+    source: HealthProvider,
+    dto: UpdateHealthConnectionStatusDto
+  ) {
+    const now = new Date();
+    const status = this.toPersistedConnectionStatus(dto.status);
+    const connection = await this.prisma.healthConnection.upsert({
+      where: {
+        userId_provider: {
+          userId,
+          provider: source
+        }
+      },
+      update: {
+        status,
+        ...(status === HealthConnectionStatus.CONNECTED
+          ? { consentedAt: now, disconnectedAt: null }
+          : {}),
+        ...(status === HealthConnectionStatus.DISCONNECTED
+          ? { disconnectedAt: now }
+          : {}),
+        errorReason: dto.errorCode ?? null
+      },
+      create: {
+        userId,
+        provider: source,
+        status,
+        consentedAt: status === HealthConnectionStatus.CONNECTED ? now : null,
+        disconnectedAt:
+          status === HealthConnectionStatus.DISCONNECTED
+            ? now
+            : null,
+        errorReason: dto.errorCode ?? null
+      }
+    });
+
+    this.logger.log(`health connection status updated; source=${source}; status=${this.toWearableStatus(status)}`);
+    return this.toFoundationConnectionResponse(connection, source);
   }
 
   async connect(userId: string, dto: ConnectHealthDto) {
@@ -101,6 +167,12 @@ export class HealthService {
       ...(dto.provider ? { sourceProvider: dto.provider } : {})
     };
     const deleted = await this.prisma.healthDailySummary.deleteMany({ where });
+    const snapshotDeleted = await this.prisma.wearableDailySnapshot.deleteMany({
+      where: {
+        userId,
+        ...(dto.provider ? { source: dto.provider } : {})
+      }
+    });
 
     await this.prisma.healthConnection.updateMany({
       where: {
@@ -115,7 +187,98 @@ export class HealthService {
     return {
       deleted: true,
       provider: dto.provider ?? null,
-      summaryCountDeleted: deleted.count
+      summaryCountDeleted: deleted.count + snapshotDeleted.count
+    };
+  }
+
+  async getTodayWearableSnapshot(userId: string) {
+    const timezone = await this.getUserTimezone(userId);
+    return this.getWearableSnapshotByDate(userId, this.getLocalDate(timezone), timezone);
+  }
+
+  async getWearableSnapshotByDate(userId: string, localDate: string, timezone?: string) {
+    const resolvedTimezone = timezone ?? await this.getUserTimezone(userId);
+    const snapshot = await this.prisma.wearableDailySnapshot.findFirst({
+      where: {
+        userId,
+        localDate
+      },
+      orderBy: [
+        { capturedAt: 'desc' },
+        { updatedAt: 'desc' }
+      ]
+    });
+
+    if (!snapshot) {
+      return {
+        snapshot: null,
+        hasRecentData: false,
+        messageCode: 'NO_WEARABLE_DATA' as const
+      };
+    }
+
+    const response = this.toWearableSnapshotResponse(snapshot, resolvedTimezone);
+    return {
+      snapshot: response,
+      hasRecentData: !response.isStale,
+      messageCode: response.isStale ? 'WEARABLE_DATA_STALE' as const : 'WEARABLE_DATA_CONNECTED' as const
+    };
+  }
+
+  async createMockWearableSnapshot(
+    userId: string,
+    dto: CreateMockWearableSnapshotDto
+  ) {
+    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_MOCK_HEALTH_DATA !== 'true') {
+      throw new NotFoundException('Mock health data is not available.');
+    }
+
+    const source = dto.source ?? HealthProvider.MOCK;
+    const userTimezone = await this.getUserTimezone(userId);
+    const timezone = dto.timezone ?? userTimezone;
+    const localDate = dto.localDate ?? this.getLocalDate(timezone);
+    const capturedAt = dto.capturedAt ? new Date(dto.capturedAt) : new Date();
+    const saved = await this.prisma.wearableDailySnapshot.upsert({
+      where: {
+        userId_source_localDate: {
+          userId,
+          source,
+          localDate
+        }
+      },
+      update: this.toWearableSnapshotWriteData(dto, localDate, timezone, capturedAt, source),
+      create: {
+        userId,
+        ...this.toWearableSnapshotWriteData(dto, localDate, timezone, capturedAt, source)
+      }
+    });
+
+    await this.prisma.healthConnection.upsert({
+      where: { userId_provider: { userId, provider: source } },
+      update: {
+        status: HealthConnectionStatus.CONNECTED,
+        consentedAt: new Date(),
+        disconnectedAt: null,
+        lastSyncAt: new Date(),
+        errorReason: null
+      },
+      create: {
+        userId,
+        provider: source,
+        status: HealthConnectionStatus.CONNECTED,
+        consentedAt: new Date(),
+        lastSyncAt: new Date()
+      }
+    });
+
+    this.logger.log(`wearable snapshot created; source=${source}; localDate=${localDate}; stale=${this.isSnapshotStale(saved.capturedAt, saved.localDate, timezone)}`);
+
+    return {
+      snapshot: this.toWearableSnapshotResponse(saved, timezone),
+      hasRecentData: !this.isSnapshotStale(saved.capturedAt, saved.localDate, timezone),
+      messageCode: this.isSnapshotStale(saved.capturedAt, saved.localDate, timezone)
+        ? 'WEARABLE_DATA_STALE' as const
+        : 'WEARABLE_DATA_CONNECTED' as const
     };
   }
 
@@ -176,6 +339,19 @@ export class HealthService {
     userId: string,
     options: { planLocalDate: string; days?: number }
   ): Promise<HealthPlanningContext> {
+    const wearableSnapshot = await this.prisma.wearableDailySnapshot.findFirst({
+      where: {
+        userId,
+        localDate: options.planLocalDate
+      },
+      orderBy: [
+        { capturedAt: 'desc' },
+        { updatedAt: 'desc' }
+      ]
+    });
+    const wearableContext = wearableSnapshot
+      ? this.toWearablePlanningContext(wearableSnapshot, options.planLocalDate)
+      : undefined;
     const days = Math.max(1, Math.min(options.days ?? 7, 7));
     const localDates = this.getRecentLocalDates(options.planLocalDate, days);
     const summaries = await this.prisma.healthDailySummary.findMany({
@@ -189,7 +365,16 @@ export class HealthService {
     });
 
     if (summaries.length === 0) {
-      return EMPTY_HEALTH_PLANNING_CONTEXT;
+      return wearableContext
+        ? {
+            ...EMPTY_HEALTH_PLANNING_CONTEXT,
+            available: true,
+            daysReviewed: 1,
+            wearableContext,
+            signals: this.mergeWearableSignals(EMPTY_HEALTH_PLANNING_CONTEXT.signals, wearableContext),
+            selectionNotes: this.getWearableSelectionNotes(wearableContext)
+          }
+        : EMPTY_HEALTH_PLANNING_CONTEXT;
     }
 
     const byDate = new Map<string, (typeof summaries)[number]>();
@@ -227,10 +412,14 @@ export class HealthService {
     return {
       available: true,
       daysReviewed: summariesByDate.length,
+      wearableContext,
       latestSummary: latestSummary ? this.toPlanningSummary(latestSummary) : undefined,
       recentAverages,
-      signals,
-      selectionNotes: this.getHealthSelectionNotes(signals)
+      signals: this.mergeWearableSignals(signals, wearableContext),
+      selectionNotes: [
+        ...this.getHealthSelectionNotes(this.mergeWearableSignals(signals, wearableContext)),
+        ...this.getWearableSelectionNotes(wearableContext)
+      ]
     };
   }
 
@@ -288,6 +477,56 @@ export class HealthService {
     };
   }
 
+  private toFoundationConnectionResponse(
+    connection:
+      | {
+          id?: string;
+          provider: HealthProvider;
+          status: HealthConnectionStatus;
+          consentedAt: Date | null;
+          lastSyncAt: Date | null;
+          errorReason: string | null;
+          updatedAt?: Date;
+        }
+      | undefined,
+    source: HealthProvider
+  ) {
+    return {
+      id: connection?.id ?? null,
+      source,
+      status: this.toWearableStatus(connection?.status ?? HealthConnectionStatus.DISCONNECTED),
+      connectedAt: connection?.consentedAt?.toISOString() ?? null,
+      lastSyncAt: connection?.lastSyncAt?.toISOString() ?? null,
+      errorCode: connection?.errorReason ?? null,
+      updatedAt: connection?.updatedAt?.toISOString() ?? null
+    };
+  }
+
+  private toWearableStatus(status: HealthConnectionStatus) {
+    if (status === HealthConnectionStatus.CONNECTED) {
+      return 'CONNECTED' as const;
+    }
+    if (status === HealthConnectionStatus.NEEDS_REAUTH || status === HealthConnectionStatus.PERMISSION_DENIED) {
+      return 'NEEDS_REAUTH' as const;
+    }
+    if (status === HealthConnectionStatus.ERROR) {
+      return 'ERROR' as const;
+    }
+    if (status === HealthConnectionStatus.DISABLED) {
+      return 'DISABLED' as const;
+    }
+
+    return 'NOT_CONNECTED' as const;
+  }
+
+  private toPersistedConnectionStatus(status: HealthConnectionStatus) {
+    if (status === HealthConnectionStatus.NOT_CONNECTED) {
+      return HealthConnectionStatus.DISCONNECTED;
+    }
+
+    return status;
+  }
+
   private toSummaryResponse(summary: {
     localDate: string;
     timezone: string;
@@ -315,6 +554,70 @@ export class HealthService {
       restingHeartRate: summary.restingHeartRate,
       weightKg: this.decimalToNumber(summary.weightKg),
       updatedAt: summary.updatedAt.toISOString()
+    };
+  }
+
+  private toWearableSnapshotWriteData(
+    dto: CreateMockWearableSnapshotDto,
+    localDate: string,
+    timezone: string,
+    capturedAt: Date,
+    source: HealthProvider
+  ) {
+    return {
+      source,
+      localDate,
+      timezone,
+      steps: dto.steps ?? null,
+      activeCaloriesKcal: dto.activeCaloriesKcal ?? null,
+      workoutMinutes: dto.workoutMinutes ?? null,
+      sleepMinutes: dto.sleepMinutes ?? null,
+      sleepQualityScore: dto.sleepQualityScore ?? null,
+      recoveryScore: dto.recoveryScore ?? null,
+      strainScore: dto.strainScore ?? null,
+      restingHeartRateBpm: dto.restingHeartRateBpm ?? null,
+      hrvMs: dto.hrvMs ?? null,
+      respiratoryRate: dto.respiratoryRate ?? null,
+      capturedAt
+    };
+  }
+
+  private toWearableSnapshotResponse(snapshot: {
+    id: string;
+    userId: string;
+    localDate: string;
+    timezone: string;
+    source: HealthProvider;
+    steps: number | null;
+    activeCaloriesKcal: number | null;
+    workoutMinutes: number | null;
+    sleepMinutes: number | null;
+    sleepQualityScore: number | null;
+    recoveryScore: number | null;
+    strainScore: number | null;
+    restingHeartRateBpm: number | null;
+    hrvMs: number | null;
+    respiratoryRate: number | null;
+    capturedAt: Date;
+  }, timezone: string) {
+    return {
+      id: snapshot.id,
+      userId: snapshot.userId,
+      localDate: snapshot.localDate,
+      timezone: snapshot.timezone,
+      source: snapshot.source,
+      steps: snapshot.steps,
+      activeCaloriesKcal: snapshot.activeCaloriesKcal,
+      workoutMinutes: snapshot.workoutMinutes,
+      sleepMinutes: snapshot.sleepMinutes,
+      sleepQualityScore: snapshot.sleepQualityScore,
+      recoveryScore: snapshot.recoveryScore,
+      strainScore: snapshot.strainScore,
+      restingHeartRateBpm: snapshot.restingHeartRateBpm,
+      hrvMs: snapshot.hrvMs,
+      respiratoryRate: snapshot.respiratoryRate,
+      capturedAt: snapshot.capturedAt.toISOString(),
+      isStale: this.isSnapshotStale(snapshot.capturedAt, snapshot.localDate, timezone)
     };
   }
 
@@ -355,6 +658,29 @@ export class HealthService {
       date.setUTCDate(anchor.getUTCDate() - (index + 1));
       return date.toISOString().slice(0, 10);
     });
+  }
+
+  private getLocalDate(timezone: string) {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  }
+
+  private async getUserTimezone(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true }
+    });
+
+    return user?.timezone ?? 'UTC';
+  }
+
+  private isSnapshotStale(capturedAt: Date, localDate: string, timezone: string) {
+    const ageHours = (Date.now() - capturedAt.getTime()) / (1000 * 60 * 60);
+    return ageHours > SNAPSHOT_STALE_HOURS || localDate < this.getLocalDate(timezone);
   }
 
   private getRecentAverages(
@@ -419,6 +745,84 @@ export class HealthService {
 
     if (signals.lowStepTrend) {
       notes.push('Low step trend suggests gentle movement encouragement without shame.');
+    }
+
+    return notes;
+  }
+
+  private toWearablePlanningContext(
+    snapshot: {
+      source: HealthProvider;
+      localDate: string;
+      timezone: string;
+      steps: number | null;
+      activeCaloriesKcal: number | null;
+      workoutMinutes: number | null;
+      sleepMinutes: number | null;
+      sleepQualityScore: number | null;
+      recoveryScore: number | null;
+      strainScore: number | null;
+      capturedAt: Date;
+    },
+    planLocalDate: string
+  ): NonNullable<HealthPlanningContext['wearableContext']> {
+    const isStale = this.isSnapshotStale(snapshot.capturedAt, snapshot.localDate, snapshot.timezone) ||
+      snapshot.localDate !== planLocalDate;
+
+    return {
+      source: snapshot.source,
+      hasRecentData: !isStale,
+      isStale,
+      localDate: snapshot.localDate,
+      ...(snapshot.steps !== null ? { steps: snapshot.steps } : {}),
+      ...(snapshot.activeCaloriesKcal !== null ? { activeCaloriesKcal: snapshot.activeCaloriesKcal } : {}),
+      ...(snapshot.workoutMinutes !== null ? { workoutMinutes: snapshot.workoutMinutes } : {}),
+      ...(snapshot.sleepMinutes !== null ? { sleepMinutes: snapshot.sleepMinutes } : {}),
+      ...(snapshot.sleepQualityScore !== null ? { sleepQualityScore: snapshot.sleepQualityScore } : {}),
+      ...(snapshot.recoveryScore !== null ? { recoveryScore: snapshot.recoveryScore } : {}),
+      ...(snapshot.strainScore !== null ? { strainScore: snapshot.strainScore } : {})
+    };
+  }
+
+  private mergeWearableSignals(
+    signals: HealthPlanningContext['signals'],
+    wearableContext?: HealthPlanningContext['wearableContext']
+  ) {
+    if (!wearableContext?.hasRecentData) {
+      return signals;
+    }
+
+    return {
+      lowSleep: signals.lowSleep || (wearableContext.sleepMinutes ?? Number.POSITIVE_INFINITY) < LOW_SLEEP_MINUTES_THRESHOLD,
+      highActivityYesterday:
+        signals.highActivityYesterday ||
+        (wearableContext.steps ?? 0) > HIGH_ACTIVITY_STEPS_THRESHOLD ||
+        (wearableContext.workoutMinutes ?? 0) > HIGH_ACTIVITY_WORKOUT_MINUTES_THRESHOLD ||
+        (wearableContext.activeCaloriesKcal ?? 0) > HIGH_ACTIVITY_ACTIVE_ENERGY_KCAL_THRESHOLD ||
+        (wearableContext.strainScore ?? 0) >= 15,
+      recentWorkout: signals.recentWorkout || (wearableContext.workoutMinutes ?? 0) > 0,
+      lowStepTrend: signals.lowStepTrend
+    };
+  }
+
+  private getWearableSelectionNotes(wearableContext?: HealthPlanningContext['wearableContext']) {
+    if (!wearableContext) {
+      return [];
+    }
+
+    if (wearableContext.isStale) {
+      return ['Wearable snapshot is stale, so planning should not overfit to it.'];
+    }
+
+    const notes = ['Recent wearable snapshot can inform recovery-aware planning.'];
+    if ((wearableContext.sleepMinutes ?? Number.POSITIVE_INFINITY) < LOW_SLEEP_MINUTES_THRESHOLD) {
+      notes.push('Wearable sleep summary suggests a gentler recovery note.');
+    }
+    if ((wearableContext.recoveryScore ?? 100) < 40) {
+      notes.push('Wearable recovery score suggests conservative intensity language.');
+    }
+    if ((wearableContext.strainScore ?? 0) >= 15) {
+      notes.push('Wearable strain summary suggests avoiding compounded training load.');
     }
 
     return notes;

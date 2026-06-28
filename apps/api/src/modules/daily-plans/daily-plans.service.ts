@@ -1535,7 +1535,17 @@ export class DailyPlansService {
                 highActivityYesterday: healthPlanningContext.signals.highActivityYesterday,
                 recentWorkout: healthPlanningContext.signals.recentWorkout,
                 lowStepTrend: healthPlanningContext.signals.lowStepTrend
-              }
+              },
+              ...(healthPlanningContext.wearableContext
+                ? {
+                    wearableContext: {
+                      source: healthPlanningContext.wearableContext.source,
+                      hasRecentData: healthPlanningContext.wearableContext.hasRecentData,
+                      isStale: healthPlanningContext.wearableContext.isStale,
+                      localDate: healthPlanningContext.wearableContext.localDate
+                    }
+                  }
+                : {})
             }
           : {})
       }
@@ -1712,6 +1722,14 @@ export class DailyPlansService {
         planLocalDate,
         days: 7
       }
+    );
+    this.logger.log(
+      [
+        'daily plan health context resolved',
+        `available=${healthPlanningContext.available}`,
+        `wearableContextUsed=${Boolean(healthPlanningContext.wearableContext)}`,
+        `wearableStale=${healthPlanningContext.wearableContext?.isStale ?? false}`
+      ].join('; ')
     );
     const trainingPreference = user.trainingPreference;
     const selectedProtocols = this.protocolSelector.select({

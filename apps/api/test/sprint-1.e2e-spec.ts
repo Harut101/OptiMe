@@ -1056,6 +1056,188 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(plan.body.status).toBe('READY');
   });
 
+  it('requires auth for health connections and wearable snapshot endpoints', async () => {
+    await request(ctx.app.getHttpServer()).get('/v1/health/connections').expect(401);
+    await request(ctx.app.getHttpServer())
+      .patch('/v1/health/connections/MOCK/status')
+      .send({ status: 'CONNECTED' })
+      .expect(401);
+    await request(ctx.app.getHttpServer()).get('/v1/health/wearable-snapshots/today').expect(401);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots/mock')
+      .send({ steps: 5000 })
+      .expect(401);
+  });
+
+  it('returns foundation health connection sources without exposing secrets', async () => {
+    const user = await registerTestUser(ctx.app, 'health-foundation-connections@example.com');
+
+    const response = await request(ctx.app.getHttpServer())
+      .get('/v1/health/connections')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(response.body.connections.map((connection: { source: string }) => connection.source)).toEqual([
+      HealthProvider.APPLE_HEALTH,
+      HealthProvider.HEALTH_CONNECT,
+      HealthProvider.WHOOP,
+      HealthProvider.MANUAL,
+      HealthProvider.MOCK
+    ]);
+    expect(response.body.connections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: HealthProvider.APPLE_HEALTH,
+          status: 'NOT_CONNECTED',
+          connectedAt: null,
+          lastSyncAt: null,
+          errorCode: null
+        })
+      ])
+    );
+    expect(JSON.stringify(response.body)).not.toContain('token');
+    expect(JSON.stringify(response.body)).not.toContain('secret');
+  });
+
+  it('updates foundation connection status and rejects invalid source values', async () => {
+    const user = await registerTestUser(ctx.app, 'health-foundation-status@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .patch('/v1/health/connections/INVALID/status')
+      .set(authHeader(user.accessToken))
+      .send({ status: 'CONNECTED' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .patch(`/v1/health/connections/${HealthProvider.WHOOP}/status`)
+      .set(authHeader(user.accessToken))
+      .send({ status: 'CONNECTED' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          source: HealthProvider.WHOOP,
+          status: 'CONNECTED',
+          errorCode: null
+        });
+        expect(body.connectedAt).toEqual(expect.any(String));
+      });
+
+    await request(ctx.app.getHttpServer())
+      .patch(`/v1/health/connections/${HealthProvider.WHOOP}/status`)
+      .set(authHeader(user.accessToken))
+      .send({ status: 'NEEDS_REAUTH', errorCode: 'needs_refresh' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          source: HealthProvider.WHOOP,
+          status: 'NEEDS_REAUTH',
+          errorCode: 'needs_refresh'
+        });
+      });
+  });
+
+  it('creates and reads mock wearable daily snapshots for the authenticated user only', async () => {
+    const user = await registerTestUser(ctx.app, 'wearable-snapshot-owner@example.com');
+    const other = await registerTestUser(ctx.app, 'wearable-snapshot-other@example.com');
+    const localDate = getUtcLocalDate();
+
+    const created = await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots/mock')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.MOCK,
+        localDate,
+        timezone: 'UTC',
+        steps: 8200,
+        activeCaloriesKcal: 420,
+        workoutMinutes: 35,
+        sleepMinutes: 420,
+        recoveryScore: 72,
+        strainScore: 8.5
+      })
+      .expect(201);
+
+    expect(created.body).toMatchObject({
+      hasRecentData: true,
+      messageCode: 'WEARABLE_DATA_CONNECTED',
+      snapshot: {
+        source: HealthProvider.MOCK,
+        localDate,
+        timezone: 'UTC',
+        steps: 8200,
+        activeCaloriesKcal: 420,
+        workoutMinutes: 35,
+        sleepMinutes: 420,
+        recoveryScore: 72,
+        strainScore: 8.5,
+        isStale: false
+      }
+    });
+    expect(JSON.stringify(created.body)).not.toContain('token');
+    expect(JSON.stringify(created.body)).not.toContain('secret');
+
+    await request(ctx.app.getHttpServer())
+      .get(`/v1/health/wearable-snapshots?date=${localDate}`)
+      .set(authHeader(user.accessToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.snapshot).toMatchObject({
+          source: HealthProvider.MOCK,
+          localDate
+        });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .get(`/v1/health/wearable-snapshots?date=${localDate}`)
+      .set(authHeader(other.accessToken))
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          snapshot: null,
+          hasRecentData: false,
+          messageCode: 'NO_WEARABLE_DATA'
+        });
+      });
+  });
+
+  it('rejects invalid wearable snapshot input and marks stale snapshots safely', async () => {
+    const user = await registerTestUser(ctx.app, 'wearable-snapshot-validation@example.com');
+    const localDate = getUtcLocalDate();
+
+    await request(ctx.app.getHttpServer())
+      .get('/v1/health/wearable-snapshots?date=06-07-2026')
+      .set(authHeader(user.accessToken))
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots/mock')
+      .set(authHeader(user.accessToken))
+      .send({ source: HealthProvider.WHOOP, localDate, timezone: 'UTC' })
+      .expect(400);
+
+    const stale = await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots/mock')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.MANUAL,
+        localDate,
+        timezone: 'UTC',
+        sleepMinutes: 300,
+        capturedAt: '2026-01-01T00:00:00.000Z'
+      })
+      .expect(201);
+
+    expect(stale.body).toMatchObject({
+      hasRecentData: false,
+      messageCode: 'WEARABLE_DATA_STALE',
+      snapshot: {
+        source: HealthProvider.MANUAL,
+        localDate,
+        isStale: true
+      }
+    });
+  });
+
   it('derives isMinor and safeMode from dateOfBirth and rejects client safeMode', async () => {
     const user = await registerTestUser(ctx.app);
 
@@ -2190,6 +2372,91 @@ describe('Sprint 1 backend vertical slice', () => {
         lowStepTrend: false
       });
       expect(plan.body.plan.debug.healthSignals.steps).toBeUndefined();
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('passes wearable snapshot context into daily planning without exposing raw wearable metrics in debug', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode,
+                healthPlanningContext: input.personalizationContext.healthPlanningContext
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'wearable-plan-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'WearablePlanning');
+      const planLocalDate = getUtcLocalDate();
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/health/wearable-snapshots/mock')
+        .set(authHeader(user.accessToken))
+        .send({
+          source: HealthProvider.MOCK,
+          localDate: planLocalDate,
+          timezone: 'UTC',
+          steps: 13000,
+          activeCaloriesKcal: 920,
+          workoutMinutes: 70,
+          sleepMinutes: 320,
+          recoveryScore: 35,
+          strainScore: 16
+        })
+        .expect(201);
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const wearableContext = capturedInputs[0]?.personalizationContext.healthPlanningContext?.wearableContext;
+      expect(wearableContext).toMatchObject({
+        source: HealthProvider.MOCK,
+        hasRecentData: true,
+        isStale: false,
+        localDate: planLocalDate,
+        steps: 13000,
+        activeCaloriesKcal: 920,
+        workoutMinutes: 70,
+        sleepMinutes: 320,
+        recoveryScore: 35,
+        strainScore: 16
+      });
+      expect(capturedInputs[0]?.personalizationContext.healthPlanningContext?.signals).toMatchObject({
+        lowSleep: true,
+        highActivityYesterday: true,
+        recentWorkout: true
+      });
+      expect(plan.body.plan.debug.wearableContext).toEqual({
+        source: HealthProvider.MOCK,
+        hasRecentData: true,
+        isStale: false,
+        localDate: planLocalDate
+      });
+      expect(plan.body.plan.debug.wearableContext.steps).toBeUndefined();
+      expect(plan.body.plan.debug.wearableContext.sleepMinutes).toBeUndefined();
+      expect(plan.body.plan.recovery.recommendation).toContain('wearable');
+      expect(plan.body.plan.nutritionTargetSnapshot).toBeTruthy();
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();

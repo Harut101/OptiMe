@@ -83,3 +83,16 @@ The backend validates the regenerated full food plan before writing it. Failed m
 Workout sessions are linked to a saved Daily Plan and snapshot the current `training.exercises` list at session start. This preserves the execution record even if a future plan regeneration or ExerciseLibrary update changes recommendations later.
 
 Daily Plans with `training.intensity=REST` or no exercises cannot start workout execution.
+
+## Wearable Context
+
+Daily Plan generation can now receive an optional `healthPlanningContext.wearableContext` from `WearableDailySnapshot`.
+
+Behavior:
+
+- No snapshot preserves existing generation behavior.
+- Fresh snapshots may add conservative context for activity, sleep, recovery, and strain.
+- Stale snapshots are marked stale and should not drive strong personalization.
+- Plan debug may store only safe wearable metadata: source, freshness, stale flag, and local date.
+
+Wearable context must never create medical diagnosis language, extreme nutrition changes, or automatic training blocks. It is additional wellness context only.

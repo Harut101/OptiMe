@@ -36,3 +36,7 @@ Workout History + Session Summary MVP adds completed workout summaries, complete
 ## Food Tracking MVP
 
 Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact loop for structured meal plans. It records planned/eaten/partial/skipped meal statuses without custom calorie logging, photo analysis, or AI personalization from history yet.
+
+## Health Integrations Foundation
+
+Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Real native permissions, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.

@@ -10,6 +10,7 @@ import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
+import { getTodayWearableSnapshot } from '@/api/health';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
@@ -67,6 +68,10 @@ export default function TodayScreen() {
     queryKey: ['food-log', today.data?.id],
     queryFn: () => getFoodLog(today.data!.id),
     enabled: Boolean(today.data?.plan.nutrition.foodPlan)
+  });
+  const wearableSnapshot = useQuery({
+    queryKey: ['wearable-snapshot', 'today'],
+    queryFn: getTodayWearableSnapshot
   });
   const usage = useQuery({
     queryKey: ['usage-summary'],
@@ -144,6 +149,7 @@ export default function TodayScreen() {
       today.refetch(),
       usage.refetch(),
       nutritionTarget.refetch(),
+      wearableSnapshot.refetch(),
       progressivePrompt.refetch()
     ];
 
@@ -160,6 +166,7 @@ export default function TodayScreen() {
     today.isRefetching ||
     usage.isRefetching ||
     nutritionTarget.isRefetching ||
+    wearableSnapshot.isRefetching ||
     progressivePrompt.isRefetching ||
     workoutSession.isRefetching ||
     foodLog.isRefetching;
@@ -224,6 +231,13 @@ export default function TodayScreen() {
           onSkip={() => skipPrompt.mutate(progressivePrompt.data!.key)}
         />
       ) : null}
+
+      <WearableContextNote
+        hasPlan={Boolean(today.data?.plan)}
+        hasSnapshot={Boolean(wearableSnapshot.data?.snapshot)}
+        hasRecentData={Boolean(wearableSnapshot.data?.hasRecentData)}
+        isUnavailable={wearableSnapshot.isError}
+      />
 
       {!today.data || !plan ? (
         <>
@@ -322,6 +336,37 @@ export default function TodayScreen() {
         </>
       )}
     </Screen>
+  );
+}
+
+function WearableContextNote({
+  hasPlan,
+  hasSnapshot,
+  hasRecentData,
+  isUnavailable
+}: {
+  hasPlan: boolean;
+  hasSnapshot: boolean;
+  hasRecentData: boolean;
+  isUnavailable: boolean;
+}) {
+  const { t } = useTranslation();
+
+  if (!hasPlan || isUnavailable) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <Text variant="label">{t('health.wearableSnapshot')}</Text>
+      <Text variant="muted">
+        {hasSnapshot && hasRecentData
+          ? t('health.wearableDataConnected')
+          : hasSnapshot
+            ? t('health.wearableDataStale')
+            : t('health.noRecentWearableData')}
+      </Text>
+    </Card>
   );
 }
 

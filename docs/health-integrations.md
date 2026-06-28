@@ -173,6 +173,43 @@ In Batch 5, planning uses only compact health context:
 
 Planning does not use weight, heart-rate fields, raw samples, or permission payloads.
 
+## Health Integrations Foundation + WearableDailySnapshot
+
+The current foundation adds a provider-neutral `WearableDailySnapshot` path for future Apple Health, Health Connect, WHOOP, manual, and mock sources. It does not add real OAuth, native permission prompts, background sync, provider tokens, or external wearable API calls.
+
+Backend sources:
+
+- `APPLE_HEALTH`
+- `HEALTH_CONNECT`
+- `WHOOP`
+- `MANUAL`
+- `MOCK`
+
+Connection status is managed through `/v1/health/connections` and maps legacy `DISCONNECTED` rows to the foundation-facing `NOT_CONNECTED` state. Connection responses intentionally expose only safe metadata: source, status, connected/sync timestamps, and a short error code.
+
+Snapshot APIs:
+
+- `GET /v1/health/connections`
+- `PATCH /v1/health/connections/:source/status`
+- `GET /v1/health/wearable-snapshots/today`
+- `GET /v1/health/wearable-snapshots?date=YYYY-MM-DD`
+- `POST /v1/health/wearable-snapshots/mock`
+
+The mock snapshot endpoint is for development and tests. In production it is unavailable unless explicitly enabled with `ENABLE_MOCK_HEALTH_DATA=true`.
+
+Planning remains optional:
+
+- No snapshot: existing profile, preferences, schedule, protocol, and check-in behavior remains unchanged.
+- Fresh snapshot: planning context receives compact activity/sleep/recovery/strain fields.
+- Stale snapshot: planning context marks it stale and avoids overfitting.
+
+Safe observability:
+
+- Logs may include source, status, local date, stale/fresh, and whether wearable context was used.
+- Logs must not include provider tokens, auth tokens, raw provider responses, full profiles, exact HRV/RHR values, or medical interpretations.
+
+The mobile Health Connections screen shows foundation cards for Apple Health, Health Connect, and WHOOP, plus a development-only mock snapshot action. It does not request native permissions or start OAuth.
+
 ## Official Documentation References
 
 - Expo development builds: https://docs.expo.dev/develop/development-builds/introduction/

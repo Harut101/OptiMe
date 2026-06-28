@@ -1,17 +1,37 @@
 import { apiRequest } from './client';
 import type {
   ConnectHealthRequest,
+  CreateMockWearableSnapshotRequest,
   DeleteHealthDataRequest,
   DeleteHealthDataResponse,
   DisconnectHealthRequest,
+  HealthConnectionFoundation,
+  HealthConnectionsResponse,
+  HealthProvider,
   HealthConnection,
   HealthDailySummaryRequest,
   HealthStatusResponse,
-  UpsertHealthDailySummaryResponse
+  UpdateHealthConnectionStatusRequest,
+  UpsertHealthDailySummaryResponse,
+  WearableSnapshotResponse
 } from '@/types/api';
 
 export function getHealthStatus() {
   return apiRequest<HealthStatusResponse>('/health/status');
+}
+
+export function getHealthConnections() {
+  return apiRequest<HealthConnectionsResponse>('/health/connections');
+}
+
+export function updateHealthConnectionStatus(
+  source: HealthProvider,
+  request: UpdateHealthConnectionStatusRequest
+) {
+  return apiRequest<HealthConnectionFoundation>(`/health/connections/${source}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(request)
+  });
 }
 
 export function connectHealthProvider(request: ConnectHealthRequest) {
@@ -37,6 +57,21 @@ export function deleteHealthData(request: DeleteHealthDataRequest) {
 
 export function upsertHealthDailySummary(request: HealthDailySummaryRequest) {
   return apiRequest<UpsertHealthDailySummaryResponse>('/health/daily-summary', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+}
+
+export function getTodayWearableSnapshot() {
+  return apiRequest<WearableSnapshotResponse>('/health/wearable-snapshots/today');
+}
+
+export function getWearableSnapshot(date: string) {
+  return apiRequest<WearableSnapshotResponse>(`/health/wearable-snapshots?date=${encodeURIComponent(date)}`);
+}
+
+export function createMockWearableSnapshot(request: CreateMockWearableSnapshotRequest = {}) {
+  return apiRequest<WearableSnapshotResponse>('/health/wearable-snapshots/mock', {
     method: 'POST',
     body: JSON.stringify(request)
   });

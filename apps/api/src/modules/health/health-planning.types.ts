@@ -1,6 +1,19 @@
 export interface HealthPlanningContext {
   available: boolean;
   daysReviewed: number;
+  wearableContext?: {
+    source: 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+    hasRecentData: boolean;
+    isStale: boolean;
+    localDate: string;
+    steps?: number;
+    activeCaloriesKcal?: number;
+    workoutMinutes?: number;
+    sleepMinutes?: number;
+    sleepQualityScore?: number;
+    recoveryScore?: number;
+    strainScore?: number;
+  };
   latestSummary?: {
     localDate: string;
     steps?: number;
@@ -35,4 +48,3 @@ export const EMPTY_HEALTH_PLANNING_CONTEXT: HealthPlanningContext = {
   },
   selectionNotes: []
 };
-

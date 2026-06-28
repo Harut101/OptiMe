@@ -57,3 +57,9 @@ Food tracking strings live under `foodTracking` in all supported mobile locales:
 - `zh-CN`
 
 Keep completion language neutral and supportive. Avoid shame-based wording around skipped or partial meals.
+
+## Health Connections Localization
+
+Health Connections foundation strings live under `health` in all supported mobile locales. This includes connection status, provider descriptions, wearable snapshot states, mock-data development copy, and accessibility labels.
+
+Use `getHealthProviderLabel` for stable provider enums: `APPLE_HEALTH`, `HEALTH_CONNECT`, `WHOOP`, `MANUAL`, and `MOCK`. Do not concatenate provider names with English status fragments.

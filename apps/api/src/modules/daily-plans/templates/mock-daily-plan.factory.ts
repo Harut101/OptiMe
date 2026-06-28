@@ -3,6 +3,7 @@ import type { NutritionTarget } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plan-json.schema';
 import type { GenerateDailyPlanExerciseSelection } from '../../ai/ai-provider.interface';
+import type { HealthPlanningContext } from '../../health/health-planning.types';
 
 export interface MockDailyPlanInput {
   planLocalDate: string;
@@ -13,6 +14,7 @@ export interface MockDailyPlanInput {
   trainingEnabled?: boolean;
   exerciseSelection?: GenerateDailyPlanExerciseSelection;
   nutritionTarget?: NutritionTarget;
+  healthPlanningContext?: HealthPlanningContext;
 }
 
 export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
@@ -79,17 +81,55 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
           ? createLibraryExercises(input.exerciseSelection)
           : createExercises(planQualityMode)
     },
-    recovery: {
-      recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',
-      sleepTip: 'Give yourself a realistic wind-down window tonight.',
-      mobilityTip: 'Add gentle mobility if it feels good.'
-    },
+    recovery: getRecoveryGuidance(input.healthPlanningContext),
     reminders: ['Hydrate regularly', 'Eat after training', 'Keep your evening routine calm'],
     debug: {
       provider: 'mock',
       generatedBy: 'MockAiProviderService',
       planQualityMode
     }
+  };
+}
+
+function getRecoveryGuidance(
+  healthPlanningContext?: HealthPlanningContext
+): DailyPlanJson['recovery'] {
+  const wearableContext = healthPlanningContext?.wearableContext;
+  if (wearableContext?.hasRecentData) {
+    if (
+      Boolean(healthPlanningContext?.signals.lowSleep) ||
+      (wearableContext.recoveryScore ?? 100) < 40 ||
+      (wearableContext.strainScore ?? 0) >= 15
+    ) {
+      return {
+        recommendation:
+          'Recent wearable signals suggest keeping recovery simple and intensity conservative today.',
+        sleepTip: 'Aim for a calm wind-down and enough time in bed tonight.',
+        mobilityTip: 'Choose gentle mobility or an easy walk if it feels comfortable.'
+      };
+    }
+
+    return {
+      recommendation:
+        'Recent wearable signals are available, so today can stay steady while still respecting how you feel.',
+      sleepTip: 'Keep your evening routine predictable.',
+      mobilityTip: 'Add gentle mobility if it feels good.'
+    };
+  }
+
+  if (wearableContext?.isStale) {
+    return {
+      recommendation:
+        'Wearable data is not recent, so recovery guidance uses your saved profile and schedule today.',
+      sleepTip: 'Give yourself a realistic wind-down window tonight.',
+      mobilityTip: 'Add gentle mobility if it feels good.'
+    };
+  }
+
+  return {
+    recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',
+    sleepTip: 'Give yourself a realistic wind-down window tonight.',
+    mobilityTip: 'Add gentle mobility if it feels good.'
   };
 }
 

@@ -18,6 +18,8 @@ The Design System Preview is an internal route and is reachable from Profile set
 Plan Details Training can open the standalone `workout-session` route. This route is not a primary tab; it is a focused execution screen for the selected Daily Plan workout.
 
 Workout history is a standalone route opened from Training and Profile. Completed workout details reuse `workout-session` in read-only mode.
+
+Health Connections are available from Profile / Connections. The current Health data route is a foundation screen for Apple Health, Health Connect, and WHOOP statuses plus development mock snapshots. It does not launch native permissions or OAuth.
 ## Food Tracking Navigation
 
 - Today keeps food tracking read-only with a compact progress card.

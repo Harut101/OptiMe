@@ -37,7 +37,7 @@ const maps = {
   sportType: map<SportType>('sportType', ['RUNNING', 'CYCLING', 'GYM', 'STRENGTH', 'HIIT', 'YOGA', 'SWIMMING', 'WALKING', 'TEAM_SPORT', 'OTHER']),
   intensity: map<IntensityLevel>('intensity', ['LOW', 'MODERATE', 'HIGH']),
   measurementSystem: map<'METRIC' | 'IMPERIAL'>('measurementSystem', ['METRIC', 'IMPERIAL']),
-  healthProvider: map<HealthProvider>('healthProvider', ['APPLE_HEALTH', 'HEALTH_CONNECT']),
+  healthProvider: map<HealthProvider>('healthProvider', ['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'MANUAL', 'MOCK']),
   subscriptionPlan: map<SubscriptionPlan>('subscriptionPlan', ['FREE', 'PLUS', 'PRO']),
   planQualityMode: map<PlanQualityMode>('planQualityMode', ['BASIC', 'PERSONALIZED', 'ADAPTIVE']),
   exerciseEquipment: map<ExerciseEquipment>('exerciseEquipment', ['NONE', 'BODYWEIGHT', 'DUMBBELLS', 'BARBELL', 'KETTLEBELL', 'RESISTANCE_BANDS', 'MACHINES', 'BENCH', 'PULL_UP_BAR', 'CABLE_MACHINE', 'CARDIO_MACHINE']),

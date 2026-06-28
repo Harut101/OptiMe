@@ -41,4 +41,42 @@ export const frFR = createLocaleResource({
     exerciseCategory: { STRENGTH: 'Force', MOBILITY: 'Mobilité', CARDIO: 'Cardio', RECOVERY: 'Récupération' },
     movementPattern: { SQUAT: 'Squat', HINGE: 'Charnière de hanche', HORIZONTAL_PUSH: 'Poussée horizontale', VERTICAL_PUSH: 'Poussée verticale', HORIZONTAL_PULL: 'Tirage horizontal', VERTICAL_PULL: 'Tirage vertical', LUNGE: 'Fente', CARRY: 'Porté', ROTATION: 'Rotation', ANTI_ROTATION: 'Anti-rotation', CORE_FLEXION: 'Flexion du tronc', CORE_STABILITY: 'Stabilité du tronc', ISOLATION: 'Isolation', MOBILITY: 'Mobilité', CARDIO: 'Cardio', RECOVERY: 'Récupération' }
   }
+}, {
+  health: {
+    connectionsTitle: 'Connexions santé',
+    connectionsIntro: 'Les intégrations santé aideront OptiMe à personnaliser nutrition, entraînement et récupération avec activité, sommeil et signaux de récupération.',
+    optional: 'Facultatif. Vous pouvez continuer sans connecter de données de santé.',
+    loadingConnections: 'Chargement des connexions santé.',
+    appleHealthDescription: 'Fondation pour Apple Health. Les vraies autorisations arriveront plus tard.',
+    healthConnect: 'Health Connect',
+    healthConnectDescription: 'Fondation pour Health Connect sur Android. Les vraies autorisations arriveront plus tard.',
+    whoopDescription: 'Fondation pour WHOOP. OAuth et synchronisation arriveront plus tard.',
+    wearableSnapshot: 'Instantané wearable',
+    wearableDataConnected: 'Les données wearable récentes peuvent aider à adapter le plan.',
+    wearableDataStale: 'Les données wearable ne sont pas récentes, donc le plan reste prudent.',
+    noRecentWearableData: 'Aucune donnée wearable récente',
+    noRecentWearableDataHelp: 'Le plan utilise votre profil, vos préférences et votre planning.',
+    activity: 'Activité',
+    sleep: 'Sommeil',
+    recovery: 'Récupération',
+    strain: 'Charge',
+    steps: 'Pas',
+    activeCalories: 'Calories actives',
+    sleepDuration: 'Durée de sommeil',
+    recoveryScore: 'Score de récupération',
+    mockData: 'Données de santé mock',
+    mockDataHelp: 'Réservé au développement pour tester les plans avec un instantané wearable.',
+    createMockSnapshot: 'Créer un instantané mock',
+    mockSnapshotCreated: 'Instantané mock créé.',
+    mockSnapshotFailed: 'Impossible de créer l’instantané mock.',
+    connectionAccessibility: '{{provider}}, statut {{status}}',
+    snapshotAccessibility: 'Instantané {{source}} pour {{date}}',
+    noConnectedSource: 'Aucune source santé connectée pour le moment.',
+    connectSourceToSync: 'Connectez une source pour synchroniser les données santé.',
+    needsAttention: 'Attention requise',
+    disabled: 'Désactivé',
+    comingSoon: 'Bientôt disponible',
+    lastSynced: 'Dernière synchronisation : {{value}}'
+  },
+  enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Manuel', MOCK: 'Mock' } }
 });

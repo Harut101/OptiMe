@@ -58,7 +58,10 @@ export class NutritionTargetsService {
         : null,
       plannedWorkoutIntensity: dayType === 'TRAINING_DAY' ? 'MODERATE' : null,
       normalActivityLevel: profile?.activityLevel ?? null,
-      inheritedScheduleFields: input.resolvedTrainingDay.inheritedFields
+      inheritedScheduleFields: input.resolvedTrainingDay.inheritedFields,
+      ...(input.healthPlanningContext.wearableContext
+        ? { wearableContext: input.healthPlanningContext.wearableContext }
+        : {})
     };
 
     if (!profile) {
@@ -82,6 +85,9 @@ export class NutritionTargetsService {
     }
     if (input.healthPlanningContext.signals.lowSleep) {
       safetyWarnings.push('Recent sleep signals suggest keeping targets steady and training support gentle.');
+    }
+    if (input.healthPlanningContext.wearableContext?.isStale) {
+      safetyWarnings.push('Recent wearable data is stale, so nutrition targets use profile and schedule first.');
     }
 
     const maintenanceEstimateKcal = this.roundToNearest(

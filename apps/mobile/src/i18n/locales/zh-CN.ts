@@ -41,4 +41,42 @@ export const zhCN = createLocaleResource({
     exerciseCategory: { STRENGTH: '力量', MOBILITY: '灵活性', CARDIO: '有氧', RECOVERY: '恢复' },
     movementPattern: { SQUAT: '深蹲', HINGE: '髋部铰链', HORIZONTAL_PUSH: '水平推', VERTICAL_PUSH: '垂直推', HORIZONTAL_PULL: '水平拉', VERTICAL_PULL: '垂直拉', LUNGE: '弓步', CARRY: '负重行走', ROTATION: '旋转', ANTI_ROTATION: '抗旋转', CORE_FLEXION: '核心屈曲', CORE_STABILITY: '核心稳定', ISOLATION: '孤立动作', MOBILITY: '灵活性', CARDIO: '有氧', RECOVERY: '恢复' }
   }
+}, {
+  health: {
+    connectionsTitle: '健康连接',
+    connectionsIntro: '健康集成将帮助 OptiMe 使用活动、睡眠和恢复信号来个性化饮食、训练和恢复建议。',
+    optional: '可选。即使不连接健康数据，应用也可以正常使用。',
+    loadingConnections: '正在加载健康连接。',
+    appleHealthDescription: 'Apple 健康基础支持。真实权限将在后续加入。',
+    healthConnect: 'Health Connect',
+    healthConnectDescription: 'Android Health Connect 基础支持。真实权限将在后续加入。',
+    whoopDescription: 'WHOOP 基础支持。OAuth 和同步将在后续加入。',
+    wearableSnapshot: '可穿戴数据快照',
+    wearableDataConnected: '近期可穿戴数据可帮助调整计划。',
+    wearableDataStale: '可穿戴数据不是最新，因此计划会保持保守。',
+    noRecentWearableData: '暂无近期可穿戴数据',
+    noRecentWearableDataHelp: '计划将使用你的资料、偏好和日程。',
+    activity: '活动',
+    sleep: '睡眠',
+    recovery: '恢复',
+    strain: '负荷',
+    steps: '步数',
+    activeCalories: '活动卡路里',
+    sleepDuration: '睡眠时长',
+    recoveryScore: '恢复评分',
+    mockData: '模拟健康数据',
+    mockDataHelp: '仅用于开发测试含可穿戴快照的计划。',
+    createMockSnapshot: '创建模拟快照',
+    mockSnapshotCreated: '模拟快照已创建。',
+    mockSnapshotFailed: '无法创建模拟快照。',
+    connectionAccessibility: '{{provider}}，状态 {{status}}',
+    snapshotAccessibility: '{{source}} 在 {{date}} 的快照',
+    noConnectedSource: '还没有连接健康数据来源。',
+    connectSourceToSync: '连接来源后即可同步健康数据。',
+    needsAttention: '需要注意',
+    disabled: '已禁用',
+    comingSoon: '即将推出',
+    lastSynced: '上次同步：{{value}}'
+  },
+  enums: { healthProvider: { APPLE_HEALTH: 'Apple 健康', HEALTH_CONNECT: '健康互联', WHOOP: 'WHOOP', MANUAL: '手动', MOCK: '模拟' } }
 });
