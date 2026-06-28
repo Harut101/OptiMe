@@ -35,7 +35,9 @@ import type {
   ToggleWorkoutSetRequest,
   UpdateWorkoutExerciseProgressRequest,
   WorkoutExerciseProgressResponse,
+  WorkoutSessionHistoryResponse,
   WorkoutSessionResponse,
+  WorkoutSessionSummary,
   WorkoutSessionStatus
 } from '@optime/shared-types';
 import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
@@ -70,7 +72,9 @@ export type {
   ToggleWorkoutSetRequest,
   UpdateWorkoutExerciseProgressRequest,
   WorkoutExerciseProgressResponse,
+  WorkoutSessionHistoryResponse,
   WorkoutSessionResponse,
+  WorkoutSessionSummary,
   WorkoutSessionStatus,
   TrainingPreferenceResponse
 } from '@optime/shared-types';

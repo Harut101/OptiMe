@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -9,6 +9,7 @@ import { CompleteWorkoutSessionDto } from './dto/complete-workout-session.dto';
 import { StartWorkoutSessionDto } from './dto/start-workout-session.dto';
 import { ToggleWorkoutSetDto } from './dto/toggle-workout-set.dto';
 import { UpdateWorkoutExerciseProgressDto } from './dto/update-workout-exercise-progress.dto';
+import { WorkoutHistoryQueryDto } from './dto/workout-history-query.dto';
 import { WorkoutSessionsService } from './workout-sessions.service';
 
 @UseGuards(JwtAuthGuard)
@@ -27,6 +28,22 @@ export class WorkoutSessionsController {
     @Param('dailyPlanId') dailyPlanId: string
   ) {
     return this.workoutSessionsService.getByPlan(user.userId, dailyPlanId);
+  }
+
+  @Get('history')
+  getHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: WorkoutHistoryQueryDto
+  ) {
+    return this.workoutSessionsService.getHistory(user.userId, query);
+  }
+
+  @Get(':sessionId/summary')
+  getSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sessionId') sessionId: string
+  ) {
+    return this.workoutSessionsService.getSummary(user.userId, sessionId);
   }
 
   @Get(':sessionId')

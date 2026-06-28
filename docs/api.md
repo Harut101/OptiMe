@@ -16,3 +16,12 @@ POST /v1/workout-sessions/:sessionId/complete
 `POST /v1/workout-sessions` is idempotent for `userId + dailyPlanId`. It returns the existing session if one already exists.
 
 Workout Session errors should remain friendly and must not expose raw user IDs, profile data, prompts, tokens, or secrets.
+
+History and summary endpoints:
+
+```txt
+GET /v1/workout-sessions/history
+GET /v1/workout-sessions/:sessionId/summary
+```
+
+History returns completed sessions only, newest first, with safe summary DTOs and cursor pagination. Summary/detail responses must not leak raw `DailyPlan.planJson`.

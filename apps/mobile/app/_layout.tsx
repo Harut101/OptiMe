@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="meal-details" options={{ title: t('navigation.mealDetails'), headerBackTitle: t('tabs.food') }} />
         <Stack.Screen name="exercise-details" options={{ title: t('plan.exerciseDetailsTitle'), headerBackTitle: t('navigation.planDetails') }} />
         <Stack.Screen name="workout-session" options={{ title: t('workout.title'), headerBackTitle: t('navigation.planDetails') }} />
+        <Stack.Screen name="workout-history" options={{ title: t('workout.workoutHistory'), headerBackTitle: t('tabs.training') }} />
         <Stack.Screen name="health-data" options={{ title: t('navigation.healthData'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="goal-editor" options={{ title: t('navigation.goals'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="design-system-preview" options={{ title: t('navigation.designSystem'), headerBackTitle: t('tabs.profile') }} />

@@ -154,6 +154,12 @@ export default function TrainingScreen() {
     <Screen>
       <Text variant="heading">{t('training.title')}</Text>
       <Text variant="muted">{t('training.intro')}</Text>
+      <Button
+        title={t('workout.workoutHistory')}
+        variant="secondary"
+        accessibilityLabel={t('workout.openWorkoutHistory')}
+        onPress={() => router.push('/workout-history')}
+      />
       <SelectChips
         label={t('training.section')}
         value={section}

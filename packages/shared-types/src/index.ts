@@ -823,6 +823,30 @@ export interface CompleteWorkoutSessionRequest {
   confirmPartialCompletion?: boolean;
 }
 
+export interface WorkoutSessionSummary {
+  id: string;
+  dailyPlanId: string;
+  status: WorkoutSessionStatus;
+  localDate: string;
+  startedAt: string;
+  completedAt: string | null;
+  plannedExerciseCount: number;
+  completedExerciseCount: number;
+  plannedSetCount: number;
+  completedSetCount: number;
+  isPartial: boolean;
+  title: string;
+  subtitle: string | null;
+  primaryMuscleGroups: string[];
+  environment: string | null;
+  durationMinutes: number | null;
+}
+
+export interface WorkoutSessionHistoryResponse {
+  items: WorkoutSessionSummary[];
+  nextCursor: string | null;
+}
+
 export interface WorkoutExerciseProgressResponse {
   id: string;
   workoutSessionId: string;
@@ -843,9 +867,9 @@ export interface WorkoutExerciseProgressResponse {
 
 export interface WorkoutSessionResponse {
   id: string;
-  userId: string;
   dailyPlanId: string;
   status: WorkoutSessionStatus;
+  summary: WorkoutSessionSummary;
   startedAt: string;
   completedAt: string | null;
   plannedExerciseCount: number;

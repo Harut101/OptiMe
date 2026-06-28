@@ -168,6 +168,16 @@ function PersonalSection() {
               onPress={() => router.push('/goal-editor')}
             />
           </Card>
+          <Card>
+            <Text variant="label">{t('workout.completedWorkouts')}</Text>
+            <Text variant="muted">{t('workout.historyHelp')}</Text>
+            <Button
+              title={t('workout.workoutHistory')}
+              variant="secondary"
+              accessibilityLabel={t('workout.openWorkoutHistory')}
+              onPress={() => router.push('/workout-history')}
+            />
+          </Card>
           <Button title={t('common.edit')} variant="secondary" onPress={() => { setMessage(null); setEditing(true); }} />
         </>
       )}

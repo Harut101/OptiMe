@@ -19,6 +19,13 @@ import { Screen } from '@/components/Screen';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getExerciseMediaDisplayUrl } from '@/features/daily-plan/exercise-media-url';
+import {
+  formatWorkoutDate,
+  formatWorkoutExerciseCount,
+  formatWorkoutFocus,
+  formatWorkoutSetCount,
+  formatWorkoutTime
+} from '@/features/workout/workout-summary';
 import { colors } from '@/theme/colors';
 import type { WorkoutExerciseProgressResponse, WorkoutSessionResponse } from '@/types/api';
 
@@ -47,6 +54,7 @@ export default function WorkoutSessionScreen() {
   const updateSessionCache = (next: WorkoutSessionResponse) => {
     queryClient.setQueryData(['workout-session', next.id], next);
     queryClient.setQueryData(['workout-session-by-plan', next.dailyPlanId], next);
+    queryClient.setQueryData(['workout-session-summary', next.id], next.summary);
   };
   const setMutation = useMutation({
     mutationFn: ({
@@ -87,7 +95,10 @@ export default function WorkoutSessionScreen() {
   const completeMutation = useMutation({
     mutationFn: (confirmPartialCompletion: boolean) =>
       completeWorkoutSession(sessionId!, { confirmPartialCompletion }),
-    onSuccess: updateSessionCache,
+    onSuccess: (next) => {
+      updateSessionCache(next);
+      void queryClient.invalidateQueries({ queryKey: ['workout-history'] });
+    },
     onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
   });
 
@@ -114,19 +125,30 @@ export default function WorkoutSessionScreen() {
 
   const data = session.data;
   const completed = data.status === 'COMPLETED';
-  const isPartial =
-    data.completedSetCount < data.plannedSetCount ||
-    data.completedExerciseCount < data.plannedExerciseCount;
+  const isPartial = data.summary.isPartial;
 
   return (
     <Screen>
       <Text variant="heading">{completed ? t('workout.workoutCompleted') : t('workout.title')}</Text>
+      <Text variant="muted">{formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}</Text>
       <Text variant="muted">{t('workout.progressSummary', {
         completedSets: String(data.completedSetCount),
         totalSets: String(data.plannedSetCount),
         completedExercises: String(data.completedExerciseCount),
         totalExercises: String(data.plannedExerciseCount)
       })}</Text>
+
+      <Card>
+        <Text variant="label">{completed ? t('workout.workoutSummary') : t('workout.progress')}</Text>
+        <Text variant="body">{formatWorkoutFocus(data.summary, t)}</Text>
+        <Text variant="muted">{formatWorkoutSetCount(data.summary, t)}</Text>
+        <Text variant="muted">{formatWorkoutExerciseCount(data.summary, t)}</Text>
+        {data.summary.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
+        <Text variant="muted">{t('workout.startedAt', { time: formatWorkoutTime(data.startedAt, i18n.resolvedLanguage) })}</Text>
+        {data.completedAt ? (
+          <Text variant="muted">{t('workout.completedAt', { time: formatWorkoutTime(data.completedAt, i18n.resolvedLanguage) })}</Text>
+        ) : null}
+      </Card>
 
       <Card>
         <Text variant="label">{t('workout.safetyNote')}</Text>
@@ -136,7 +158,7 @@ export default function WorkoutSessionScreen() {
       {completed ? (
         <Card>
           <Text variant="label">{t('workout.readOnly')}</Text>
-          <Text variant="muted">{t('workout.completedAt', { time: formatDate(data.completedAt) })}</Text>
+          <Text variant="muted">{t('workout.thisWorkoutCompleted')}</Text>
         </Card>
       ) : null}
 
@@ -245,6 +267,7 @@ function WorkoutExerciseCard({
                   total: String(progress.plannedSets),
                   status: checked ? t('workout.complete') : t('workout.incomplete')
                 })}
+                accessibilityHint={completed ? t('workout.readOnly') : undefined}
                 disabled={completed || saving}
                 onPress={() => onToggleSet(index, !checked)}
                 style={({ pressed }) => [
@@ -327,11 +350,6 @@ function formatPrescription(
 function formatSeconds(seconds: number) {
   if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} min`;
   return `${seconds} sec`;
-}
-
-function formatDate(value: string | null) {
-  if (!value) return '';
-  return new Date(value).toLocaleString();
 }
 
 const styles = StyleSheet.create({

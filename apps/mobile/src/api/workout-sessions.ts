@@ -4,6 +4,7 @@ import type {
   StartWorkoutSessionRequest,
   ToggleWorkoutSetRequest,
   UpdateWorkoutExerciseProgressRequest,
+  WorkoutSessionHistoryResponse,
   WorkoutSessionResponse
 } from '@/types/api';
 
@@ -20,6 +21,16 @@ export function getWorkoutSessionByPlan(dailyPlanId: string) {
 
 export function getWorkoutSession(sessionId: string) {
   return apiRequest<WorkoutSessionResponse>(`/workout-sessions/${sessionId}`);
+}
+
+export function getWorkoutSessionSummary(sessionId: string) {
+  return apiRequest<WorkoutSessionResponse['summary']>(`/workout-sessions/${sessionId}/summary`);
+}
+
+export function getWorkoutHistory(limit = 20, cursor?: string) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return apiRequest<WorkoutSessionHistoryResponse>(`/workout-sessions/history?${params.toString()}`);
 }
 
 export function toggleWorkoutSet(

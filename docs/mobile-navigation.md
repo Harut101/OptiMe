@@ -16,3 +16,5 @@ Goal and mode editing uses the existing standalone `goal-editor` route. Mode and
 The Design System Preview is an internal route and is reachable from Profile settings only in development.
 
 Plan Details Training can open the standalone `workout-session` route. This route is not a primary tab; it is a focused execution screen for the selected Daily Plan workout.
+
+Workout history is a standalone route opened from Training and Profile. Completed workout details reuse `workout-session` in read-only mode.

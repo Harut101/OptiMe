@@ -46,6 +46,12 @@ Snapshots are intentionally immutable. Later edits to DailyPlan JSON or Exercise
 
 REST plans and plans without exercises cannot start a workout session.
 
+## Completed Summary And History
+
+Completed sessions expose a server-owned `WorkoutSessionSummary`. The summary includes local date, start/completion times, completed/planned counts, partial state, focus labels, environment, and duration when available.
+
+Workout history lists completed sessions only, newest first. Completed sessions remain read-only when opened from history.
+
 ## API
 
 All endpoints require JWT auth and only return sessions owned by the current user.
@@ -57,6 +63,8 @@ GET /v1/workout-sessions/:sessionId
 PATCH /v1/workout-sessions/:sessionId/exercises/:progressId/sets
 PATCH /v1/workout-sessions/:sessionId/exercises/:progressId
 POST /v1/workout-sessions/:sessionId/complete
+GET /v1/workout-sessions/history
+GET /v1/workout-sessions/:sessionId/summary
 ```
 
 Set progress uses zero-based `setIndex`. Duration/no-set exercises use exercise-level completion and reject set toggles.

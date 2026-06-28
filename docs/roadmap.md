@@ -31,3 +31,5 @@ Food preferences refinement adds disliked-food persistence, standalone `/v1/food
 Still deferred: ingredient database, food tracking, meal completion, grocery list, recipe image generation, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.
 
 Workout Execution MVP adds plan-linked workout sessions, set completion, duration exercise completion, partial-finish confirmation, and Plan Details Training entry points. Still deferred: workout history screens, rest timers, workout notes, RPE, replacing exercises during execution, and analytics.
+
+Workout History + Session Summary MVP adds completed workout summaries, completed-only history, Today/Profile/Training entry points, and read-only completed details. Still deferred: analytics, streaks, achievements, rest timers, RPE, load tracking, and workout notes.

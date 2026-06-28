@@ -7,6 +7,7 @@ import type {
   SupportedLocale,
   TrainingCheckInStatus
 } from '@optime/shared-types';
+import type { WorkoutSessionResponse } from '@optime/shared-types';
 import { useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,6 +20,7 @@ import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
 import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
+import { formatWorkoutSetCount } from '@/features/workout/workout-summary';
 
 interface PlanTabbedContentProps {
   planId: string;
@@ -137,7 +139,7 @@ function TrainingContent(props: PlanTabbedContentProps & {
   summaryById: Map<string, ExerciseListItem>;
   summariesFailed: boolean;
   onRetrySummaries: () => void;
-  workoutSession: import('@optime/shared-types').WorkoutSessionResponse | null;
+  workoutSession: WorkoutSessionResponse | null;
   workoutSessionUnavailable: boolean;
   workoutSessionLoading: boolean;
   workoutStartPending: boolean;
@@ -228,7 +230,7 @@ function WorkoutSessionCard({
   onOpen
 }: {
   t: TFunction;
-  session: import('@optime/shared-types').WorkoutSessionResponse | null;
+  session: WorkoutSessionResponse | null;
   loading: boolean;
   unavailable: boolean;
   startPending: boolean;
@@ -237,19 +239,15 @@ function WorkoutSessionCard({
   onOpen: (sessionId: string) => void;
 }) {
   const completed = session?.status === 'COMPLETED';
-  const progress = session
-    ? t('workout.setsCompleted', {
-        completed: String(session.completedSetCount),
-        total: String(session.plannedSetCount)
-      })
-    : null;
+  const progress = session ? formatWorkoutSetCount(session.summary, t) : null;
 
   return (
     <Card>
-      <Text variant="label">{t('workout.progress')}</Text>
+      <Text variant="label">{completed ? t('workout.workoutCompleted') : t('workout.progress')}</Text>
       {loading ? <Text variant="muted">{t('common.loading')}</Text> : null}
       {unavailable ? <Text variant="muted">{t('workout.statusUnavailable')}</Text> : null}
       {session ? <Text variant="body">{progress}</Text> : <Text variant="muted">{t('workout.readyToStart')}</Text>}
+      {session?.summary.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
       {startFailed ? <Text style={styles.errorText}>{t('workout.saveFailed')}</Text> : null}
       {session ? (
         <Button

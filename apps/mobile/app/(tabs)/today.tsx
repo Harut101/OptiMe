@@ -10,6 +10,7 @@ import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getGoal } from '@/api/goals';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
+import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
   answerProgressivePrompt,
   getNextProgressivePrompt,
@@ -30,6 +31,11 @@ import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
+import {
+  formatWorkoutFocus,
+  formatWorkoutSetCount,
+  getWorkoutAccessibilityLabel
+} from '@/features/workout/workout-summary';
 import type {
   ProgressivePrompt,
   UsageFeature,
@@ -46,6 +52,11 @@ export default function TodayScreen() {
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
+  });
+  const workoutSession = useQuery({
+    queryKey: ['workout-session-by-plan', today.data?.id],
+    queryFn: () => getWorkoutSessionByPlan(today.data!.id),
+    enabled: Boolean(today.data?.id)
   });
   const usage = useQuery({
     queryKey: ['usage-summary'],
@@ -119,18 +130,25 @@ export default function TodayScreen() {
     }
   });
   const handleRefresh = async () => {
-    await Promise.all([
+    const refreshes: Array<Promise<unknown>> = [
       today.refetch(),
       usage.refetch(),
       nutritionTarget.refetch(),
       progressivePrompt.refetch()
-    ]);
+    ];
+
+    if (today.data?.id) {
+      refreshes.push(workoutSession.refetch());
+    }
+
+    await Promise.all(refreshes);
   };
   const refreshing =
     today.isRefetching ||
     usage.isRefetching ||
     nutritionTarget.isRefetching ||
-    progressivePrompt.isRefetching;
+    progressivePrompt.isRefetching ||
+    workoutSession.isRefetching;
 
   if (today.isLoading) {
     return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
@@ -158,6 +176,9 @@ export default function TodayScreen() {
   );
   const refreshUsage = usage.data?.items.find((item) => item.feature === 'DAILY_PLAN_REFRESH');
   const displayedNutritionTarget = plan?.nutritionTargetSnapshot ?? nutritionTarget.data;
+  const completedWorkout = workoutSession.data?.status === 'COMPLETED'
+    ? workoutSession.data.summary
+    : null;
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
@@ -247,6 +268,21 @@ export default function TodayScreen() {
               <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
             </Card>
           )}
+
+          {completedWorkout ? (
+            <Card>
+              <Text variant="label">{t('workout.workoutCompleted')}</Text>
+              <Text variant="body">{formatWorkoutFocus(completedWorkout, t)}</Text>
+              <Text variant="muted">{formatWorkoutSetCount(completedWorkout, t)}</Text>
+              {completedWorkout.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
+              <Button
+                title={t('workout.viewSummary')}
+                variant="secondary"
+                accessibilityLabel={getWorkoutAccessibilityLabel(completedWorkout, t)}
+                onPress={() => router.push({ pathname: '/workout-session' as never, params: { sessionId: completedWorkout.id } })}
+              />
+            </Card>
+          ) : null}
 
           <Card>
             <Text variant="label">{t('today.recovery')}</Text>

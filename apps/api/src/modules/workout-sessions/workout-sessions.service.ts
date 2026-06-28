@@ -12,9 +12,10 @@ import { CompleteWorkoutSessionDto } from './dto/complete-workout-session.dto';
 import { StartWorkoutSessionDto } from './dto/start-workout-session.dto';
 import { ToggleWorkoutSetDto } from './dto/toggle-workout-set.dto';
 import { UpdateWorkoutExerciseProgressDto } from './dto/update-workout-exercise-progress.dto';
+import { WorkoutHistoryQueryDto } from './dto/workout-history-query.dto';
 
 type WorkoutSessionWithProgress = Prisma.WorkoutSessionGetPayload<{
-  include: { exerciseProgress: true };
+  include: { exerciseProgress: true; dailyPlan: true };
 }>;
 
 interface PlannedWorkoutExercise {
@@ -86,7 +87,7 @@ export class WorkoutSessionsService {
             }))
           }
         },
-        include: { exerciseProgress: true }
+        include: { exerciseProgress: true, dailyPlan: true }
       });
 
       this.logger.log(
@@ -112,6 +113,39 @@ export class WorkoutSessionsService {
 
   async getById(userId: string, sessionId: string) {
     return this.toResponse(await this.getOwnedSession(userId, sessionId));
+  }
+
+  async getHistory(userId: string, query: WorkoutHistoryQueryDto) {
+    const limit = query.limit ?? 20;
+    const sessions = await this.prisma.workoutSession.findMany({
+      where: {
+        userId,
+        status: WorkoutSessionStatus.COMPLETED
+      },
+      orderBy: [
+        { completedAt: 'desc' },
+        { updatedAt: 'desc' },
+        { id: 'desc' }
+      ],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      include: { exerciseProgress: true, dailyPlan: true }
+    });
+    const items = sessions.slice(0, limit);
+    const nextCursor = sessions.length > limit ? items[items.length - 1]?.id ?? null : null;
+
+    this.logger.log(
+      `workout history fetched; count=${items.length}; hasNext=${Boolean(nextCursor)}`
+    );
+
+    return {
+      items: items.map((session) => this.toSummary(session)),
+      nextCursor
+    };
+  }
+
+  async getSummary(userId: string, sessionId: string) {
+    return this.toSummary(await this.getOwnedSession(userId, sessionId));
   }
 
   async toggleSet(
@@ -211,7 +245,7 @@ export class WorkoutSessionsService {
         status: WorkoutSessionStatus.COMPLETED,
         completedAt: new Date()
       },
-      include: { exerciseProgress: true }
+      include: { exerciseProgress: true, dailyPlan: true }
     });
 
     this.logger.log(
@@ -241,14 +275,14 @@ export class WorkoutSessionsService {
           dailyPlanId
         }
       },
-      include: { exerciseProgress: true }
+      include: { exerciseProgress: true, dailyPlan: true }
     });
   }
 
   private async getOwnedSession(userId: string, sessionId: string) {
     const session = await this.prisma.workoutSession.findFirst({
       where: { id: sessionId, userId },
-      include: { exerciseProgress: true }
+      include: { exerciseProgress: true, dailyPlan: true }
     });
 
     if (!session) {
@@ -417,9 +451,9 @@ export class WorkoutSessionsService {
 
     return {
       id: session.id,
-      userId: session.userId,
       dailyPlanId: session.dailyPlanId,
       status: session.status,
+      summary: this.toSummary(session),
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() ?? null,
       plannedExerciseCount: session.plannedExerciseCount,
@@ -447,5 +481,75 @@ export class WorkoutSessionsService {
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString()
     };
+  }
+
+  private toSummary(session: WorkoutSessionWithProgress) {
+    const planJson = normalizeDailyPlanJson({
+      planJson: session.dailyPlan.planJson,
+      planLocalDate: session.dailyPlan.planLocalDate,
+      planTimezone: session.dailyPlan.planTimezone,
+      readinessLevel: session.dailyPlan.readinessLevel
+    });
+    const primaryMuscleGroups = this.derivePrimaryMuscleGroups(planJson);
+    const isPartial =
+      session.status === WorkoutSessionStatus.COMPLETED &&
+      (session.completedExerciseCount < session.plannedExerciseCount ||
+        session.completedSetCount < session.plannedSetCount);
+
+    return {
+      id: session.id,
+      dailyPlanId: session.dailyPlanId,
+      status: session.status,
+      localDate: session.dailyPlan.planLocalDate,
+      startedAt: session.startedAt.toISOString(),
+      completedAt: session.completedAt?.toISOString() ?? null,
+      plannedExerciseCount: session.plannedExerciseCount,
+      completedExerciseCount: session.completedExerciseCount,
+      plannedSetCount: session.plannedSetCount,
+      completedSetCount: session.completedSetCount,
+      isPartial,
+      title: primaryMuscleGroups.length
+        ? primaryMuscleGroups.slice(0, 3).join(' + ')
+        : 'Workout',
+      subtitle: isPartial ? 'Partial workout saved' : null,
+      primaryMuscleGroups,
+      environment: planJson.trainingScheduleSnapshot?.environment ?? null,
+      durationMinutes: planJson.trainingScheduleSnapshot?.durationMinutes ?? null
+    };
+  }
+
+  private derivePrimaryMuscleGroups(planJson: ReturnType<typeof normalizeDailyPlanJson>) {
+    const scheduledMuscles = planJson.trainingScheduleSnapshot?.targetMuscles ?? [];
+    if (scheduledMuscles.length) {
+      return this.uniqueSummaryValues(scheduledMuscles.map((item) => String(item)));
+    }
+
+    const exerciseMuscles = (planJson.training.exercises ?? [])
+      .flatMap((exercise) => exercise.targetMuscles ?? [])
+      .map((item) => this.toReadableSummaryValue(String(item)));
+
+    return this.uniqueSummaryValues(exerciseMuscles).slice(0, 4);
+  }
+
+  private uniqueSummaryValues(values: string[]) {
+    const seen = new Set<string>();
+    const unique: string[] = [];
+
+    for (const value of values) {
+      const trimmed = value.trim();
+      if (!trimmed || seen.has(trimmed.toLowerCase())) continue;
+      seen.add(trimmed.toLowerCase());
+      unique.push(trimmed);
+    }
+
+    return unique;
+  }
+
+  private toReadableSummaryValue(value: string) {
+    return value
+      .replace(/_/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 }
