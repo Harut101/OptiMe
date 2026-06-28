@@ -12,6 +12,7 @@ import type {
   HealthDailySummaryRequest,
   HealthStatusResponse,
   UpdateHealthConnectionStatusRequest,
+  UpsertWearableSnapshotRequest,
   UpsertHealthDailySummaryResponse,
   WearableSnapshotResponse
 } from '@/types/api';
@@ -72,6 +73,13 @@ export function getWearableSnapshot(date: string) {
 
 export function createMockWearableSnapshot(request: CreateMockWearableSnapshotRequest = {}) {
   return apiRequest<WearableSnapshotResponse>('/health/wearable-snapshots/mock', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+}
+
+export function upsertWearableSnapshot(request: UpsertWearableSnapshotRequest) {
+  return apiRequest<WearableSnapshotResponse>('/health/wearable-snapshots', {
     method: 'POST',
     body: JSON.stringify(request)
   });

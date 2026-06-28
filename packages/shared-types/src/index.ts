@@ -557,6 +557,23 @@ export interface CreateMockWearableSnapshotRequest {
   capturedAt?: string;
 }
 
+export interface UpsertWearableSnapshotRequest {
+  localDate: string;
+  timezone: string;
+  source: Extract<HealthDataSource, 'APPLE_HEALTH'>;
+  steps?: number | null;
+  activeCaloriesKcal?: number | null;
+  workoutMinutes?: number | null;
+  sleepMinutes?: number | null;
+  sleepQualityScore?: number | null;
+  recoveryScore?: number | null;
+  strainScore?: number | null;
+  restingHeartRateBpm?: number | null;
+  hrvMs?: number | null;
+  respiratoryRate?: number | null;
+  capturedAt?: string;
+}
+
 export type ProgressivePromptInputType = 'stringList' | 'singleSelect' | 'multiSelect' | 'number';
 
 export interface ProgressivePrompt {

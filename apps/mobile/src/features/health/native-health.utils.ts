@@ -1,5 +1,5 @@
 import type { HealthProvider } from '@/types/api';
-import type { NativeHealthDailySummary } from './native-health.types';
+import type { NativeHealthDailySummary, NativeWearableSnapshotInput } from './native-health.types';
 
 export function getDeviceTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -50,6 +50,29 @@ export function sanitizeDailySummary(
   return sanitized;
 }
 
+export function sanitizeWearableSnapshot(
+  snapshot: NativeWearableSnapshotInput
+): NativeWearableSnapshotInput | null {
+  const sanitized: NativeWearableSnapshotInput = {
+    localDate: snapshot.localDate,
+    timezone: snapshot.timezone,
+    source: 'APPLE_HEALTH',
+    steps: sanitizeIntegerOrNull(snapshot.steps, 0, 100000),
+    activeCaloriesKcal: sanitizeIntegerOrNull(snapshot.activeCaloriesKcal, 0, 10000),
+    workoutMinutes: sanitizeIntegerOrNull(snapshot.workoutMinutes, 0, 1440),
+    sleepMinutes: sanitizeIntegerOrNull(snapshot.sleepMinutes, 0, 1440),
+    sleepQualityScore: null,
+    recoveryScore: null,
+    strainScore: null,
+    restingHeartRateBpm: sanitizeIntegerOrNull(snapshot.restingHeartRateBpm, 30, 220),
+    hrvMs: sanitizeIntegerOrNull(snapshot.hrvMs, 1, 300),
+    respiratoryRate: sanitizeNumberOrNull(snapshot.respiratoryRate, 5, 40),
+    capturedAt: snapshot.capturedAt ?? new Date().toISOString()
+  };
+
+  return hasWearableSnapshotData(sanitized) ? sanitized : null;
+}
+
 export function makeEmptyDailySummary(
   provider: HealthProvider,
   localDate: string
@@ -61,6 +84,19 @@ export function makeEmptyDailySummary(
   };
 }
 
+export function makeEmptyWearableSnapshot(
+  provider: Extract<HealthProvider, 'APPLE_HEALTH'>,
+  localDate: string
+): NativeWearableSnapshotInput {
+  return {
+    localDate,
+    timezone: getDeviceTimezone(),
+    source: provider,
+    recoveryScore: null,
+    strainScore: null
+  };
+}
+
 export function hasSummaryData(summary: NativeHealthDailySummary) {
   return (
     summary.steps !== undefined ||
@@ -68,6 +104,18 @@ export function hasSummaryData(summary: NativeHealthDailySummary) {
     summary.activeEnergyKcal !== undefined ||
     summary.workoutCount !== undefined ||
     summary.workoutMinutes !== undefined
+  );
+}
+
+export function hasWearableSnapshotData(snapshot: NativeWearableSnapshotInput) {
+  return (
+    snapshot.steps !== undefined && snapshot.steps !== null ||
+    snapshot.sleepMinutes !== undefined && snapshot.sleepMinutes !== null ||
+    snapshot.activeCaloriesKcal !== undefined && snapshot.activeCaloriesKcal !== null ||
+    snapshot.workoutMinutes !== undefined && snapshot.workoutMinutes !== null ||
+    snapshot.restingHeartRateBpm !== undefined && snapshot.restingHeartRateBpm !== null ||
+    snapshot.hrvMs !== undefined && snapshot.hrvMs !== null ||
+    snapshot.respiratoryRate !== undefined && snapshot.respiratoryRate !== null
   );
 }
 
@@ -94,3 +142,18 @@ function sanitizeInteger(value: number | undefined, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
+function sanitizeIntegerOrNull(value: number | null | undefined, min: number, max: number) {
+  if (value === null) {
+    return null;
+  }
+
+  return sanitizeInteger(value, min, max) ?? null;
+}
+
+function sanitizeNumberOrNull(value: number | null | undefined, min: number, max: number) {
+  if (value === undefined || value === null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.max(min, Math.min(max, value));
+}

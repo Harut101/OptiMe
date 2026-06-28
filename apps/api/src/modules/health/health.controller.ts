@@ -14,6 +14,7 @@ import { GetWearableSnapshotQueryDto } from './dto/get-wearable-snapshot-query.d
 import { HealthSourceParamDto } from './dto/health-source-param.dto';
 import { UpdateHealthConnectionStatusDto } from './dto/update-health-connection-status.dto';
 import { UpsertHealthDailySummaryDto } from './dto/upsert-health-daily-summary.dto';
+import { UpsertWearableSnapshotDto } from './dto/upsert-wearable-snapshot.dto';
 import { HealthService } from './health.service';
 
 @UseGuards(JwtAuthGuard)
@@ -82,6 +83,14 @@ export class HealthController {
     @Body() dto: CreateMockWearableSnapshotDto
   ) {
     return this.healthService.createMockWearableSnapshot(user.userId, dto);
+  }
+
+  @Post('wearable-snapshots')
+  upsertWearableSnapshot(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpsertWearableSnapshotDto
+  ) {
+    return this.healthService.upsertWearableSnapshot(user.userId, dto);
   }
 
   @Post('daily-summary')

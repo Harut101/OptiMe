@@ -75,7 +75,9 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
         activeEnergy: hasPermission(granted, 'ActiveCaloriesBurned'),
         weight: false,
         heartRate: false,
-        restingHeartRate: false
+        restingHeartRate: false,
+        hrv: false,
+        respiratoryRate: false
       };
     } catch {
       return emptyPermissions();
@@ -171,7 +173,9 @@ function emptyPermissions(): NativeHealthPermissions {
     activeEnergy: false,
     weight: false,
     heartRate: false,
-    restingHeartRate: false
+    restingHeartRate: false,
+    hrv: false,
+    respiratoryRate: false
   };
 }
 

@@ -92,6 +92,7 @@ Behavior:
 
 - No snapshot preserves existing generation behavior.
 - Fresh snapshots may add conservative context for activity, sleep, recovery, and strain.
+- Apple Health snapshots can provide steps, active calories, workout minutes, sleep minutes, resting heart rate, HRV, and respiratory rate, but Daily Plan prompt/debug context must only expose compact safe metadata and planning signals.
 - Stale snapshots are marked stale and should not drive strong personalization.
 - Plan debug may store only safe wearable metadata: source, freshness, stale flag, and local date.
 

@@ -390,6 +390,8 @@ export interface HealthPermissions {
   weight?: boolean;
   heartRate?: boolean;
   restingHeartRate?: boolean;
+  hrv?: boolean;
+  respiratoryRate?: boolean;
 }
 
 export interface HealthConnection {
@@ -518,5 +520,22 @@ export interface CreateMockWearableSnapshotRequest {
   restingHeartRateBpm?: number;
   hrvMs?: number;
   respiratoryRate?: number;
+  capturedAt?: string;
+}
+
+export interface UpsertWearableSnapshotRequest {
+  localDate: string;
+  timezone: string;
+  source: Extract<HealthDataSource, 'APPLE_HEALTH'>;
+  steps?: number | null;
+  activeCaloriesKcal?: number | null;
+  workoutMinutes?: number | null;
+  sleepMinutes?: number | null;
+  sleepQualityScore?: number | null;
+  recoveryScore?: number | null;
+  strainScore?: number | null;
+  restingHeartRateBpm?: number | null;
+  hrvMs?: number | null;
+  respiratoryRate?: number | null;
   capturedAt?: string;
 }

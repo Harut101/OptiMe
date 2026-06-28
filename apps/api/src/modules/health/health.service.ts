@@ -9,6 +9,7 @@ import { CreateMockWearableSnapshotDto } from './dto/create-mock-wearable-snapsh
 import { HealthPermissionsDto } from './dto/health-permissions.dto';
 import { UpdateHealthConnectionStatusDto } from './dto/update-health-connection-status.dto';
 import { UpsertHealthDailySummaryDto } from './dto/upsert-health-daily-summary.dto';
+import { UpsertWearableSnapshotDto } from './dto/upsert-wearable-snapshot.dto';
 import { EMPTY_HEALTH_PLANNING_CONTEXT, HealthPlanningContext } from './health-planning.types';
 
 const HEALTH_PROVIDERS = [HealthProvider.APPLE_HEALTH, HealthProvider.HEALTH_CONNECT] as const;
@@ -277,6 +278,66 @@ export class HealthService {
       snapshot: this.toWearableSnapshotResponse(saved, timezone),
       hasRecentData: !this.isSnapshotStale(saved.capturedAt, saved.localDate, timezone),
       messageCode: this.isSnapshotStale(saved.capturedAt, saved.localDate, timezone)
+        ? 'WEARABLE_DATA_STALE' as const
+        : 'WEARABLE_DATA_CONNECTED' as const
+    };
+  }
+
+  async upsertWearableSnapshot(userId: string, dto: UpsertWearableSnapshotDto) {
+    const capturedAt = dto.capturedAt ? new Date(dto.capturedAt) : new Date();
+    const saved = await this.prisma.wearableDailySnapshot.upsert({
+      where: {
+        userId_source_localDate: {
+          userId,
+          source: dto.source,
+          localDate: dto.localDate
+        }
+      },
+      update: this.toWearableSnapshotWriteData(
+        dto,
+        dto.localDate,
+        dto.timezone,
+        capturedAt,
+        dto.source
+      ),
+      create: {
+        userId,
+        ...this.toWearableSnapshotWriteData(
+          dto,
+          dto.localDate,
+          dto.timezone,
+          capturedAt,
+          dto.source
+        )
+      }
+    });
+
+    await this.prisma.healthConnection.upsert({
+      where: { userId_provider: { userId, provider: dto.source } },
+      update: {
+        status: HealthConnectionStatus.CONNECTED,
+        consentedAt: new Date(),
+        disconnectedAt: null,
+        lastSyncAt: new Date(),
+        errorReason: null
+      },
+      create: {
+        userId,
+        provider: dto.source,
+        status: HealthConnectionStatus.CONNECTED,
+        consentedAt: new Date(),
+        lastSyncAt: new Date()
+      }
+    });
+
+    this.logger.log(
+      `wearable snapshot synced; source=${dto.source}; localDate=${dto.localDate}; fieldsPresent=${this.countPresentWearableFields(dto)}; stale=${this.isSnapshotStale(saved.capturedAt, saved.localDate, dto.timezone)}`
+    );
+
+    return {
+      snapshot: this.toWearableSnapshotResponse(saved, dto.timezone),
+      hasRecentData: !this.isSnapshotStale(saved.capturedAt, saved.localDate, dto.timezone),
+      messageCode: this.isSnapshotStale(saved.capturedAt, saved.localDate, dto.timezone)
         ? 'WEARABLE_DATA_STALE' as const
         : 'WEARABLE_DATA_CONNECTED' as const
     };
@@ -558,7 +619,7 @@ export class HealthService {
   }
 
   private toWearableSnapshotWriteData(
-    dto: CreateMockWearableSnapshotDto,
+    dto: CreateMockWearableSnapshotDto | UpsertWearableSnapshotDto,
     localDate: string,
     timezone: string,
     capturedAt: Date,
@@ -580,6 +641,21 @@ export class HealthService {
       respiratoryRate: dto.respiratoryRate ?? null,
       capturedAt
     };
+  }
+
+  private countPresentWearableFields(dto: CreateMockWearableSnapshotDto | UpsertWearableSnapshotDto) {
+    return [
+      dto.steps,
+      dto.activeCaloriesKcal,
+      dto.workoutMinutes,
+      dto.sleepMinutes,
+      dto.sleepQualityScore,
+      dto.recoveryScore,
+      dto.strainScore,
+      dto.restingHeartRateBpm,
+      dto.hrvMs,
+      dto.respiratoryRate
+    ].filter((value) => value !== undefined && value !== null).length;
   }
 
   private toWearableSnapshotResponse(snapshot: {

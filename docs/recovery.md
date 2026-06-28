@@ -10,6 +10,7 @@ When a fresh `WearableDailySnapshot` is available, recovery copy may respond con
 - high strain/load
 - low recovery score
 - recent workout minutes
+- Apple Health activity/sleep context, when synced by the user
 
 Use supportive language such as:
 
@@ -25,3 +26,5 @@ Do not write:
 - "your data is dangerous"
 
 When wearable data is missing or stale, recovery should continue using saved profile, training schedule, check-ins, and deterministic protocol context.
+
+Apple Health does not provide OptiMe-owned recovery or strain scores in this MVP. HRV, resting heart rate, and respiratory rate must not be interpreted medically.

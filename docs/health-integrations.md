@@ -1,6 +1,6 @@
 # Health Integrations
 
-Sprint 7 prepares OptiMe for Apple Health and Health Connect without adding native implementation yet.
+Sprint 7 prepares OptiMe for health integrations and now includes the first real provider path: Apple Health read sync on iOS.
 
 The integration strategy is summarized-data-first: read useful daily signals on device, sync only daily summaries to the backend, and use those summaries conservatively in planning.
 
@@ -65,7 +65,7 @@ Batch 4A feasibility result:
 - Development builds are required.
 - Config plugins are the preferred path.
 - `react-native-health-connect` / `expo-health-connect` is the leading Android candidate.
-- `@kingstinct/react-native-healthkit` is the leading iOS candidate, with `react-native-health` as fallback.
+- The Apple Health MVP uses `react-native-health` behind safe native-module checks.
 - See `docs/health-native-feasibility.md` for full details.
 
 Batch 4B native spike result:
@@ -86,6 +86,16 @@ Batch 5 protocol integration result:
 - Weight, average heart rate, and resting heart rate are not passed into planning context in Batch 5.
 - Daily plan debug metadata stores only safe health signal booleans.
 - See `docs/health-protocol-integration.md` for the implemented planning contract.
+
+Apple Health iOS MVP result:
+
+- Apple Health is available only on iOS development/production builds with HealthKit enabled.
+- Expo Go and non-iOS platforms show safe unavailable states.
+- The mobile app requests read-only Apple Health permissions only after explicit user action.
+- Synced daily Apple Health data is normalized into `WearableDailySnapshot`.
+- Recovery and strain scores remain `null`; OptiMe does not invent WHOOP-style scores from Apple Health.
+- Health Connect and WHOOP remain represented but not implemented.
+- See `docs/apple-health-integration.md` and `docs/apple-health-mobile-qa.md`.
 
 ## Batch 3 Mobile Foundation
 
@@ -193,7 +203,10 @@ Snapshot APIs:
 - `PATCH /v1/health/connections/:source/status`
 - `GET /v1/health/wearable-snapshots/today`
 - `GET /v1/health/wearable-snapshots?date=YYYY-MM-DD`
+- `POST /v1/health/wearable-snapshots`
 - `POST /v1/health/wearable-snapshots/mock`
+
+The non-mock snapshot endpoint is authenticated, user-owned, source-limited to the current Apple Health MVP, and accepts `null` for unavailable fields.
 
 The mock snapshot endpoint is for development and tests. In production it is unavailable unless explicitly enabled with `ENABLE_MOCK_HEALTH_DATA=true`.
 

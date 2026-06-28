@@ -84,6 +84,7 @@ Allowed behavior:
 - keep nutrition targets steady when recent sleep/recovery signals suggest caution
 - attach safe context to `NutritionTarget.context`
 - add conservative warnings when wearable data is stale or recovery-oriented
+- treat Apple Health steps, active calories, workout minutes, and sleep minutes as optional context only
 
 Not allowed:
 

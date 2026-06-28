@@ -17,11 +17,15 @@ export const nativeHealthFallbackAdapter: NativeHealthAdapter = {
       activeEnergy: false,
       weight: false,
       heartRate: false,
-      restingHeartRate: false
+      restingHeartRate: false,
+      hrv: false,
+      respiratoryRate: false
     };
   },
   async readDailySummaries(): Promise<NativeHealthDailySummary[]> {
     return [];
+  },
+  async readWearableSnapshots() {
+    return [];
   }
 };
-

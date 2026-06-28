@@ -6,6 +6,16 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.optime.app",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "OptiMe reads Apple Health activity, sleep, and workout summaries to personalize wellness plans.",
+        "NSHealthUpdateUsageDescription": "OptiMe does not write health data."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      }
+    },
     "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",

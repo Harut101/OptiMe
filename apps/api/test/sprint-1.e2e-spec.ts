@@ -1067,6 +1067,10 @@ describe('Sprint 1 backend vertical slice', () => {
       .post('/v1/health/wearable-snapshots/mock')
       .send({ steps: 5000 })
       .expect(401);
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .send({ source: HealthProvider.APPLE_HEALTH })
+      .expect(401);
   });
 
   it('returns foundation health connection sources without exposing secrets', async () => {
@@ -1200,6 +1204,85 @@ describe('Sprint 1 backend vertical slice', () => {
       });
   });
 
+  it('upserts Apple Health wearable snapshots with null-safe fields and connection sync state', async () => {
+    const user = await registerTestUser(ctx.app, 'apple-health-snapshot@example.com');
+    const localDate = getUtcLocalDate();
+
+    const created = await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.APPLE_HEALTH,
+        localDate,
+        timezone: 'UTC',
+        steps: 6400,
+        activeCaloriesKcal: null,
+        workoutMinutes: 30,
+        sleepMinutes: 410,
+        recoveryScore: null,
+        strainScore: null,
+        restingHeartRateBpm: 58,
+        hrvMs: 42,
+        respiratoryRate: 15.4
+      })
+      .expect(201);
+
+    expect(created.body).toMatchObject({
+      hasRecentData: true,
+      messageCode: 'WEARABLE_DATA_CONNECTED',
+      snapshot: {
+        source: HealthProvider.APPLE_HEALTH,
+        localDate,
+        timezone: 'UTC',
+        steps: 6400,
+        activeCaloriesKcal: null,
+        workoutMinutes: 30,
+        sleepMinutes: 410,
+        recoveryScore: null,
+        strainScore: null,
+        restingHeartRateBpm: 58,
+        hrvMs: 42,
+        respiratoryRate: 15.4,
+        isStale: false
+      }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.APPLE_HEALTH,
+        localDate,
+        timezone: 'UTC',
+        steps: 7200,
+        sleepMinutes: null
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.snapshot.steps).toBe(7200);
+        expect(body.snapshot.sleepMinutes).toBeNull();
+      });
+
+    await request(ctx.app.getHttpServer())
+      .get('/v1/health/connections')
+      .set(authHeader(user.accessToken))
+      .expect(200)
+      .expect(({ body }) => {
+        const appleHealth = body.connections.find(
+          (connection: { source: string }) => connection.source === HealthProvider.APPLE_HEALTH
+        );
+        expect(appleHealth).toMatchObject({
+          source: HealthProvider.APPLE_HEALTH,
+          status: 'CONNECTED',
+          errorCode: null
+        });
+        expect(appleHealth.lastSyncAt).toEqual(expect.any(String));
+      });
+
+    expect(JSON.stringify(created.body)).not.toContain('token');
+    expect(JSON.stringify(created.body)).not.toContain('secret');
+  });
+
   it('rejects invalid wearable snapshot input and marks stale snapshots safely', async () => {
     const user = await registerTestUser(ctx.app, 'wearable-snapshot-validation@example.com');
     const localDate = getUtcLocalDate();
@@ -1213,6 +1296,23 @@ describe('Sprint 1 backend vertical slice', () => {
       .post('/v1/health/wearable-snapshots/mock')
       .set(authHeader(user.accessToken))
       .send({ source: HealthProvider.WHOOP, localDate, timezone: 'UTC' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .set(authHeader(user.accessToken))
+      .send({ source: HealthProvider.WHOOP, localDate, timezone: 'UTC' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.APPLE_HEALTH,
+        localDate,
+        timezone: 'UTC',
+        steps: -1
+      })
       .expect(400);
 
     const stale = await request(ctx.app.getHttpServer())

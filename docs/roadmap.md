@@ -40,3 +40,5 @@ Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact
 ## Health Integrations Foundation
 
 Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Real native permissions, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
+
+Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, and Health Connections UI states. Health Connect real sync, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.

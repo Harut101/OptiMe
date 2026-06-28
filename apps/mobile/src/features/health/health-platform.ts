@@ -33,6 +33,7 @@ export const FOUNDATION_HEALTH_PERMISSIONS: HealthPermissions = {
   activeEnergy: true,
   weight: false,
   heartRate: false,
-  restingHeartRate: false
+  restingHeartRate: false,
+  hrv: false,
+  respiratoryRate: false
 };
-

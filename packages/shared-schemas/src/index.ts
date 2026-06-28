@@ -396,6 +396,23 @@ export const createMockWearableSnapshotSchema = z.object({
   capturedAt: z.string().datetime().optional()
 });
 
+export const upsertWearableSnapshotSchema = z.object({
+  source: z.literal('APPLE_HEALTH'),
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  timezone: z.string(),
+  steps: z.number().int().min(0).max(100000).nullable().optional(),
+  activeCaloriesKcal: z.number().int().min(0).max(10000).nullable().optional(),
+  workoutMinutes: z.number().int().min(0).max(1440).nullable().optional(),
+  sleepMinutes: z.number().int().min(0).max(1440).nullable().optional(),
+  sleepQualityScore: z.number().int().min(0).max(100).nullable().optional(),
+  recoveryScore: z.number().int().min(0).max(100).nullable().optional(),
+  strainScore: z.number().min(0).max(21).nullable().optional(),
+  restingHeartRateBpm: z.number().int().min(30).max(220).nullable().optional(),
+  hrvMs: z.number().int().min(1).max(300).nullable().optional(),
+  respiratoryRate: z.number().min(5).max(40).nullable().optional(),
+  capturedAt: z.string().datetime().optional()
+});
+
 export const dailyPlanReadinessSchema = z.enum(['PUSH', 'MAINTAIN', 'RECOVER']);
 export const dailyPlanStatusSchema = z.enum(['READY', 'FALLBACK']);
 

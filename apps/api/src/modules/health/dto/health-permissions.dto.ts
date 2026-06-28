@@ -28,5 +28,12 @@ export class HealthPermissionsDto {
   @IsOptional()
   @IsBoolean()
   restingHeartRate?: boolean;
-}
 
+  @IsOptional()
+  @IsBoolean()
+  hrv?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  respiratoryRate?: boolean;
+}
