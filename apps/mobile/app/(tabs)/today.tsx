@@ -8,6 +8,7 @@ import type { TFunction } from 'i18next';
 import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
+import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
@@ -26,6 +27,10 @@ import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
+import {
+  formatFoodProgress,
+  formatFoodProgressDetail
+} from '@/features/food-tracking/food-tracking-summary';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
@@ -57,6 +62,11 @@ export default function TodayScreen() {
     queryKey: ['workout-session-by-plan', today.data?.id],
     queryFn: () => getWorkoutSessionByPlan(today.data!.id),
     enabled: Boolean(today.data?.id)
+  });
+  const foodLog = useQuery({
+    queryKey: ['food-log', today.data?.id],
+    queryFn: () => getFoodLog(today.data!.id),
+    enabled: Boolean(today.data?.plan.nutrition.foodPlan)
   });
   const usage = useQuery({
     queryKey: ['usage-summary'],
@@ -139,6 +149,9 @@ export default function TodayScreen() {
 
     if (today.data?.id) {
       refreshes.push(workoutSession.refetch());
+      if (today.data.plan.nutrition.foodPlan) {
+        refreshes.push(foodLog.refetch());
+      }
     }
 
     await Promise.all(refreshes);
@@ -148,7 +161,8 @@ export default function TodayScreen() {
     usage.isRefetching ||
     nutritionTarget.isRefetching ||
     progressivePrompt.isRefetching ||
-    workoutSession.isRefetching;
+    workoutSession.isRefetching ||
+    foodLog.isRefetching;
 
   if (today.isLoading) {
     return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
@@ -243,6 +257,14 @@ export default function TodayScreen() {
             target={displayedNutritionTarget}
             isUnavailable={!displayedNutritionTarget && nutritionTarget.isError}
           />
+
+          {plan.nutrition.foodPlan && !foodLog.isError && foodLog.data?.supported !== false ? (
+            <Card>
+              <Text variant="label">{t('foodTracking.todaysFoodProgress')}</Text>
+              <Text variant="body">{formatFoodProgress(foodLog.data, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
+              <Text variant="muted">{formatFoodProgressDetail(foodLog.data, t)}</Text>
+            </Card>
+          ) : null}
 
           <Card>
             <Text variant="label">{t('today.nutrition')}</Text>

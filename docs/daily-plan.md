@@ -18,7 +18,17 @@ Food and Training are two local views of one Daily Plan record, never separately
 Newly generated plans may include optional `exerciseId`, `slug`, plan notes, and `exerciseSnapshot` while retaining existing name, sets/reps/rest/duration, intensity cue, and safety note fields. Old free-text items continue to parse and render. Existing rows are not migrated or regenerated.
 
 Snapshots preserve localized trusted catalog content and generation-time `exerciseUpdatedAt`; later library edits or language changes do not mutate history. Media is not snapshotted. Exercise Details combines immutable snapshot text with current active media without mutating the plan.
-# Daily Plan Notes
+
+## Food Tracking
+
+Structured daily food plans can now have a separate meal-completion log. The log is not stored inside `DailyPlan.planJson`; it lives in `FoodDayLog` and `FoodMealProgress` so plan content remains stable while user progress changes.
+
+- `nutrition.foodPlan.meals[].id` is the stable key for progress.
+- Matching meal ids keep progress when a menu is regenerated.
+- Replaced meal ids start as `PLANNED`.
+- Text-only legacy plans remain readable and report food tracking as unsupported.
+
+## Daily Plan Notes
 
 Daily Plan generation now respects the persisted app mode.
 

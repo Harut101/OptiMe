@@ -25,3 +25,13 @@ GET /v1/workout-sessions/:sessionId/summary
 ```
 
 History returns completed sessions only, newest first, with safe summary DTOs and cursor pagination. Summary/detail responses must not leak raw `DailyPlan.planJson`.
+
+## Food Tracking Endpoints
+
+`GET /v1/daily-plans/:dailyPlanId/food-log`
+
+Returns food completion progress for the authenticated user's own daily plan. If the plan has no structured `nutrition.foodPlan`, the response is `supported: false`.
+
+`POST /v1/daily-plans/:dailyPlanId/food-log/meals/:mealId/status`
+
+Updates one structured meal status. Supported statuses are `PLANNED`, `EATEN`, `PARTIALLY_EATEN`, and `SKIPPED`.

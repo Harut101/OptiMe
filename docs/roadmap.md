@@ -33,3 +33,6 @@ Still deferred: ingredient database, food tracking, meal completion, grocery lis
 Workout Execution MVP adds plan-linked workout sessions, set completion, duration exercise completion, partial-finish confirmation, and Plan Details Training entry points. Still deferred: workout history screens, rest timers, workout notes, RPE, replacing exercises during execution, and analytics.
 
 Workout History + Session Summary MVP adds completed workout summaries, completed-only history, Today/Profile/Training entry points, and read-only completed details. Still deferred: analytics, streaks, achievements, rest timers, RPE, load tracking, and workout notes.
+## Food Tracking MVP
+
+Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact loop for structured meal plans. It records planned/eaten/partial/skipped meal statuses without custom calorie logging, photo analysis, or AI personalization from history yet.

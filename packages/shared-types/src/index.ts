@@ -600,6 +600,37 @@ export interface DailyFoodPlan {
   meals: FoodMeal[];
 }
 
+export type FoodMealProgressStatus = 'PLANNED' | 'EATEN' | 'PARTIALLY_EATEN' | 'SKIPPED';
+
+export interface FoodMealProgressResponse {
+  id: string;
+  mealId: string;
+  mealOrder: number;
+  mealType: FoodMealType;
+  mealTitleSnapshot: string;
+  status: FoodMealProgressStatus;
+  updatedAt: string | null;
+}
+
+export interface FoodDayLogResponse {
+  id: string | null;
+  dailyPlanId: string;
+  localDate: string;
+  supported: boolean;
+  unsupportedReason?: 'NO_STRUCTURED_FOOD_PLAN';
+  plannedMealCount: number;
+  completedMealCount: number;
+  partialMealCount: number;
+  skippedMealCount: number;
+  markedMealCount: number;
+  mealProgress: FoodMealProgressResponse[];
+  updatedAt: string | null;
+}
+
+export interface UpdateFoodMealStatusRequest {
+  status: FoodMealProgressStatus;
+}
+
 export interface DailyPlanExercise {
   exerciseId?: string;
   slug?: string;

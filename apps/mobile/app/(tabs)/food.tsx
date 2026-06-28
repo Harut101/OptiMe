@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
+import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import {
   getNutritionPreferences,
   saveNutritionPreferences
@@ -28,7 +29,16 @@ import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDietTypeLabel } from '@/i18n/enum-labels';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
-import type { DailyFoodPlan, FoodMeal } from '@/types/api';
+import {
+  FOOD_STATUSES,
+  formatFoodProgress,
+  formatFoodProgressDetail,
+  getMealAccessibilityLabel,
+  getMealProgress,
+  getMealStatusActionLabel,
+  getMealStatusLabel
+} from '@/features/food-tracking/food-tracking-summary';
+import type { DailyFoodPlan, FoodDayLogResponse, FoodMeal, FoodMealProgressStatus } from '@/types/api';
 
 const TODAY_PLAN_QUERY_KEY = ['today' + '-plan'] as const;
 
@@ -47,6 +57,11 @@ export default function FoodScreen() {
   const todayPlan = useQuery({
     queryKey: TODAY_PLAN_QUERY_KEY,
     queryFn: getTodayPlan
+  });
+  const foodLog = useQuery({
+    queryKey: ['food-log', todayPlan.data?.id],
+    queryFn: () => getFoodLog(todayPlan.data!.id),
+    enabled: Boolean(todayPlan.data?.plan.nutrition.foodPlan)
   });
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<FoodPreferencesFormValue>(EMPTY_FOOD_PREFERENCES);
@@ -84,9 +99,30 @@ export default function FoodScreen() {
       queryClient.setQueryData(TODAY_PLAN_QUERY_KEY, data);
       setSuccessMessage(t('food.menuRegenerated'));
       await queryClient.invalidateQueries({ queryKey: TODAY_PLAN_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: ['food-log', data.id] });
     },
     onError: () => {
       setValidationError(t('food.couldNotRegenerateMenu'));
+    }
+  });
+  const updateMealStatus = useMutation({
+    mutationFn: ({
+      dailyPlanId,
+      mealId,
+      status
+    }: {
+      dailyPlanId: string;
+      mealId: string;
+      status: FoodMealProgressStatus;
+    }) => updateFoodMealStatus(dailyPlanId, mealId, status),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(['food-log', variables.dailyPlanId], data);
+      setValidationError(null);
+      setSuccessMessage(t('foodTracking.mealStatusUpdated'));
+    },
+    onError: () => {
+      setSuccessMessage(null);
+      setValidationError(t('foodTracking.couldNotUpdateMealStatus'));
     }
   });
 
@@ -132,7 +168,10 @@ export default function FoodScreen() {
         <DailyFoodPlanCard
           dailyPlanId={todayPlan.data.id}
           foodPlan={todayPlan.data.plan.nutrition.foodPlan}
+          foodLog={foodLog.data}
+          trackingUnavailable={foodLog.isError}
           isRegenerating={regenerateMenu.isPending}
+          isUpdatingStatus={updateMealStatus.isPending}
           onRegenerateMenu={() =>
             Alert.alert(
               t('food.replaceMenuTitle'),
@@ -151,6 +190,9 @@ export default function FoodScreen() {
               pathname: '/meal-details' as never,
               params: { dailyPlanId: todayPlan.data!.id, mealId }
             })
+          }
+          onUpdateMealStatus={(mealId, status) =>
+            updateMealStatus.mutate({ dailyPlanId: todayPlan.data!.id, mealId, status })
           }
         />
       ) : todayPlan.isError ? (
@@ -203,15 +245,23 @@ export default function FoodScreen() {
 function DailyFoodPlanCard({
   dailyPlanId: _dailyPlanId,
   foodPlan,
+  foodLog,
+  trackingUnavailable,
   isRegenerating,
+  isUpdatingStatus,
   onRegenerateMenu,
-  onOpenMeal
+  onOpenMeal,
+  onUpdateMealStatus
 }: {
   dailyPlanId: string;
   foodPlan: DailyFoodPlan;
+  foodLog?: FoodDayLogResponse;
+  trackingUnavailable: boolean;
   isRegenerating: boolean;
+  isUpdatingStatus: boolean;
   onRegenerateMenu: () => void;
   onOpenMeal: (mealId: string) => void;
+  onUpdateMealStatus: (mealId: string, status: FoodMealProgressStatus) => void;
 }) {
   const { t } = useTranslation();
   const fallback = foodPlan.source === 'DETERMINISTIC_FALLBACK' || foodPlan.validation.status === 'FALLBACK';
@@ -230,6 +280,7 @@ function DailyFoodPlanCard({
       </Text>
       {fallback ? <Text style={styles.note}>{t('food.fallbackMealPlan')}</Text> : null}
       <Text variant="muted">{t('food.whyMenu')}</Text>
+      <FoodProgressCard foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
       <Button
         title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
         variant="secondary"
@@ -239,41 +290,111 @@ function DailyFoodPlanCard({
       />
       <View style={styles.mealList}>
         {foodPlan.meals.map((meal) => (
-          <MealCard key={meal.id} meal={meal} onPress={() => onOpenMeal(meal.id)} />
+          <MealCard
+            key={meal.id}
+            meal={meal}
+            foodLog={foodLog}
+            isUpdatingStatus={isUpdatingStatus}
+            onPress={() => onOpenMeal(meal.id)}
+            onUpdateStatus={(status) => onUpdateMealStatus(meal.id, status)}
+          />
         ))}
       </View>
     </Card>
   );
 }
 
-function MealCard({ meal, onPress }: { meal: FoodMeal; onPress: () => void }) {
+function FoodProgressCard({
+  foodLog,
+  trackingUnavailable
+}: {
+  foodLog?: FoodDayLogResponse;
+  trackingUnavailable: boolean;
+}) {
   const { t } = useTranslation();
+
+  if (trackingUnavailable || foodLog?.supported === false) {
+    return (
+      <View style={styles.trackingSummary}>
+        <Text variant="label">{t('foodTracking.foodProgress')}</Text>
+        <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
+      </View>
+    );
+  }
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t('food.mealAccessibility', {
-        type: t(`food.mealTypes.${meal.mealType}`),
-        title: meal.title,
-        kcal: String(meal.caloriesKcal),
-        protein: String(Math.round(meal.proteinGrams))
-      })}
-      onPress={onPress}
-      style={({ pressed }) => [styles.mealCard, pressed && styles.pressed]}
-    >
-      <Text variant="label">{t(`food.mealTypes.${meal.mealType}`)}</Text>
-      <Text variant="body">{meal.title}</Text>
-      <Text variant="muted">
-        {t('food.mealMacros', {
+    <View style={styles.trackingSummary} accessible accessibilityLabel={t('foodTracking.progressAccessibility', {
+      progress: formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet'),
+      detail: formatFoodProgressDetail(foodLog, t)
+    })}>
+      <Text variant="label">{t('foodTracking.foodProgress')}</Text>
+      <Text variant="body">{formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
+      <Text variant="muted">{formatFoodProgressDetail(foodLog, t)}</Text>
+    </View>
+  );
+}
+
+function MealCard({
+  meal,
+  foodLog,
+  isUpdatingStatus,
+  onPress,
+  onUpdateStatus
+}: {
+  meal: FoodMeal;
+  foodLog?: FoodDayLogResponse;
+  isUpdatingStatus: boolean;
+  onPress: () => void;
+  onUpdateStatus: (status: FoodMealProgressStatus) => void;
+}) {
+  const { t } = useTranslation();
+  const progress = getMealProgress(foodLog, meal.id);
+  const status = progress?.status ?? 'PLANNED';
+  return (
+    <View style={styles.mealCard}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t('food.mealAccessibility', {
+          type: t(`food.mealTypes.${meal.mealType}`),
+          title: meal.title,
           kcal: String(meal.caloriesKcal),
           protein: String(Math.round(meal.proteinGrams))
-        })}
-      </Text>
-      {meal.prepTimeMinutes !== null ? (
-        <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
-      ) : null}
-      <Text variant="muted">{t('food.noMealImage')}</Text>
-      <Text style={styles.linkText}>{t('food.viewMealDetails')}</Text>
-    </Pressable>
+        })}. ${getMealAccessibilityLabel(meal, progress, t)}`}
+        onPress={onPress}
+        style={({ pressed }) => [pressed && styles.pressed]}
+      >
+        <Text variant="label">{t(`food.mealTypes.${meal.mealType}`)}</Text>
+        <Text variant="body">{meal.title}</Text>
+        <Text style={styles.statusChip}>{getMealStatusLabel(status, t)}</Text>
+        <Text variant="muted">
+          {t('food.mealMacros', {
+            kcal: String(meal.caloriesKcal),
+            protein: String(Math.round(meal.proteinGrams))
+          })}
+        </Text>
+        {meal.prepTimeMinutes !== null ? (
+          <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
+        ) : null}
+        <Text variant="muted">{t('food.noMealImage')}</Text>
+        <Text style={styles.linkText}>{t('food.viewMealDetails')}</Text>
+      </Pressable>
+      <View style={styles.statusActions}>
+        {FOOD_STATUSES.filter((item) => item !== status).slice(0, 3).map((nextStatus) => (
+          <Button
+            key={nextStatus}
+            title={getMealStatusActionLabel(nextStatus, t)}
+            variant="secondary"
+            style={styles.statusButton}
+            disabled={isUpdatingStatus}
+            accessibilityLabel={t('foodTracking.updateMealStatusTo', {
+              meal: meal.title,
+              status: getMealStatusLabel(nextStatus, t)
+            })}
+            onPress={() => onUpdateStatus(nextStatus)}
+          />
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -305,5 +426,30 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.78 },
   linkText: { color: colors.primaryDark, fontWeight: '700' },
-  note: { color: colors.accent, fontWeight: '700' }
+  note: { color: colors.accent, fontWeight: '700' },
+  trackingSummary: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    padding: 12,
+    gap: 4
+  },
+  statusChip: {
+    alignSelf: 'flex-start',
+    color: colors.primaryDark,
+    backgroundColor: '#e7f3ef',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontWeight: '800'
+  },
+  statusActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  statusButton: {
+    minHeight: 40,
+    paddingHorizontal: 10
+  }
 });

@@ -194,6 +194,22 @@ enum DailyCheckInType {
   EVENING_REFLECTION
 }
 
+enum FoodMealProgressStatus {
+  PLANNED
+  EATEN
+  PARTIALLY_EATEN
+  SKIPPED
+}
+
+enum FoodLogMealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+  PRE_WORKOUT
+  POST_WORKOUT
+}
+
 enum TrainingOutcome {
   STRENGTH
   MUSCLE_GROWTH
@@ -369,6 +385,7 @@ model User {
   dailyPlans    DailyPlan[]
   planFeedback  DailyPlanFeedback[]
   workoutSessions WorkoutSession[]
+  foodDayLogs FoodDayLog[]
   aiOperationLogs AiOperationLog[]
   subscriptions Subscription[]
   usageLedger   UsageLedger[]
@@ -557,9 +574,49 @@ model DailyPlan {
   feedback DailyPlanFeedback[]
   checkIns DailyPlanCheckIn[]
   workoutSessions WorkoutSession[]
+  foodDayLogs FoodDayLog[]
 
   @@unique([userId, planLocalDate, planTimezone])
   @@index([userId, createdAt])
+}
+
+model FoodDayLog {
+  id                 String   @id @default(cuid())
+  userId             String
+  dailyPlanId        String
+  localDate          String
+  plannedMealCount   Int      @default(0)
+  completedMealCount Int      @default(0)
+  partialMealCount   Int      @default(0)
+  skippedMealCount   Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPlan    DailyPlan          @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  mealProgress FoodMealProgress[]
+
+  @@unique([userId, dailyPlanId])
+  @@index([userId, localDate])
+  @@index([dailyPlanId])
+}
+
+model FoodMealProgress {
+  id                String                 @id @default(cuid())
+  foodDayLogId      String
+  mealId            String
+  mealOrder         Int
+  mealType          FoodLogMealType
+  mealTitleSnapshot String
+  status            FoodMealProgressStatus @default(PLANNED)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  foodDayLog FoodDayLog @relation(fields: [foodDayLogId], references: [id], onDelete: Cascade)
+
+  @@unique([foodDayLogId, mealId])
+  @@index([foodDayLogId, mealOrder])
+  @@index([status])
 }
 
 model WorkoutSession {

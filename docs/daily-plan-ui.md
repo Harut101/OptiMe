@@ -15,7 +15,8 @@ The Training view may show a workout execution card when the plan has suggested 
 Today remains clean and does not show workout execution controls.
 
 When today's linked WorkoutSession is completed, Today can show a compact completed workout summary card with focus, completed set count, partial state, and a View summary action. The card is hidden when there is no completed session for the current Daily Plan.
-# Daily Plan UI
+
+## Structured Food Plan UI
 
 ## Structured Food Plans
 
@@ -53,3 +54,11 @@ Meal Details can show:
 - display-only substitutions
 
 Failed regeneration keeps the current meal/menu visible. Excluding an ingredient updates future food preferences only and does not automatically rewrite the current plan. Old text-only plans hide regeneration actions by returning a safe unsupported state from the backend.
+## Food Tracking UI Notes
+
+Food Tracking adds a compact meal-completion layer on top of structured food plans.
+
+- Today shows only a small food progress summary.
+- Food tab shows meal progress and quick status actions.
+- Meal Details shows the current meal status and status actions beside meal regeneration.
+- Older plans without `nutrition.foodPlan` render normally and do not show tracking controls.

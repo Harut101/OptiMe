@@ -47,3 +47,13 @@ Use complete translation keys for confirmation dialogs and loading/error states.
 Workout execution uses the `workout` namespace in all supported mobile locales. Set labels, progress labels, partial-completion confirmation, read-only completed state, friendly save errors, and safety reminders are localized. Exercise names, cues, and safety notes remain saved plan or ExerciseLibrary content and are not translated at render time.
 
 Workout history and summary strings also live in `workout`. History list labels, empty state, completed/partial labels, View summary, read-only state, and accessibility labels are localized across `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
+## Food Tracking Localization
+
+Food tracking strings live under `foodTracking` in all supported mobile locales:
+
+- `en-US`
+- `fr-FR`
+- `ru-RU`
+- `zh-CN`
+
+Keep completion language neutral and supportive. Avoid shame-based wording around skipped or partial meals.

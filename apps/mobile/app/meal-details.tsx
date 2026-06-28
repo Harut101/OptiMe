@@ -9,22 +9,39 @@ import {
   getTodayPlan,
   regenerateDailyFoodMeal
 } from '@/api/daily-plans';
+import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
+import {
+  FOOD_STATUSES,
+  getMealProgress,
+  getMealStatus,
+  getMealStatusActionLabel,
+  getMealStatusLabel
+} from '@/features/food-tracking/food-tracking-summary';
+import { formatTime } from '@/i18n/formatters';
+import { useSettingsStore } from '@/store/settings-store';
 import { colors } from '@/theme/colors';
+import type { FoodMealProgressStatus } from '@/types/api';
 
 export default function MealDetailsScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const params = useLocalSearchParams<{ dailyPlanId?: string; mealId?: string }>();
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
+  });
+  const foodLog = useQuery({
+    queryKey: ['food-log', params.dailyPlanId],
+    queryFn: () => getFoodLog(String(params.dailyPlanId)),
+    enabled: Boolean(params.dailyPlanId)
   });
   const regenerateMeal = useMutation({
     mutationFn: () =>
@@ -36,6 +53,7 @@ export default function MealDetailsScreen() {
       setMessage(t('food.mealRegenerated'));
       queryClient.setQueryData(['today-plan'], data);
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['food-log', data.id] });
     },
     onError: () => {
       setMessage(null);
@@ -55,6 +73,19 @@ export default function MealDetailsScreen() {
       setErrorMessage(t('food.couldNotExcludeIngredient'));
     }
   });
+  const updateMealStatus = useMutation({
+    mutationFn: (status: FoodMealProgressStatus) =>
+      updateFoodMealStatus(String(params.dailyPlanId), String(params.mealId), status),
+    onSuccess: (data) => {
+      setErrorMessage(null);
+      setMessage(t('foodTracking.mealStatusUpdated'));
+      queryClient.setQueryData(['food-log', params.dailyPlanId], data);
+    },
+    onError: () => {
+      setMessage(null);
+      setErrorMessage(t('foodTracking.couldNotUpdateMealStatus'));
+    }
+  });
 
   if (today.isLoading) {
     return <StateBlock title={t('common.loading')} message={t('food.mealDetailsLoading')} />;
@@ -63,6 +94,8 @@ export default function MealDetailsScreen() {
   const todayPlan = today.data ?? null;
   const foodPlan = todayPlan && todayPlan.id === params.dailyPlanId ? todayPlan.plan.nutrition.foodPlan : null;
   const meal = foodPlan?.meals.find((item) => item.id === params.mealId);
+  const progress = meal ? getMealProgress(foodLog.data, meal.id) : null;
+  const status = meal ? getMealStatus(foodLog.data, meal.id) : 'PLANNED';
 
   if (!foodPlan || !meal) {
     return (
@@ -79,6 +112,32 @@ export default function MealDetailsScreen() {
 
       <Card>
         <Text variant="label" accessibilityRole="header">{t('food.mealActions')}</Text>
+        <View style={styles.statusWrap}>
+          <Text variant="label">{t('foodTracking.mealStatus')}</Text>
+          <Text style={styles.statusChip}>{getMealStatusLabel(status, t)}</Text>
+          {foodLog.isError || foodLog.data?.supported === false ? (
+            <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
+          ) : (
+            <View style={styles.statusActions}>
+              {FOOD_STATUSES.filter((item) => item !== status).map((nextStatus) => (
+                <Button
+                  key={nextStatus}
+                  title={getMealStatusActionLabel(nextStatus, t)}
+                  variant="secondary"
+                  disabled={updateMealStatus.isPending}
+                  accessibilityLabel={t('foodTracking.updateMealStatusTo', {
+                    meal: meal.title,
+                    status: getMealStatusLabel(nextStatus, t)
+                  })}
+                  onPress={() => updateMealStatus.mutate(nextStatus)}
+                />
+              ))}
+            </View>
+          )}
+          {progress?.updatedAt ? (
+            <Text variant="muted">{t('today.updatedAt', { time: formatTime(progress.updatedAt, preferredLocale) })}</Text>
+          ) : null}
+        </View>
         <Button
           title={regenerateMeal.isPending ? t('food.regeneratingMeal') : t('food.regenerateMeal')}
           disabled={regenerateMeal.isPending}
@@ -188,6 +247,17 @@ export default function MealDetailsScreen() {
 const styles = StyleSheet.create({
   ingredient: { gap: 8, paddingVertical: 8 },
   substitution: { gap: 3, paddingVertical: 5 },
+  statusWrap: { gap: 8 },
+  statusChip: {
+    alignSelf: 'flex-start',
+    color: colors.primaryDark,
+    backgroundColor: '#e7f3ef',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontWeight: '800'
+  },
+  statusActions: { gap: 8 },
   success: { color: colors.primaryDark, fontWeight: '700' },
   warning: { color: colors.accent, fontWeight: '700' }
 });

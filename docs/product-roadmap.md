@@ -311,3 +311,8 @@ Sprint 8 ExerciseLibrary/body map note:
 - Dev-generated SVG stubs should not be used in production UI.
 - Exercise media should use licensed, owned, or curated assets only.
 - AI should select and customize from deterministic exercise data rather than inventing all exercises freely.
+## Food Tracking MVP
+
+Completed: lightweight food completion tracking for structured meal plans. Users can mark meals as planned, eaten, partially eaten, or skipped from Food and Meal Details, while Today shows a compact progress summary.
+
+Deferred: custom food logging, portion editing, photo logging, and AI personalization from food completion history.
