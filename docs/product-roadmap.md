@@ -127,6 +127,7 @@ OptiMe can now:
 - Collect progressive profile details and check-ins after activation.
 - Collect optional training preferences after activation.
 - Select deterministic nutrition, training, and recovery protocols.
+- Generate structured AI Nutrition Agent food-plan snapshots inside deterministic nutrition targets.
 - Generate optional text-based exercise recommendations.
 - Connect optional health providers and store daily health summaries.
 - Use summarized health signals conservatively in daily planning.

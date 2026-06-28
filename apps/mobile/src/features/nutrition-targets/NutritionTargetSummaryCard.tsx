@@ -36,7 +36,8 @@ export function NutritionTargetSummaryCard({
 
   const summary = toTargetSummary(target);
   const needsMoreInfo = summary.safetyStatus === 'NEEDS_MORE_INFO' || summary.targetKcal <= 0;
-  const explanation = localizeExplanation(summary.explanation, t);
+  const translate = t as unknown as Translate;
+  const explanation = localizeExplanation(summary.explanation, translate);
 
   return (
     <Card>
@@ -87,7 +88,7 @@ export function NutritionTargetSummaryCard({
 
 function localizeExplanation(
   explanation: NutritionTarget['explanation'] | LegacyNutritionTargetExplanation,
-  t: ReturnType<typeof useTranslation>['t']
+  t: Translate
 ) {
   if (isCodedExplanation(explanation)) {
     return {
@@ -99,7 +100,7 @@ function localizeExplanation(
   return explanation;
 }
 
-function localizeReason(reason: NutritionTargetReason, t: ReturnType<typeof useTranslation>['t']) {
+function localizeReason(reason: NutritionTargetReason, t: Translate) {
   const params = reason.params ?? {};
   const missingFields = params.missingFields?.map((field) =>
     t(`nutritionTargets.missingFields.${field}` as never)
@@ -129,6 +130,8 @@ interface LegacyNutritionTargetExplanation {
   title: string;
   bullets: string[];
 }
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 function Macro({ label, value }: { label: string; value: string }) {
   return (

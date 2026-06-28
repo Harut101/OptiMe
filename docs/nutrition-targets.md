@@ -58,6 +58,8 @@ Legacy `title` and `bullets` are supported only for older saved DailyPlan snapsh
 
 The OpenAI provider receives `personalizationContext.nutritionTarget` and must align nutrition copy with it. If the target is `NEEDS_MORE_INFO`, AI should avoid exact calorie/macro claims and use supportive guidance.
 
+The Specialized AI Nutrition Agent receives the same deterministic target and creates meals inside that target. It must not decide daily calories or macros. `FoodPlanValidationService` validates the generated food plan against the Nutrition Engine target before the final Safety Agent review.
+
 ## Mobile Rendering
 
 The mobile app renders a summary card on Today and Food:

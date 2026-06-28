@@ -305,7 +305,16 @@ function SettingsSection() {
   );
 }
 
-function formatHealthStatus(status: string | undefined, t: ReturnType<typeof useTranslation>['t']) {
+function formatHealthStatus(
+  status: string | undefined,
+  t: (
+    key:
+      | 'health.connected'
+      | 'health.permissionDenied'
+      | 'health.syncError'
+      | 'health.notConnected'
+  ) => string
+) {
   if (status === 'CONNECTED') return t('health.connected');
   if (status === 'PERMISSION_DENIED') return t('health.permissionDenied');
   if (status === 'ERROR') return t('health.syncError');

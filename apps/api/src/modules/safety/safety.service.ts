@@ -337,6 +337,15 @@ export class SafetyService {
       );
     });
 
+    const foodPlan = this.asRecord(nutrition.foodPlan);
+    const foodPlanMeals = Array.isArray(foodPlan.meals) ? foodPlan.meals : [];
+    this.collectStructuredFoodPlanConflicts(
+      foodPlanMeals,
+      'nutrition.foodPlan.meals',
+      restrictedFoods,
+      conflicts
+    );
+
     const reminders = Array.isArray(plan.reminders) ? plan.reminders : [];
 
     reminders.forEach((reminder, index) => {
@@ -348,6 +357,84 @@ export class SafetyService {
     });
 
     return conflicts;
+  }
+
+  private collectStructuredFoodPlanConflicts(
+    meals: unknown[],
+    pathPrefix: string,
+    restrictedFoods: Array<{
+      conflictType: FoodConflictType;
+      restrictedFood: string;
+      normalizedFood: string;
+    }>,
+    conflicts: PlanFoodSafetyConflict[]
+  ) {
+    meals.forEach((meal, mealIndex) => {
+      const mealRecord = this.asRecord(meal);
+      const ingredients = Array.isArray(mealRecord.ingredients) ? mealRecord.ingredients : [];
+      const substitutions = Array.isArray(mealRecord.substitutions) ? mealRecord.substitutions : [];
+      const preparationSteps = Array.isArray(mealRecord.preparationSteps) ? mealRecord.preparationSteps : [];
+
+      for (const [field, value] of [
+        ['title', mealRecord.title],
+        ['shortDescription', mealRecord.shortDescription],
+        ['servingSummary', mealRecord.servingSummary]
+      ] as const) {
+        if (typeof value === 'string') {
+          conflicts.push(
+            ...this.findConflictsInText(
+              value,
+              `${pathPrefix}[${mealIndex}].${field}`,
+              restrictedFoods,
+              field === 'title'
+            )
+          );
+        }
+      }
+
+      ingredients.forEach((ingredient, ingredientIndex) => {
+        const ingredientRecord = this.asRecord(ingredient);
+        if (typeof ingredientRecord.name === 'string') {
+          conflicts.push(
+            ...this.findConflictsInText(
+              ingredientRecord.name,
+              `${pathPrefix}[${mealIndex}].ingredients[${ingredientIndex}].name`,
+              restrictedFoods,
+              true
+            )
+          );
+        }
+      });
+
+      preparationSteps.forEach((step, stepIndex) => {
+        if (typeof step === 'string') {
+          conflicts.push(
+            ...this.findConflictsInText(
+              step,
+              `${pathPrefix}[${mealIndex}].preparationSteps[${stepIndex}]`,
+              restrictedFoods,
+              false
+            )
+          );
+        }
+      });
+
+      substitutions.forEach((substitution, substitutionIndex) => {
+        const substitutionRecord = this.asRecord(substitution);
+        for (const field of ['originalItem', 'replacementItem', 'servingSummary'] as const) {
+          if (typeof substitutionRecord[field] === 'string') {
+            conflicts.push(
+              ...this.findConflictsInText(
+                substitutionRecord[field],
+                `${pathPrefix}[${mealIndex}].substitutions[${substitutionIndex}].${field}`,
+                restrictedFoods,
+                field === 'originalItem' || field === 'replacementItem'
+              )
+            );
+          }
+        }
+      });
+    });
   }
 
   private collectMealConflicts(

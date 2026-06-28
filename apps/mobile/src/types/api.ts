@@ -1,5 +1,6 @@
 import type {
   ActivityLevel,
+  DailyFoodPlan,
   DailyPlanExercise,
   DailyPlanResponse,
   DailyPlanFeedbackResponse,
@@ -7,6 +8,7 @@ import type {
   ExerciseDetail,
   ExerciseListItem,
   ExerciseListResponse,
+  FoodMeal,
   GoalImpactMode,
   GoalType,
   IntensityLevel,
@@ -33,11 +35,13 @@ import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
 
 export type {
   DailyPlanExercise,
+  DailyFoodPlan,
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
   ExerciseDetail,
   ExerciseListItem,
   ExerciseListResponse,
+  FoodMeal,
   NutritionTarget,
   NutritionTargetSnapshot,
   PlanFeedbackRating,

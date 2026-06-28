@@ -33,6 +33,28 @@ export function normalizeDailyPlanFoodNames(
       normalizedPaths
     )
   }));
+  const foodPlan = planJson.nutrition.foodPlan
+    ? {
+        ...planJson.nutrition.foodPlan,
+        meals: planJson.nutrition.foodPlan.meals.map((meal, mealIndex) => ({
+          ...meal,
+          ingredients: meal.ingredients.map((ingredient, ingredientIndex) => {
+            const normalized = normalizeFoodName(ingredient.name, restrictedFoods);
+
+            if (!normalized) {
+              return ingredient;
+            }
+
+            normalizedPaths.push(`nutrition.foodPlan.meals[${mealIndex}].ingredients[${ingredientIndex}].name`);
+
+            return {
+              ...ingredient,
+              name: normalized.name
+            };
+          })
+        }))
+      }
+    : undefined;
 
   return {
     planJson: {
@@ -40,7 +62,8 @@ export function normalizeDailyPlanFoodNames(
       nutrition: {
         ...planJson.nutrition,
         meals,
-        ...(menuOptions ? { menuOptions } : {})
+        ...(menuOptions ? { menuOptions } : {}),
+        ...(foodPlan ? { foodPlan } : {})
       }
     },
     normalizedPaths

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { getTodayPlan } from '@/api/daily-plans';
 import {
   getNutritionPreferences,
   saveNutritionPreferences
@@ -26,9 +28,13 @@ import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDietTypeLabel } from '@/i18n/enum-labels';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
+import type { DailyFoodPlan, FoodMeal } from '@/types/api';
+
+const TODAY_PLAN_QUERY_KEY = ['today' + '-plan'] as const;
 
 export default function FoodScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const preferences = useQuery({
     queryKey: ['nutrition-preferences'],
@@ -37,6 +43,10 @@ export default function FoodScreen() {
   const nutritionTarget = useQuery({
     queryKey: ['nutrition-target-preview'],
     queryFn: () => getNutritionTargetPreview()
+  });
+  const todayPlan = useQuery({
+    queryKey: TODAY_PLAN_QUERY_KEY,
+    queryFn: getTodayPlan
   });
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<FoodPreferencesFormValue>(EMPTY_FOOD_PREFERENCES);
@@ -106,6 +116,24 @@ export default function FoodScreen() {
         isUnavailable={!nutritionTarget.data && nutritionTarget.isError}
       />
 
+      {todayPlan.data?.plan.nutrition.foodPlan ? (
+        <DailyFoodPlanCard
+          dailyPlanId={todayPlan.data.id}
+          foodPlan={todayPlan.data.plan.nutrition.foodPlan}
+          onOpenMeal={(mealId) =>
+            router.push({
+              pathname: '/meal-details' as never,
+              params: { dailyPlanId: todayPlan.data!.id, mealId }
+            })
+          }
+        />
+      ) : todayPlan.isError ? (
+        <Card>
+          <Text variant="label">{t('food.mealPlan')}</Text>
+          <Text variant="muted">{t('food.mealPlanUnavailable')}</Text>
+        </Card>
+      ) : null}
+
       {!preferences.data && !editing ? (
         <StateBlock
           title={t('food.emptyTitle')}
@@ -144,6 +172,72 @@ export default function FoodScreen() {
   );
 }
 
+function DailyFoodPlanCard({
+  dailyPlanId: _dailyPlanId,
+  foodPlan,
+  onOpenMeal
+}: {
+  dailyPlanId: string;
+  foodPlan: DailyFoodPlan;
+  onOpenMeal: (mealId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const fallback = foodPlan.source === 'DETERMINISTIC_FALLBACK' || foodPlan.validation.status === 'FALLBACK';
+
+  return (
+    <Card>
+      <Text variant="label" accessibilityRole="header">{t('food.mealPlan')}</Text>
+      <Text variant="muted">{t(`nutritionTargets.dayType.${foodPlan.nutritionTargetSnapshot.dayType}`)}</Text>
+      <Text variant="muted">
+        {t('food.totalMacros', {
+          kcal: String(foodPlan.totals.caloriesKcal),
+          protein: String(Math.round(foodPlan.totals.proteinGrams)),
+          carbs: String(Math.round(foodPlan.totals.carbsGrams)),
+          fat: String(Math.round(foodPlan.totals.fatGrams))
+        })}
+      </Text>
+      {fallback ? <Text style={styles.note}>{t('food.fallbackMealPlan')}</Text> : null}
+      <Text variant="muted">{t('food.whyMenu')}</Text>
+      <View style={styles.mealList}>
+        {foodPlan.meals.map((meal) => (
+          <MealCard key={meal.id} meal={meal} onPress={() => onOpenMeal(meal.id)} />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function MealCard({ meal, onPress }: { meal: FoodMeal; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('food.mealAccessibility', {
+        type: t(`food.mealTypes.${meal.mealType}`),
+        title: meal.title,
+        kcal: String(meal.caloriesKcal),
+        protein: String(Math.round(meal.proteinGrams))
+      })}
+      onPress={onPress}
+      style={({ pressed }) => [styles.mealCard, pressed && styles.pressed]}
+    >
+      <Text variant="label">{t(`food.mealTypes.${meal.mealType}`)}</Text>
+      <Text variant="body">{meal.title}</Text>
+      <Text variant="muted">
+        {t('food.mealMacros', {
+          kcal: String(meal.caloriesKcal),
+          protein: String(Math.round(meal.proteinGrams))
+        })}
+      </Text>
+      {meal.prepTimeMinutes !== null ? (
+        <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
+      ) : null}
+      <Text variant="muted">{t('food.noMealImage')}</Text>
+      <Text style={styles.linkText}>{t('food.viewMealDetails')}</Text>
+    </Pressable>
+  );
+}
+
 function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
   const { t } = useTranslation();
   return (
@@ -160,5 +254,16 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
 
 const styles = StyleSheet.create({
   actions: { gap: 10 },
-  error: { color: colors.danger, fontWeight: '600' }
+  error: { color: colors.danger, fontWeight: '600' },
+  mealList: { gap: 10, marginTop: 10 },
+  mealCard: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    padding: 12,
+    gap: 4
+  },
+  pressed: { opacity: 0.78 },
+  linkText: { color: colors.primaryDark, fontWeight: '700' },
+  note: { color: colors.accent, fontWeight: '700' }
 });

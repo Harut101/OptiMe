@@ -285,9 +285,10 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
+      const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
       expect(response.body.status).toBe('READY');
-      expect(requests).toHaveLength(2);
-      expect(JSON.stringify(requests[1])).toContain('EXERCISE_NOT_ALLOWED');
+      expect(dailyPlanRequests).toHaveLength(2);
+      expect(JSON.stringify(dailyPlanRequests[1])).toContain('EXERCISE_NOT_ALLOWED');
       expect(response.body.plan.debug.exerciseSelection).toMatchObject({
         usedAiRetry: true,
         usedDeterministicFallback: true
@@ -4703,8 +4704,10 @@ describe('Sprint 1 backend vertical slice', () => {
         retryUsed: true,
         retryResult: 'approved'
       });
-      expect(requests).toHaveLength(4);
-      const retryRequestInput = requests[2].input as Array<{ content?: string }>;
+      expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(2);
+      expect(filterOutOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(4);
+      const retryRequestInput = filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[1]
+        .input as Array<{ content?: string }>;
       const retryContext = JSON.parse(retryRequestInput[1].content ?? '{}') as {
         safetyFeedback?: unknown;
       };
@@ -4974,11 +4977,12 @@ describe('Sprint 1 backend vertical slice', () => {
         generatedBy: 'OpenAiProviderService',
         planQualityMode: 'BASIC'
       });
-      expect(requests).toHaveLength(1);
-      expect(requests[0].model).toBe('test-openai-model');
-      expect(requests[0].max_output_tokens).toBe(4000);
-      expect(requests[0].requestTimeout).toBe(45000);
-      expect(requests[0]).toMatchObject({
+      const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
+      expect(dailyPlanRequests).toHaveLength(1);
+      expect(dailyPlanRequests[0].model).toBe('test-openai-model');
+      expect(dailyPlanRequests[0].max_output_tokens).toBe(4000);
+      expect(dailyPlanRequests[0].requestTimeout).toBe(45000);
+      expect(dailyPlanRequests[0]).toMatchObject({
         text: {
           format: {
             type: 'json_schema',
@@ -4987,9 +4991,9 @@ describe('Sprint 1 backend vertical slice', () => {
           }
         }
       });
-      expect(JSON.stringify(requests[0].input)).toContain('usePlanLocalDateForTitleAndMessage');
-      expect(JSON.stringify(requests[0].input)).toContain('Do not include schemaVersion');
-      expect(JSON.stringify(requests[0].input)).toContain('Never derive user-facing dates from generatedAt');
+      expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('usePlanLocalDateForTitleAndMessage');
+      expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Do not include schemaVersion');
+      expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Never derive user-facing dates from generatedAt');
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -5033,7 +5037,7 @@ describe('Sprint 1 backend vertical slice', () => {
           UsagePeriodType.DAILY
         )
       ).resolves.toBe(1);
-      expect(requests).toHaveLength(1);
+      expect(filterOpenAiRequestsBySchema(requests, 'daily_plan_json')).toHaveLength(1);
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -5206,8 +5210,9 @@ describe('Sprint 1 backend vertical slice', () => {
           .expect(201);
       }
 
-      expect(requests).toHaveLength(3);
-      const parsedRequests = requests.map(parseOpenAiPlanningRequest);
+      const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
+      expect(dailyPlanRequests).toHaveLength(3);
+      const parsedRequests = dailyPlanRequests.map(parseOpenAiPlanningRequest);
 
       expect(parsedRequests[0].system).toContain('PlanQualityMode is BASIC');
       expect(parsedRequests[0].system).toContain('Return exactly 1 nutrition.menuOptions');
@@ -5291,7 +5296,9 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      const parsedRequest = parseOpenAiPlanningRequest(requests[0]);
+      const parsedRequest = parseOpenAiPlanningRequest(
+        filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[0]
+      );
 
       expect(parsedRequest.system).toContain('do not stereotype nutrition or training by gender');
       expect(parsedRequest.system).toContain('Do not assume pregnancy');
@@ -5345,8 +5352,9 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(requests[0].max_output_tokens).toBe(2345);
-      expect(requests[0].requestTimeout).toBe(12345);
+      const dailyPlanRequest = filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[0];
+      expect(dailyPlanRequest.max_output_tokens).toBe(2345);
+      expect(dailyPlanRequest.requestTimeout).toBe(12345);
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -5387,8 +5395,9 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.summary.message).toContain('Retry');
       expect(plan.body.plan.debug.provider).toBe('openai');
-      expect(requests).toHaveLength(2);
-      expect(JSON.stringify(requests[1])).toContain('This is a retry');
+      const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
+      expect(dailyPlanRequests).toHaveLength(2);
+      expect(JSON.stringify(dailyPlanRequests[1])).toContain('This is a retry');
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -6315,10 +6324,148 @@ function hydrateLegacyDailyPlanResponse(
       }
       return { ...common, sets: undefined, reps: undefined, rest: undefined, duration: '5 minutes' };
     });
-    return { output_text: JSON.stringify(plan) };
+  return { output_text: JSON.stringify(plan) };
   } catch {
     return response;
   }
+}
+
+function getOpenAiRequestSchemaName(input: Record<string, unknown>) {
+  const text = input.text as { format?: { name?: unknown } } | undefined;
+  return typeof text?.format?.name === 'string' ? text.format.name : null;
+}
+
+function filterOpenAiRequestsBySchema(
+  requests: Array<Record<string, unknown>>,
+  schemaName: string
+) {
+  return requests.filter((requestInput) => getOpenAiRequestSchemaName(requestInput) === schemaName);
+}
+
+function filterOutOpenAiRequestsBySchema(
+  requests: Array<Record<string, unknown>>,
+  schemaName: string
+) {
+  return requests.filter((requestInput) => getOpenAiRequestSchemaName(requestInput) !== schemaName);
+}
+
+function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>): MockOpenAiResponse {
+  const messages = input.input as Array<{ content?: string }> | undefined;
+  const context = parseJsonRecord(messages?.[1]?.content);
+  const fixedTarget = parseJsonRecord(context.fixedNutritionTarget);
+  const targetKcal = numberOrDefault(fixedTarget.targetKcal, 2100);
+  const proteinGrams = numberOrDefault(fixedTarget.proteinGrams, 120);
+  const carbsGrams = numberOrDefault(fixedTarget.carbsGrams, 240);
+  const fatGrams = numberOrDefault(fixedTarget.fatGrams, 65);
+  const requestedMealsPerDay = Math.max(1, Math.min(5, numberOrDefault(context.requestedMealsPerDay, 3)));
+  const mealTypes = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'POST_WORKOUT'];
+  const meals = Array.from({ length: requestedMealsPerDay }, (_, index) => {
+    const isLast = index === requestedMealsPerDay - 1;
+    const divisor = requestedMealsPerDay;
+    const calories = isLast
+      ? targetKcal - Math.round(targetKcal / divisor) * (divisor - 1)
+      : Math.round(targetKcal / divisor);
+    const protein = isLast
+      ? roundMacro(proteinGrams - roundMacro(proteinGrams / divisor) * (divisor - 1))
+      : roundMacro(proteinGrams / divisor);
+    const carbs = isLast
+      ? roundMacro(carbsGrams - roundMacro(carbsGrams / divisor) * (divisor - 1))
+      : roundMacro(carbsGrams / divisor);
+    const fat = isLast
+      ? roundMacro(fatGrams - roundMacro(fatGrams / divisor) * (divisor - 1))
+      : roundMacro(fatGrams / divisor);
+
+    return {
+      id: `meal-${index + 1}`,
+      mealType: mealTypes[index] ?? 'SNACK',
+      title: `Balanced meal ${index + 1}`,
+      shortDescription: 'A simple meal built around the fixed nutrition target.',
+      caloriesKcal: calories,
+      proteinGrams: protein,
+      carbsGrams: carbs,
+      fatGrams: fat,
+      prepTimeMinutes: 15,
+      servingSummary: '1 balanced serving',
+      ingredients: [
+        {
+          name: `Lean protein ${index + 1}`,
+          quantity: 1,
+          unit: 'serving',
+          caloriesKcal: calories,
+          proteinGrams: protein,
+          carbsGrams: carbs,
+          fatGrams: fat,
+          isOptional: false
+        }
+      ],
+      preparationSteps: ['Combine the ingredients and season simply.'],
+      substitutions: [
+        {
+          originalItem: `Lean protein ${index + 1}`,
+          replacementItem: `Alternative protein ${index + 1}`,
+          servingSummary: 'Use a similar serving size.',
+          reasonCode: 'PREFERENCE_SWAP',
+          macroImpactNote: 'Keep portions similar for a close macro match.'
+        }
+      ],
+      explanation: {
+        reasonCodes: ['TARGET_ALIGNED'],
+        params: {}
+      }
+    };
+  });
+
+  return {
+    output_text: JSON.stringify({
+      totals: {
+        caloriesKcal: targetKcal,
+        proteinGrams,
+        carbsGrams,
+        fatGrams
+      },
+      meals
+    })
+  };
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return isRecord(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return isRecord(value) ? value : {};
+}
+
+function numberOrDefault(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function roundMacro(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function getOpenAiMockResponse(
+  input: Record<string, unknown>,
+  responses: Array<() => MockOpenAiResponse>,
+  callIndex: number
+) {
+  if (getOpenAiRequestSchemaName(input) === 'daily_food_plan_content') {
+    return createMockDailyFoodPlanContentResponse(input);
+  }
+
+  return hydrateLegacyDailyPlanResponse(
+    responses[Math.min(callIndex, responses.length - 1)](),
+    input
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 async function createOpenAiModeTestApp(options: {
@@ -6339,11 +6486,10 @@ async function createOpenAiModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = hydrateLegacyDailyPlanResponse(
-                options.responses[Math.min(callIndex, options.responses.length - 1)](),
-                input
-              );
-              callIndex += 1;
+              const response = getOpenAiMockResponse(input, options.responses, callIndex);
+              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+                callIndex += 1;
+              }
               if ('throw' in response) {
                 throw response.throw;
               }
@@ -6379,11 +6525,10 @@ async function createOpenAiSafetyAgentModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = hydrateLegacyDailyPlanResponse(
-                options.responses[Math.min(callIndex, options.responses.length - 1)](),
-                input
-              );
-              callIndex += 1;
+              const response = getOpenAiMockResponse(input, options.responses, callIndex);
+              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+                callIndex += 1;
+              }
               if ('throw' in response) {
                 throw response.throw;
               }
@@ -6419,11 +6564,10 @@ async function createOpenAiDailyAndSafetyAgentModeTestApp(options: {
           responses: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
-              const response = hydrateLegacyDailyPlanResponse(
-                options.responses[Math.min(callIndex, options.responses.length - 1)](),
-                input
-              );
-              callIndex += 1;
+              const response = getOpenAiMockResponse(input, options.responses, callIndex);
+              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+                callIndex += 1;
+              }
               if ('throw' in response) {
                 throw response.throw;
               }

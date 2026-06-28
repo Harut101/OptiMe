@@ -201,7 +201,17 @@ export default function PlanDetailsScreen() {
   );
 }
 
-function getFeedbackTags(t: ReturnType<typeof useTranslation>['t']): Array<{ label: string; value: PlanFeedbackTag }> {
+function getFeedbackTags(
+  t: (
+    key:
+      | 'plan.tagTooMuchFood'
+      | 'plan.tagTooLittleFood'
+      | 'plan.tagTrainingTooHard'
+      | 'plan.tagTrainingTooEasy'
+      | 'plan.tagFeltGood'
+      | 'plan.tagLowEnergy'
+  ) => string
+): Array<{ label: string; value: PlanFeedbackTag }> {
   return [
     { label: t('plan.tagTooMuchFood'), value: 'TOO_MUCH_FOOD' },
     { label: t('plan.tagTooLittleFood'), value: 'TOO_LITTLE_FOOD' },

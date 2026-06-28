@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
@@ -506,28 +507,28 @@ function routeForMissingStage1Fields(missingFields: string[]) {
   return '/(onboarding)/training-schedule' as const;
 }
 
-function formatUsageLimitMessage(error: UsageLimitExceededError, t: ReturnType<typeof useTranslation>['t'], locale: string) {
+function formatUsageLimitMessage(error: UsageLimitExceededError, t: TFunction, locale: string) {
   const action = getUsageFeatureLabel(error.feature, t);
   const resetAt = formatResetAt(error.resetAt, locale);
-  const reset = resetAt ? t('today.tryAfter', { time: resetAt }) : t('today.tryAfterReset');
-  return t('today.limitMessage', {
-    plan: getSubscriptionPlanLabel(t, error.currentPlan),
-    limit: error.limit,
+  const reset = resetAt ? String(t('today.tryAfter', { time: resetAt })) : String(t('today.tryAfterReset'));
+  return String(t('today.limitMessage', {
+    plan: String(getSubscriptionPlanLabel(t, error.currentPlan)),
+    limit: String(error.limit),
     action,
     reset
-  });
+  }));
 }
 
-function getUsageFeatureLabel(feature: UsageFeature, t: ReturnType<typeof useTranslation>['t']) {
+function getUsageFeatureLabel(feature: UsageFeature, t: TFunction) {
   if (feature === 'DAILY_PLAN_REFRESH') {
-    return t('today.usageRefresh');
+    return String(t('today.usageRefresh'));
   }
 
   if (feature === 'AI_DAILY_PLAN_GENERATION') {
-    return t('today.usageAiGeneration');
+    return String(t('today.usageAiGeneration'));
   }
 
-  return t('today.usageGeneration');
+  return String(t('today.usageGeneration'));
 }
 
 function formatResetAt(value: string, locale: string) {

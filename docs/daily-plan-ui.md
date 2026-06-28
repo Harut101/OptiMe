@@ -7,3 +7,29 @@ Food keeps the existing meals, meal check-ins, and hydration rendering. Training
 Library-backed cards use the immutable planned name and snapshot metadata plus the plan prescription. Live list data supplies only the optional optimized primary thumbnail. Exercise Details fetches full media separately. Older free-text exercises remain text-only, make no library lookup, and do not open details.
 
 Recovery and reminders are rendered once after the selected content. Feedback state stays in Plan Details and is not owned by either tab.
+# Daily Plan UI
+
+## Structured Food Plans
+
+When `plan.nutrition.foodPlan` exists, mobile should prefer it for Food tab meal cards and Meal Details.
+
+Food tab shows:
+
+- nutrition target summary
+- total kcal/macros
+- meal cards
+- fallback note when `source=DETERMINISTIC_FALLBACK`
+
+Meal Details shows:
+
+- meal title and type
+- approximate nutrition
+- serving summary
+- ingredients
+- preparation steps
+- display-only substitutions
+- reason-code explanation
+
+Today remains focused and does not need to show full meal details.
+
+Older plans without `nutrition.foodPlan` should continue to render legacy `nutrition.meals` where needed.

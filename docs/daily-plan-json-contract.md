@@ -67,6 +67,7 @@ type DailyPlanJson = {
         }>;
       }>;
     }>;
+    foodPlan?: DailyFoodPlan;
     hydration: {
       guidance: string;
       notes?: string;
@@ -145,6 +146,40 @@ type DailyPlanJson = {
   };
 };
 ```
+
+## Structured Food Plan
+
+New plans may include `nutrition.foodPlan`. This is the preferred meal-plan snapshot for Food tab and Meal Details rendering.
+
+```ts
+type DailyFoodPlan = {
+  source: "NUTRITION_AGENT" | "DETERMINISTIC_FALLBACK";
+  localDate: string;
+  locale: "en-US" | "ru-RU" | "fr-FR" | "zh-CN";
+  nutritionTargetSnapshot: NutritionTargetSnapshot;
+  totals: {
+    caloriesKcal: number;
+    proteinGrams: number;
+    carbsGrams: number;
+    fatGrams: number;
+  };
+  validation: {
+    status: "VALID" | "ADJUSTED" | "FALLBACK" | "INVALID";
+    reasons: string[];
+    tolerances: {
+      caloriesPercent: number;
+      proteinGrams: number;
+      carbsGrams: number;
+      fatGrams: number;
+    };
+  };
+  meals: FoodMeal[];
+};
+```
+
+Food meals include stable `id`, `mealType`, title, calories/macros, ingredients with quantities/units, preparation steps, display-only substitutions, and reason-code explanations.
+
+Old plans without `nutrition.foodPlan` remain valid and should continue rendering legacy `nutrition.meals`.
 
 `debug` is internal development metadata. Mobile must not render it.
 

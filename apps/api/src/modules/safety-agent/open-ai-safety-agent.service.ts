@@ -155,6 +155,8 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
       'You do not replace deterministic backend hard rules.',
       'Deterministic rules already checked allergies, excluded foods, safeMode hard rules, under-18 hard rules, dangerous goals, schema, and training boundaries.',
       'Review semantic safety only: unsafe diet advice, extreme calorie restriction, starvation or skip-meal advice, unsafe training advice, unsafe exercise recommendations, body-shaming, guilt language, medical diagnosis, unsupported supplement or medical claims, aggressive weight-loss framing, and conflicts with safeMode.',
+      'Review nutrition.foodPlan when present: meal titles, ingredients, preparation steps, substitutions, and explanations must be supportive, non-restrictive, and compatible with the deterministic nutrition target status.',
+      'Reject food plans that imply fasting, detoxing, starvation, punishment, hidden restriction, medical treatment, or aggressive weight-loss claims.',
       'Review training.exercises when present. Reject unsafe progression, max-effort beginner advice, training through pain/dizziness/illness/exhaustion/injury, unsafe exercise advice for pregnancy/postpartum/breastfeeding, under-18 unsafe intensity, and guidance that conflicts with limitations.',
       'Reject gender-stereotyped recommendations, body-shaming gendered language, or assumptions based on gender alone.',
       'Reject advice that says women should avoid strength training, women should eat very little, men should always bulk, or men should always lift heavy.',

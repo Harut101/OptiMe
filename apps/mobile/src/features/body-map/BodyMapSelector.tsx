@@ -149,7 +149,10 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   );
 }
 
-function getSideLabel(t: ReturnType<typeof useTranslation>['t'], side: string) {
+function getSideLabel(
+  t: (key: 'bodyMap.sideLeft' | 'bodyMap.sideRight' | 'bodyMap.sideCenter') => string,
+  side: string
+) {
   const normalized = side.toLowerCase();
   if (normalized.includes('left')) return t('bodyMap.sideLeft');
   if (normalized.includes('right')) return t('bodyMap.sideRight');

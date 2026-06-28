@@ -31,3 +31,22 @@ Changing app mode or primary goal affects future plans only. Existing saved Dail
 Daily Plans generated after the deterministic nutrition target batch include `plan.nutritionTargetSnapshot`. The snapshot stores backend-owned calorie and macro targets plus localized-ready explanation reason codes. Mobile renders those codes in the selected app language.
 
 Older Daily Plans without the snapshot, or with legacy `explanation.title` and `explanation.bullets`, remain readable and are not migrated or rewritten.
+# Daily Plan
+
+Daily plans are stored as normalized `DailyPlan.planJson` snapshots. New plans keep both backward-compatible nutrition summary fields and richer structured snapshots where available.
+
+## Structured Food Snapshot
+
+New daily plans may include `plan.nutrition.foodPlan`, produced by the Specialized AI Nutrition Agent or deterministic fallback. This snapshot is immutable for the saved plan and includes:
+
+- deterministic `nutritionTargetSnapshot`
+- daily calorie and macro totals
+- validated meals
+- ingredients with quantities and units
+- preparation steps
+- display-only substitutions
+- validation status and safe reason codes
+
+The deterministic Nutrition Engine remains the source of calorie and macro targets. The AI Nutrition Agent creates meals inside those targets only.
+
+Old plans without `nutrition.foodPlan` remain readable through legacy `nutrition.meals`.

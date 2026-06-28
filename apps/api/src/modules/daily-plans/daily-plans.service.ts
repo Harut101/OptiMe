@@ -48,6 +48,7 @@ import {
 import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { HealthService } from '../health/health.service';
+import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
@@ -91,6 +92,7 @@ export class DailyPlansService {
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
     private readonly healthService: HealthService,
+    private readonly nutritionAgent: NutritionAgentService,
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly protocolSelector: ProtocolSelectorService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
@@ -205,6 +207,38 @@ export class DailyPlansService {
           appMode
         )
       };
+      const foodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
+        planLocalDate,
+        locale: this.resolvePlanningLocale(user),
+        planQualityMode,
+        appMode,
+        safeMode: user.safeMode,
+        isMinor: user.isMinor,
+        pregnancyStatus: user.profile?.pregnancyStatus,
+        nutritionTarget,
+        nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget),
+        nutritionPreference: user.nutritionPref
+          ? {
+              dietType: user.nutritionPref.dietType,
+              mealsPerDay: user.nutritionPref.mealsPerDay,
+              notes: user.nutritionPref.notes,
+              allergies: user.nutritionPref.allergies.map((food) => food.name),
+              excludedFoods: user.nutritionPref.excludedFoods.map((food) => food.name),
+              preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
+            }
+          : null,
+        goalSummary: user.goal
+          ? {
+              primaryGoal: user.goal.primaryGoal,
+              goalType: user.goal.goalType
+            }
+          : null,
+        resolvedTrainingDay
+      });
+      providerPlanResult = {
+        ...providerPlanResult,
+        planJson: this.withFoodPlan(providerPlanResult.planJson, foodPlanResult.foodPlan)
+      };
       let exercisePreparation = await this.prepareLibraryBackedExercises({
         providerPlanResult,
         user,
@@ -217,7 +251,7 @@ export class DailyPlansService {
       });
       providerPlanResult = {
         status: exercisePreparation.status,
-        planJson: exercisePreparation.planJson
+        planJson: this.withFoodPlan(exercisePreparation.planJson, foodPlanResult.foodPlan)
       };
       let safePlanResult = await this.validateProviderPlan({
         providerPlan: providerPlanResult.planJson,
@@ -256,6 +290,38 @@ export class DailyPlansService {
           retryProviderPlanResult.planJson,
           appMode
         );
+        const retryFoodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
+          planLocalDate,
+          locale: this.resolvePlanningLocale(user),
+          planQualityMode,
+          appMode,
+          safeMode: user.safeMode,
+          isMinor: user.isMinor,
+          pregnancyStatus: user.profile?.pregnancyStatus,
+          nutritionTarget,
+          nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget),
+          nutritionPreference: user.nutritionPref
+            ? {
+                dietType: user.nutritionPref.dietType,
+                mealsPerDay: user.nutritionPref.mealsPerDay,
+                notes: user.nutritionPref.notes,
+                allergies: user.nutritionPref.allergies.map((food) => food.name),
+                excludedFoods: user.nutritionPref.excludedFoods.map((food) => food.name),
+                preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
+              }
+            : null,
+          goalSummary: user.goal
+            ? {
+                primaryGoal: user.goal.primaryGoal,
+                goalType: user.goal.goalType
+              }
+            : null,
+          resolvedTrainingDay
+        });
+        retryProviderPlanResult.planJson = this.withFoodPlan(
+          retryProviderPlanResult.planJson,
+          retryFoodPlanResult.foodPlan
+        );
         const retryExercisePreparation = await this.prepareLibraryBackedExercises({
           providerPlanResult: retryProviderPlanResult,
           user,
@@ -275,7 +341,10 @@ export class DailyPlansService {
         };
 
         safePlanResult = await this.validateProviderPlan({
-          providerPlan: retryExercisePreparation.planJson,
+          providerPlan: this.withFoodPlan(
+            retryExercisePreparation.planJson,
+            retryFoodPlanResult.foodPlan
+          ),
           blockedFoods,
           planLocalDate,
           planTimezone,
@@ -1205,6 +1274,16 @@ export class DailyPlansService {
     return {
       ...planJson,
       nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget)
+    };
+  }
+
+  private withFoodPlan(planJson: DailyPlanJson, foodPlan: DailyPlanJson['nutrition']['foodPlan']): DailyPlanJson {
+    return {
+      ...planJson,
+      nutrition: {
+        ...planJson.nutrition,
+        foodPlan
+      }
     };
   }
 

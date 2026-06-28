@@ -12,6 +12,58 @@ const mealSchema = z.object({
   foods: z.array(foodItemSchema)
 });
 
+const foodNutritionTotalsSchema = z.object({
+  caloriesKcal: z.number().int().min(0).max(10000),
+  proteinGrams: z.number().min(0).max(1000),
+  carbsGrams: z.number().min(0).max(1500),
+  fatGrams: z.number().min(0).max(1000)
+});
+
+const foodIngredientSchema = foodNutritionTotalsSchema.extend({
+  name: z.string().trim().min(1).max(120),
+  quantity: z.number().positive().max(10000),
+  unit: z.enum(['g', 'ml', 'piece', 'tbsp', 'tsp', 'cup', 'serving']),
+  isOptional: z.boolean()
+});
+
+const foodSubstitutionSchema = z.object({
+  originalItem: z.string().trim().min(1).max(120),
+  replacementItem: z.string().trim().min(1).max(120),
+  servingSummary: z.string().trim().min(1).max(160),
+  reasonCode: z.enum([
+    'ALLERGY_SAFE_ALTERNATIVE',
+    'EXCLUDED_FOOD_ALTERNATIVE',
+    'PREFERENCE_SWAP',
+    'SIMILAR_MACROS',
+    'SIMPLER_PREP'
+  ]),
+  macroImpactNote: z.string().trim().max(180).nullable()
+});
+
+const foodMealSchema = foodNutritionTotalsSchema.extend({
+  id: z.string().trim().min(1).max(80),
+  mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'PRE_WORKOUT', 'POST_WORKOUT']),
+  title: z.string().trim().min(1).max(120),
+  shortDescription: z.string().trim().max(240).nullable(),
+  prepTimeMinutes: z.number().int().min(0).max(240).nullable(),
+  servingSummary: z.string().trim().min(1).max(180),
+  ingredients: z.array(foodIngredientSchema).min(1).max(20),
+  preparationSteps: z.array(z.string().trim().min(1).max(220)).min(1).max(10),
+  substitutions: z.array(foodSubstitutionSchema).max(8),
+  explanation: z.object({
+    reasonCodes: z.array(z.enum([
+      'TARGET_ALIGNED',
+      'PREFERENCE_ALIGNED',
+      'TRAINING_SUPPORT',
+      'RECOVERY_SUPPORT',
+      'SIMPLE_PREP',
+      'SAFETY_ADJUSTED',
+      'BALANCED_ENERGY'
+    ])).min(1).max(6),
+    params: z.record(z.string(), z.unknown()).optional()
+  })
+});
+
 const exerciseSchema = z.object({
   exerciseId: z.string().trim().min(1).optional(),
   slug: z.string().trim().min(1).max(120).optional(),
@@ -127,6 +179,25 @@ const nutritionTargetSnapshotSchema = z.object({
   explanation: z.union([nutritionTargetExplanationSchema, legacyNutritionTargetExplanationSchema])
 });
 
+export const dailyFoodPlanSchema = z.object({
+  source: z.enum(['NUTRITION_AGENT', 'DETERMINISTIC_FALLBACK']),
+  localDate: z.string(),
+  locale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN']),
+  nutritionTargetSnapshot: nutritionTargetSnapshotSchema,
+  totals: foodNutritionTotalsSchema,
+  validation: z.object({
+    status: z.enum(['VALID', 'ADJUSTED', 'FALLBACK', 'INVALID']),
+    reasons: z.array(z.string()).max(20),
+    tolerances: z.object({
+      caloriesPercent: z.number().min(0).max(100),
+      proteinGrams: z.number().min(0).max(1000),
+      carbsGrams: z.number().min(0).max(1000),
+      fatGrams: z.number().min(0).max(1000)
+    })
+  }),
+  meals: z.array(foodMealSchema).min(1).max(8)
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -163,6 +234,7 @@ export const dailyPlanJsonSchema = z.object({
         })
       )
       .optional(),
+    foodPlan: dailyFoodPlanSchema.optional(),
     hydration: z.object({
       guidance: z.string(),
       notes: z.string().optional()

@@ -404,6 +404,11 @@ export interface NutritionTargetExplanation {
   reasonCodes: NutritionTargetReason[];
 }
 
+export interface LegacyNutritionTargetExplanation {
+  title: string;
+  bullets: string[];
+}
+
 export interface NutritionTarget {
   engineVersion: number;
   localDate: string;
@@ -438,7 +443,7 @@ export interface NutritionTargetSnapshot {
   fatGrams: number;
   safetyStatus: NutritionSafetyStatus;
   safetyReasons: string[];
-  explanation: NutritionTargetExplanation;
+  explanation: NutritionTargetExplanation | LegacyNutritionTargetExplanation;
 }
 
 export interface OnboardingProgressivePrompt {
@@ -512,6 +517,88 @@ export interface DailyPlanMenuOption {
   meals: DailyPlanMeal[];
 }
 
+export type DailyFoodPlanSource = 'NUTRITION_AGENT' | 'DETERMINISTIC_FALLBACK';
+export type DailyFoodPlanValidationStatus = 'VALID' | 'ADJUSTED' | 'FALLBACK' | 'INVALID';
+export type FoodMealType =
+  | 'BREAKFAST'
+  | 'LUNCH'
+  | 'DINNER'
+  | 'SNACK'
+  | 'PRE_WORKOUT'
+  | 'POST_WORKOUT';
+export type FoodIngredientUnit = 'g' | 'ml' | 'piece' | 'tbsp' | 'tsp' | 'cup' | 'serving';
+export type FoodMealReasonCode =
+  | 'TARGET_ALIGNED'
+  | 'PREFERENCE_ALIGNED'
+  | 'TRAINING_SUPPORT'
+  | 'RECOVERY_SUPPORT'
+  | 'SIMPLE_PREP'
+  | 'SAFETY_ADJUSTED'
+  | 'BALANCED_ENERGY';
+export type FoodSubstitutionReasonCode =
+  | 'ALLERGY_SAFE_ALTERNATIVE'
+  | 'EXCLUDED_FOOD_ALTERNATIVE'
+  | 'PREFERENCE_SWAP'
+  | 'SIMILAR_MACROS'
+  | 'SIMPLER_PREP';
+
+export interface FoodNutritionTotals {
+  caloriesKcal: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+}
+
+export interface FoodIngredient extends FoodNutritionTotals {
+  name: string;
+  quantity: number;
+  unit: FoodIngredientUnit;
+  isOptional: boolean;
+}
+
+export interface FoodSubstitution {
+  originalItem: string;
+  replacementItem: string;
+  servingSummary: string;
+  reasonCode: FoodSubstitutionReasonCode;
+  macroImpactNote: string | null;
+}
+
+export interface FoodMeal extends FoodNutritionTotals {
+  id: string;
+  mealType: FoodMealType;
+  title: string;
+  shortDescription: string | null;
+  prepTimeMinutes: number | null;
+  servingSummary: string;
+  ingredients: FoodIngredient[];
+  preparationSteps: string[];
+  substitutions: FoodSubstitution[];
+  explanation: {
+    reasonCodes: FoodMealReasonCode[];
+    params?: Record<string, unknown>;
+  };
+}
+
+export interface DailyFoodPlan {
+  source: DailyFoodPlanSource;
+  localDate: string;
+  locale: SupportedLocale;
+  nutritionTargetSnapshot: NutritionTargetSnapshot;
+  totals: FoodNutritionTotals;
+  validation: {
+    status: DailyFoodPlanValidationStatus;
+    reasons: string[];
+    tolerances: {
+      caloriesPercent: number;
+      proteinGrams: number;
+      carbsGrams: number;
+      fatGrams: number;
+    };
+  };
+  meals: FoodMeal[];
+}
+
 export interface DailyPlanExercise {
   exerciseId?: string;
   slug?: string;
@@ -569,6 +656,7 @@ export interface DailyPlanJson {
     };
     meals: DailyPlanMeal[];
     menuOptions?: DailyPlanMenuOption[];
+    foodPlan?: DailyFoodPlan;
     hydration: {
       guidance: string;
       notes?: string;

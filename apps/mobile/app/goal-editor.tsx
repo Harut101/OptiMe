@@ -161,7 +161,13 @@ function getGoalChangeConfirmationCopy(
   nextMode: GoalsFormValue['impactMode'],
   previousMode: GoalsFormValue['impactMode'],
   goalChanged: boolean,
-  t: ReturnType<typeof useTranslation>['t']
+  t: (
+    key:
+      | 'goals.enableTrainingConfirm'
+      | 'goals.disableTrainingConfirm'
+      | 'goals.goalChangeConfirm'
+      | 'goals.futurePlansOnly'
+  ) => string
 ) {
   if (nextMode !== previousMode && nextMode === 'NUTRITION_AND_TRAINING') {
     return t('goals.enableTrainingConfirm');

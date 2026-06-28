@@ -6,6 +6,7 @@ import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-chec
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { ExerciseSelectionModule } from '../exercise-selection/exercise-selection.module';
 import { HealthModule } from '../health/health.module';
+import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { ProtocolModule } from '../protocol/protocol.module';
@@ -24,6 +25,7 @@ import { DailyPlansService } from './daily-plans.service';
     EntitlementsModule,
     ExerciseSelectionModule,
     HealthModule,
+    NutritionAgentModule,
     NutritionTargetsModule,
     OnboardingModule,
     ProtocolModule,
