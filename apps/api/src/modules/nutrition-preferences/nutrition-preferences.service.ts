@@ -18,6 +18,7 @@ export class NutritionPreferencesService {
       include: {
         allergies: true,
         excludedFoods: true,
+        dislikedFoods: true,
         preferredFoods: true
       }
     });
@@ -26,6 +27,7 @@ export class NutritionPreferencesService {
   async upsertPreferences(userId: string, dto: UpsertNutritionPreferencesDto) {
     const allergies = this.normalizeList(dto.allergies);
     const excludedFoods = this.normalizeList(dto.excludedFoods);
+    const dislikedFoods = this.normalizeList(dto.dislikedFoods);
     const preferredFoods = this.normalizeList(dto.preferredFoods);
 
     this.safetyService.validateNutritionPreferences({
@@ -59,6 +61,7 @@ export class NutritionPreferencesService {
 
       await tx.allergy.deleteMany({ where: { nutritionPreferenceId: preference.id } });
       await tx.excludedFood.deleteMany({ where: { nutritionPreferenceId: preference.id } });
+      await tx.dislikedFood.deleteMany({ where: { nutritionPreferenceId: preference.id } });
       await tx.preferredFood.deleteMany({ where: { nutritionPreferenceId: preference.id } });
 
       if (allergies.length > 0) {
@@ -73,6 +76,12 @@ export class NutritionPreferencesService {
         });
       }
 
+      if (dislikedFoods.length > 0) {
+        await tx.dislikedFood.createMany({
+          data: dislikedFoods.map((name) => ({ nutritionPreferenceId: preference.id, name }))
+        });
+      }
+
       if (preferredFoods.length > 0) {
         await tx.preferredFood.createMany({
           data: preferredFoods.map((name) => ({ nutritionPreferenceId: preference.id, name }))
@@ -84,6 +93,7 @@ export class NutritionPreferencesService {
         include: {
           allergies: true,
           excludedFoods: true,
+          dislikedFoods: true,
           preferredFoods: true
         }
       });

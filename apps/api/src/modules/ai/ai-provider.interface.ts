@@ -114,6 +114,7 @@ export interface GenerateDailyPlanInput {
     notes: string | null;
     allergies: string[];
     excludedFoods: string[];
+    dislikedFoods: string[];
     preferredFoods: string[];
   } | null;
   trainingSchedule: Array<{

@@ -225,6 +225,7 @@ export interface UpsertNutritionPreferencesRequest {
   notes?: string;
   allergies?: string[];
   excludedFoods?: string[];
+  dislikedFoods?: string[];
   preferredFoods?: string[];
 }
 

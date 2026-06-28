@@ -32,3 +32,22 @@ It must not generate or override:
 - medical diagnosis
 
 The deterministic Nutrition Engine remains the numeric source of truth.
+
+## Regeneration Boundary
+
+Meal and full-menu regeneration reuse the same AI boundary as normal structured food-plan creation:
+
+```txt
+stored nutritionTargetSnapshot
++ food preferences
++ current foodPlan context
++ regeneration mode
+-> NutritionAgentService
+-> FoodPlanValidationService
+-> SafetyService / SafetyAgent
+-> update only DailyPlan.planJson.nutrition.foodPlan
+```
+
+The AI Nutrition Agent may propose replacement meal content, but it must not change target calories, macros, app mode, training plan, recovery guidance, reminders, exercise selection, usage limits, or subscription state.
+
+Regeneration logs must remain metadata-only. Do not log raw prompts, OpenAI responses, API keys, auth tokens, full profile payloads, or full meal text.

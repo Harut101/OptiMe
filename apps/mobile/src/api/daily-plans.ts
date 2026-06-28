@@ -8,6 +8,10 @@ import type {
   SubmitDailyPlanFeedbackRequest
 } from '@/types/api';
 
+interface RegenerateFoodPlanRequest {
+  reason?: string;
+}
+
 export function getTodayPlan() {
   return apiRequest<DailyPlanResponse | null>('/daily-plans/today');
 }
@@ -44,5 +48,36 @@ export function submitDailyPlanCheckIn(
   return apiRequest<DailyPlanCheckInResponse>(`/daily-plans/${dailyPlanId}/check-ins`, {
     method: 'POST',
     body: JSON.stringify(checkIn)
+  });
+}
+
+export function regenerateDailyFoodPlan(
+  dailyPlanId: string,
+  body: RegenerateFoodPlanRequest = {}
+) {
+  return apiRequest<DailyPlanResponse>(`/daily-plans/${dailyPlanId}/food/regenerate`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function regenerateDailyFoodMeal(
+  dailyPlanId: string,
+  mealId: string,
+  body: RegenerateFoodPlanRequest = {}
+) {
+  return apiRequest<DailyPlanResponse>(`/daily-plans/${dailyPlanId}/food/meals/${mealId}/regenerate`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function excludeDailyFoodIngredient(
+  dailyPlanId: string,
+  ingredientName: string
+) {
+  return apiRequest('/daily-plans/' + dailyPlanId + '/food/exclude-ingredient', {
+    method: 'POST',
+    body: JSON.stringify({ ingredientName })
   });
 }

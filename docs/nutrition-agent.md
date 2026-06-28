@@ -75,6 +75,17 @@ If retry fails, the backend stores a deterministic fallback food plan. The fallb
 - marks `source=DETERMINISTIC_FALLBACK`
 - includes safe validation reasons for UI and diagnostics
 
+## Food-plan regeneration
+
+The Nutrition Agent also supports two focused regeneration modes:
+
+- `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`.
+- `MEAL_REGENERATION`: regenerate the selected meal and return a complete adjusted food plan so the validator can re-check the whole day.
+
+Regeneration does not call the Nutrition Engine and does not calculate new calorie or macro targets. It reuses the selected Daily Plan's stored `nutritionTargetSnapshot`, current preferences, allergies, excluded foods, disliked foods, locale, and training-day context.
+
+If regeneration fails validation or returns deterministic fallback output, the existing plan is kept unchanged. The backend does not partially write invalid food plans.
+
 ## Deferred
 
 This batch does not add:

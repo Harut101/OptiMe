@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Put, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -20,6 +20,25 @@ export class NutritionPreferencesController {
 
   @Put()
   upsertPreferences(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpsertNutritionPreferencesDto
+  ) {
+    return this.preferencesService.upsertPreferences(user.userId, dto);
+  }
+}
+
+@UseGuards(JwtAuthGuard)
+@Controller('food-preferences')
+export class FoodPreferencesController {
+  constructor(private readonly preferencesService: NutritionPreferencesService) {}
+
+  @Get()
+  getPreferences(@CurrentUser() user: AuthenticatedUser) {
+    return this.preferencesService.getPreferences(user.userId);
+  }
+
+  @Patch()
+  updatePreferences(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpsertNutritionPreferencesDto
   ) {

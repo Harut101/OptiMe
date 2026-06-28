@@ -7,6 +7,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DailyPlansService } from './daily-plans.service';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
+import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
+import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -39,5 +41,33 @@ export class DailyPlansController {
     @Body() dto: SubmitDailyPlanFeedbackDto
   ) {
     return this.dailyPlansService.submitFeedback(user.userId, dailyPlanId, dto);
+  }
+
+  @Post(':id/food/regenerate')
+  regenerateFoodPlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Body() dto: RegenerateFoodPlanDto
+  ) {
+    return this.dailyPlansService.regenerateFoodPlan(user.userId, dailyPlanId, dto);
+  }
+
+  @Post(':id/food/meals/:mealId/regenerate')
+  regenerateFoodMeal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Param('mealId') mealId: string,
+    @Body() dto: RegenerateFoodPlanDto
+  ) {
+    return this.dailyPlansService.regenerateFoodMeal(user.userId, dailyPlanId, mealId, dto);
+  }
+
+  @Post(':id/food/exclude-ingredient')
+  excludeFoodIngredient(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Body() dto: ExcludeFoodIngredientDto
+  ) {
+    return this.dailyPlansService.excludeFoodIngredient(user.userId, dailyPlanId, dto);
   }
 }

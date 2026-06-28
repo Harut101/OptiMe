@@ -35,3 +35,9 @@ The mobile app currently supports `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
 The base locale resource now includes app mode, primary goal, training disabled, and design-system preview strings. Locale override files inherit base keys through `createLocaleResource`, so all four locales have runtime coverage even when an override has not yet been translated.
 
 Avoid concatenating English fragments manually. Add full user-facing strings to locale resources and use enum-label helpers for enum display values.
+
+## Food Refinement Strings
+
+Food preference, ingredient exclusion, meal regeneration, and menu regeneration copy is localized in `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
+
+Use complete translation keys for confirmation dialogs and loading/error states. Do not assemble confirmation text from English fragments, especially for nutrition-target preservation copy.

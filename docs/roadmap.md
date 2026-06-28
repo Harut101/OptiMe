@@ -26,4 +26,6 @@ Next recommended batch: Weekly Training Schedule with day-specific muscles, loca
 
 Completed foundation: deterministic Nutrition Engine with backend-owned calorie/macro targets, training-aware day types, DailyPlan target snapshots, mobile-localized reason-code explanations, and structured AI Nutrition Agent meal-plan snapshots.
 
+Food preferences refinement adds disliked-food persistence, standalone `/v1/food-preferences`, ingredient exclusion from Meal Details, meal-level regeneration, and full-menu regeneration. Regeneration preserves stored Nutrition Engine targets and updates only the selected Daily Plan food snapshot after validation.
+
 Still deferred: ingredient database, food tracking, meal completion, grocery list, recipe image generation, WorkoutSession, workout history, rest timers, production CDN deployment, and AI schedule generation.

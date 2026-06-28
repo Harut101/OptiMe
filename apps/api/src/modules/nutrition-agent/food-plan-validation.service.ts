@@ -154,7 +154,11 @@ export class FoodPlanValidationService {
   }
 
   private validateRestrictedFoods(plan: DailyFoodPlan, context: FoodPlanValidationContext) {
-    const restrictedFoods = [...context.allergies, ...context.excludedFoods]
+    const restrictedFoods = [
+      ...context.allergies,
+      ...context.excludedFoods,
+      ...(context.dislikedFoods ?? [])
+    ]
       .map((food) => food.trim().toLowerCase())
       .filter(Boolean);
 

@@ -251,11 +251,14 @@ export class NutritionAgentService {
       'Meal totals must approximately match ingredient sums. Day totals must approximately match meal sums.',
       'Respect the requested mealsPerDay exactly when provided.',
       'Never include allergies, intolerances, or excluded foods in ingredients, meal titles, substitutions, or preparation steps.',
+      'Treat disliked foods as strong avoid preferences unless there is no safe practical alternative.',
       'Use preferred foods when they fit safely.',
       'Keep meal titles localized to the requested locale when possible.',
       'Use supportive, practical, non-shaming language.',
       'Do not include fasting protocols, detox claims, starvation messaging, medical diagnosis, or aggressive weight-loss promises.',
       'For minors, safeMode, pregnancy, postpartum, or breastfeeding context, keep meals balanced and conservative.',
+      'For FULL_MENU_REGENERATION, replace the complete menu while preserving the fixed nutrition target.',
+      'For MEAL_REGENERATION, regenerate the selected meal and return the complete adjusted food plan. Keep other meals stable unless small macro balancing changes are required.',
       previousValidationReasons.length
         ? `This is a retry. Fix these validation errors: ${previousValidationReasons.join(', ')}. Return a complete corrected food plan, not partial edits.`
         : 'Create one complete daily food plan.'
@@ -286,7 +289,8 @@ export class NutritionAgentService {
             notes: input.nutritionPreference.notes,
             preferredFoods: input.nutritionPreference.preferredFoods,
             allergies: input.nutritionPreference.allergies,
-            excludedFoods: input.nutritionPreference.excludedFoods
+            excludedFoods: input.nutritionPreference.excludedFoods,
+            dislikedFoods: input.nutritionPreference.dislikedFoods
           }
         : null,
       goalSummary: input.goalSummary,
@@ -301,6 +305,14 @@ export class NutritionAgentService {
         isMinor: input.isMinor,
         pregnancyStatus: input.pregnancyStatus ?? 'UNKNOWN'
       },
+      regeneration: input.regeneration
+        ? {
+            mode: input.regeneration.mode,
+            reason: input.regeneration.reason ?? null,
+            selectedMealId: input.regeneration.selectedMealId ?? null,
+            existingFoodPlan: input.regeneration.existingFoodPlan
+          }
+        : null,
       previousValidationReasons
     };
   }
@@ -311,6 +323,7 @@ export class NutritionAgentService {
       nutritionTargetSnapshot: input.nutritionTargetSnapshot,
       allergies: input.nutritionPreference?.allergies ?? [],
       excludedFoods: input.nutritionPreference?.excludedFoods ?? [],
+      dislikedFoods: input.nutritionPreference?.dislikedFoods ?? [],
       safeMode: input.safeMode,
       isMinor: input.isMinor,
       pregnancyStatus: input.pregnancyStatus

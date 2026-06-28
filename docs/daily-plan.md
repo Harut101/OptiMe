@@ -50,3 +50,20 @@ New daily plans may include `plan.nutrition.foodPlan`, produced by the Specializ
 The deterministic Nutrition Engine remains the source of calorie and macro targets. The AI Nutrition Agent creates meals inside those targets only.
 
 Old plans without `nutrition.foodPlan` remain readable through legacy `nutrition.meals`.
+
+## Food-plan regeneration
+
+Food-plan regeneration updates only the selected Daily Plan's `planJson.nutrition.foodPlan` snapshot.
+
+It must preserve:
+
+- `nutritionTargetSnapshot`
+- app mode
+- primary goal
+- weekly/training schedule context
+- training section
+- recovery section
+- reminders
+- exercise selection and exercise media
+
+The backend validates the regenerated full food plan before writing it. Failed meal or menu regeneration keeps the old food plan visible and returns a safe error. Old text-only plans without `nutrition.foodPlan` are not eligible for regeneration.

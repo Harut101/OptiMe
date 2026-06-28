@@ -14,3 +14,10 @@ export function saveNutritionPreferences(body: NutritionPreferencesRequest) {
     body: JSON.stringify(body)
   });
 }
+
+export function updateFoodPreferences(body: NutritionPreferencesRequest) {
+  return apiRequest<NutritionPreferencesResponse>('/food-preferences', {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+}

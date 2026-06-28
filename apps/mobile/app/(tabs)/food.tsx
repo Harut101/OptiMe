@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { getTodayPlan } from '@/api/daily-plans';
+import { getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
 import {
   getNutritionPreferences,
   saveNutritionPreferences
@@ -77,6 +77,18 @@ export default function FoodScreen() {
       queryClient.setQueryData(['nutrition-preferences'], data);
     }
   });
+  const regenerateMenu = useMutation({
+    mutationFn: (dailyPlanId: string) =>
+      regenerateDailyFoodPlan(dailyPlanId, { reason: 'User requested a different full menu.' }),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(TODAY_PLAN_QUERY_KEY, data);
+      setSuccessMessage(t('food.menuRegenerated'));
+      await queryClient.invalidateQueries({ queryKey: TODAY_PLAN_QUERY_KEY });
+    },
+    onError: () => {
+      setValidationError(t('food.couldNotRegenerateMenu'));
+    }
+  });
 
   if (preferences.isLoading) {
     return <Screen><StateBlock title={t('common.loading')} message={t('food.loadingMessage')} /></Screen>;
@@ -120,6 +132,20 @@ export default function FoodScreen() {
         <DailyFoodPlanCard
           dailyPlanId={todayPlan.data.id}
           foodPlan={todayPlan.data.plan.nutrition.foodPlan}
+          isRegenerating={regenerateMenu.isPending}
+          onRegenerateMenu={() =>
+            Alert.alert(
+              t('food.replaceMenuTitle'),
+              t('food.replaceMenuMessage'),
+              [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                  text: t('food.regenerateMenu'),
+                  onPress: () => regenerateMenu.mutate(todayPlan.data!.id)
+                }
+              ]
+            )
+          }
           onOpenMeal={(mealId) =>
             router.push({
               pathname: '/meal-details' as never,
@@ -133,6 +159,8 @@ export default function FoodScreen() {
           <Text variant="muted">{t('food.mealPlanUnavailable')}</Text>
         </Card>
       ) : null}
+
+      {validationError && !editing ? <Text style={styles.error}>{validationError}</Text> : null}
 
       {!preferences.data && !editing ? (
         <StateBlock
@@ -175,10 +203,14 @@ export default function FoodScreen() {
 function DailyFoodPlanCard({
   dailyPlanId: _dailyPlanId,
   foodPlan,
+  isRegenerating,
+  onRegenerateMenu,
   onOpenMeal
 }: {
   dailyPlanId: string;
   foodPlan: DailyFoodPlan;
+  isRegenerating: boolean;
+  onRegenerateMenu: () => void;
   onOpenMeal: (mealId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -198,6 +230,13 @@ function DailyFoodPlanCard({
       </Text>
       {fallback ? <Text style={styles.note}>{t('food.fallbackMealPlan')}</Text> : null}
       <Text variant="muted">{t('food.whyMenu')}</Text>
+      <Button
+        title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
+        variant="secondary"
+        disabled={isRegenerating}
+        accessibilityLabel={t('food.regenerateMenu')}
+        onPress={onRegenerateMenu}
+      />
       <View style={styles.mealList}>
         {foodPlan.meals.map((meal) => (
           <MealCard key={meal.id} meal={meal} onPress={() => onOpenMeal(meal.id)} />
@@ -247,6 +286,7 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
       <Text>{t('food.mealsPerDay')}: {value.mealsPerDay}</Text>
       <Text variant="muted">{t('food.allergies')}: {value.allergies || t('food.confirmedNoAllergies')}</Text>
       <Text variant="muted">{t('food.excludedFoods')}: {value.excludedFoods || t('common.noneAdded')}</Text>
+      <Text variant="muted">{t('food.dislikedFoods')}: {value.dislikedFoods || t('common.noneAdded')}</Text>
       <Text variant="muted">{t('food.preferredFoods')}: {value.preferredFoods || t('common.noneAdded')}</Text>
     </Card>
   );

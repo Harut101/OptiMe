@@ -28,6 +28,7 @@ export interface NutritionAgentInput {
     notes: string | null;
     allergies: string[];
     excludedFoods: string[];
+    dislikedFoods: string[];
     preferredFoods: string[];
   } | null;
   goalSummary: {
@@ -35,6 +36,12 @@ export interface NutritionAgentInput {
     goalType: string | null;
   } | null;
   resolvedTrainingDay: ResolvedTrainingDayContext;
+  regeneration?: {
+    mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
+    reason?: string;
+    existingFoodPlan: DailyFoodPlan;
+    selectedMealId?: string;
+  };
 }
 
 export interface NutritionAgentResult {
@@ -49,6 +56,7 @@ export interface FoodPlanValidationContext {
   nutritionTargetSnapshot: NutritionTargetSnapshot;
   allergies: string[];
   excludedFoods: string[];
+  dislikedFoods?: string[];
   safeMode: boolean;
   isMinor: boolean;
   pregnancyStatus?: PregnancyStatus | null;

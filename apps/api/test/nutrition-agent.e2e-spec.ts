@@ -229,12 +229,171 @@ describe('Specialized Nutrition Agent food plans', () => {
     ).toBe(false);
   });
 
+  it('updates excluded and disliked foods through the food preferences endpoint', async () => {
+    const user = await registerTestUser(ctx.app, 'food-preferences-update@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const response = await request(ctx.app.getHttpServer())
+      .patch('/v1/food-preferences')
+      .set(authHeader(user.accessToken))
+      .send({
+        dietType: 'NONE',
+        mealsPerDay: 3,
+        noKnownAllergiesConfirmed: true,
+        allergies: [],
+        excludedFoods: ['walnuts'],
+        dislikedFoods: ['mushrooms'],
+        preferredFoods: ['rice']
+      })
+      .expect(200);
+
+    expect(response.body.excludedFoods.map((food: { name: string }) => food.name)).toEqual(['walnuts']);
+    expect(response.body.dislikedFoods.map((food: { name: string }) => food.name)).toEqual(['mushrooms']);
+  });
+
+  it('adds an excluded ingredient without changing the current food plan', async () => {
+    const user = await registerTestUser(ctx.app, 'exclude-ingredient@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforeFoodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const ingredientName = beforeFoodPlan.meals[0].ingredients[0].name;
+
+    const response = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/exclude-ingredient`)
+      .set(authHeader(user.accessToken))
+      .send({ ingredientName })
+      .expect(201);
+
+    expect(response.body.excludedFoods.map((food: { name: string }) => food.name)).toContain(ingredientName);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/exclude-ingredient`)
+      .set(authHeader(user.accessToken))
+      .send({ ingredientName })
+      .expect(201);
+
+    const preferences = await request(ctx.app.getHttpServer())
+      .get('/v1/food-preferences')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(
+      preferences.body.excludedFoods.filter((food: { name: string }) => food.name === ingredientName)
+    ).toHaveLength(1);
+
+    const today = await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/today')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(today.body.plan.nutrition.foodPlan).toEqual(beforeFoodPlan);
+  });
+
+  it('regenerates the full food menu while preserving nutrition target and non-food plan sections', async () => {
+    const user = await registerTestUser(ctx.app, 'full-menu-regeneration@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforePlan = generated.body.plan;
+    const beforeTarget = beforePlan.nutrition.foodPlan.nutritionTargetSnapshot;
+
+    const regenerated = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'I want a different full menu.' })
+      .expect(201);
+
+    const foodPlan = regenerated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    expect(foodPlan.nutritionTargetSnapshot).toEqual(beforeTarget);
+    expect(foodPlan.meals.every((meal) => meal.shortDescription?.includes('Menu refreshed'))).toBe(true);
+    expect(regenerated.body.plan.training).toEqual(beforePlan.training);
+    expect(regenerated.body.plan.recovery).toEqual(beforePlan.recovery);
+    expect(regenerated.body.plan.reminders).toEqual(beforePlan.reminders);
+  });
+
+  it('regenerates one meal and keeps the stored nutrition target snapshot', async () => {
+    const user = await registerTestUser(ctx.app, 'meal-regeneration@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforeFoodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const selectedMealId = beforeFoodPlan.meals[0].id;
+
+    const regenerated = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/${selectedMealId}/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'I do not like this meal.' })
+      .expect(201);
+
+    const foodPlan = regenerated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    expect(foodPlan.nutritionTargetSnapshot).toEqual(beforeFoodPlan.nutritionTargetSnapshot);
+    expect(foodPlan.meals.find((meal) => meal.id === selectedMealId)?.shortDescription).toContain('Meal refreshed');
+    expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
+  });
+
+  it('rejects invalid meal regeneration and old text-only plans without mutating the plan', async () => {
+    const user = await registerTestUser(ctx.app, 'meal-regeneration-invalid@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforeFoodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/not-a-real-meal/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another option.' })
+      .expect(400);
+
+    let today = await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/today')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(today.body.plan.nutrition.foodPlan).toEqual(beforeFoodPlan);
+
+    const legacyJson = {
+      ...today.body.plan,
+      nutrition: {
+        ...today.body.plan.nutrition
+      }
+    };
+    delete legacyJson.nutrition.foodPlan;
+
+    await ctx.prisma.dailyPlan.update({
+      where: { id: generated.body.id },
+      data: { planJson: legacyJson }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another full menu.' })
+      .expect(400);
+  });
+
   async function completeNutritionOnlyOnboarding(
     token: string,
     overrides: {
       mealsPerDay?: number;
       allergies?: string[];
       excludedFoods?: string[];
+      dislikedFoods?: string[];
       preferredFoods?: string[];
     }
   ) {
@@ -270,6 +429,7 @@ describe('Specialized Nutrition Agent food plans', () => {
         noKnownAllergiesConfirmed: !overrides.allergies?.length,
         allergies: overrides.allergies ?? [],
         excludedFoods: overrides.excludedFoods ?? [],
+        dislikedFoods: overrides.dislikedFoods ?? [],
         preferredFoods: overrides.preferredFoods ?? ['oats', 'chicken']
       })
       .expect(200);

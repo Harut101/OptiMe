@@ -162,6 +162,7 @@ export interface NutritionPreferencesRequest {
   notes?: string;
   allergies?: string[];
   excludedFoods?: string[];
+  dislikedFoods?: string[];
   preferredFoods?: string[];
 }
 
@@ -173,6 +174,7 @@ export interface NutritionPreferencesResponse {
   notes: string | null;
   allergies: Array<{ id: string; name: string }>;
   excludedFoods: Array<{ id: string; name: string }>;
+  dislikedFoods: Array<{ id: string; name: string }>;
   preferredFoods: Array<{ id: string; name: string }>;
 }
 

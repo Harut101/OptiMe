@@ -74,6 +74,7 @@ export const nutritionPreferencesSchema = z.object({
   notes: z.string().optional(),
   allergies: z.array(z.string()).max(30).optional(),
   excludedFoods: z.array(z.string()).max(60).optional(),
+  dislikedFoods: z.array(z.string()).max(60).optional(),
   preferredFoods: z.array(z.string()).max(60).optional()
 });
 

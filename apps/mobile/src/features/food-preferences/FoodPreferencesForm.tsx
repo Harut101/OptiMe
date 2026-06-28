@@ -18,6 +18,7 @@ export interface FoodPreferencesFormValue {
   noKnownAllergiesConfirmed: boolean;
   allergies: string;
   excludedFoods: string;
+  dislikedFoods: string;
   preferredFoods: string;
   notes: string;
 }
@@ -34,6 +35,7 @@ export const EMPTY_FOOD_PREFERENCES: FoodPreferencesFormValue = {
   noKnownAllergiesConfirmed: false,
   allergies: '',
   excludedFoods: '',
+  dislikedFoods: '',
   preferredFoods: '',
   notes: ''
 };
@@ -111,6 +113,12 @@ export function FoodPreferencesForm({
         onChangeText={(text) => update('excludedFoods', text)}
       />
       <Field
+        label={t('food.dislikedFoods')}
+        placeholder={t('food.dislikedPlaceholder')}
+        value={value.dislikedFoods}
+        onChangeText={(text) => update('dislikedFoods', text)}
+      />
+      <Field
         label={t('food.preferredFoods')}
         placeholder={t('food.preferredPlaceholder')}
         value={value.preferredFoods}
@@ -143,6 +151,7 @@ export function toNutritionPreferencesRequest(
     notes: value.notes.trim() || undefined,
     allergies: splitList(value.allergies),
     excludedFoods: splitList(value.excludedFoods),
+    dislikedFoods: splitList(value.dislikedFoods),
     preferredFoods: splitList(value.preferredFoods)
   };
 }
@@ -156,6 +165,7 @@ export function fromNutritionPreferencesResponse(
     noKnownAllergiesConfirmed: preference.noKnownAllergiesConfirmed,
     allergies: preference.allergies.map((item) => item.name).join(', '),
     excludedFoods: preference.excludedFoods.map((item) => item.name).join(', '),
+    dislikedFoods: preference.dislikedFoods.map((item) => item.name).join(', '),
     preferredFoods: preference.preferredFoods.map((item) => item.name).join(', '),
     notes: preference.notes ?? ''
   };

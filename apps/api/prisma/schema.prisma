@@ -436,6 +436,7 @@ model NutritionPreference {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   allergies      Allergy[]
   excludedFoods  ExcludedFood[]
+  dislikedFoods  DislikedFood[]
   preferredFoods PreferredFood[]
 }
 
@@ -450,6 +451,16 @@ model Allergy {
 }
 
 model ExcludedFood {
+  id                    String @id @default(cuid())
+  nutritionPreferenceId String
+  name                  String
+
+  nutritionPreference NutritionPreference @relation(fields: [nutritionPreferenceId], references: [id], onDelete: Cascade)
+
+  @@index([nutritionPreferenceId])
+}
+
+model DislikedFood {
   id                    String @id @default(cuid())
   nutritionPreferenceId String
   name                  String

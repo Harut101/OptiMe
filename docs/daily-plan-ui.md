@@ -33,3 +33,15 @@ Meal Details shows:
 Today remains focused and does not need to show full meal details.
 
 Older plans without `nutrition.foodPlan` should continue to render legacy `nutrition.meals` where needed.
+
+## Food refinement controls
+
+Food tab can show a secondary `Regenerate menu` action when the current plan has a structured `nutrition.foodPlan`. The confirmation explains that the nutrition target stays fixed and that training, recovery, and reminders will not change.
+
+Meal Details can show:
+
+- `Regenerate meal`
+- ingredient-level `Exclude ingredient`
+- display-only substitutions
+
+Failed regeneration keeps the current meal/menu visible. Excluding an ingredient updates future food preferences only and does not automatically rewrite the current plan. Old text-only plans hide regeneration actions by returning a safe unsupported state from the backend.

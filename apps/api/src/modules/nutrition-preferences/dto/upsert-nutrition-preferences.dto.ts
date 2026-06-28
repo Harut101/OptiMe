@@ -48,5 +48,11 @@ export class UpsertNutritionPreferencesDto {
   @IsArray()
   @ArrayMaxSize(60)
   @IsString({ each: true })
+  dislikedFoods?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(60)
+  @IsString({ each: true })
   preferredFoods?: string[];
 }

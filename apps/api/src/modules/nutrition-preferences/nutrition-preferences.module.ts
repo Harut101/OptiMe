@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
 
 import { SafetyModule } from '../safety/safety.module';
-import { NutritionPreferencesController } from './nutrition-preferences.controller';
+import {
+  FoodPreferencesController,
+  NutritionPreferencesController
+} from './nutrition-preferences.controller';
 import { NutritionPreferencesService } from './nutrition-preferences.service';
 
 @Module({
   imports: [SafetyModule],
-  controllers: [NutritionPreferencesController],
+  controllers: [NutritionPreferencesController, FoodPreferencesController],
   providers: [NutritionPreferencesService],
   exports: [NutritionPreferencesService]
 })
