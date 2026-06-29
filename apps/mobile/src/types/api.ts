@@ -1,6 +1,7 @@
 import type {
   ActivityLevel,
   DailyFoodPlan,
+  DailyPlanJson,
   DailyPlanExercise,
   DailyPlanResponse,
   DailyPlanFeedbackResponse,
@@ -47,6 +48,7 @@ import type {
 import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
 
 export type {
+  DailyPlanJson,
   DailyPlanExercise,
   DailyFoodPlan,
   DailyPlanFeedbackResponse,

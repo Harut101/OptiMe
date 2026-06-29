@@ -330,6 +330,7 @@ export type NutritionTargetTitleCode =
 export type NutritionTargetReasonCode =
   | 'BASED_ON_PRIMARY_GOAL'
   | 'BASED_ON_NORMAL_ACTIVITY'
+  | 'BASED_ON_RECENT_ACTIVITY'
   | 'NUTRITION_ONLY_MODE'
   | 'ADJUSTED_FOR_TRAINING_DAY'
   | 'SCHEDULED_REST_DAY'
@@ -405,6 +406,81 @@ export interface WearableContext {
   sleepQualityScore?: number;
   recoveryScore?: number;
   strainScore?: number;
+  restingHeartRateBpm?: number;
+  hrvMs?: number;
+  respiratoryRate?: number;
+}
+
+export type WearableActivityLevelHint = 'LOW' | 'MODERATE' | 'HIGH' | 'UNKNOWN';
+export type WearableSleepHint = 'LOW_SLEEP' | 'OK_SLEEP' | 'UNKNOWN';
+export type WearableRecoveryHint =
+  | 'RECOVERY_DATA_AVAILABLE'
+  | 'LIMITED_RECOVERY_DATA'
+  | 'UNKNOWN';
+export type WearablePlanningReasonCode =
+  | 'NO_WEARABLE_DATA'
+  | 'STALE_WEARABLE_DATA'
+  | 'PARTIAL_WEARABLE_DATA'
+  | 'LOW_SLEEP'
+  | 'OK_SLEEP'
+  | 'HIGH_ACTIVITY'
+  | 'MODERATE_ACTIVITY'
+  | 'RECENT_WORKOUT_LOAD'
+  | 'RECOVERY_DATA_AVAILABLE'
+  | 'LIMITED_RECOVERY_DATA'
+  | 'APPLE_HEALTH_NO_RECOVERY_SCORE';
+
+export interface WearablePlanningContext {
+  hasWearableData: boolean;
+  source: HealthDataSource | null;
+  localDate: string | null;
+  isStale: boolean;
+  activity: {
+    steps: number | null;
+    activeCaloriesKcal: number | null;
+    workoutMinutes: number | null;
+    activityLevelHint: WearableActivityLevelHint;
+  };
+  sleep: {
+    sleepMinutes: number | null;
+    sleepHint: WearableSleepHint;
+  };
+  recovery: {
+    recoveryScore: number | null;
+    strainScore: number | null;
+    restingHeartRateBpm: number | null;
+    hrvMs: number | null;
+    respiratoryRate: number | null;
+    recoveryHint: WearableRecoveryHint;
+  };
+  reasonCodes: WearablePlanningReasonCode[];
+}
+
+export type TrainingLoadReadinessHint =
+  | 'NORMAL'
+  | 'CONTROLLED'
+  | 'LIGHT'
+  | 'RECOVERY_FOCUSED'
+  | 'UNKNOWN';
+export type TrainingLoadAdjustment = 'NORMAL' | 'REDUCE' | 'INCREASE' | 'UNKNOWN';
+export type TrainingLoadReasonCode =
+  | 'LOW_SLEEP'
+  | 'HIGH_ACTIVITY'
+  | 'RECENT_WORKOUT_LOAD'
+  | 'PARTIAL_WEARABLE_DATA'
+  | 'STALE_WEARABLE_DATA'
+  | 'NO_WEARABLE_DATA';
+
+export interface TrainingLoadContext {
+  hasTrainingLoadContext: boolean;
+  readinessHint: TrainingLoadReadinessHint;
+  reasons: TrainingLoadReasonCode[];
+  suggestedAdjustment: {
+    intensity: Exclude<TrainingLoadAdjustment, 'INCREASE'>;
+    volume: Exclude<TrainingLoadAdjustment, 'INCREASE'>;
+    restTime: TrainingLoadAdjustment;
+  };
+  userFacingHint: string | null;
 }
 
 export interface NutritionTargetContext {
@@ -415,6 +491,8 @@ export interface NutritionTargetContext {
   normalActivityLevel: ActivityLevel | null;
   inheritedScheduleFields?: TrainingScheduleInheritedField[];
   wearableContext?: WearableContext;
+  wearablePlanningContext?: WearablePlanningContext;
+  trainingLoadContext?: TrainingLoadContext;
 }
 
 export interface NutritionTargetSafety {
@@ -762,6 +840,41 @@ export interface DailyPlanExerciseSnapshot {
   exerciseUpdatedAt: string;
 }
 
+export type DailyPlanContextNoteTitleCode =
+  | 'WEARABLE_DATA_INCLUDED'
+  | 'APPLE_HEALTH_DATA_INCLUDED'
+  | 'USING_PROFILE_AND_SCHEDULE'
+  | 'TRAINING_LOAD_CONTEXT'
+  | 'RECOVERY_CONTEXT';
+export type DailyPlanContextNoteMessageCode =
+  | 'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE'
+  | 'RECENT_ACTIVITY_INCLUDED'
+  | 'RECENT_SLEEP_INCLUDED'
+  | 'NO_RECENT_WEARABLE_DATA_USED'
+  | 'WEARABLE_DATA_STALE'
+  | 'KEEP_WORKOUT_CONTROLLED'
+  | 'TAKE_LONGER_RESTS'
+  | 'GENTLER_RECOVERY_FOCUS';
+
+export interface DailyPlanContextNotes {
+  wearable?: {
+    titleCode: DailyPlanContextNoteTitleCode;
+    messageCode: DailyPlanContextNoteMessageCode;
+    reasonCodes: WearablePlanningReasonCode[];
+  };
+  trainingLoad?: {
+    titleCode: DailyPlanContextNoteTitleCode;
+    messageCode: DailyPlanContextNoteMessageCode;
+    readinessHint: TrainingLoadReadinessHint;
+    reasonCodes: TrainingLoadReasonCode[];
+  };
+  recovery?: {
+    titleCode: DailyPlanContextNoteTitleCode;
+    messageCode: DailyPlanContextNoteMessageCode;
+    reasonCodes: WearablePlanningReasonCode[];
+  };
+}
+
 export interface DailyPlanJson {
   schemaVersion: 'sprint-2.v1';
   generatedAt: string;
@@ -804,6 +917,7 @@ export interface DailyPlanJson {
   };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   nutritionTargetSnapshot?: NutritionTargetSnapshot;
+  contextNotes?: DailyPlanContextNotes;
   recovery: {
     recommendation: string;
     sleepTip?: string;
@@ -838,6 +952,11 @@ export interface DailyPlanJson {
       usedAiRetry: boolean;
       usedDeterministicFallback: boolean;
       resolvedLocale: SupportedLocale;
+    };
+    trainingLoadContext?: {
+      hasTrainingLoadContext: boolean;
+      readinessHint: TrainingLoadReadinessHint;
+      reasons: TrainingLoadReasonCode[];
     };
   };
 }

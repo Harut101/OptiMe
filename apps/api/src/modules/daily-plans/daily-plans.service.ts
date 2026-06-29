@@ -69,6 +69,7 @@ import {
 import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
+import { withRecoveryAwareContextNotes } from './daily-plan-context-notes';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
@@ -204,12 +205,17 @@ export class DailyPlansService {
       });
       providerPlanResult = {
         ...providerPlanResult,
-        planJson: this.withTrainingStateForAppMode(
-          this.withNutritionTargetSnapshot(
-            this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
-            nutritionTarget
+        planJson: this.withRecoveryAwareContext(
+          this.withTrainingStateForAppMode(
+            this.withNutritionTargetSnapshot(
+              this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
+              nutritionTarget
+            ),
+            appMode
           ),
-          appMode
+          personalizationContext,
+          trainingEnabled,
+          resolvedTrainingDay.isTrainingDay
         )
       };
       const foodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
@@ -284,17 +290,17 @@ export class DailyPlansService {
           exerciseSelection,
           safetyFeedback: safePlanResult.safetyRetryRequest
         });
-        retryProviderPlanResult.planJson = this.withTrainingScheduleSnapshot(
-          retryProviderPlanResult.planJson,
-          resolvedTrainingDay
-        );
-        retryProviderPlanResult.planJson = this.withNutritionTargetSnapshot(
-          retryProviderPlanResult.planJson,
-          nutritionTarget
-        );
-        retryProviderPlanResult.planJson = this.withTrainingStateForAppMode(
-          retryProviderPlanResult.planJson,
-          appMode
+        retryProviderPlanResult.planJson = this.withRecoveryAwareContext(
+          this.withTrainingStateForAppMode(
+            this.withNutritionTargetSnapshot(
+              this.withTrainingScheduleSnapshot(retryProviderPlanResult.planJson, resolvedTrainingDay),
+              nutritionTarget
+            ),
+            appMode
+          ),
+          personalizationContext,
+          trainingEnabled,
+          resolvedTrainingDay.isTrainingDay
         );
         const retryFoodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
           planLocalDate,
@@ -384,7 +390,12 @@ export class DailyPlansService {
       safePlanResult = {
         ...safePlanResult,
         planJson: this.withPlanDebugContext(
-          this.withNutritionTargetSnapshot(safePlanResult.planJson, nutritionTarget),
+          this.withRecoveryAwareContext(
+            this.withNutritionTargetSnapshot(safePlanResult.planJson, nutritionTarget),
+            personalizationContext,
+            trainingEnabled,
+            resolvedTrainingDay.isTrainingDay
+          ),
           planQualityMode,
           personalizationContext.selectedProtocols,
           personalizationContext.healthPlanningContext
@@ -1545,7 +1556,13 @@ export class DailyPlansService {
                       localDate: healthPlanningContext.wearableContext.localDate
                     }
                   }
-                : {})
+                : {}),
+              trainingLoadContext: {
+                hasTrainingLoadContext:
+                  healthPlanningContext.trainingLoadContext.hasTrainingLoadContext,
+                readinessHint: healthPlanningContext.trainingLoadContext.readinessHint,
+                reasons: healthPlanningContext.trainingLoadContext.reasons
+              }
             }
           : {})
       }
@@ -1660,6 +1677,19 @@ export class DailyPlansService {
     };
   }
 
+  private withRecoveryAwareContext(
+    planJson: DailyPlanJson,
+    personalizationContext: GenerateDailyPlanPersonalizationContext,
+    trainingEnabled: boolean,
+    isTrainingDay: boolean
+  ): DailyPlanJson {
+    return withRecoveryAwareContextNotes(planJson, {
+      healthPlanningContext: personalizationContext.healthPlanningContext,
+      trainingEnabled,
+      isTrainingDay
+    });
+  }
+
   private withTrainingStateForAppMode(planJson: DailyPlanJson, appMode: GoalImpactMode): DailyPlanJson {
     if (appMode !== GoalImpactMode.NUTRITION_ONLY) return planJson;
 
@@ -1728,7 +1758,8 @@ export class DailyPlansService {
         'daily plan health context resolved',
         `available=${healthPlanningContext.available}`,
         `wearableContextUsed=${Boolean(healthPlanningContext.wearableContext)}`,
-        `wearableStale=${healthPlanningContext.wearableContext?.isStale ?? false}`
+        `wearableStale=${healthPlanningContext.wearableContext?.isStale ?? false}`,
+        `trainingLoadReadiness=${healthPlanningContext.trainingLoadContext.readinessHint}`
       ].join('; ')
     );
     const trainingPreference = user.trainingPreference;

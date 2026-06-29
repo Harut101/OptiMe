@@ -2,6 +2,12 @@
 
 `WearableDailySnapshot` is the provider-neutral daily health-data abstraction for OptiMe. Apple Health now writes real iOS daily summaries into this model. Future Health Connect, WHOOP, manual, and mock sync paths should use the same abstraction before Daily Plan generation reads health context.
 
+## Planning Context
+
+Snapshots are converted into `WearablePlanningContext` before plan generation. The context keeps only safe planning signals: activity hint, sleep hint, recovery hint, and reason codes such as `LOW_SLEEP`, `HIGH_ACTIVITY`, `RECENT_WORKOUT_LOAD`, and `STALE_WEARABLE_DATA`.
+
+Apple Health snapshots must not invent WHOOP-style `recoveryScore` or `strainScore`. Heart-rate-adjacent fields are treated as limited context only and must not be displayed as diagnosis or readiness scoring.
+
 ## Stored Fields
 
 - `userId`

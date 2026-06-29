@@ -193,6 +193,7 @@ export const nutritionTargetTitleCodeSchema = z.enum([
 export const nutritionTargetReasonCodeSchema = z.enum([
   'BASED_ON_PRIMARY_GOAL',
   'BASED_ON_NORMAL_ACTIVITY',
+  'BASED_ON_RECENT_ACTIVITY',
   'NUTRITION_ONLY_MODE',
   'ADJUSTED_FOR_TRAINING_DAY',
   'SCHEDULED_REST_DAY',
@@ -301,9 +302,14 @@ export const nutritionTargetSchema = z.object({
         sleepMinutes: z.number().int().optional(),
         sleepQualityScore: z.number().int().optional(),
         recoveryScore: z.number().int().optional(),
-        strainScore: z.number().optional()
+        strainScore: z.number().optional(),
+        restingHeartRateBpm: z.number().int().optional(),
+        hrvMs: z.number().int().optional(),
+        respiratoryRate: z.number().optional()
       })
-      .optional()
+      .optional(),
+    wearablePlanningContext: z.unknown().optional(),
+    trainingLoadContext: z.unknown().optional()
   }),
   safety: z.object({
     status: nutritionSafetyStatusSchema,
@@ -499,6 +505,81 @@ export const dailyFoodPlanSchema = z.object({
   meals: z.array(foodMealSchema).min(1).max(8)
 });
 
+export const wearablePlanningReasonCodeSchema = z.enum([
+  'NO_WEARABLE_DATA',
+  'STALE_WEARABLE_DATA',
+  'PARTIAL_WEARABLE_DATA',
+  'LOW_SLEEP',
+  'OK_SLEEP',
+  'HIGH_ACTIVITY',
+  'MODERATE_ACTIVITY',
+  'RECENT_WORKOUT_LOAD',
+  'RECOVERY_DATA_AVAILABLE',
+  'LIMITED_RECOVERY_DATA',
+  'APPLE_HEALTH_NO_RECOVERY_SCORE'
+]);
+
+export const trainingLoadReadinessHintSchema = z.enum([
+  'NORMAL',
+  'CONTROLLED',
+  'LIGHT',
+  'RECOVERY_FOCUSED',
+  'UNKNOWN'
+]);
+
+export const trainingLoadReasonCodeSchema = z.enum([
+  'LOW_SLEEP',
+  'HIGH_ACTIVITY',
+  'RECENT_WORKOUT_LOAD',
+  'PARTIAL_WEARABLE_DATA',
+  'STALE_WEARABLE_DATA',
+  'NO_WEARABLE_DATA'
+]);
+
+const dailyPlanContextNoteTitleCodeSchema = z.enum([
+  'WEARABLE_DATA_INCLUDED',
+  'APPLE_HEALTH_DATA_INCLUDED',
+  'USING_PROFILE_AND_SCHEDULE',
+  'TRAINING_LOAD_CONTEXT',
+  'RECOVERY_CONTEXT'
+]);
+
+const dailyPlanContextNoteMessageCodeSchema = z.enum([
+  'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE',
+  'RECENT_ACTIVITY_INCLUDED',
+  'RECENT_SLEEP_INCLUDED',
+  'NO_RECENT_WEARABLE_DATA_USED',
+  'WEARABLE_DATA_STALE',
+  'KEEP_WORKOUT_CONTROLLED',
+  'TAKE_LONGER_RESTS',
+  'GENTLER_RECOVERY_FOCUS'
+]);
+
+export const dailyPlanContextNotesSchema = z.object({
+  wearable: z
+    .object({
+      titleCode: dailyPlanContextNoteTitleCodeSchema,
+      messageCode: dailyPlanContextNoteMessageCodeSchema,
+      reasonCodes: z.array(wearablePlanningReasonCodeSchema).max(12)
+    })
+    .optional(),
+  trainingLoad: z
+    .object({
+      titleCode: dailyPlanContextNoteTitleCodeSchema,
+      messageCode: dailyPlanContextNoteMessageCodeSchema,
+      readinessHint: trainingLoadReadinessHintSchema,
+      reasonCodes: z.array(trainingLoadReasonCodeSchema).max(8)
+    })
+    .optional(),
+  recovery: z
+    .object({
+      titleCode: dailyPlanContextNoteTitleCodeSchema,
+      messageCode: dailyPlanContextNoteMessageCodeSchema,
+      reasonCodes: z.array(wearablePlanningReasonCodeSchema).max(12)
+    })
+    .optional()
+});
+
 const dailyPlanExerciseSchema = z.object({
   name: z.string().trim().min(1).max(120),
   targetMuscles: z.array(z.string().trim().min(1).max(60)).max(5),
@@ -561,6 +642,7 @@ export const dailyPlanJsonSchema = z.object({
   }),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
+  contextNotes: dailyPlanContextNotesSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),
     sleepTip: z.string().optional(),
@@ -609,6 +691,12 @@ export const dailyPlanJsonSchema = z.object({
           retryUsed: z.boolean().optional(),
           retryResult: z.enum(['approved', 'rejected', 'failed', 'not_used']).optional()
         })
+        .optional(),
+      trainingLoadContext: z.object({
+        hasTrainingLoadContext: z.boolean(),
+        readinessHint: trainingLoadReadinessHintSchema,
+        reasons: z.array(trainingLoadReasonCodeSchema).max(8)
+      })
         .optional()
     })
     .optional()

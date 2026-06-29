@@ -2,6 +2,7 @@ import { DailyReadinessLevel, PlanQualityMode } from '@prisma/client';
 import type { NutritionTarget } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plan-json.schema';
+import { buildDailyPlanContextNotes } from '../daily-plan-context-notes';
 import type { GenerateDailyPlanExerciseSelection } from '../../ai/ai-provider.interface';
 import type { HealthPlanningContext } from '../../health/health-planning.types';
 
@@ -24,6 +25,11 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
   const summaryByMode = getSummaryByMode(planQualityMode);
   const primaryMeals = createPrimaryMeals();
   const trainingEnabled = input.trainingEnabled ?? true;
+  const contextNotes = buildDailyPlanContextNotes({
+    healthPlanningContext: input.healthPlanningContext,
+    trainingEnabled,
+    isTrainingDay: trainingEnabled
+  });
 
   return {
     schemaVersion: 'sprint-2.v1',
@@ -69,11 +75,12 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
     },
     training: {
       recommendation: trainingEnabled
-        ? summaryByMode.trainingRecommendation
+        ? getTrainingRecommendation(summaryByMode.trainingRecommendation, input.healthPlanningContext)
         : 'Training is off for this plan.',
       intensity: trainingEnabled ? 'MODERATE' : 'REST',
       notes: trainingEnabled
-        ? 'Adjust effort down if energy, sleep, or recovery feels off.'
+        ? input.healthPlanningContext?.trainingLoadContext.userFacingHint ??
+          'Adjust effort down if energy, sleep, or recovery feels off.'
         : 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
       exercises: !trainingEnabled
         ? []
@@ -81,6 +88,7 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
           ? createLibraryExercises(input.exerciseSelection)
           : createExercises(planQualityMode)
     },
+    ...(contextNotes ? { contextNotes } : {}),
     recovery: getRecoveryGuidance(input.healthPlanningContext),
     reminders: ['Hydrate regularly', 'Eat after training', 'Keep your evening routine calm'],
     debug: {
@@ -89,6 +97,22 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
       planQualityMode
     }
   };
+}
+
+function getTrainingRecommendation(
+  baseRecommendation: string,
+  healthPlanningContext?: HealthPlanningContext
+) {
+  const trainingLoad = healthPlanningContext?.trainingLoadContext;
+  if (
+    trainingLoad?.hasTrainingLoadContext &&
+    trainingLoad.readinessHint !== 'NORMAL' &&
+    trainingLoad.userFacingHint
+  ) {
+    return `${baseRecommendation} Keep the session controlled today.`;
+  }
+
+  return baseRecommendation;
 }
 
 function getRecoveryGuidance(

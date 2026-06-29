@@ -91,4 +91,25 @@ export const zhCN = createLocaleResource({
     lastSynced: '上次同步：{{value}}'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple 健康', HEALTH_CONNECT: '健康互联', WHOOP: 'WHOOP', MANUAL: '手动', MOCK: '模拟' } }
+}, {
+  contextNotes: {
+    wearableTitle: '可穿戴数据背景',
+    appleHealthTitle: 'Apple 健康背景',
+    profileScheduleTitle: '资料和日程',
+    trainingLoadTitle: '训练负荷提示',
+    recoveryTitle: '恢复背景',
+    recentActivityAndSleep: '近期活动和睡眠摘要帮助今天的计划更关注恢复。',
+    recentActivity: '近期活动背景帮助今天的计划保持实际和可控。',
+    recentSleep: '近期睡眠背景影响了今天的恢复建议。',
+    noRecentWearable: '今天未使用近期可穿戴数据，计划会基于你的资料、偏好和日程。',
+    wearableStale: '可穿戴数据不够新，因此计划会保持保守。',
+    keepWorkoutControlled: '今天训练保持可控；如果精力不足，请降低强度。',
+    takeLongerRests: '保持稳定节奏，需要时增加休息时间。',
+    gentlerRecovery: '由于近期背景提示，今天的恢复建议会更温和。'
+  },
+  nutritionTargets: {
+    reasons: {
+      BASED_ON_RECENT_ACTIVITY: '近期活动背景会被保守考虑，不会带来激进目标变化。'
+    }
+  }
 });

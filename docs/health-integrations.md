@@ -4,6 +4,12 @@ Sprint 7 prepares OptiMe for health integrations and now includes the first real
 
 The integration strategy is summarized-data-first: read useful daily signals on device, sync only daily summaries to the backend, and use those summaries conservatively in planning.
 
+## Recovery-Aware Planning
+
+When a recent wearable snapshot exists, backend planning derives safe wearable and training-load summaries. These summaries can influence recovery wording, controlled-intensity training guidance, and nutrition target explanations. If data is missing or stale, plan generation continues from profile, preferences, and schedule.
+
+Mobile displays only localized context notes. It must not render raw health records, provider secrets, or debug metadata.
+
 ## Platform Overview
 
 ### iOS: Apple Health / HealthKit

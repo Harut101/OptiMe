@@ -2,6 +2,8 @@
 
 OptiMe recovery guidance is wellness-oriented and non-diagnostic. It can use profile, schedule, check-ins, protocol selection, and optional wearable context.
 
+Recovery-aware DailyPlan context now adds localized `contextNotes.recovery` when recent sleep, activity, or workout-load summaries suggest gentler recovery guidance. These notes must stay supportive and must not expose raw metrics.
+
 ## Wearable Snapshot Use
 
 When a fresh `WearableDailySnapshot` is available, recovery copy may respond conservatively to:

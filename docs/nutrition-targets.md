@@ -10,6 +10,10 @@ OptiMe calculates daily calories and macros in the backend before AI generation.
 - Generated plans store an immutable `plan.nutritionTargetSnapshot` inside `DailyPlan.planJson`.
 - Old plans without `nutritionTargetSnapshot` remain valid.
 
+## Recent Activity Context
+
+Nutrition targets may include the explanation reason code `BASED_ON_RECENT_ACTIVITY` when recent wearable activity context is available. Sprint scope keeps calorie and macro math conservative; recent activity context explains planning awareness rather than aggressive numeric target changes.
+
 ## Explanation Contract
 
 The backend returns explanation codes and safe params, not localized UI prose:

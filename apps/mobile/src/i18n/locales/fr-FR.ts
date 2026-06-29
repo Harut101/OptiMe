@@ -91,4 +91,25 @@ export const frFR = createLocaleResource({
     lastSynced: 'Dernière synchronisation : {{value}}'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Manuel', MOCK: 'Mock' } }
+}, {
+  contextNotes: {
+    wearableTitle: 'Contexte wearable',
+    appleHealthTitle: 'Contexte Apple Health',
+    profileScheduleTitle: 'Profil et planning',
+    trainingLoadTitle: 'Note de charge',
+    recoveryTitle: 'Contexte de récupération',
+    recentActivityAndSleep: 'Les données récentes d’activité et de sommeil ont aidé à rendre le plan plus attentif à la récupération.',
+    recentActivity: 'Le contexte d’activité récent aide à garder le plan pratique et contrôlé.',
+    recentSleep: 'Le sommeil récent a aidé à ajuster les conseils de récupération.',
+    noRecentWearable: 'Aucune donnée wearable récente n’a été utilisée ; le plan s’appuie sur votre profil, vos préférences et votre planning.',
+    wearableStale: 'Les données wearable n’étaient pas assez récentes, donc le plan reste prudent.',
+    keepWorkoutControlled: 'Gardez la séance contrôlée aujourd’hui et réduisez l’effort si l’énergie baisse.',
+    takeLongerRests: 'Gardez un rythme régulier et prenez des pauses plus longues si besoin.',
+    gentlerRecovery: 'La récupération est plus douce aujourd’hui car le contexte récent le suggère.'
+  },
+  nutritionTargets: {
+    reasons: {
+      BASED_ON_RECENT_ACTIVITY: 'Le contexte d’activité récent est pris en compte prudemment, sans changement agressif de cible.'
+    }
+  }
 });

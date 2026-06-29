@@ -18,6 +18,7 @@ import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { PlanTabbedContent } from '@/features/daily-plan/PlanTabbedContent';
+import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
 import { colors } from '@/theme/colors';
 import type {
   PlanFeedbackRating,
@@ -143,9 +144,25 @@ export default function PlanDetailsScreen() {
 
       {checkInMessage ? <Text style={styles.successText}>{checkInMessage}</Text> : null}
 
+      {plan.contextNotes?.trainingLoad ? (
+        <Card>
+          <Text variant="label">
+            {getContextNoteTitle(t, plan.contextNotes.trainingLoad.titleCode)}
+          </Text>
+          <Text variant="body">
+            {getContextNoteMessage(t, plan.contextNotes.trainingLoad.messageCode)}
+          </Text>
+        </Card>
+      ) : null}
+
       <Card>
         <Text variant="label">{t('plan.recovery')}</Text>
         <Text variant="body">{plan.recovery.recommendation}</Text>
+        {plan.contextNotes?.recovery ? (
+          <Text variant="muted">
+            {getContextNoteMessage(t, plan.contextNotes.recovery.messageCode)}
+          </Text>
+        ) : null}
         {plan.recovery.sleepTip ? <Text variant="muted">{plan.recovery.sleepTip}</Text> : null}
         {plan.recovery.mobilityTip ? <Text variant="muted">{plan.recovery.mobilityTip}</Text> : null}
       </Card>

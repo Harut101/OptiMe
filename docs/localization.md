@@ -2,6 +2,10 @@
 
 Sprint 9A supports `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. `en-US` is the fallback. `es-419` and `de-DE` are reserved for later work and are not exposed by the application.
 
+## Recovery-Aware Plan Notes
+
+Mobile plan context notes use localization keys under `contextNotes`. New keys must be present through the base English resource and translated overrides for `ru-RU`, `fr-FR`, and `zh-CN`.
+
 The mobile runtime uses `i18next`, `react-i18next`, and `expo-localization`. Translation resources live under `apps/mobile/src/i18n/locales`. Persisted values are stable locale codes and domain enum values; translated labels are presentation only. Native language names remain fixed in the selector: English (United States), Русский, Français, and 简体中文.
 
 For users without saved settings, the primary device locale is resolved as follows: `en-*` to `en-US`, `ru-*` to `ru-RU`, `fr-*` to `fr-FR`, and `zh-CN`, `zh-SG`, or `zh-Hans-*` to `zh-CN`. Unsupported locales, including Traditional Chinese variants, fall back to `en-US`. Once saved, the user's preference overrides device detection.

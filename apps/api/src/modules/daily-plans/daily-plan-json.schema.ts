@@ -118,6 +118,7 @@ const nutritionDayTypeSchema = z.enum([
 const nutritionTargetReasonCodeSchema = z.enum([
   'BASED_ON_PRIMARY_GOAL',
   'BASED_ON_NORMAL_ACTIVITY',
+  'BASED_ON_RECENT_ACTIVITY',
   'NUTRITION_ONLY_MODE',
   'ADJUSTED_FOR_TRAINING_DAY',
   'SCHEDULED_REST_DAY',
@@ -198,6 +199,107 @@ export const dailyFoodPlanSchema = z.object({
   meals: z.array(foodMealSchema).min(1).max(8)
 });
 
+const wearablePlanningReasonCodeSchema = z.enum([
+  'NO_WEARABLE_DATA',
+  'STALE_WEARABLE_DATA',
+  'PARTIAL_WEARABLE_DATA',
+  'LOW_SLEEP',
+  'OK_SLEEP',
+  'HIGH_ACTIVITY',
+  'MODERATE_ACTIVITY',
+  'RECENT_WORKOUT_LOAD',
+  'RECOVERY_DATA_AVAILABLE',
+  'LIMITED_RECOVERY_DATA',
+  'APPLE_HEALTH_NO_RECOVERY_SCORE'
+]);
+
+const trainingLoadReadinessHintSchema = z.enum([
+  'NORMAL',
+  'CONTROLLED',
+  'LIGHT',
+  'RECOVERY_FOCUSED',
+  'UNKNOWN'
+]);
+
+const trainingLoadReasonCodeSchema = z.enum([
+  'LOW_SLEEP',
+  'HIGH_ACTIVITY',
+  'RECENT_WORKOUT_LOAD',
+  'PARTIAL_WEARABLE_DATA',
+  'STALE_WEARABLE_DATA',
+  'NO_WEARABLE_DATA'
+]);
+
+const dailyPlanContextNotesSchema = z.object({
+  wearable: z
+    .object({
+      titleCode: z.enum([
+        'WEARABLE_DATA_INCLUDED',
+        'APPLE_HEALTH_DATA_INCLUDED',
+        'USING_PROFILE_AND_SCHEDULE',
+        'TRAINING_LOAD_CONTEXT',
+        'RECOVERY_CONTEXT'
+      ]),
+      messageCode: z.enum([
+        'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE',
+        'RECENT_ACTIVITY_INCLUDED',
+        'RECENT_SLEEP_INCLUDED',
+        'NO_RECENT_WEARABLE_DATA_USED',
+        'WEARABLE_DATA_STALE',
+        'KEEP_WORKOUT_CONTROLLED',
+        'TAKE_LONGER_RESTS',
+        'GENTLER_RECOVERY_FOCUS'
+      ]),
+      reasonCodes: z.array(wearablePlanningReasonCodeSchema).max(12)
+    })
+    .optional(),
+  trainingLoad: z
+    .object({
+      titleCode: z.enum([
+        'WEARABLE_DATA_INCLUDED',
+        'APPLE_HEALTH_DATA_INCLUDED',
+        'USING_PROFILE_AND_SCHEDULE',
+        'TRAINING_LOAD_CONTEXT',
+        'RECOVERY_CONTEXT'
+      ]),
+      messageCode: z.enum([
+        'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE',
+        'RECENT_ACTIVITY_INCLUDED',
+        'RECENT_SLEEP_INCLUDED',
+        'NO_RECENT_WEARABLE_DATA_USED',
+        'WEARABLE_DATA_STALE',
+        'KEEP_WORKOUT_CONTROLLED',
+        'TAKE_LONGER_RESTS',
+        'GENTLER_RECOVERY_FOCUS'
+      ]),
+      readinessHint: trainingLoadReadinessHintSchema,
+      reasonCodes: z.array(trainingLoadReasonCodeSchema).max(8)
+    })
+    .optional(),
+  recovery: z
+    .object({
+      titleCode: z.enum([
+        'WEARABLE_DATA_INCLUDED',
+        'APPLE_HEALTH_DATA_INCLUDED',
+        'USING_PROFILE_AND_SCHEDULE',
+        'TRAINING_LOAD_CONTEXT',
+        'RECOVERY_CONTEXT'
+      ]),
+      messageCode: z.enum([
+        'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE',
+        'RECENT_ACTIVITY_INCLUDED',
+        'RECENT_SLEEP_INCLUDED',
+        'NO_RECENT_WEARABLE_DATA_USED',
+        'WEARABLE_DATA_STALE',
+        'KEEP_WORKOUT_CONTROLLED',
+        'TAKE_LONGER_RESTS',
+        'GENTLER_RECOVERY_FOCUS'
+      ]),
+      reasonCodes: z.array(wearablePlanningReasonCodeSchema).max(12)
+    })
+    .optional()
+});
+
 export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
@@ -248,6 +350,7 @@ export const dailyPlanJsonSchema = z.object({
   }),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
+  contextNotes: dailyPlanContextNotesSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),
     sleepTip: z.string().optional(),
@@ -304,6 +407,11 @@ export const dailyPlanJsonSchema = z.object({
         usedAiRetry: z.boolean(),
         usedDeterministicFallback: z.boolean(),
         resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN'])
+      }).optional(),
+      trainingLoadContext: z.object({
+        hasTrainingLoadContext: z.boolean(),
+        readinessHint: trainingLoadReadinessHintSchema,
+        reasons: z.array(trainingLoadReasonCodeSchema).max(8)
       }).optional()
     })
     .optional()

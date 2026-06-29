@@ -39,6 +39,8 @@ import { FeatureAccessService } from '../src/modules/entitlements/feature-access
 import { ProtocolSelectorService } from '../src/modules/protocol/protocol-selector.service';
 import { ProtocolSelectionInput } from '../src/modules/protocol/protocol.types';
 import { SafetyService } from '../src/modules/safety/safety.service';
+import { TrainingLoadContextResolver } from '../src/modules/health/training-load-context.resolver';
+import { WearablePlanningContextResolver } from '../src/modules/health/wearable-planning-context.resolver';
 import { SafetyAgent } from '../src/modules/safety-agent/safety-agent.interface';
 import { safetyAgentReviewSchema } from '../src/modules/safety-agent/safety-agent-review.schema';
 import {
@@ -2463,8 +2465,10 @@ describe('Sprint 1 backend vertical slice', () => {
       const healthContextJson = JSON.stringify(healthContext);
       expect(healthContextJson).not.toContain('weightKg');
       expect(healthContextJson).not.toContain('averageHeartRate');
-      expect(healthContextJson).not.toContain('restingHeartRate');
-      expect(healthContextJson).not.toContain('heartRate');
+      expect(healthContextJson).not.toContain('restingHeartRate":55');
+      expect(healthContext?.wearablePlanningContext.recovery.restingHeartRateBpm).toBeNull();
+      expect(healthContext?.wearablePlanningContext.recovery.hrvMs).toBeNull();
+      expect(healthContext?.wearablePlanningContext.recovery.respiratoryRate).toBeNull();
       expect(plan.body.plan.debug.healthSignals).toEqual({
         lowSleep: true,
         highActivityYesterday: true,
@@ -2555,12 +2559,94 @@ describe('Sprint 1 backend vertical slice', () => {
       });
       expect(plan.body.plan.debug.wearableContext.steps).toBeUndefined();
       expect(plan.body.plan.debug.wearableContext.sleepMinutes).toBeUndefined();
+      expect(plan.body.plan.debug.trainingLoadContext).toMatchObject({
+        hasTrainingLoadContext: true,
+        readinessHint: 'RECOVERY_FOCUSED',
+        reasons: expect.arrayContaining(['LOW_SLEEP', 'HIGH_ACTIVITY', 'RECENT_WORKOUT_LOAD'])
+      });
+      expect(plan.body.plan.contextNotes).toMatchObject({
+        wearable: {
+          titleCode: 'WEARABLE_DATA_INCLUDED',
+          messageCode: 'RECENT_ACTIVITY_AND_SLEEP_AVAILABLE'
+        },
+        trainingLoad: {
+          titleCode: 'TRAINING_LOAD_CONTEXT',
+          messageCode: 'TAKE_LONGER_RESTS',
+          readinessHint: 'RECOVERY_FOCUSED'
+        },
+        recovery: {
+          titleCode: 'RECOVERY_CONTEXT',
+          messageCode: 'GENTLER_RECOVERY_FOCUS'
+        }
+      });
       expect(plan.body.plan.recovery.recommendation).toContain('wearable');
       expect(plan.body.plan.nutritionTargetSnapshot).toBeTruthy();
+      expect(plan.body.plan.nutritionTargetSnapshot.explanation.reasonCodes).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code: 'BASED_ON_RECENT_ACTIVITY' })])
+      );
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
     }
+  });
+
+  it('resolves wearable planning and training load hints conservatively', () => {
+    const wearableResolver = ctx.app.get(WearablePlanningContextResolver);
+    const trainingLoadResolver = ctx.app.get(TrainingLoadContextResolver);
+
+    const appleHealth = wearableResolver.resolve(
+      {
+        source: HealthProvider.APPLE_HEALTH,
+        localDate: getUtcLocalDate(),
+        steps: 15000,
+        activeCaloriesKcal: 950,
+        workoutMinutes: 70,
+        sleepMinutes: 320,
+        recoveryScore: null,
+        strainScore: null,
+        restingHeartRateBpm: 58,
+        hrvMs: 55,
+        respiratoryRate: 14
+      },
+      { isStale: false }
+    );
+    const trainingLoad = trainingLoadResolver.resolve(appleHealth);
+
+    expect(appleHealth.activity.activityLevelHint).toBe('HIGH');
+    expect(appleHealth.sleep.sleepHint).toBe('LOW_SLEEP');
+    expect(appleHealth.recovery.recoveryHint).toBe('LIMITED_RECOVERY_DATA');
+    expect(appleHealth.recovery.recoveryScore).toBeNull();
+    expect(appleHealth.recovery.strainScore).toBeNull();
+    expect(appleHealth.reasonCodes).toEqual(
+      expect.arrayContaining([
+        'LOW_SLEEP',
+        'HIGH_ACTIVITY',
+        'RECENT_WORKOUT_LOAD',
+        'LIMITED_RECOVERY_DATA',
+        'APPLE_HEALTH_NO_RECOVERY_SCORE'
+      ])
+    );
+    expect(trainingLoad).toMatchObject({
+      hasTrainingLoadContext: true,
+      readinessHint: 'RECOVERY_FOCUSED',
+      suggestedAdjustment: {
+        intensity: 'REDUCE',
+        volume: 'REDUCE',
+        restTime: 'INCREASE'
+      }
+    });
+
+    const empty = wearableResolver.resolve(null, { isStale: false });
+    expect(empty.reasonCodes).toEqual(['NO_WEARABLE_DATA']);
+    expect(trainingLoadResolver.resolve(empty)).toMatchObject({
+      hasTrainingLoadContext: false,
+      readinessHint: 'UNKNOWN',
+      suggestedAdjustment: {
+        intensity: 'UNKNOWN',
+        volume: 'UNKNOWN',
+        restTime: 'UNKNOWN'
+      }
+    });
   });
 
   it('supports training schedule CRUD for the authenticated user', async () => {
@@ -6479,6 +6565,42 @@ function baseHealthPlanningContext(
       sleepMinutes: signals.lowSleep ? 340 : 420,
       activeEnergyKcal: signals.highActivityYesterday ? 800 : 300,
       workoutMinutes: signals.recentWorkout ? 35 : 0
+    },
+    wearablePlanningContext: {
+      hasWearableData: false,
+      source: null,
+      localDate: null,
+      isStale: false,
+      activity: {
+        steps: null,
+        activeCaloriesKcal: null,
+        workoutMinutes: null,
+        activityLevelHint: 'UNKNOWN'
+      },
+      sleep: {
+        sleepMinutes: null,
+        sleepHint: 'UNKNOWN'
+      },
+      recovery: {
+        recoveryScore: null,
+        strainScore: null,
+        restingHeartRateBpm: null,
+        hrvMs: null,
+        respiratoryRate: null,
+        recoveryHint: 'UNKNOWN'
+      },
+      reasonCodes: ['NO_WEARABLE_DATA']
+    },
+    trainingLoadContext: {
+      hasTrainingLoadContext: false,
+      readinessHint: 'UNKNOWN',
+      reasons: ['NO_WEARABLE_DATA'],
+      suggestedAdjustment: {
+        intensity: 'UNKNOWN',
+        volume: 'UNKNOWN',
+        restTime: 'UNKNOWN'
+      },
+      userFacingHint: null
     },
     signals,
     selectionNotes: [

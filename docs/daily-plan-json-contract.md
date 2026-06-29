@@ -2,6 +2,33 @@
 
 Daily plans are stored in `DailyPlan.planJson` and returned to mobile as normalized JSON. The current schema version is `sprint-2.v1`.
 
+## Recovery-Aware Context Notes
+
+`DailyPlanJson.contextNotes` is optional and backend-owned. It may include wearable, training-load, and recovery note codes:
+
+```ts
+contextNotes?: {
+  wearable?: {
+    titleCode: string;
+    messageCode: string;
+    reasonCodes: string[];
+  };
+  trainingLoad?: {
+    titleCode: "TRAINING_LOAD_CONTEXT";
+    messageCode: "KEEP_WORKOUT_CONTROLLED" | "TAKE_LONGER_RESTS" | "GENTLER_RECOVERY_FOCUS";
+    readinessHint: "NORMAL" | "CONTROLLED" | "LIGHT" | "RECOVERY_FOCUSED" | "UNKNOWN";
+    reasonCodes: string[];
+  };
+  recovery?: {
+    titleCode: "RECOVERY_CONTEXT";
+    messageCode: string;
+    reasonCodes: string[];
+  };
+}
+```
+
+Mobile localizes these codes and must not render raw debug fields or raw wearable metrics.
+
 ## API Response Shape
 
 ```ts

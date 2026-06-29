@@ -10,7 +10,12 @@ import { HealthPermissionsDto } from './dto/health-permissions.dto';
 import { UpdateHealthConnectionStatusDto } from './dto/update-health-connection-status.dto';
 import { UpsertHealthDailySummaryDto } from './dto/upsert-health-daily-summary.dto';
 import { UpsertWearableSnapshotDto } from './dto/upsert-wearable-snapshot.dto';
-import { EMPTY_HEALTH_PLANNING_CONTEXT, HealthPlanningContext } from './health-planning.types';
+import {
+  EMPTY_HEALTH_PLANNING_CONTEXT,
+  HealthPlanningContext
+} from './health-planning.types';
+import { TrainingLoadContextResolver } from './training-load-context.resolver';
+import { WearablePlanningContextResolver } from './wearable-planning-context.resolver';
 
 const HEALTH_PROVIDERS = [HealthProvider.APPLE_HEALTH, HealthProvider.HEALTH_CONNECT] as const;
 const HEALTH_SOURCES = [
@@ -32,7 +37,11 @@ const LOW_STEP_TREND_MIN_DAYS = 3;
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wearablePlanningContextResolver: WearablePlanningContextResolver,
+    private readonly trainingLoadContextResolver: TrainingLoadContextResolver
+  ) {}
 
   async getStatus(userId: string) {
     const connections = await this.prisma.healthConnection.findMany({
@@ -413,6 +422,12 @@ export class HealthService {
     const wearableContext = wearableSnapshot
       ? this.toWearablePlanningContext(wearableSnapshot, options.planLocalDate)
       : undefined;
+    const wearablePlanningContext = wearableSnapshot
+      ? this.wearablePlanningContextResolver.resolve(wearableSnapshot, {
+          isStale: wearableContext?.isStale ?? true
+        })
+      : EMPTY_HEALTH_PLANNING_CONTEXT.wearablePlanningContext;
+    const trainingLoadContext = this.trainingLoadContextResolver.resolve(wearablePlanningContext);
     const days = Math.max(1, Math.min(options.days ?? 7, 7));
     const localDates = this.getRecentLocalDates(options.planLocalDate, days);
     const summaries = await this.prisma.healthDailySummary.findMany({
@@ -432,6 +447,8 @@ export class HealthService {
             available: true,
             daysReviewed: 1,
             wearableContext,
+            wearablePlanningContext,
+            trainingLoadContext,
             signals: this.mergeWearableSignals(EMPTY_HEALTH_PLANNING_CONTEXT.signals, wearableContext),
             selectionNotes: this.getWearableSelectionNotes(wearableContext)
           }
@@ -474,6 +491,8 @@ export class HealthService {
       available: true,
       daysReviewed: summariesByDate.length,
       wearableContext,
+      wearablePlanningContext,
+      trainingLoadContext,
       latestSummary: latestSummary ? this.toPlanningSummary(latestSummary) : undefined,
       recentAverages,
       signals: this.mergeWearableSignals(signals, wearableContext),
@@ -838,6 +857,9 @@ export class HealthService {
       sleepQualityScore: number | null;
       recoveryScore: number | null;
       strainScore: number | null;
+      restingHeartRateBpm: number | null;
+      hrvMs: number | null;
+      respiratoryRate: number | null;
       capturedAt: Date;
     },
     planLocalDate: string
@@ -856,7 +878,10 @@ export class HealthService {
       ...(snapshot.sleepMinutes !== null ? { sleepMinutes: snapshot.sleepMinutes } : {}),
       ...(snapshot.sleepQualityScore !== null ? { sleepQualityScore: snapshot.sleepQualityScore } : {}),
       ...(snapshot.recoveryScore !== null ? { recoveryScore: snapshot.recoveryScore } : {}),
-      ...(snapshot.strainScore !== null ? { strainScore: snapshot.strainScore } : {})
+      ...(snapshot.strainScore !== null ? { strainScore: snapshot.strainScore } : {}),
+      ...(snapshot.restingHeartRateBpm !== null ? { restingHeartRateBpm: snapshot.restingHeartRateBpm } : {}),
+      ...(snapshot.hrvMs !== null ? { hrvMs: snapshot.hrvMs } : {}),
+      ...(snapshot.respiratoryRate !== null ? { respiratoryRate: snapshot.respiratoryRate } : {})
     };
   }
 

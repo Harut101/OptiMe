@@ -91,4 +91,25 @@ export const ruRU = createLocaleResource({
     lastSynced: 'Последняя синхронизация: {{value}}'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Вручную', MOCK: 'Тестовый' } }
+}, {
+  contextNotes: {
+    wearableTitle: 'Контекст wearable-данных',
+    appleHealthTitle: 'Контекст Apple Health',
+    profileScheduleTitle: 'Профиль и расписание',
+    trainingLoadTitle: 'Заметка о нагрузке',
+    recoveryTitle: 'Контекст восстановления',
+    recentActivityAndSleep: 'Свежие данные активности и сна помогли сделать план внимательнее к восстановлению.',
+    recentActivity: 'Свежая активность помогла сделать план практичным и контролируемым.',
+    recentSleep: 'Свежие данные сна повлияли на рекомендации по восстановлению.',
+    noRecentWearable: 'Свежие wearable-данные не использовались, поэтому план опирается на профиль, предпочтения и расписание.',
+    wearableStale: 'Wearable-данные не были достаточно свежими, поэтому план остаётся осторожным.',
+    keepWorkoutControlled: 'Держите тренировку под контролем и снижайте усилие, если энергии мало.',
+    takeLongerRests: 'Выберите более ровный темп и отдыхайте дольше при необходимости.',
+    gentlerRecovery: 'Сегодня рекомендации по восстановлению мягче из-за свежего контекста.'
+  },
+  nutritionTargets: {
+    reasons: {
+      BASED_ON_RECENT_ACTIVITY: 'Свежая активность учитывается осторожно, без агрессивных изменений цели.'
+    }
+  }
 });

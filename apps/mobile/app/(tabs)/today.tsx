@@ -32,6 +32,7 @@ import {
   formatFoodProgress,
   formatFoodProgressDetail
 } from '@/features/food-tracking/food-tracking-summary';
+import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
@@ -46,7 +47,8 @@ import type {
   ProgressivePrompt,
   UsageFeature,
   UsageLimitExceededError,
-  UsageSummaryItem
+  UsageSummaryItem,
+  DailyPlanJson
 } from '@/types/api';
 
 export default function TodayScreen() {
@@ -233,6 +235,7 @@ export default function TodayScreen() {
       ) : null}
 
       <WearableContextNote
+        contextNotes={plan?.contextNotes}
         hasPlan={Boolean(today.data?.plan)}
         hasSnapshot={Boolean(wearableSnapshot.data?.snapshot)}
         hasRecentData={Boolean(wearableSnapshot.data?.hasRecentData)}
@@ -340,11 +343,13 @@ export default function TodayScreen() {
 }
 
 function WearableContextNote({
+  contextNotes,
   hasPlan,
   hasSnapshot,
   hasRecentData,
   isUnavailable
 }: {
+  contextNotes?: DailyPlanJson['contextNotes'];
   hasPlan: boolean;
   hasSnapshot: boolean;
   hasRecentData: boolean;
@@ -356,16 +361,22 @@ function WearableContextNote({
     return null;
   }
 
+  const wearableNote = contextNotes?.trainingLoad ?? contextNotes?.wearable;
+  const title = wearableNote
+    ? getContextNoteTitle(t, wearableNote.titleCode)
+    : t('health.wearableSnapshot');
+  const message = wearableNote
+    ? getContextNoteMessage(t, wearableNote.messageCode)
+    : hasSnapshot && hasRecentData
+      ? t('health.wearableDataConnected')
+      : hasSnapshot
+        ? t('health.wearableDataStale')
+        : t('health.noRecentWearableData');
+
   return (
     <Card>
-      <Text variant="label">{t('health.wearableSnapshot')}</Text>
-      <Text variant="muted">
-        {hasSnapshot && hasRecentData
-          ? t('health.wearableDataConnected')
-          : hasSnapshot
-            ? t('health.wearableDataStale')
-            : t('health.noRecentWearableData')}
-      </Text>
+      <Text variant="label">{title}</Text>
+      <Text variant="muted">{message}</Text>
     </Card>
   );
 }

@@ -61,7 +61,9 @@ export class NutritionTargetsService {
       inheritedScheduleFields: input.resolvedTrainingDay.inheritedFields,
       ...(input.healthPlanningContext.wearableContext
         ? { wearableContext: input.healthPlanningContext.wearableContext }
-        : {})
+        : {}),
+      wearablePlanningContext: input.healthPlanningContext.wearablePlanningContext,
+      trainingLoadContext: input.healthPlanningContext.trainingLoadContext
     };
 
     if (!profile) {
@@ -157,7 +159,8 @@ export class NutritionTargetsService {
         sensitiveContext,
         appMode: input.appMode,
         durationMinutes: context.plannedWorkoutDurationMinutes,
-        macros
+        macros,
+        hasRecentActivityContext: this.hasRecentActivityContext(input)
       })
     };
   }
@@ -376,6 +379,7 @@ export class NutritionTargetsService {
     appMode: GoalImpactMode;
     durationMinutes: number | null;
     macros: NutritionMacroTarget;
+    hasRecentActivityContext: boolean;
   }) {
     const reasonCodes: NutritionTargetReason[] = [
       {
@@ -423,6 +427,10 @@ export class NutritionTargetsService {
       reasonCodes.push({ code: 'TRAINING_DISABLED' });
     }
 
+    if (input.hasRecentActivityContext) {
+      reasonCodes.push({ code: 'BASED_ON_RECENT_ACTIVITY' });
+    }
+
     if (input.primaryGoal === PrimaryGoal.WEIGHT_LOSS && !input.sensitiveContext) {
       reasonCodes.push({ code: 'WEIGHT_LOSS_DEFICIT_APPLIED' });
     } else if (input.primaryGoal === PrimaryGoal.WEIGHT_GAIN && !input.sensitiveContext) {
@@ -442,6 +450,19 @@ export class NutritionTargetsService {
       titleCode: 'TODAY_TARGET' as const,
       reasonCodes
     };
+  }
+
+  private hasRecentActivityContext(input: ResolvedNutritionTargetInput) {
+    const wearableContext = input.healthPlanningContext.wearablePlanningContext;
+    return Boolean(
+      wearableContext.hasWearableData &&
+        !wearableContext.isStale &&
+        (
+          wearableContext.activity.activityLevelHint === 'MODERATE' ||
+          wearableContext.activity.activityLevelHint === 'HIGH' ||
+          wearableContext.reasonCodes.includes('RECENT_WORKOUT_LOAD')
+        )
+    );
   }
 
   private getAge(dateOfBirth: Date, planLocalDate: string) {
