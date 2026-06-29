@@ -64,18 +64,31 @@ Dark mode tokens are defined but not yet user-switchable. The palette avoids pur
 
 ## Semantic Health Colors
 
-Semantic color intent:
+Semantic color intent after Expo Go color tuning:
 
-- nutrition: mint/green
-- training: blue
-- recovery: lavender
-- health/wearable: soft red/pink
-- success: soft green
+- nutrition: vivid mint/green
+- training: clear blue/indigo
+- recovery: richer lavender/purple
+- health/wearable: Apple Health-inspired pink/red
+- success: clear green
 - warning: amber
 - danger: muted red for real errors only
 - info: soft blue
 
 Muted variants are for backgrounds and pills. Stronger variants are for text accents, icons, and selected states.
+
+## Expo Go Color Tuning
+
+Physical Expo Go QA showed that the first visual direction was correct but slightly too pale on a real phone screen. The follow-up tuning increased semantic color strength while preserving the calm card-based hierarchy.
+
+- Health accent moved closer to `#FF2D55`.
+- Nutrition, training, recovery, success, warning, danger, and info colors became clearer.
+- Muted semantic fills became more visible but remain soft.
+- Status pills include subtle borders for faster scanning.
+- Metric cards can use semantic tones for clearer health and recovery highlights.
+- Primary actions use the stronger health accent.
+
+Cards remain mostly white/elevated in light mode; the app avoids saturated full-card backgrounds.
 
 ## Card System
 

@@ -52,7 +52,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger
   },
   pressed: {
-    opacity: 0.82
+    opacity: 0.88,
+    transform: [{ scale: 0.99 }]
   },
   disabled: {
     opacity: 0.5

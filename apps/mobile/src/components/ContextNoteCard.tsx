@@ -27,8 +27,8 @@ export function ContextNoteCard({ title, message, tone = 'neutral' }: ContextNot
 const styles = StyleSheet.create({
   accent: {
     borderRadius: 999,
-    height: 4,
-    width: 42
+    height: 5,
+    width: 52
   },
   content: {
     gap: 6

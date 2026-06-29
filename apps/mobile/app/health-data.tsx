@@ -314,11 +314,11 @@ function WearableSnapshotCard({
       </Text>
       <Text variant="muted">{getHealthProviderLabel(t, snapshot.snapshot.source)} · {snapshot.snapshot.localDate}</Text>
       <View style={styles.metricGrid}>
-        <MetricCard label={t('health.steps')} value={snapshot.snapshot.steps} />
-        <MetricCard label={t('health.activeCalories')} value={snapshot.snapshot.activeCaloriesKcal} />
-        <MetricCard label={t('health.sleepDuration')} value={snapshot.snapshot.sleepMinutes} />
-        <MetricCard label={t('health.recoveryScore')} value={snapshot.snapshot.recoveryScore} />
-        <MetricCard label={t('health.strain')} value={snapshot.snapshot.strainScore} />
+        <MetricCard label={t('health.steps')} value={snapshot.snapshot.steps} tone="health" />
+        <MetricCard label={t('health.activeCalories')} value={snapshot.snapshot.activeCaloriesKcal} tone="training" />
+        <MetricCard label={t('health.sleepDuration')} value={snapshot.snapshot.sleepMinutes} tone="recovery" />
+        <MetricCard label={t('health.recoveryScore')} value={snapshot.snapshot.recoveryScore} tone="recovery" />
+        <MetricCard label={t('health.strain')} value={snapshot.snapshot.strainScore} tone="training" />
       </View>
     </Card>
   );

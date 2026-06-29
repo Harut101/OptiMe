@@ -53,3 +53,5 @@ Semantic usage:
 - Recovery uses lavender.
 - Health/wearable uses soft red/pink.
 - Danger is reserved for true errors.
+
+Expo Go QA then tuned color intensity upward: accents are more confident, selected states are easier to see, and metric/status highlights are clearer while the card system remains calm and low-noise.

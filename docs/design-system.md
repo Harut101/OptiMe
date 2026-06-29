@@ -41,3 +41,17 @@ The design system now uses typed semantic theme colors in `apps/mobile/src/theme
 The Design System Preview route shows light palette examples, dark palette examples, semantic color cards, status pills, metric cards, context notes, empty states, and error states.
 
 Dark theme tokens are available for preview/future switching, but runtime theme selection is not implemented yet.
+
+## Expo Go Color Tuning
+
+Expo Go physical QA showed the first semantic palette was a little too pale. The current palette keeps the Apple Health-inspired direction but uses stronger accents, clearer muted fills, bordered status pills, and semantic `MetricCard` tones.
+
+The Design System Preview should be used on device to compare:
+
+- light semantic palette
+- dark semantic palette
+- selected chip states
+- button states
+- `StatusPill` semantic variants
+- `MetricCard` semantic variants
+- `ContextNoteCard` semantic accents

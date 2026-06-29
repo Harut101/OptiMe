@@ -159,7 +159,17 @@ assertIncludes(designPreview, [
   'semanticEntries',
   'StatusPill',
   'MetricCard',
-  'ContextNoteCard'
+  'ContextNoteCard',
+  'tone="nutrition"',
+  'tone="training"',
+  'tone="recovery"',
+  'tone="health"'
 ], 'Design System Preview visual direction');
+
+const metricCard = read('src/components/MetricCard.tsx');
+assertIncludes(metricCard, ['MetricCardTone', 'nutritionMuted', 'trainingMuted', 'recoveryMuted', 'healthMuted'], 'MetricCard visual tuning');
+
+const statusPill = read('src/components/StatusPill.tsx');
+assertIncludes(statusPill, ['borderWidth: 1', 'nutritionMuted', 'trainingMuted', 'recoveryMuted', 'healthMuted'], 'StatusPill visual tuning');
 
 console.log('Screen interaction contracts passed.');

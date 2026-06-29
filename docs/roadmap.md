@@ -52,3 +52,7 @@ The core mobile flows now share a calmer presentation layer for screen headers, 
 ## Visual Design Direction
 
 OptiMe now has typed light/dark visual tokens, semantic health colors, a softer premium card system, and an updated Design System Preview. Runtime theme switching remains deferred; this batch establishes the visual foundation without changing product behavior.
+
+## Color Intensity Tuning
+
+Expo Go QA found the visual direction correct but slightly pale. The palette now uses stronger semantic accents, clearer selected states, bordered status pills, and semantic metric highlights. Product behavior, navigation, backend models, formulas, and exercise logic remain unchanged.

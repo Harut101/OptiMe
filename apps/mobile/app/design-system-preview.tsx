@@ -100,7 +100,12 @@ export default function DesignSystemPreviewScreen() {
           <StatusPill label={t('today.recovery')} tone="recovery" />
           <StatusPill label={t('health.title')} tone="health" />
         </View>
-        <MetricCard label={t('health.recoveryScore')} value={78} hint={t('health.wearableDataConnected')} />
+        <View style={styles.metricPreviewGrid}>
+          <MetricCard label={t('today.nutrition')} value="92%" tone="nutrition" />
+          <MetricCard label={t('today.training')} value="35 min" tone="training" />
+          <MetricCard label={t('today.recovery')} value="78" tone="recovery" />
+          <MetricCard label={t('health.title')} value="On" tone="health" />
+        </View>
         <ContextNoteCard
           title={t('contextNotes.recoveryTitle')}
           message={t('contextNotes.gentlerRecovery')}
@@ -163,5 +168,10 @@ const styles = StyleSheet.create({
     width: 28,
     height: 6,
     borderRadius: lightTheme.radius.pill
+  },
+  metricPreviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: lightTheme.spacing.sm
   }
 });

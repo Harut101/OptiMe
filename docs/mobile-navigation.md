@@ -24,6 +24,8 @@ Health Connections are available from Profile / Connections. The Health data rou
 The polished mobile hierarchy keeps Today, Food, Training, and Profile as primary tabs. Standalone detail routes such as Plan Details, Meal Details, Workout Session, Workout History, Health Data, Goal Editor, and Exercise Details now share consistent headers and section hierarchy while preserving their existing navigation behavior.
 
 The app shell now uses the same elevated surface and text tokens as the card system. Header and tab styling should stay quiet and supportive rather than looking like an admin dashboard.
+
+Active tabs use the stronger health accent for clarity on device. This is a visual-state adjustment only; navigation structure and routes are unchanged.
 ## Food Tracking Navigation
 
 - Today keeps food tracking read-only with a compact progress card.
