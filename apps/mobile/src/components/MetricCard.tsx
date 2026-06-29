@@ -29,13 +29,13 @@ export function MetricCard({ label, value, hint }: MetricCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: 14,
+    backgroundColor: colors.cardMuted,
+    borderColor: colors.divider,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 4,
     minWidth: '45%',
-    padding: 12
+    padding: 14
   },
   value: {
     fontWeight: '800'

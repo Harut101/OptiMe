@@ -14,7 +14,7 @@ export function Field({ label, error, style, ...props }: FieldProps) {
       <Text variant="label">{label}</Text>
       <TextInput
         {...props}
-        placeholderTextColor="#8a9a94"
+        placeholderTextColor={colors.textMuted}
         style={[styles.input, error ? styles.inputError : null, style]}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -29,11 +29,11 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 50,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: 14,
     paddingHorizontal: 14,
-    backgroundColor: colors.card,
-    color: colors.ink,
+    backgroundColor: colors.surfaceElevated,
+    color: colors.textPrimary,
     fontSize: 16
   },
   inputError: {

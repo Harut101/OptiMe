@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { colors } from '@/theme/colors';
 import { Text } from './Text';
 
-type StatusPillTone = 'neutral' | 'success' | 'warning' | 'danger';
+type StatusPillTone = 'neutral' | 'success' | 'warning' | 'danger' | 'nutrition' | 'training' | 'recovery' | 'health' | 'info';
 
 interface StatusPillProps {
   label: string;
@@ -32,19 +32,39 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   neutral: {
-    backgroundColor: '#eef3ef',
-    color: colors.muted
+    backgroundColor: colors.surfaceMuted,
+    color: colors.textSecondary
   },
   success: {
-    backgroundColor: '#e7f3ef',
+    backgroundColor: colors.successMuted,
+    color: colors.success
+  },
+  nutrition: {
+    backgroundColor: colors.nutritionMuted,
     color: colors.primaryDark
   },
+  training: {
+    backgroundColor: colors.trainingMuted,
+    color: colors.training
+  },
+  recovery: {
+    backgroundColor: colors.recoveryMuted,
+    color: colors.recovery
+  },
+  health: {
+    backgroundColor: colors.healthMuted,
+    color: colors.health
+  },
+  info: {
+    backgroundColor: colors.infoMuted,
+    color: colors.info
+  },
   warning: {
-    backgroundColor: '#fff3df',
-    color: colors.accent
+    backgroundColor: colors.warningMuted,
+    color: colors.warning
   },
   danger: {
-    backgroundColor: '#ffe8e8',
+    backgroundColor: colors.dangerMuted,
     color: colors.danger
   }
 });

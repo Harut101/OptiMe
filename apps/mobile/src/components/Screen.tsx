@@ -40,7 +40,7 @@ export function Screen({ children, scroll = true, refreshing = false, onRefresh 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface
+    backgroundColor: colors.background
   },
   scroll: {
     flexGrow: 1
@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     alignSelf: 'center',
     padding: 20,
-    gap: 16
+    gap: 18
   }
 });

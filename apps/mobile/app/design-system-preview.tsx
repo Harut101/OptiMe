@@ -10,13 +10,29 @@ import {
   ProgressBar,
   UIButton,
   UICard,
+  darkTheme,
   lightTheme,
+  uiDarkColors,
   uiColors
 } from '@/ui';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { MetricCard } from '@/components/MetricCard';
+import { StatusPill } from '@/components/StatusPill';
 
 export default function DesignSystemPreviewScreen() {
   const { t } = useTranslation();
-  const colorEntries = Object.entries(uiColors);
+  const lightColorEntries = Object.entries(uiColors);
+  const darkColorEntries = Object.entries(uiDarkColors);
+  const semanticEntries = [
+    ['nutrition', uiColors.nutrition, uiColors.nutritionMuted],
+    ['training', uiColors.training, uiColors.trainingMuted],
+    ['recovery', uiColors.recovery, uiColors.recoveryMuted],
+    ['health', uiColors.health, uiColors.healthMuted],
+    ['success', uiColors.success, uiColors.successMuted],
+    ['warning', uiColors.warning, uiColors.warningMuted],
+    ['danger', uiColors.danger, uiColors.dangerMuted],
+    ['info', uiColors.info, uiColors.infoMuted]
+  ] as const;
   const iconNames = ['today', 'food', 'training', 'profile', 'schedule', 'goal', 'health', 'safety', 'settings'] as const;
 
   return (
@@ -25,11 +41,35 @@ export default function DesignSystemPreviewScreen() {
       <AppText variant="muted">{t('designSystem.intro')}</AppText>
 
       <UICard>
-        <AppText variant="heading">{t('designSystem.colors')}</AppText>
+        <AppText variant="heading">{t('designSystem.lightTheme')}</AppText>
         <View style={styles.swatchGrid}>
-          {colorEntries.map(([name, value]) => (
+          {lightColorEntries.map(([name, value]) => (
             <View key={name} style={styles.swatchRow}>
               <View style={[styles.swatch, { backgroundColor: value }]} />
+              <AppText variant="caption">{name}</AppText>
+            </View>
+          ))}
+        </View>
+      </UICard>
+
+      <UICard style={styles.darkCard}>
+        <AppText variant="heading" style={styles.darkText}>{t('designSystem.darkTheme')}</AppText>
+        <View style={styles.swatchGrid}>
+          {darkColorEntries.map(([name, value]) => (
+            <View key={name} style={styles.swatchRow}>
+              <View style={[styles.swatch, { backgroundColor: value, borderColor: darkTheme.colors.border }]} />
+              <AppText variant="caption" style={styles.darkMuted}>{name}</AppText>
+            </View>
+          ))}
+        </View>
+      </UICard>
+
+      <UICard>
+        <AppText variant="heading">{t('designSystem.semanticColors')}</AppText>
+        <View style={styles.semanticGrid}>
+          {semanticEntries.map(([name, color, muted]) => (
+            <View key={name} style={[styles.semanticCard, { backgroundColor: muted }]}>
+              <View style={[styles.semanticDot, { backgroundColor: color }]} />
               <AppText variant="caption">{name}</AppText>
             </View>
           ))}
@@ -54,6 +94,18 @@ export default function DesignSystemPreviewScreen() {
           <Chip label={t('appModes.nutritionTraining')} />
         </View>
         <ProgressBar value={0.62} />
+        <View style={styles.row}>
+          <StatusPill label={t('today.nutrition')} tone="nutrition" />
+          <StatusPill label={t('today.training')} tone="training" />
+          <StatusPill label={t('today.recovery')} tone="recovery" />
+          <StatusPill label={t('health.title')} tone="health" />
+        </View>
+        <MetricCard label={t('health.recoveryScore')} value={78} hint={t('health.wearableDataConnected')} />
+        <ContextNoteCard
+          title={t('contextNotes.recoveryTitle')}
+          message={t('contextNotes.gentlerRecovery')}
+          tone="recovery"
+        />
       </UICard>
 
       <UICard>
@@ -85,5 +137,31 @@ const styles = StyleSheet.create({
   swatchRow: { flexDirection: 'row', alignItems: 'center', gap: lightTheme.spacing.sm },
   swatch: { width: 28, height: 28, borderRadius: 6, borderWidth: 1, borderColor: lightTheme.colors.border },
   iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: lightTheme.spacing.md },
-  iconItem: { width: 72, alignItems: 'center', gap: lightTheme.spacing.xs }
+  iconItem: { width: 72, alignItems: 'center', gap: lightTheme.spacing.xs },
+  darkCard: {
+    backgroundColor: darkTheme.colors.card,
+    borderColor: darkTheme.colors.border
+  },
+  darkText: {
+    color: darkTheme.colors.textPrimary
+  },
+  darkMuted: {
+    color: darkTheme.colors.textSecondary
+  },
+  semanticGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: lightTheme.spacing.sm
+  },
+  semanticCard: {
+    minWidth: '45%',
+    borderRadius: lightTheme.radius.lg,
+    padding: lightTheme.spacing.md,
+    gap: lightTheme.spacing.sm
+  },
+  semanticDot: {
+    width: 28,
+    height: 6,
+    borderRadius: lightTheme.radius.pill
+  }
 });

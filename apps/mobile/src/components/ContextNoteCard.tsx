@@ -4,7 +4,7 @@ import { colors } from '@/theme/colors';
 import { Card } from './Card';
 import { Text } from './Text';
 
-type ContextNoteTone = 'neutral' | 'success' | 'warning';
+type ContextNoteTone = 'neutral' | 'success' | 'warning' | 'nutrition' | 'training' | 'recovery' | 'health' | 'info';
 
 interface ContextNoteCardProps {
   title: string;
@@ -34,12 +34,27 @@ const styles = StyleSheet.create({
     gap: 6
   },
   neutral: {
-    backgroundColor: colors.line
+    backgroundColor: colors.divider
   },
   success: {
-    backgroundColor: colors.primary
+    backgroundColor: colors.success
   },
   warning: {
-    backgroundColor: colors.accent
+    backgroundColor: colors.warning
+  },
+  nutrition: {
+    backgroundColor: colors.nutrition
+  },
+  training: {
+    backgroundColor: colors.training
+  },
+  recovery: {
+    backgroundColor: colors.recovery
+  },
+  health: {
+    backgroundColor: colors.health
+  },
+  info: {
+    backgroundColor: colors.info
   }
 });

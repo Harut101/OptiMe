@@ -73,3 +73,5 @@ Apple Health iOS MVP strings also live under `health`, including Connect Apple H
 ## UI polish strings
 
 The UI polish pass reused existing localized strings for headers, status labels, empty states, errors, and health connection actions. New visual primitives receive already-localized text from their calling screens. Avoid adding English-only props or manually concatenated English fragments when extending these primitives.
+
+The visual design direction pass added only Design System Preview labels to the base English resource. Locale resources deep-merge over English, so all supported locales have effective runtime coverage. Production screens continue to pass localized strings into primitives instead of hardcoded English.

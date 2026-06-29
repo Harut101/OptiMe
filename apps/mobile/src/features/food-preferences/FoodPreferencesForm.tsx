@@ -178,17 +178,17 @@ function splitList(value: string) {
 const styles = StyleSheet.create({
   form: { gap: 16 },
   toggle: {
-    flexDirection: 'row', gap: 12, padding: 14, borderRadius: 8,
-    borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card
+    flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated
   },
-  toggleActive: { borderColor: colors.primary, backgroundColor: '#e7f3ef' },
+  toggleActive: { borderColor: colors.nutrition, backgroundColor: colors.nutritionMuted },
   toggleDisabled: { opacity: 0.55 },
   checkbox: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.line,
+    width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center', marginTop: 2
   },
-  checkboxActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  checkmark: { color: '#ffffff', fontWeight: '800' },
+  checkboxActive: { borderColor: colors.nutrition, backgroundColor: colors.nutrition },
+  checkmark: { color: colors.textInverse, fontWeight: '800' },
   toggleCopy: { flex: 1, gap: 4 },
   warning: { color: colors.danger, fontSize: 13, fontWeight: '600' }
 });

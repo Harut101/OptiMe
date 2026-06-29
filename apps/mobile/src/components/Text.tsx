@@ -17,18 +17,18 @@ export function Text({ variant = 'body', style, children, ...props }: TextProps)
 
 const styles = StyleSheet.create({
   base: {
-    color: colors.ink,
+    color: colors.textPrimary,
     letterSpacing: 0
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: '800'
   },
   heading: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700'
+    fontSize: 23,
+    lineHeight: 29,
+    fontWeight: '800'
   },
   body: {
     fontSize: 16,
@@ -37,12 +37,12 @@ const styles = StyleSheet.create({
   muted: {
     fontSize: 15,
     lineHeight: 22,
-    color: colors.muted
+    color: colors.textSecondary
   },
   label: {
     fontSize: 13,
     lineHeight: 18,
-    color: colors.muted,
+    color: colors.textMuted,
     fontWeight: '700',
     textTransform: 'uppercase'
   }

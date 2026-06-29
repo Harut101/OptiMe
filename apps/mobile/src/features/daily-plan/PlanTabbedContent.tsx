@@ -21,6 +21,7 @@ import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
 import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
 import { formatWorkoutSetCount } from '@/features/workout/workout-summary';
+import { colors } from '@/theme/colors';
 
 interface PlanTabbedContentProps {
   planId: string;
@@ -299,5 +300,5 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
   mediaError: { gap: 8 },
-  errorText: { color: '#b44848', fontWeight: '700' }
+  errorText: { color: colors.danger, fontWeight: '700' }
 });

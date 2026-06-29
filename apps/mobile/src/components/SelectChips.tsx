@@ -43,19 +43,19 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.card,
-    borderRadius: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 10
   },
   activeChip: {
-    borderColor: colors.primary,
-    backgroundColor: '#e7f3ef'
+    borderColor: colors.nutrition,
+    backgroundColor: colors.nutritionMuted
   },
   chipText: {
     fontSize: 14,
-    color: colors.ink
+    color: colors.textPrimary
   },
   activeText: {
     color: colors.primaryDark,

@@ -374,8 +374,8 @@ const styles = StyleSheet.create({
     minWidth: 72,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.card,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary
   },
-  setText: { color: colors.ink, fontWeight: '700' },
-  setTextChecked: { color: '#ffffff', fontWeight: '700' },
+  setText: { color: colors.textPrimary, fontWeight: '700' },
+  setTextChecked: { color: colors.textInverse, fontWeight: '700' },
   pressed: { opacity: 0.78 }
 });

@@ -176,16 +176,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   badge: {
-    backgroundColor: '#e4f2ec',
+    backgroundColor: colors.nutritionMuted,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5
   },
   badgeLimited: {
-    backgroundColor: '#f7ecd9'
+    backgroundColor: colors.warningMuted
   },
   badgeText: {
-    color: colors.ink,
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 12
   },
   macro: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cardMuted,
     borderRadius: 14,
     flex: 1,
     padding: 10
@@ -208,6 +208,6 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   safetyText: {
-    color: colors.accent
+    color: colors.warning
   }
 });

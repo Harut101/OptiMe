@@ -41,3 +41,15 @@ These primitives use existing tokens from `apps/mobile/src/theme/colors.ts` and 
 - Buttons keep localized labels and existing touch target sizes.
 
 Apple Health physical QA remains manual and paused until the user tests with a MacBook + iPhone development build.
+
+## Visual Direction Update
+
+The next visual pass refined the primitives around typed light/dark theme tokens and semantic health colors. Existing screens continue to use the same product behavior, but shared cards, pills, fields, buttons, and app surfaces now use a softer premium card system.
+
+Semantic usage:
+
+- Nutrition uses mint/green.
+- Training uses blue.
+- Recovery uses lavender.
+- Health/wearable uses soft red/pink.
+- Danger is reserved for true errors.

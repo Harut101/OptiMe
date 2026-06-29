@@ -27,6 +27,6 @@ const styles = StyleSheet.create({
     paddingBottom: 2
   },
   title: {
-    color: colors.ink
+    color: colors.textPrimary
   }
 });

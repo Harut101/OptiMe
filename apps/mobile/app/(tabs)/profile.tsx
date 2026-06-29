@@ -336,7 +336,7 @@ function formatHealthStatus(
 }
 
 const styles = StyleSheet.create({
-  segmented: { flexDirection: 'row', padding: 4, borderRadius: 10, backgroundColor: '#eaf0ec' },
+  segmented: { flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: colors.surfaceMuted },
   segment: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, paddingHorizontal: 4 },
   segmentActive: { backgroundColor: colors.card },
   segmentText: { color: colors.muted, fontSize: 12, fontWeight: '700' },

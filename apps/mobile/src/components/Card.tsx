@@ -10,10 +10,15 @@ export function Card({ children }: PropsWithChildren) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
-    gap: 10
+    borderColor: colors.border,
+    padding: 18,
+    gap: 12,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 2
   }
 });

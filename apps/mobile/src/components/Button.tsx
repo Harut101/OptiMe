@@ -32,18 +32,18 @@ export function Button({ title, variant = 'primary', disabled, style, ...props }
 const styles = StyleSheet.create({
   base: {
     minHeight: 50,
-    borderRadius: 8,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18
   },
   primary: {
-    backgroundColor: colors.primary
+    backgroundColor: colors.health
   },
   secondary: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.line
+    borderColor: colors.border
   },
   ghost: {
     backgroundColor: 'transparent'
@@ -58,11 +58,11 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   text: {
-    color: '#ffffff',
+    color: colors.textInverse,
     fontWeight: '700',
     textAlign: 'center'
   },
   darkText: {
-    color: colors.ink
+    color: colors.textPrimary
   }
 });

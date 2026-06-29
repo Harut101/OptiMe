@@ -141,4 +141,25 @@ for (const component of [
   assert(existsSync(resolve(root, component)), `${component} must exist for the UI polish layer.`);
 }
 
+const themeColors = read('src/theme/colors.ts');
+assertIncludes(themeColors, [
+  'export type ThemeColors',
+  'lightThemeColors',
+  'darkThemeColors',
+  'nutritionMuted',
+  'trainingMuted',
+  'recoveryMuted',
+  'healthMuted',
+  'themeColorsByMode'
+], 'Theme colors');
+
+const designPreview = read('app/design-system-preview.tsx');
+assertIncludes(designPreview, [
+  'uiDarkColors',
+  'semanticEntries',
+  'StatusPill',
+  'MetricCard',
+  'ContextNoteCard'
+], 'Design System Preview visual direction');
+
 console.log('Screen interaction contracts passed.');
