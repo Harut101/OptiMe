@@ -69,3 +69,7 @@ Health Connections foundation strings live under `health` in all supported mobil
 Use `getHealthProviderLabel` for stable provider enums: `APPLE_HEALTH`, `HEALTH_CONNECT`, `WHOOP`, `MANUAL`, and `MOCK`. Do not concatenate provider names with English status fragments.
 
 Apple Health iOS MVP strings also live under `health`, including Connect Apple Health, Sync Apple Health, permission denied, native unavailable, no-data, and iOS Settings guidance. Health Connect must remain labeled exactly `Health Connect`.
+
+## UI polish strings
+
+The UI polish pass reused existing localized strings for headers, status labels, empty states, errors, and health connection actions. New visual primitives receive already-localized text from their calling screens. Avoid adding English-only props or manually concatenated English fragments when extending these primitives.

@@ -13,13 +13,15 @@ import {
 } from '@/api/daily-plans';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { PlanTabbedContent } from '@/features/daily-plan/PlanTabbedContent';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
-import { colors } from '@/theme/colors';
 import type {
   PlanFeedbackRating,
   PlanFeedbackTag
@@ -109,14 +111,10 @@ export default function PlanDetailsScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
-      <Text variant="heading">{t('plan.title')}</Text>
-      <Text variant="muted">{plan.summary.message}</Text>
+      <ScreenHeader title={t('plan.title')} subtitle={plan.summary.message} />
 
       {safetyMessage ? (
-        <Card>
-          <Text variant="label">{t('today.safetyNote')}</Text>
-          <Text variant="body">{safetyMessage}</Text>
-        </Card>
+        <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
       ) : null}
 
       <PlanTabbedContent
@@ -142,21 +140,17 @@ export default function PlanDetailsScreen() {
         })}
       />
 
-      {checkInMessage ? <Text style={styles.successText}>{checkInMessage}</Text> : null}
+      {checkInMessage ? <ContextNoteCard title={t('common.saved')} message={checkInMessage} tone="success" /> : null}
 
       {plan.contextNotes?.trainingLoad ? (
-        <Card>
-          <Text variant="label">
-            {getContextNoteTitle(t, plan.contextNotes.trainingLoad.titleCode)}
-          </Text>
-          <Text variant="body">
-            {getContextNoteMessage(t, plan.contextNotes.trainingLoad.messageCode)}
-          </Text>
-        </Card>
+        <ContextNoteCard
+          title={getContextNoteTitle(t, plan.contextNotes.trainingLoad.titleCode)}
+          message={getContextNoteMessage(t, plan.contextNotes.trainingLoad.messageCode)}
+        />
       ) : null}
 
       <Card>
-        <Text variant="label">{t('plan.recovery')}</Text>
+        <SectionHeader title={t('plan.recovery')} />
         <Text variant="body">{plan.recovery.recommendation}</Text>
         {plan.contextNotes?.recovery ? (
           <Text variant="muted">
@@ -168,7 +162,7 @@ export default function PlanDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">{t('plan.reminders')}</Text>
+        <SectionHeader title={t('plan.reminders')} />
         {plan.reminders.map((reminder) => (
           <Text key={reminder} variant="body">
             {reminder}
@@ -177,7 +171,7 @@ export default function PlanDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">{t('plan.helpfulQuestion')}</Text>
+        <SectionHeader title={t('plan.helpfulQuestion')} />
         <View style={styles.row}>
           <Button
             title={t('plan.helpful')}
@@ -207,7 +201,7 @@ export default function PlanDetailsScreen() {
             );
           })}
         </View>
-        {feedbackMessage ? <Text style={styles.successText}>{feedbackMessage}</Text> : null}
+        {feedbackMessage ? <ContextNoteCard title={t('common.saved')} message={feedbackMessage} tone="success" /> : null}
         <Button
           title={feedback.isPending ? t('common.saving') : t('plan.sendFeedback')}
           disabled={!rating || feedback.isPending}
@@ -264,9 +258,5 @@ const styles = StyleSheet.create({
   tagButton: {
     minHeight: 42,
     paddingHorizontal: 12
-  },
-  successText: {
-    color: colors.success,
-    fontWeight: '700'
   }
 });

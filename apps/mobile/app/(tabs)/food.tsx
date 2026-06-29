@@ -13,8 +13,12 @@ import {
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import {
   EMPTY_FOOD_PREFERENCES,
@@ -156,8 +160,7 @@ export default function FoodScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('food.title')}</Text>
-      <Text variant="muted">{t('food.intro')}</Text>
+      <ScreenHeader title={t('food.title')} subtitle={t('food.intro')} />
 
       <NutritionTargetSummaryCard
         target={nutritionTarget.data}
@@ -196,10 +199,7 @@ export default function FoodScreen() {
           }
         />
       ) : todayPlan.isError ? (
-        <Card>
-          <Text variant="label">{t('food.mealPlan')}</Text>
-          <Text variant="muted">{t('food.mealPlanUnavailable')}</Text>
-        </Card>
+        <ContextNoteCard title={t('food.mealPlan')} message={t('food.mealPlanUnavailable')} tone="warning" />
       ) : null}
 
       {validationError && !editing ? <Text style={styles.error}>{validationError}</Text> : null}
@@ -237,7 +237,7 @@ export default function FoodScreen() {
         </>
       )}
 
-      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
     </Screen>
   );
 }
@@ -268,8 +268,10 @@ function DailyFoodPlanCard({
 
   return (
     <Card>
-      <Text variant="label" accessibilityRole="header">{t('food.mealPlan')}</Text>
-      <Text variant="muted">{t(`nutritionTargets.dayType.${foodPlan.nutritionTargetSnapshot.dayType}`)}</Text>
+      <SectionHeader
+        title={t('food.mealPlan')}
+        subtitle={t(`nutritionTargets.dayType.${foodPlan.nutritionTargetSnapshot.dayType}`)}
+      />
       <Text variant="muted">
         {t('food.totalMacros', {
           kcal: String(foodPlan.totals.caloriesKcal),
@@ -278,7 +280,7 @@ function DailyFoodPlanCard({
           fat: String(Math.round(foodPlan.totals.fatGrams))
         })}
       </Text>
-      {fallback ? <Text style={styles.note}>{t('food.fallbackMealPlan')}</Text> : null}
+      {fallback ? <StatusPill label={t('food.fallbackMealPlan')} tone="warning" /> : null}
       <Text variant="muted">{t('food.whyMenu')}</Text>
       <FoodProgressCard foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
       <Button
@@ -316,7 +318,7 @@ function FoodProgressCard({
   if (trackingUnavailable || foodLog?.supported === false) {
     return (
       <View style={styles.trackingSummary}>
-        <Text variant="label">{t('foodTracking.foodProgress')}</Text>
+        <SectionHeader title={t('foodTracking.foodProgress')} />
         <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
       </View>
     );
@@ -327,7 +329,7 @@ function FoodProgressCard({
       progress: formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet'),
       detail: formatFoodProgressDetail(foodLog, t)
     })}>
-      <Text variant="label">{t('foodTracking.foodProgress')}</Text>
+      <SectionHeader title={t('foodTracking.foodProgress')} />
       <Text variant="body">{formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
       <Text variant="muted">{formatFoodProgressDetail(foodLog, t)}</Text>
     </View>
@@ -365,7 +367,10 @@ function MealCard({
       >
         <Text variant="label">{t(`food.mealTypes.${meal.mealType}`)}</Text>
         <Text variant="body">{meal.title}</Text>
-        <Text style={styles.statusChip}>{getMealStatusLabel(status, t)}</Text>
+        <StatusPill
+          label={getMealStatusLabel(status, t)}
+          tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
+        />
         <Text variant="muted">
           {t('food.mealMacros', {
             kcal: String(meal.caloriesKcal),
@@ -402,7 +407,7 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
   const { t } = useTranslation();
   return (
     <Card>
-      <Text variant="label">{t('food.current')}</Text>
+      <SectionHeader title={t('food.current')} />
       <Text>{t('food.dietStyle')}: {getDietTypeLabel(t, value.dietType)}</Text>
       <Text>{t('food.mealsPerDay')}: {value.mealsPerDay}</Text>
       <Text variant="muted">{t('food.allergies')}: {value.allergies || t('food.confirmedNoAllergies')}</Text>
@@ -426,22 +431,12 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.78 },
   linkText: { color: colors.primaryDark, fontWeight: '700' },
-  note: { color: colors.accent, fontWeight: '700' },
   trackingSummary: {
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 14,
     padding: 12,
     gap: 4
-  },
-  statusChip: {
-    alignSelf: 'flex-start',
-    color: colors.primaryDark,
-    backgroundColor: '#e7f3ef',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '800'
   },
   statusActions: {
     flexDirection: 'row',

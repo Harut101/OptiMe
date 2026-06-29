@@ -7,7 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { getWorkoutHistory } from '@/api/workout-sessions';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import {
   formatWorkoutDate,
@@ -51,10 +53,7 @@ export default function WorkoutHistoryScreen() {
 
   return (
     <Screen refreshing={history.isRefetching} onRefresh={() => history.refetch()}>
-      <View style={styles.header}>
-        <Text variant="heading">{t('workout.workoutHistory')}</Text>
-        <Text variant="muted">{t('workout.historyIntro')}</Text>
-      </View>
+      <ScreenHeader title={t('workout.workoutHistory')} subtitle={t('workout.historyIntro')} />
 
       {items.length === 0 ? (
         <StateBlock
@@ -107,16 +106,13 @@ function WorkoutHistoryItem({
           </View>
           <Ionicons name="chevron-forward" size={22} color={colors.muted} accessible={false} />
         </View>
-        {item.isPartial ? <Text style={styles.partialBadge}>{t('workout.partial')}</Text> : null}
+        {item.isPartial ? <StatusPill label={t('workout.partial')} tone="warning" /> : null}
       </Card>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 8
-  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -126,13 +122,4 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4
   },
-  partialBadge: {
-    alignSelf: 'flex-start',
-    color: colors.primaryDark,
-    backgroundColor: '#e7f3ef',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '800'
-  }
 });

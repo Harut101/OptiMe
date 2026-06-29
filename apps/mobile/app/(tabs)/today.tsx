@@ -20,10 +20,14 @@ import {
 } from '@/api/progressive-profile';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
@@ -205,11 +209,7 @@ export default function TodayScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
-      <View style={styles.header}>
-        <Text variant="label">{t('today.title')}</Text>
-        <Text variant="title">{t('today.tagline')}</Text>
-        <Text variant="muted">{t('today.intro')}</Text>
-      </View>
+      <ScreenHeader eyebrow={t('today.title')} title={t('today.tagline')} subtitle={t('today.intro')} />
 
       <UsageStatus
         isUnavailable={usage.isError}
@@ -218,11 +218,11 @@ export default function TodayScreen() {
       />
 
       {limitMessage ? (
-        <Card>
-          <Text variant="label">{t('today.limitReached')}</Text>
-          <Text variant="body">{limitMessage}</Text>
-          <Text variant="muted">{t('today.upgradeSoon')}</Text>
-        </Card>
+        <ContextNoteCard
+          title={t('today.limitReached')}
+          message={`${limitMessage} ${t('today.upgradeSoon')}`}
+          tone="warning"
+        />
       ) : null}
 
       {progressivePrompt.data ? (
@@ -254,9 +254,7 @@ export default function TodayScreen() {
       ) : (
         <>
           <Card>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{t(`enums.readiness.${today.data.readinessLevel}` as never)}</Text>
-            </View>
+            <StatusPill label={t(`enums.readiness.${today.data.readinessLevel}` as never)} tone="success" />
             {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
             <Text variant="heading">{plan.summary.title}</Text>
             <Text variant="muted">{plan.summary.message}</Text>
@@ -264,10 +262,7 @@ export default function TodayScreen() {
           </Card>
 
           {safetyMessage ? (
-            <Card>
-              <Text variant="label">{t('today.safetyNote')}</Text>
-              <Text variant="body">{safetyMessage}</Text>
-            </Card>
+            <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
           ) : null}
 
           <NutritionTargetSummaryCard
@@ -277,15 +272,15 @@ export default function TodayScreen() {
 
           {plan.nutrition.foodPlan && !foodLog.isError && foodLog.data?.supported !== false ? (
             <Card>
-              <Text variant="label">{t('foodTracking.todaysFoodProgress')}</Text>
+              <SectionHeader title={t('foodTracking.todaysFoodProgress')} />
               <Text variant="body">{formatFoodProgress(foodLog.data, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
               <Text variant="muted">{formatFoodProgressDetail(foodLog.data, t)}</Text>
             </Card>
           ) : null}
 
           <Card>
-            <Text variant="label">{t('today.nutrition')}</Text>
-            {!trainingEnabled ? <Text style={styles.modeBadge}>{t('appModes.nutritionOnly')}</Text> : null}
+            <SectionHeader title={t('today.nutrition')} />
+            {!trainingEnabled ? <StatusPill label={t('appModes.nutritionOnly')} tone="warning" /> : null}
             <Text variant="body">{plan.nutrition.calorieGuidance.notes}</Text>
             <Text variant="muted">{plan.nutrition.macroGuidance.notes}</Text>
             <Text variant="muted">
@@ -296,13 +291,13 @@ export default function TodayScreen() {
 
           {!trainingEnabled ? (
             <Card>
-              <Text variant="label">{t('today.trainingOffTitle')}</Text>
+              <SectionHeader title={t('today.trainingOffTitle')} />
               <Text variant="body">{t('today.trainingOffMessage')}</Text>
               <Button title={t('today.enableTraining')} variant="secondary" onPress={() => router.push('/goal-editor')} />
             </Card>
           ) : (
             <Card>
-              <Text variant="label">{t('today.training')}</Text>
+              <SectionHeader title={t('today.training')} />
               <Text variant="body">{plan.training.recommendation}</Text>
               <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
             </Card>
@@ -310,7 +305,7 @@ export default function TodayScreen() {
 
           {completedWorkout ? (
             <Card>
-              <Text variant="label">{t('workout.workoutCompleted')}</Text>
+              <SectionHeader title={t('workout.workoutCompleted')} />
               <Text variant="body">{formatWorkoutFocus(completedWorkout, t)}</Text>
               <Text variant="muted">{formatWorkoutSetCount(completedWorkout, t)}</Text>
               {completedWorkout.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
@@ -324,7 +319,7 @@ export default function TodayScreen() {
           ) : null}
 
           <Card>
-            <Text variant="label">{t('today.recovery')}</Text>
+            <SectionHeader title={t('today.recovery')} />
             <Text variant="body">{plan.recovery.recommendation}</Text>
             <Text variant="muted">{plan.nutrition.hydration.guidance}</Text>
           </Card>
@@ -374,10 +369,7 @@ function WearableContextNote({
         : t('health.noRecentWearableData');
 
   return (
-    <Card>
-      <Text variant="label">{title}</Text>
-      <Text variant="muted">{message}</Text>
-    </Card>
+    <ContextNoteCard title={title} message={message} />
   );
 }
 
@@ -546,10 +538,7 @@ function UsageStatus({
   const { t } = useTranslation();
   if (isUnavailable) {
     return (
-      <Card>
-        <Text variant="label">{t('today.planUsage')}</Text>
-        <Text variant="muted">{t('today.usageUnavailable')}</Text>
-      </Card>
+      <ContextNoteCard title={t('today.planUsage')} message={t('today.usageUnavailable')} />
     );
   }
 
@@ -559,7 +548,7 @@ function UsageStatus({
 
   return (
     <Card>
-      <Text variant="label">{t('today.planUsage')}</Text>
+      <SectionHeader title={t('today.planUsage')} />
       {generationUsage ? (
         <Text variant="muted">
           {t('today.generationsLeft', { count: generationUsage.remaining })}
@@ -656,38 +645,9 @@ function formatResetAt(value: string, locale: string) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.accent,
-    paddingLeft: 18
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#e7f3ef',
-    borderColor: colors.primary,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8
-  },
-  badgeText: {
-    color: colors.primaryDark,
-    fontWeight: '800',
-    fontSize: 12
-  },
   successText: {
     color: colors.success,
     fontWeight: '700'
-  },
-  modeBadge: {
-    alignSelf: 'flex-start',
-    color: colors.primaryDark,
-    backgroundColor: '#FFE8EE',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '800'
   },
   promptHeader: {
     gap: 6

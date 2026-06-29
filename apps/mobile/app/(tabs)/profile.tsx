@@ -13,9 +13,13 @@ import { getProfile, saveProfile } from '@/api/profile';
 import { getSettings, updateSettings } from '@/api/settings';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import {
   getPlatformHealthProvider
@@ -59,7 +63,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('profile.title')}</Text>
+      <ScreenHeader title={t('profile.title')} />
       <View style={styles.segmented}>
         {SECTIONS.map((item) => (
           <Pressable
@@ -142,7 +146,7 @@ function PersonalSection() {
       ) : (
         <>
           <Card>
-            <Text variant="label">{t('profile.personal')}</Text>
+            <SectionHeader title={t('profile.personal')} />
             <Text>{[savedValue.firstName, savedValue.lastName].filter(Boolean).join(' ') || t('profile.nameMissing')}</Text>
             <Text variant="muted">
               {t('profile.bornSummary', {
@@ -154,7 +158,7 @@ function PersonalSection() {
             <Text variant="muted">{t('profile.activitySummary', { value: getActivityLevelLabel(t, savedValue.activityLevel) })}</Text>
           </Card>
           <Card>
-            <Text variant="label">{t('profile.goalsAndMode')}</Text>
+            <SectionHeader title={t('profile.goalsAndMode')} />
             <Text>{goal.data ? getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}</Text>
             <Text variant="muted">
               {goal.data
@@ -169,7 +173,7 @@ function PersonalSection() {
             />
           </Card>
           <Card>
-            <Text variant="label">{t('workout.completedWorkouts')}</Text>
+            <SectionHeader title={t('workout.completedWorkouts')} />
             <Text variant="muted">{t('workout.historyHelp')}</Text>
             <Button
               title={t('workout.workoutHistory')}
@@ -181,7 +185,7 @@ function PersonalSection() {
           <Button title={t('common.edit')} variant="secondary" onPress={() => { setMessage(null); setEditing(true); }} />
         </>
       )}
-      {message ? <Card><Text variant="muted">{message}</Text></Card> : null}
+      {message ? <ContextNoteCard title={t('common.saved')} message={message} tone="success" /> : null}
     </View>
   );
 }
@@ -192,12 +196,12 @@ function HealthSection() {
   return (
     <View style={styles.section}>
       <Card>
-        <Text variant="label">{t('profile.wellnessSafety')}</Text>
-        <Text>{user?.safeMode ? t('profile.safeMode') : t('profile.standardMode')}</Text>
+        <SectionHeader title={t('profile.wellnessSafety')} />
+        <StatusPill label={user?.safeMode ? t('profile.safeMode') : t('profile.standardMode')} tone={user?.safeMode ? 'warning' : 'success'} />
         <Text variant="muted">{t('profile.ageSafety')}</Text>
       </Card>
-      <Card><Text variant="label">{t('profile.healthContextTitle')}</Text><Text variant="muted">{t('profile.healthContextCopy')}</Text></Card>
-      <Card><Text variant="label">{t('profile.important')}</Text><Text variant="muted">{t('safety.disclaimer')}</Text></Card>
+      <ContextNoteCard title={t('profile.healthContextTitle')} message={t('profile.healthContextCopy')} />
+      <ContextNoteCard title={t('profile.important')} message={t('safety.disclaimer')} tone="warning" />
     </View>
   );
 }
@@ -213,7 +217,7 @@ function ConnectionsSection() {
   return (
     <View style={styles.section}>
       <Card>
-        <Text variant="label">{label}</Text>
+        <SectionHeader title={label} />
         <Text>{status.isLoading ? t('common.loading') : status.isError ? t('health.unavailable') : formatHealthStatus(connection?.status, t)}</Text>
         <Text variant="muted">{t('health.lastSync', { value: connection?.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString(preferredLocale) : t('health.notSynced') })}</Text>
         <Text variant="muted">{t('health.intro')}</Text>
@@ -263,15 +267,15 @@ function SettingsSection() {
 
   return (
     <View style={styles.section}>
-      <Card><Text variant="label">{t('settings.account')}</Text><Text>{user?.email ?? t('settings.signedIn')}</Text></Card>
+      <Card><SectionHeader title={t('settings.account')} /><Text>{user?.email ?? t('settings.signedIn')}</Text></Card>
       <Card>
-        <Text variant="label">{t('settings.subscription')}</Text>
+        <SectionHeader title={t('settings.subscription')} />
         <Text>{entitlements.isError ? t('settings.planUnavailable') : `${getSubscriptionPlanLabel(t, entitlements.data?.currentPlan ?? 'FREE')} · ${getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}`}</Text>
         <Text variant="muted">{usage.isError ? t('settings.usageUnavailable') : t('settings.usageToday')}</Text>
         <Text variant="muted">{t('settings.upgradeSoon')}</Text>
       </Card>
       <Card>
-        <Text variant="label">{t('settings.application')}</Text>
+        <SectionHeader title={t('settings.application')} />
         {settings.isLoading ? <Text variant="muted">{t('common.loading')}</Text> : null}
         {settings.isError ? (
           <>
@@ -309,7 +313,7 @@ function SettingsSection() {
           <Button title={t('designSystem.title')} variant="secondary" onPress={() => router.push('/design-system-preview' as never)} />
         ) : null}
       </Card>
-      <Card><Text variant="label">{t('settings.privacyAccount')}</Text><Text variant="muted">{t('settings.privacyCopy')}</Text></Card>
+      <ContextNoteCard title={t('settings.privacyAccount')} message={t('settings.privacyCopy')} />
       <Button title={t('settings.logout')} variant="secondary" onPress={async () => { await clearSession(); queryClient.clear(); router.replace('/(auth)/welcome'); }} />
     </View>
   );

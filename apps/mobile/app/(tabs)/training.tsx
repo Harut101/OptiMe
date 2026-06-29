@@ -21,9 +21,13 @@ import {
 } from '@/api/training-schedule';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import {
   EMPTY_TRAINING_SETUP,
@@ -140,9 +144,9 @@ export default function TrainingScreen() {
   if (appMode === 'NUTRITION_ONLY') {
     return (
       <Screen>
-        <Text variant="heading">{t('training.title')}</Text>
+        <ScreenHeader title={t('training.title')} />
         <Card>
-          <Text variant="label">{t('training.disabledTitle')}</Text>
+          <SectionHeader title={t('training.disabledTitle')} />
           <Text variant="body">{t('training.disabledMessage')}</Text>
           <Button title={t('training.enableTraining')} onPress={() => router.push('/goal-editor')} />
         </Card>
@@ -152,8 +156,7 @@ export default function TrainingScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('training.title')}</Text>
-      <Text variant="muted">{t('training.intro')}</Text>
+      <ScreenHeader title={t('training.title')} subtitle={t('training.intro')} />
       <Button
         title={t('workout.workoutHistory')}
         variant="secondary"
@@ -209,7 +212,7 @@ export default function TrainingScreen() {
         </>
       )}
 
-      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
     </Screen>
   );
 }
@@ -239,8 +242,7 @@ function WeeklyScheduleSection({
   return (
     <View style={styles.section}>
       <Card>
-        <Text variant="label">{t('schedule.weeklySchedule')}</Text>
-        <Text variant="muted">{t('schedule.weeklyScheduleHelp')}</Text>
+        <SectionHeader title={t('schedule.weeklySchedule')} subtitle={t('schedule.weeklyScheduleHelp')} />
         <Text variant="body">{t('schedule.derivedFrequency', { count: response.isActive ? response.derivedWeeklyFrequency : trainingDays })}</Text>
         {!response.isActive && !dirty ? <Text variant="muted">{t('schedule.inactiveHelp')}</Text> : null}
       </Card>
@@ -318,9 +320,10 @@ function DayCard({
       <Card>
         <View style={styles.dayHeader}>
           <Text variant="label">{getDayOfWeekLabel(t, dayOfWeek)}</Text>
-          <Text style={[styles.status, isTrainingDay ? styles.trainingStatus : styles.restStatus]}>
-            {isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
-          </Text>
+          <StatusPill
+            label={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
+            tone={isTrainingDay ? 'success' : 'neutral'}
+          />
         </View>
         {isTrainingDay ? (
           <>
@@ -342,7 +345,7 @@ function TrainingSummary({ value }: { value: TrainingSetupFormValue }) {
   const { t } = useTranslation();
   return (
     <Card>
-      <Text variant="label">{t('training.current')}</Text>
+      <SectionHeader title={t('training.current')} />
       <Text>{t('training.focus')}: {value.trainingOutcome ? getTrainingOutcomeLabel(t, value.trainingOutcome) : t('common.notSet')}</Text>
       <Text variant="muted">{t('training.level')}: {value.trainingLevel ? getTrainingLevelLabel(t, value.trainingLevel) : t('common.notSet')}</Text>
       <Text variant="muted">{t('training.equipment')}: {value.equipment.length ? value.equipment.join(', ') : t('common.notSet')}</Text>
@@ -365,7 +368,4 @@ const styles = StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' },
   dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  status: { fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  trainingStatus: { color: colors.primaryDark, backgroundColor: '#e7f3ef' },
-  restStatus: { color: colors.muted, backgroundColor: colors.surface }
 });

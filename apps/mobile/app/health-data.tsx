@@ -12,8 +12,13 @@ import {
 } from '@/api/health';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { MetricCard } from '@/components/MetricCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { nativeHealthService, NativeHealthServiceError } from '@/features/health/native-health.service';
 import { getHealthProviderLabel } from '@/i18n/enum-labels';
@@ -106,9 +111,10 @@ export default function HealthDataScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('health.connectionsTitle')}</Text>
-      <Text variant="muted">{t('health.connectionsIntro')}</Text>
-      <Text variant="muted">{t('health.optional')}</Text>
+      <ScreenHeader
+        title={t('health.connectionsTitle')}
+        subtitle={`${t('health.connectionsIntro')} ${t('health.optional')}`}
+      />
 
       {FOUNDATION_SOURCES.map((source) => (
         <ConnectionCard
@@ -155,7 +161,7 @@ export default function HealthDataScreen() {
           accessibilityLabel={t('health.deleteData')}
           onPress={handleFoundationAction}
         />
-        {actionMessage ? <Text variant="muted">{actionMessage}</Text> : null}
+        {actionMessage ? <ContextNoteCard title={t('health.status')} message={actionMessage} /> : null}
       </Card>
 
       {__DEV__ ? (
@@ -178,10 +184,7 @@ export default function HealthDataScreen() {
       ) : null}
 
       {connections.isError ? (
-        <Card>
-          <Text variant="label" style={styles.errorText}>{t('health.unavailable')}</Text>
-          <Text variant="muted">{t('errors.unableLoad')}</Text>
-        </Card>
+        <ContextNoteCard title={t('health.unavailable')} message={t('errors.unableLoad')} tone="warning" />
       ) : null}
     </Screen>
   );
@@ -217,14 +220,11 @@ function ConnectionCard({
         })}
       >
       <View style={styles.cardHeader}>
-        <Text variant="label">{getProviderName(source, t)}</Text>
-        <Text style={[
-          styles.statusPill,
-          isConnected ? styles.connectedPill : null,
-          needsAttention ? styles.attentionPill : null
-        ]}>
-          {getConnectionStatusLabel(status, t)}
-        </Text>
+        <SectionHeader title={getProviderName(source, t)} />
+        <StatusPill
+          label={getConnectionStatusLabel(status, t)}
+          tone={isConnected ? 'success' : needsAttention ? 'danger' : 'neutral'}
+        />
       </View>
       </View>
       <Text variant="body">{getProviderDescription(source, t)}</Text>
@@ -282,7 +282,7 @@ function WearableSnapshotCard({
   if (isUnavailable) {
     return (
       <Card>
-        <Text variant="label">{t('health.wearableSnapshot')}</Text>
+        <SectionHeader title={t('health.wearableSnapshot')} />
         <Text variant="muted">{t('health.noRecentWearableData')}</Text>
       </Card>
     );
@@ -291,7 +291,7 @@ function WearableSnapshotCard({
   if (!snapshot?.snapshot) {
     return (
       <Card>
-        <Text variant="label">{t('health.wearableSnapshot')}</Text>
+        <SectionHeader title={t('health.wearableSnapshot')} />
         <Text variant="body">{t('health.noRecentWearableData')}</Text>
         <Text variant="muted">{t('health.noRecentWearableDataHelp')}</Text>
       </Card>
@@ -307,29 +307,20 @@ function WearableSnapshotCard({
           date: snapshot.snapshot.localDate
         })}
       >
-      <Text variant="label">{t('health.wearableSnapshot')}</Text>
+      <SectionHeader title={t('health.wearableSnapshot')} />
       </View>
       <Text variant="body">
         {snapshot.snapshot.isStale ? t('health.wearableDataStale') : t('health.wearableDataConnected')}
       </Text>
       <Text variant="muted">{getHealthProviderLabel(t, snapshot.snapshot.source)} · {snapshot.snapshot.localDate}</Text>
       <View style={styles.metricGrid}>
-        <Metric label={t('health.steps')} value={snapshot.snapshot.steps} />
-        <Metric label={t('health.activeCalories')} value={snapshot.snapshot.activeCaloriesKcal} />
-        <Metric label={t('health.sleepDuration')} value={snapshot.snapshot.sleepMinutes} />
-        <Metric label={t('health.recoveryScore')} value={snapshot.snapshot.recoveryScore} />
-        <Metric label={t('health.strain')} value={snapshot.snapshot.strainScore} />
+        <MetricCard label={t('health.steps')} value={snapshot.snapshot.steps} />
+        <MetricCard label={t('health.activeCalories')} value={snapshot.snapshot.activeCaloriesKcal} />
+        <MetricCard label={t('health.sleepDuration')} value={snapshot.snapshot.sleepMinutes} />
+        <MetricCard label={t('health.recoveryScore')} value={snapshot.snapshot.recoveryScore} />
+        <MetricCard label={t('health.strain')} value={snapshot.snapshot.strainScore} />
       </View>
     </Card>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number | null }) {
-  return (
-    <View style={styles.metric}>
-      <Text variant="muted">{label}</Text>
-      <Text variant="body">{value === null ? '-' : String(value)}</Text>
-    </View>
   );
 }
 
@@ -381,34 +372,10 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center'
   },
-  statusPill: {
-    color: colors.ink,
-    backgroundColor: '#F1EEE8',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '800'
-  },
-  connectedPill: {
-    color: colors.primaryDark,
-    backgroundColor: '#e7f3ef'
-  },
-  attentionPill: {
-    color: colors.danger,
-    backgroundColor: '#FFE8EE'
-  },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
-  },
-  metric: {
-    minWidth: '45%',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 10,
-    gap: 3
   },
   actionRow: {
     flexDirection: 'row',

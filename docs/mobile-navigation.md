@@ -20,6 +20,8 @@ Plan Details Training can open the standalone `workout-session` route. This rout
 Workout history is a standalone route opened from Training and Profile. Completed workout details reuse `workout-session` in read-only mode.
 
 Health Connections are available from Profile / Connections. The Health data route now supports Apple Health connect/sync on iOS development or production builds, while Expo Go and non-iOS platforms show safe unavailable states. Health Connect and WHOOP remain represented as future provider cards. Development mock snapshots remain available in dev builds.
+
+The polished mobile hierarchy keeps Today, Food, Training, and Profile as primary tabs. Standalone detail routes such as Plan Details, Meal Details, Workout Session, Workout History, Health Data, Goal Editor, and Exercise Details now share consistent headers and section hierarchy while preserving their existing navigation behavior.
 ## Food Tracking Navigation
 
 - Today keeps food tracking read-only with a compact progress card.

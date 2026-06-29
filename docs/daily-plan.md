@@ -103,3 +103,13 @@ Behavior:
 - Plan debug may store only safe wearable metadata: source, freshness, stale flag, and local date.
 
 Wearable context must never create medical diagnosis language, extreme nutrition changes, or automatic training blocks. It is additional wellness context only.
+
+## Mobile presentation
+
+Today and Plan Details now use a shared polished hierarchy:
+
+- Today keeps the at-a-glance plan overview, usage status, nutrition, training, recovery, and refresh actions.
+- Plan Details keeps tabbed Food/Training content, recovery guidance, reminders, check-ins, and feedback.
+- Safety, recovery, wearable, and training-load context appear as calm context notes rather than technical debug output.
+
+The DailyPlan JSON contract and backend planning behavior are unchanged by this UI polish pass.

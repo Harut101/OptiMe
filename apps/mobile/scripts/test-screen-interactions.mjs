@@ -88,7 +88,7 @@ const exerciseCard = read('src/features/daily-plan/ExerciseCard.tsx');
 const exerciseDetails = read('app/exercise-details.tsx');
 const mediaCarousel = read('src/features/daily-plan/ExerciseMediaCarousel.tsx');
 const exerciseApi = read('src/api/exercises.ts');
-assertIncludes(planDetails, ['PlanTabbedContent', "t('plan.recovery')", "t('plan.reminders')"], 'Plan Details');
+assertIncludes(planDetails, ['PlanTabbedContent', "t('plan.recovery')", "t('plan.reminders')", 'ScreenHeader', 'SectionHeader', 'ContextNoteCard'], 'Plan Details');
 assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Recovery and reminders must remain shared outside plan tabs.');
 assertIncludes(planTabs, ['accessibilityRole="tab"', 'accessibilityState={{ selected }}', 'foodLabel', 'trainingLabel'], 'Plan content tabs');
 assertIncludes(planContent, [
@@ -122,7 +122,23 @@ for (const [name, source] of [
 }
 
 const health = read('app/health-data.tsx');
-assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')"], 'Connections');
+assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard'], 'Connections');
 assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown.');
+
+const today = read('app/(tabs)/today.tsx');
+assertIncludes(today, ['ScreenHeader', 'StatusPill', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
+assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
+assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
+assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', "profile.sections.connections"], 'Profile polish');
+
+for (const component of [
+  'src/components/ScreenHeader.tsx',
+  'src/components/SectionHeader.tsx',
+  'src/components/StatusPill.tsx',
+  'src/components/ContextNoteCard.tsx',
+  'src/components/MetricCard.tsx'
+]) {
+  assert(existsSync(resolve(root, component)), `${component} must exist for the UI polish layer.`);
+}
 
 console.log('Screen interaction contracts passed.');

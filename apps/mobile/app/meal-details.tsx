@@ -12,8 +12,12 @@ import {
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import {
   FOOD_STATUSES,
@@ -107,14 +111,16 @@ export default function MealDetailsScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{meal.title}</Text>
-      <Text variant="muted">{t(`food.mealTypes.${meal.mealType}`)}</Text>
+      <ScreenHeader title={meal.title} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
 
       <Card>
-        <Text variant="label" accessibilityRole="header">{t('food.mealActions')}</Text>
+        <SectionHeader title={t('food.mealActions')} />
         <View style={styles.statusWrap}>
           <Text variant="label">{t('foodTracking.mealStatus')}</Text>
-          <Text style={styles.statusChip}>{getMealStatusLabel(status, t)}</Text>
+          <StatusPill
+            label={getMealStatusLabel(status, t)}
+            tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
+          />
           {foodLog.isError || foodLog.data?.supported === false ? (
             <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
           ) : (
@@ -156,12 +162,12 @@ export default function MealDetailsScreen() {
             )
           }
         />
-        {message ? <Text style={styles.success}>{message}</Text> : null}
-        {errorMessage ? <Text style={styles.warning}>{errorMessage}</Text> : null}
+        {message ? <ContextNoteCard title={t('common.saved')} message={message} tone="success" /> : null}
+        {errorMessage ? <ContextNoteCard title={t('food.mealUnavailable')} message={errorMessage} tone="warning" /> : null}
       </Card>
 
       <Card>
-        <Text variant="label">{t('food.approximateNutrition')}</Text>
+        <SectionHeader title={t('food.approximateNutrition')} />
         <Text variant="body">
           {t('food.totalMacros', {
             kcal: String(meal.caloriesKcal),
@@ -178,7 +184,7 @@ export default function MealDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label" accessibilityRole="header">{t('food.ingredients')}</Text>
+        <SectionHeader title={t('food.ingredients')} />
         {meal.ingredients.map((ingredient) => (
           <View key={`${ingredient.name}-${ingredient.quantity}`} style={styles.ingredient}>
             <Text variant="body">
@@ -209,7 +215,7 @@ export default function MealDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label" accessibilityRole="header">{t('food.preparation')}</Text>
+        <SectionHeader title={t('food.preparation')} />
         {meal.preparationSteps.map((step, index) => (
           <Text key={`${index}-${step}`} variant="body">
             {index + 1}. {step}
@@ -218,7 +224,7 @@ export default function MealDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label" accessibilityRole="header">{t('food.substitutions')}</Text>
+        <SectionHeader title={t('food.substitutions')} />
         {meal.substitutions.length ? meal.substitutions.map((substitution) => (
           <View key={`${substitution.originalItem}-${substitution.replacementItem}`} style={styles.substitution}>
             <Text variant="body">
@@ -232,7 +238,7 @@ export default function MealDetailsScreen() {
       </Card>
 
       <Card>
-        <Text variant="label">{t('food.whyMeal')}</Text>
+        <SectionHeader title={t('food.whyMeal')} />
         {meal.explanation.reasonCodes.map((code) => (
           <Text key={code} variant="muted">{t(`food.mealReasons.${code}`)}</Text>
         ))}
@@ -248,16 +254,6 @@ const styles = StyleSheet.create({
   ingredient: { gap: 8, paddingVertical: 8 },
   substitution: { gap: 3, paddingVertical: 5 },
   statusWrap: { gap: 8 },
-  statusChip: {
-    alignSelf: 'flex-start',
-    color: colors.primaryDark,
-    backgroundColor: '#e7f3ef',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontWeight: '800'
-  },
   statusActions: { gap: 8 },
-  success: { color: colors.primaryDark, fontWeight: '700' },
   warning: { color: colors.accent, fontWeight: '700' }
 });

@@ -237,3 +237,9 @@ The mobile Health Connections screen shows foundation cards for Apple Health, He
 - Expo Continuous Native Generation: https://docs.expo.dev/workflow/continuous-native-generation/
 - Android Health Connect: https://developer.android.com/health-and-fitness/health-connect
 - Apple HealthKit: https://developer.apple.com/documentation/healthkit
+
+## Mobile polish
+
+Health Connections now presents Apple Health, Health Connect, and WHOOP as consistent provider cards with readable status pills, localized sync/connect/disconnect actions, and a compact wearable snapshot grid. Health Connect wording remains `Health Connect`; the app does not call it `Google Health`.
+
+This polish does not add real Health Connect sync, WHOOP OAuth, background sync, provider tokens, or new native permission flows.

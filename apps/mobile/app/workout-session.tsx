@@ -15,8 +15,12 @@ import {
 import { getExerciseSummaries } from '@/api/exercises';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { getExerciseMediaDisplayUrl } from '@/features/daily-plan/exercise-media-url';
 import {
@@ -129,17 +133,22 @@ export default function WorkoutSessionScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{completed ? t('workout.workoutCompleted') : t('workout.title')}</Text>
-      <Text variant="muted">{formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}</Text>
-      <Text variant="muted">{t('workout.progressSummary', {
-        completedSets: String(data.completedSetCount),
-        totalSets: String(data.plannedSetCount),
-        completedExercises: String(data.completedExerciseCount),
-        totalExercises: String(data.plannedExerciseCount)
-      })}</Text>
+      <ScreenHeader
+        title={completed ? t('workout.workoutCompleted') : t('workout.title')}
+        subtitle={formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}
+      />
 
       <Card>
-        <Text variant="label">{completed ? t('workout.workoutSummary') : t('workout.progress')}</Text>
+        <SectionHeader title={completed ? t('workout.workoutSummary') : t('workout.progress')} />
+        <StatusPill
+          label={t('workout.progressSummary', {
+            completedSets: String(data.completedSetCount),
+            totalSets: String(data.plannedSetCount),
+            completedExercises: String(data.completedExerciseCount),
+            totalExercises: String(data.plannedExerciseCount)
+          })}
+          tone={completed ? 'success' : 'neutral'}
+        />
         <Text variant="body">{formatWorkoutFocus(data.summary, t)}</Text>
         <Text variant="muted">{formatWorkoutSetCount(data.summary, t)}</Text>
         <Text variant="muted">{formatWorkoutExerciseCount(data.summary, t)}</Text>
@@ -150,16 +159,10 @@ export default function WorkoutSessionScreen() {
         ) : null}
       </Card>
 
-      <Card>
-        <Text variant="label">{t('workout.safetyNote')}</Text>
-        <Text variant="body">{t('workout.safetyMessage')}</Text>
-      </Card>
+      <ContextNoteCard title={t('workout.safetyNote')} message={t('workout.safetyMessage')} tone="warning" />
 
       {completed ? (
-        <Card>
-          <Text variant="label">{t('workout.readOnly')}</Text>
-          <Text variant="muted">{t('workout.thisWorkoutCompleted')}</Text>
-        </Card>
+        <ContextNoteCard title={t('workout.readOnly')} message={t('workout.thisWorkoutCompleted')} />
       ) : null}
 
       {data.exerciseProgress.map((progress) => (
@@ -243,11 +246,11 @@ function WorkoutExerciseCard({
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} resizeMode="contain" style={styles.image} accessible={false} />
           ) : (
-            <Ionicons name="barbell-outline" size={28} color={colors.primary} accessible={false} />
-          )}
+          <Ionicons name="barbell-outline" size={28} color={colors.primary} accessible={false} />
+        )}
         </View>
         <View style={styles.exerciseTitle}>
-          <Text variant="label" accessibilityRole="header">{progress.exerciseNameSnapshot}</Text>
+          <SectionHeader title={progress.exerciseNameSnapshot} />
           <Text variant="muted">{prescription}</Text>
         </View>
       </View>
