@@ -243,3 +243,15 @@ The mobile Health Connections screen shows foundation cards for Apple Health, He
 Health Connections now presents Apple Health, Health Connect, and WHOOP as consistent provider cards with readable status pills, localized sync/connect/disconnect actions, and a compact wearable snapshot grid. Health Connect wording remains `Health Connect`; the app does not call it `Google Health`.
 
 This polish does not add real Health Connect sync, WHOOP OAuth, background sync, provider tokens, or new native permission flows.
+
+## Today wearable summary widget
+
+Today can show a compact wearable summary from the existing `WearableDailySnapshot`:
+
+- steps
+- sleep duration
+- active calories
+- workout minutes
+- last synced day label
+
+The widget intentionally does not show HRV, resting heart rate, respiratory rate, raw provider payloads, or medical interpretations. If no source is connected, it shows a calm empty state with a Health Data entry point. This does not implement real Health Connect sync, WHOOP OAuth, background sync, or new native permissions.

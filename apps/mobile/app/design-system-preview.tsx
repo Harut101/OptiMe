@@ -18,11 +18,41 @@ import {
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { MetricCard } from '@/components/MetricCard';
 import { StatusPill } from '@/components/StatusPill';
+import { CircularProgressRing } from '@/features/today-dashboard/CircularProgressRing';
+import {
+  DashboardProgressCard,
+  dashboardRingGradients
+} from '@/features/today-dashboard/DashboardProgressCard';
+import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
+import type { WearableSnapshotResponse } from '@/types/api';
 
 export default function DesignSystemPreviewScreen() {
   const { t } = useTranslation();
   const lightColorEntries = Object.entries(uiColors);
   const darkColorEntries = Object.entries(uiDarkColors);
+  const previewWearableSnapshot: WearableSnapshotResponse = {
+    hasRecentData: true,
+    messageCode: 'WEARABLE_DATA_CONNECTED',
+    snapshot: {
+      id: 'preview',
+      userId: 'preview',
+      localDate: '2026-07-02',
+      timezone: 'Asia/Yerevan',
+      source: 'APPLE_HEALTH',
+      steps: 8420,
+      activeCaloriesKcal: 410,
+      workoutMinutes: 38,
+      sleepMinutes: 438,
+      sleepQualityScore: 82,
+      recoveryScore: null,
+      strainScore: null,
+      restingHeartRateBpm: null,
+      hrvMs: null,
+      respiratoryRate: null,
+      capturedAt: new Date().toISOString(),
+      isStale: false
+    }
+  };
   const semanticEntries = [
     ['nutrition', uiColors.nutrition, uiColors.nutritionMuted],
     ['training', uiColors.training, uiColors.trainingMuted],
@@ -106,6 +136,70 @@ export default function DesignSystemPreviewScreen() {
           <MetricCard label={t('today.recovery')} value="78" tone="recovery" />
           <MetricCard label={t('health.title')} value="On" tone="health" />
         </View>
+        <View style={styles.ringPreviewRow}>
+          <CircularProgressRing
+            value={68}
+            label="68%"
+            gradientColors={dashboardRingGradients.nutrition}
+            trackColor="#D9FFF4"
+            accessibilityLabel={t('todayDashboard.nutritionProgress')}
+          />
+          <CircularProgressRing
+            value={42}
+            label="42%"
+            gradientColors={dashboardRingGradients.training}
+            trackColor="#E4ECFF"
+            accessibilityLabel={t('todayDashboard.trainingProgress')}
+          />
+          <CircularProgressRing
+            value={null}
+            label={t('todayDashboard.rest')}
+            gradientColors={dashboardRingGradients.rest}
+            trackColor="#E4ECFF"
+            emptyArcValue={18}
+            accessibilityLabel={t('todayDashboard.restDay')}
+          />
+        </View>
+        <View style={styles.ringPreviewRow}>
+          <CircularProgressRing
+            value={0}
+            label="0%"
+            gradientColors={dashboardRingGradients.nutrition}
+            trackColor="#D9FFF4"
+            accessibilityLabel="0% state"
+          />
+          <CircularProgressRing
+            value={100}
+            label="100%"
+            gradientColors={dashboardRingGradients.training}
+            trackColor="#E4ECFF"
+            accessibilityLabel="100% state"
+          />
+        </View>
+        <View style={styles.dashboardPreviewGrid}>
+          <DashboardProgressCard
+            title={t('todayDashboard.nutritionProgress')}
+            value={68}
+            subtitle={t('todayDashboard.mealsTracked', { marked: '2', total: '3' })}
+            hint={t('todayDashboard.caloriesTarget', { current: '1,240', target: '1,850' })}
+            tone="nutrition"
+            accessibilityLabel={t('todayDashboard.nutritionProgress')}
+          />
+          <DashboardProgressCard
+            title={t('todayDashboard.trainingProgress')}
+            value={42}
+            subtitle={t('todayDashboard.exercisesDone', { completed: '2', total: '5' })}
+            hint={t('todayDashboard.controlledIntensity')}
+            tone="training"
+            accessibilityLabel={t('todayDashboard.trainingProgress')}
+          />
+        </View>
+        <WearableSummaryCard
+          wearable={previewWearableSnapshot}
+          connections={[]}
+          locale="en-US"
+          onOpenHealth={() => undefined}
+        />
         <ContextNoteCard
           title={t('contextNotes.recoveryTitle')}
           message={t('contextNotes.gentlerRecovery')}
@@ -170,6 +264,17 @@ const styles = StyleSheet.create({
     borderRadius: lightTheme.radius.pill
   },
   metricPreviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: lightTheme.spacing.sm
+  },
+  ringPreviewRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: lightTheme.spacing.md,
+    justifyContent: 'center'
+  },
+  dashboardPreviewGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: lightTheme.spacing.sm

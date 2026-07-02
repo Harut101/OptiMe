@@ -55,3 +55,21 @@ Semantic usage:
 - Danger is reserved for true errors.
 
 Expo Go QA then tuned color intensity upward: accents are more confident, selected states are easier to see, and metric/status highlights are clearer while the card system remains calm and low-noise.
+
+## Today Dashboard Progress
+
+Today now starts with an at-a-glance dashboard before the existing plan cards:
+
+- Nutrition progress card: a circular progress ring based on tracked planned meals and the current structured food log.
+- Training progress card: a circular progress ring based on the current workout session progress when available.
+- Wearable summary card: compact steps, sleep, active calories, and workout minutes from the existing wearable snapshot.
+
+This is a mobile presentation change only. It does not change nutrition formulas, workout generation, exercise selection, Health Connect sync, WHOOP, Apple Health native behavior, or backend planning logic.
+
+## Electric Ring Tuning
+
+The Today progress rings were tuned after Expo Go feedback that the first pass felt too pastel. The updated rings use thicker rounded arcs, segmented color interpolation, subtle mint/blue tracks, and a small end-cap dot for partial progress.
+
+- Nutrition moves from aqua/mint into electric teal and lime.
+- Training moves from electric blue/violet into magenta and Apple Health pink.
+- Rest day keeps a calm blue accent and a strong center label, not a warning color.

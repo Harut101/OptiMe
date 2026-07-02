@@ -127,6 +127,13 @@ assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown
 
 const today = read('app/(tabs)/today.tsx');
 assertIncludes(today, ['ScreenHeader', 'StatusPill', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
+assertIncludes(today, [
+  'DashboardProgressCard',
+  'WearableSummaryCard',
+  'resolveNutritionProgress',
+  'resolveTrainingProgress',
+  'getHealthConnections'
+], 'Today dashboard');
 assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
 assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
 assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', "profile.sections.connections"], 'Profile polish');
@@ -160,11 +167,40 @@ assertIncludes(designPreview, [
   'StatusPill',
   'MetricCard',
   'ContextNoteCard',
+  'CircularProgressRing',
+  'DashboardProgressCard',
+  'WearableSummaryCard',
+  'dashboardRingGradients',
+  'emptyArcValue={18}',
   'tone="nutrition"',
   'tone="training"',
   'tone="recovery"',
   'tone="health"'
 ], 'Design System Preview visual direction');
+
+for (const component of [
+  'src/features/today-dashboard/CircularProgressRing.tsx',
+  'src/features/today-dashboard/DashboardProgressCard.tsx',
+  'src/features/today-dashboard/WearableSummaryCard.tsx',
+  'src/features/today-dashboard/today-progress.ts'
+]) {
+  assert(existsSync(resolve(root, component)), `${component} must exist for the Today dashboard layer.`);
+}
+
+const circularProgressRing = read('src/features/today-dashboard/CircularProgressRing.tsx');
+assertIncludes(circularProgressRing, [
+  'strokeLinecap="round"',
+  'interpolateGradientColor',
+  'showEndCapDot',
+  'accessibilityRole="progressbar"'
+], 'Circular progress ring');
+
+const dashboardProgressCard = read('src/features/today-dashboard/DashboardProgressCard.tsx');
+assertIncludes(dashboardProgressCard, [
+  '#7EF7D4', '#2FE6C3', '#00D1A5', '#B9FF6A',
+  '#6C7CFF', '#8B5CF6', '#D000D9', '#FF2D55',
+  '#E4ECFF', 'ringTone = isRestLikeState ?'
+], 'Electric dashboard progress rings');
 
 const metricCard = read('src/components/MetricCard.tsx');
 assertIncludes(metricCard, ['MetricCardTone', 'nutritionMuted', 'trainingMuted', 'recoveryMuted', 'healthMuted'], 'MetricCard visual tuning');

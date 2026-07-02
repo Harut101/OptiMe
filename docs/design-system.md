@@ -55,3 +55,25 @@ The Design System Preview should be used on device to compare:
 - `StatusPill` semantic variants
 - `MetricCard` semantic variants
 - `ContextNoteCard` semantic accents
+
+## Today Dashboard Components
+
+The preview also includes Today dashboard primitives:
+
+- `CircularProgressRing`
+- `DashboardProgressCard`
+- `WearableSummaryCard`
+
+These components are used for presentation only. They consume existing food log, workout session, and wearable snapshot data without creating new planning formulas or backend state.
+
+The current ring preview includes:
+
+- nutrition electric ring;
+- training electric ring;
+- rest-day ring;
+- 0% state;
+- 100% state;
+- dashboard progress card examples;
+- wearable summary card example.
+
+The ring implementation uses segmented SVG strokes to make the gradient visibly stronger in Expo Go while preserving accessibility labels and deterministic progress values.

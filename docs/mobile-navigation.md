@@ -31,3 +31,11 @@ Active tabs use the stronger health accent for clarity on device. This is a visu
 - Today keeps food tracking read-only with a compact progress card.
 - Food tab is the primary place for quick meal completion.
 - Meal Details supports meal-specific completion changes, regeneration, ingredient exclusion, and preparation details.
+
+## Today Dashboard
+
+Today remains the primary daily surface. Its top section now includes nutrition progress, training progress, and wearable summary cards before the existing plan overview and actions.
+
+The dashboard does not add a new route. Health details still open through the existing Health Data route, and detailed food/training interactions remain in Food, Meal Details, Plan Details, and Workout Session.
+
+The dashboard ring tuning is visual only. Navigation, Today data loading, pull-to-refresh, plan generation, and detail routes are unchanged.

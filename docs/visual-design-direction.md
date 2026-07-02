@@ -120,3 +120,37 @@ The shared card primitives are:
 - Warning and danger colors are reserved for actual caution/error states.
 
 Apple Health physical QA remains manual and paused until the user tests with a MacBook + iPhone development build.
+
+## Today Dashboard Visuals
+
+The Today dashboard uses circular progress rings inside calm cards. Rings are semantic, not gamified:
+
+- nutrition uses the nutrition palette;
+- training uses the training palette;
+- wearable metrics use compact `MetricCard` tiles.
+
+The dashboard should stay lightweight and supportive. It must not introduce streak pressure, guilt copy, aggressive calorie language, or alarming wearable interpretations.
+
+## Electric Progress Ring Tuning
+
+Expo Go QA showed the first Today dashboard rings were functional but too pale. The tuned direction keeps the calm card system while making the active arc the visual highlight.
+
+Nutrition ring colors:
+
+```txt
+#7EF7D4 -> #2FE6C3 -> #00D1A5 -> #B9FF6A
+```
+
+Training ring colors:
+
+```txt
+#6C7CFF -> #8B5CF6 -> #D000D9 -> #FF2D55
+```
+
+Rest-day rings use a quieter blue track/accent so rest looks intentional rather than failed:
+
+```txt
+track #E4ECFF, accent #B8CCFF -> #8FAEFF
+```
+
+The active arc uses rounded segmented strokes with a subtle end-cap dot for partial progress. The app should not use heavy glow, noisy shadows, or full-card neon backgrounds.

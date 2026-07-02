@@ -18,3 +18,13 @@ OptiMe must not cancel training solely from wearable data, diagnose a condition,
 The Training tab now uses shared headers, section headers, and status pills for the disabled-state card, weekly schedule overview, day cards, and saved-preference summary. Workout Session and Workout History share the same visual hierarchy for progress, safety notes, completed/read-only states, and partial-completion badges.
 
 The polish pass does not change exercise selection, weekly schedule resolution, workout execution, or workout history behavior.
+
+## Today training progress
+
+The Today dashboard shows training progress from the existing plan-linked `WorkoutSession`:
+
+- completed sessions show full progress;
+- in-progress sessions use completed sets when available, otherwise completed exercises;
+- rest days and nutrition-only mode show a non-pressure state instead of a percentage.
+
+This does not change workout generation, exercise selection, safety checks, or workout history.

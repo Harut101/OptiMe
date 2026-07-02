@@ -13,6 +13,36 @@
   today: {
     title: 'Today', tagline: 'Steady, practical, ready.', intro: 'A simple plan for food, training, hydration, and recovery today.', loading: 'Loading Today', loadingMessage: 'Checking whether a plan already exists.', unavailable: 'Today is unavailable', noPlan: 'No plan yet', noPlanMessage: 'Generate a simple plan for food, training, hydration, and recovery today.', generate: 'Generate today plan', generating: 'Generating...', refresh: 'Refresh plan', refreshing: 'Refreshing...', generated: 'Plan generated.', refreshed: 'Plan refreshed', updateFailed: 'Plan update failed', details: 'View plan details', updatedAt: 'Updated {{time}}', safetyNote: 'Safety note', nutrition: 'Nutrition', training: 'Training', trainingOffTitle: 'Training is off', trainingOffMessage: 'You can enable it whenever it fits your goals.', enableTraining: 'Enable training', recovery: 'Recovery', protein: 'Protein', carbs: 'Carbs', fat: 'Fat', limitReached: 'Limit reached', upgradeSoon: 'Upgrade options coming soon.', planUsage: 'Plan usage', usageUnavailable: 'Plan details unavailable', generationsLeft: 'Generations left today: {{count}}', refreshesLeft: 'Refreshes left today: {{count}}', setupNeeded: 'A little setup is needed', setupNeededMessage: 'Please finish the required basics so we can keep your first plan safe.', continueSetup: 'Continue setup', improvePlans: 'Improve future plans', yourAnswer: 'Your answer', listPlaceholder: 'Separate items with commas', chooseOne: 'Choose one', chooseAny: 'Choose any that fit', answer: 'Answer', skip: 'Skip for now', quickDetail: 'One quick detail', numberNeeded: 'Please enter a number, or skip this for now.', optionNeeded: 'Choose an option, or skip this for now.', optionsNeeded: 'Choose at least one option, or skip this for now.', answerNeeded: 'Add an answer, or skip this for now.', answerSaveFailed: 'Could not save this answer', promptSkipFailed: 'Could not skip this prompt', keepUsingToday: 'You can keep using Today.', limitMessage: "You've reached today's limit for this plan. Your {{plan}} plan includes {{limit}} {{action}} per day. {{reset}}", tryAfter: 'Try again after {{time}}.', tryAfterReset: 'Try again after reset.', usageGeneration: 'plan generation', usageRefresh: 'refresh', usageAiGeneration: 'AI plan generation'
   },
+  todayDashboard: {
+    nutritionProgress: 'Nutrition progress',
+    trainingProgress: 'Training progress',
+    mealsTracked: '{{marked}} of {{total}} meals tracked',
+    caloriesTarget: '{{current}} / {{target}} kcal',
+    noMealsPlanned: 'No meals planned yet',
+    foodLogHelp: 'Track meals from Food or Meal Details.',
+    exercisesDone: '{{completed}} of {{total}} exercises done',
+    restDay: 'Rest day',
+    trainingDisabled: 'Training optional today',
+    controlledIntensity: 'Controlled intensity today',
+    rest: 'Rest',
+    off: 'Off',
+    wearableSummary: 'Wearable summary',
+    appleHealthIncluded: 'Apple Health included',
+    healthDataIncluded: 'Health data included',
+    sourceIncluded: '{{source}} included',
+    noWearableData: 'No wearable data yet',
+    connectAppleHealth: 'Connect Apple Health to personalize your daily plan.',
+    steps: 'Steps',
+    sleep: 'Sleep',
+    activeCalories: 'Active calories',
+    workoutMinutes: 'Workout minutes',
+    lastSynced: 'Last synced {{value}}',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    kcalValue: '{{value}} kcal',
+    minuteValue: '{{value}} min',
+    sleepValue: '{{hours}}h {{minutes}}m'
+  },
   plan: {
     title: 'Plan details', loading: 'Loading plan', loadingMessage: 'Opening your plan details.', noPlan: 'No plan yet', noPlanMessage: 'Generate a plan from Today to see details here.', meals: 'Meals', mealsHelp: 'How did each meal go? No worries if it changed — this helps us adapt.', trainingCheckIn: 'Training check-in', trainingHelp: 'Tell us what happened. Resting instead is useful signal, not a failure.', pain: 'I felt pain or discomfort', painHelp: 'We will keep future training guidance more conservative when discomfort is reported.', painThanks: "Thanks for letting us know. We'll use this to keep future training guidance more conservative.", checkInThanks: "Thanks, we'll use this to adapt future plans.", checkInFailed: 'Check-in not saved', planStillHere: 'No worries, your plan is still here.', exercises: 'Suggested exercises', targets: 'Targets: {{value}}', equipment: 'Equipment: {{value}}', sets: 'Sets: {{value}}', setCount_one: '{{count}} set', setCount_other: '{{count}} sets', setsLabel: 'sets', repsLabel: 'Reps', durationLabel: 'Duration', restLabel: 'Rest', reps: 'Reps: {{value}}', rest: 'Rest: {{value}}', duration: 'Duration: {{value}}', hydration: 'Hydration', recovery: 'Recovery', reminders: 'Reminders', helpfulQuestion: 'Was this plan helpful?', helpful: 'Helpful', notHelpful: 'Not helpful', sendFeedback: 'Send feedback', feedbackThanks: 'Thanks for the feedback.', feedbackFailed: 'Feedback not saved', chooseRating: 'Choose Helpful or Not helpful first.', statusCompleted: 'Completed', statusPartial: 'Partial', statusSkipped: 'Skipped', statusSwapped: 'Swapped', statusRested: 'Rested', tagTooMuchFood: 'Too much food', tagTooLittleFood: 'Too little food', tagTrainingTooHard: 'Training too hard', tagTrainingTooEasy: 'Training too easy', tagFeltGood: 'Felt good', tagLowEnergy: 'Low energy', foodTab: 'Food', trainingTab: 'Training', trainingRecommendation: 'Today’s training', openExerciseDetails: 'Open exercise details', mediaUnavailableCards: 'Images are unavailable. Your exercise plan is still here.', limitedDetails: 'Some older exercises have limited details.', noExercises: 'No exercises are planned for today.', exerciseDetailsTitle: 'Exercise details', exerciseUnavailable: 'Exercise details unavailable', exerciseUnavailableMessage: 'This exercise is not available in the current plan.', imageLoading: 'Loading exercise image', imageUnavailable: 'Exercise image unavailable', mediaPage: 'Image {{current}} of {{total}}', planPrescription: 'Your plan', prescriptionUnavailable: 'Use the guidance in your training recommendation.', targetMuscles: 'Target muscles', secondaryMuscles: 'Secondary muscles', equipmentLabel: 'Equipment', noEquipment: 'No equipment', aboutExercise: 'About this exercise', instructions: 'Instructions', coachingCues: 'Coaching cues', safetyNotes: 'Safety notes'
   },

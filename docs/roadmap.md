@@ -56,3 +56,11 @@ OptiMe now has typed light/dark visual tokens, semantic health colors, a softer 
 ## Color Intensity Tuning
 
 Expo Go QA found the visual direction correct but slightly pale. The palette now uses stronger semantic accents, clearer selected states, bordered status pills, and semantic metric highlights. Product behavior, navigation, backend models, formulas, and exercise logic remain unchanged.
+
+## Today Dashboard Progress
+
+Today now provides a clearer daily dashboard with nutrition progress, training progress, and a compact wearable summary. It reuses existing FoodLog, WorkoutSession, HealthConnection, and WearableDailySnapshot data. It does not add new backend models, new formulas, real Health Connect sync, WHOOP, payments, or new AI behavior.
+
+## Today Dashboard Electric Ring Tuning
+
+The Today dashboard rings now use brighter electric segmented gradients for better physical-device readability in Expo Go. This is a visual tuning batch only; Today layout, progress calculations, wearable behavior, backend models, nutrition formulas, exercise selection, and native health behavior remain unchanged.

@@ -113,3 +113,13 @@ Today and Plan Details now use a shared polished hierarchy:
 - Safety, recovery, wearable, and training-load context appear as calm context notes rather than technical debug output.
 
 The DailyPlan JSON contract and backend planning behavior are unchanged by this UI polish pass.
+
+## Today Dashboard
+
+Today now surfaces progress before the saved plan overview:
+
+- Nutrition progress is derived from the saved structured food plan and `FoodDayLog` meal statuses.
+- Training progress is derived from the saved `WorkoutSession` for the current Daily Plan when one exists.
+- Wearable summary is derived from the existing `WearableDailySnapshot`.
+
+The dashboard does not mutate `DailyPlan.planJson`, regenerate plans, change nutrition targets, change exercise selection, or expose debug/protocol internals.

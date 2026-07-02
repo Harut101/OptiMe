@@ -10,7 +10,7 @@ import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
-import { getTodayWearableSnapshot } from '@/api/health';
+import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
@@ -31,6 +31,12 @@ import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
+import { DashboardProgressCard } from '@/features/today-dashboard/DashboardProgressCard';
+import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
+import {
+  resolveNutritionProgress,
+  resolveTrainingProgress
+} from '@/features/today-dashboard/today-progress';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import {
   formatFoodProgress,
@@ -78,6 +84,10 @@ export default function TodayScreen() {
   const wearableSnapshot = useQuery({
     queryKey: ['wearable-snapshot', 'today'],
     queryFn: getTodayWearableSnapshot
+  });
+  const healthConnections = useQuery({
+    queryKey: ['health-connections'],
+    queryFn: getHealthConnections
   });
   const usage = useQuery({
     queryKey: ['usage-summary'],
@@ -156,6 +166,7 @@ export default function TodayScreen() {
       usage.refetch(),
       nutritionTarget.refetch(),
       wearableSnapshot.refetch(),
+      healthConnections.refetch(),
       progressivePrompt.refetch()
     ];
 
@@ -173,6 +184,7 @@ export default function TodayScreen() {
     usage.isRefetching ||
     nutritionTarget.isRefetching ||
     wearableSnapshot.isRefetching ||
+    healthConnections.isRefetching ||
     progressivePrompt.isRefetching ||
     workoutSession.isRefetching ||
     foodLog.isRefetching;
@@ -206,10 +218,57 @@ export default function TodayScreen() {
   const completedWorkout = workoutSession.data?.status === 'COMPLETED'
     ? workoutSession.data.summary
     : null;
+  const nutritionProgress = resolveNutritionProgress({
+    plan,
+    foodLog: foodLog.data,
+    locale: preferredLocale,
+    t
+  });
+  const trainingProgress = resolveTrainingProgress({
+    plan,
+    goal: goal.data,
+    workoutSession: workoutSession.data,
+    t
+  });
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
       <ScreenHeader eyebrow={t('today.title')} title={t('today.tagline')} subtitle={t('today.intro')} />
+
+      {today.data && plan ? (
+        <>
+          <View style={styles.dashboardGrid}>
+            <View style={styles.dashboardCard}>
+              <DashboardProgressCard
+                title={t('todayDashboard.nutritionProgress')}
+                value={nutritionProgress.value}
+                centerLabel={nutritionProgress.centerLabel}
+                subtitle={nutritionProgress.subtitle}
+                hint={nutritionProgress.hint}
+                tone="nutrition"
+                accessibilityLabel={nutritionProgress.accessibilityLabel}
+              />
+            </View>
+            <View style={styles.dashboardCard}>
+              <DashboardProgressCard
+                title={t('todayDashboard.trainingProgress')}
+                value={trainingProgress.value}
+                centerLabel={trainingProgress.centerLabel}
+                subtitle={trainingProgress.subtitle}
+                hint={trainingProgress.hint}
+                tone="training"
+                accessibilityLabel={trainingProgress.accessibilityLabel}
+              />
+            </View>
+          </View>
+          <WearableSummaryCard
+            wearable={wearableSnapshot.data}
+            connections={healthConnections.data?.connections}
+            locale={preferredLocale}
+            onOpenHealth={() => router.push('/health-data')}
+          />
+        </>
+      ) : null}
 
       <UsageStatus
         isUnavailable={usage.isError}
@@ -645,6 +704,15 @@ function formatResetAt(value: string, locale: string) {
 }
 
 const styles = StyleSheet.create({
+  dashboardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
+  },
+  dashboardCard: {
+    flex: 1,
+    minWidth: 150
+  },
   successText: {
     color: colors.success,
     fontWeight: '700'
