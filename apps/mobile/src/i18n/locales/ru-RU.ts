@@ -148,6 +148,21 @@ export const ruRU = createLocaleResource({
     trainingLoadNote: 'Заметка о нагрузке',
     trainingLoadMessage: 'Перед стартом OptiMe задаст короткий вопрос, чтобы боль, усталость или крепатура сделали тренировку безопаснее.'
   },
+  onboarding: {
+    foundationTitle: 'Ваш профиль',
+    directionTitle: 'Ваша цель',
+    directionMessage: 'Выберите цель и режим приложения, которые подходят вам сейчас.',
+    foodTitle: 'Предпочтения питания',
+    trainingEnabledTitle: 'Тренировки включены',
+    trainingEnabledMessage: 'OptiMe может учитывать тренировки. Недельная рутина необязательна, её можно настроить позже.',
+    trainingOptionalTitle: 'Настройка тренировок необязательна',
+    trainingOptionalMessage: 'Хотите настроить недельную рутину сейчас? Можно пропустить и начать с безопасных базовых рекомендаций.',
+    setUpWeeklyRoutine: 'Настроить недельную рутину',
+    skipTrainingSetup: 'Пропустить',
+    setUpTrainingLater: 'Настроить тренировки позже',
+    configureTrainingAnytime: 'Вы сможете настроить тренировки в любое время во вкладке «Тренировки».',
+    activityLevel: 'Уровень активности'
+  },
   schedule: {
     weekly: 'Недельная рутина',
     weeklySchedule: 'Недельная рутина',

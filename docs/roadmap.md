@@ -68,3 +68,7 @@ The Today dashboard rings now use brighter electric segmented gradients for bett
 ## Training Cleanup And Pre-Workout Check
 
 Training now uses clearer mobile IA: Today's workout/rest day, training load note, Weekly Routine, Workout History, and Edit Training Setup. Preferred training days and global pain/limitations are removed from visible Training Setup. Pain or limitations are collected in a skippable pre-workout check when starting the current workout session. The check is stored on `WorkoutSession`, does not mutate DailyPlan, and does not call AI.
+
+## Onboarding Simplification
+
+Onboarding now focuses on the person, goal, app mode, nutrition basics, activity level, and safety-critical allergy/profile data. Detailed training setup, preferred training days, Weekly Routine editing, day-specific equipment/environment/duration, and pain/limitations are removed from onboarding. Training-enabled users receive an optional post-onboarding bridge to set up Weekly Routine or skip to Today; training can always be configured later from the Training tab.

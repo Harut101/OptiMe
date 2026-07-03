@@ -23,7 +23,6 @@ Stage 1 requires:
 - `goalType`
 - `targetWeightKg`, `targetTimelineDays`, and `impactMode` when `goalType=REDUCE_WEIGHT`
 - `allergyInformation`: at least one allergy or explicit confirmation of no known allergies
-- `basicTrainingIntent`: at least one training schedule item or explicit no-training-planned intent
 
 Pregnancy/postpartum context is optional. `UNKNOWN` and `PREFER_NOT_TO_SAY` do not block onboarding; the backend should use conservative safety behavior without making medical claims.
 
@@ -42,14 +41,16 @@ When actual allergies are submitted, `noKnownAllergiesConfirmed` is stored as `f
 
 ## Training Intent
 
-Full training schedule completion is no longer required for Stage 1.
+Training setup is no longer required for Stage 1.
 
-Stage 1 passes training readiness when either:
+Users choose app mode during Goal setup:
 
-- the user has at least one `TrainingScheduleItem`, or
-- `User.noTrainingPlanned=true`
+- `NUTRITION_ONLY`: onboarding routes to Today after nutrition preferences.
+- `NUTRITION_AND_TRAINING`: onboarding shows an optional bridge to set up Weekly Routine now or skip for now.
 
-`PUT /v1/training-schedule/intent` accepts:
+Skipping keeps training enabled and lets Daily Plan generation use safe default training guidance until the user configures the Training tab.
+
+The compatibility endpoint remains available but is no longer a Stage 1 gate:
 
 ```json
 {
@@ -59,7 +60,7 @@ Stage 1 passes training readiness when either:
 
 Creating a real training schedule item clears `noTrainingPlanned` automatically.
 
-If no schedule exists but the user explicitly has no training planned, daily plan generation should use conservative movement/recovery guidance.
+If no schedule exists, daily plan generation should use conservative movement/recovery guidance. If the user later marks no training planned or disables training mode, future plans should respect that.
 
 ## Stage 2 Deferred Fields
 
@@ -137,7 +138,7 @@ The first-run flow is:
 - Profile basics: first name, gender, date of birth, height, weight, activity level, and optional pregnancy/postpartum context only when female is selected
 - Goal setup: goal type, plus weight-loss target fields only when the user selects safe weight reduction
 - Critical allergy step: enter allergies or choose "No known food allergies"
-- Basic training intent: add a schedule item or choose "No training planned yet"
+- Optional training bridge only when app mode is `NUTRITION_AND_TRAINING`: set up Weekly Routine now or skip
 - Today: generate the first plan once `canGenerateFirstPlan=true`
 
 Mobile routing should prefer `canGenerateFirstPlan` when available. If the backend returns `missingStage1Fields`, mobile should route to the most relevant setup step:
@@ -145,7 +146,6 @@ Mobile routing should prefer `canGenerateFirstPlan` when available. If the backe
 - profile fields -> Profile
 - goal fields -> Goal
 - `allergyInformation` -> Nutrition/allergy step
-- `basicTrainingIntent` -> Training schedule
 
 Older onboarding response fields remain available for compatibility.
 
@@ -171,23 +171,18 @@ Optional nutrition fields should be visually grouped under "Optional - improve p
 - preferred foods
 - notes
 
-## Mobile No-Training Intent
+## Mobile Optional Training Bridge
 
-The mobile training step should let the user either add a planned session or choose "No training planned yet".
+The old mobile training step is removed from onboarding. Training-enabled users see one optional bridge after nutrition preferences:
 
 Required copy:
 
-- "No training planned yet"
-- "We'll keep today's training guidance light and safe."
+- "Training is enabled."
+- "Set up weekly routine"
+- "Skip for now"
+- "You can configure training anytime from the Training tab."
 
-Choosing no training planned calls:
-
-```json
-PUT /v1/training-schedule/intent
-{
-  "noTrainingPlanned": true
-}
-```
+Choosing setup routes to the Training tab. Choosing skip routes to Today. Neither action regenerates an existing Daily Plan.
 
 Stage 2 progressive prompts are not part of the Stage 1 gate.
 

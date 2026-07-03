@@ -9,6 +9,8 @@ Primary tabs remain:
 - Training
 - Profile
 
+Onboarding contains only Profile, Goal, Nutrition Preferences, and an optional Training next-step bridge. It no longer contains Training Setup or Weekly Routine editor routes. Users who choose `NUTRITION_AND_TRAINING` can go to the Training tab from the optional bridge or skip directly to Today.
+
 Training remains visible even when app mode is `NUTRITION_ONLY`. In that state, the Training tab shows a disabled state and an Enable Training action instead of hiding the module.
 
 Goal and mode editing uses the existing standalone `goal-editor` route. Mode and primary goal changes show a confirmation before saving and do not regenerate Daily Plans.

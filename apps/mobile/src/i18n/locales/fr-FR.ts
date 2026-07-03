@@ -148,6 +148,21 @@ export const frFR = createLocaleResource({
     trainingLoadNote: 'Note de charge',
     trainingLoadMessage: 'Avant de commencer, OptiMe posera une question rapide pour que douleur, fatigue ou courbatures rendent cette séance plus sûre.'
   },
+  onboarding: {
+    foundationTitle: 'Votre profil',
+    directionTitle: 'Votre objectif',
+    directionMessage: 'Choisissez l’objectif et le mode qui correspondent le mieux à votre situation.',
+    foodTitle: 'Préférences nutritionnelles',
+    trainingEnabledTitle: "L'entraînement est activé",
+    trainingEnabledMessage: "OptiMe peut inclure des conseils d'entraînement. La routine hebdomadaire est facultative et peut être configurée plus tard.",
+    trainingOptionalTitle: "La configuration d'entraînement est facultative",
+    trainingOptionalMessage: 'Voulez-vous configurer votre routine hebdomadaire maintenant ? Vous pouvez aussi passer et commencer avec des conseils sûrs par défaut.',
+    setUpWeeklyRoutine: 'Configurer la routine hebdomadaire',
+    skipTrainingSetup: 'Passer pour le moment',
+    setUpTrainingLater: "Configurer l'entraînement plus tard",
+    configureTrainingAnytime: "Vous pourrez configurer l'entraînement à tout moment depuis l'onglet Entraînement.",
+    activityLevel: "Niveau d'activité"
+  },
   schedule: {
     weekly: 'Routine hebdomadaire',
     weeklySchedule: 'Routine hebdomadaire',

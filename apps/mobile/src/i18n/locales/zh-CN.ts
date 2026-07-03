@@ -148,6 +148,21 @@ export const zhCN = createLocaleResource({
     trainingLoadNote: '训练负荷提示',
     trainingLoadMessage: '开始训练前，OptiMe 会快速确认状态，让疼痛、酸痛或疲劳使本次训练更安全。'
   },
+  onboarding: {
+    foundationTitle: '你的资料',
+    directionTitle: '你的目标',
+    directionMessage: '选择最适合当前阶段的目标和应用模式。',
+    foodTitle: '营养偏好',
+    trainingEnabledTitle: '训练已开启',
+    trainingEnabledMessage: 'OptiMe 可以纳入训练建议。每周训练例程是可选的，可稍后设置。',
+    trainingOptionalTitle: '训练设置可选',
+    trainingOptionalMessage: '现在要设置每周训练例程吗？也可以暂时跳过，先使用安全的默认训练建议。',
+    setUpWeeklyRoutine: '设置每周训练例程',
+    skipTrainingSetup: '暂时跳过',
+    setUpTrainingLater: '稍后设置训练',
+    configureTrainingAnytime: '你可以随时在“训练”标签中配置训练。',
+    activityLevel: '活动水平'
+  },
   schedule: {
     weekly: '每周训练例程',
     weeklySchedule: '每周训练例程',

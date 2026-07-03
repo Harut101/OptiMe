@@ -4,6 +4,8 @@ The Weekly Training Routine is the foundation for day-specific training context.
 
 ## Scope
 
+- The routine is configured after onboarding from the Training tab.
+- Onboarding can offer a shortcut to this setup when training mode is enabled, but the routine is never required for first-plan generation.
 - A routine contains seven days, Monday through Sunday.
 - Each day can be a training day or a rest day.
 - Training days can inherit general training setup or customize target muscles, environment, available equipment, duration, and protocol preference.

@@ -53,6 +53,8 @@ Workout execution uses the `workout` namespace in all supported mobile locales. 
 Workout history and summary strings also live in `workout`. History list labels, empty state, completed/partial labels, View summary, read-only state, and accessibility labels are localized across `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
 
 The pre-workout check also lives in `workout` and must be localized in all four supported locales. Weekly Routine copy lives under `schedule`, while Training Setup copy lives under `training`. Do not concatenate old "Weekly Schedule" wording manually.
+
+Simplified onboarding copy lives under `onboarding` in all four supported locales. The optional training bridge uses complete localized strings for training enabled, training optional, Set up weekly routine, Skip for now, and configure training anytime. Do not concatenate these labels manually.
 ## Food Tracking Localization
 
 Food tracking strings live under `foodTracking` in all supported mobile locales:

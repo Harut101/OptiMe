@@ -148,13 +148,6 @@ export class OnboardingService {
       missingStage1Fields.push('allergyInformation');
     }
 
-    const scheduleCount = input.schedules?.length ?? 0;
-    const hasWeeklyTrainingIntent = Boolean(input.weeklyTrainingSchedule?.isActive);
-
-    if (scheduleCount === 0 && !hasWeeklyTrainingIntent && !input.noTrainingPlanned) {
-      missingStage1Fields.push('basicTrainingIntent');
-    }
-
     return {
       stage1Completed: missingStage1Fields.length === 0,
       canGenerateFirstPlan: missingStage1Fields.length === 0,

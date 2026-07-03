@@ -1446,6 +1446,64 @@ describe('Sprint 1 backend vertical slice', () => {
     );
   });
 
+  it('allows nutrition-only onboarding to complete without training setup', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStage1BasicsWithoutGoal(ctx.app, user.accessToken, 'NutritionOnly');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'HEALTHY_LIFESTYLE', appMode: 'NUTRITION_ONLY' })
+      .expect(200);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body).toMatchObject({
+      trainingScheduleCompleted: false,
+      stage1Completed: true,
+      canGenerateFirstPlan: true,
+      missingStage1Fields: []
+    });
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+  });
+
+  it('allows nutrition and training onboarding to complete without forced weekly routine', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStage1BasicsWithoutGoal(ctx.app, user.accessToken, 'TrainingLater');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/goals')
+      .set(authHeader(user.accessToken))
+      .send({ goalType: 'IMPROVE_FITNESS', appMode: 'NUTRITION_AND_TRAINING' })
+      .expect(200);
+
+    const status = await request(ctx.app.getHttpServer())
+      .get('/v1/onboarding/status')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(status.body).toMatchObject({
+      trainingScheduleCompleted: false,
+      stage1Completed: true,
+      canGenerateFirstPlan: true,
+      missingStage1Fields: []
+    });
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+  });
+
   it('reads profile, goal, and nutrition preferences through user-owned domain endpoints', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken);
@@ -1551,12 +1609,6 @@ describe('Sprint 1 backend vertical slice', () => {
       .send({ noKnownAllergiesConfirmed: true })
       .expect(200);
 
-    await request(ctx.app.getHttpServer())
-      .put('/v1/training-schedule/intent')
-      .set(authHeader(user.accessToken))
-      .send({ noTrainingPlanned: true })
-      .expect(200);
-
     const status = await request(ctx.app.getHttpServer())
       .get('/v1/onboarding/status')
       .set(authHeader(user.accessToken))
@@ -1608,8 +1660,9 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(status.body.stage1Completed).toBe(false);
     expect(status.body.canGenerateFirstPlan).toBe(false);
     expect(status.body.missingStage1Fields).toEqual(
-      expect.arrayContaining(['gender', 'goalType', 'allergyInformation', 'basicTrainingIntent'])
+      expect.arrayContaining(['gender', 'goalType', 'allergyInformation'])
     );
+    expect(status.body.missingStage1Fields).not.toContain('basicTrainingIntent');
   });
 
   it('blocks Stage 1 when date of birth has not been collected', async () => {
@@ -6497,11 +6550,6 @@ async function completeStage1BasicsWithoutGoal(
     })
     .expect(200);
 
-  await request(app.getHttpServer())
-    .put('/v1/training-schedule/intent')
-    .set(authHeader(token))
-    .send({ noTrainingPlanned: true })
-    .expect(200);
 }
 
 function daysFromNow(days: number) {

@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { getGoal } from '@/api/goals';
 import { saveNutritionPreferences } from '@/api/nutrition-preferences';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
@@ -23,7 +24,16 @@ export default function NutritionPreferencesOnboardingStep() {
     mutationFn: saveNutritionPreferences,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
-      router.push('/(onboarding)/training-schedule');
+      try {
+        const goal = await queryClient.ensureQueryData({ queryKey: ['goal'], queryFn: getGoal });
+        const appMode = goal?.appMode ?? goal?.impactMode;
+        const nextRoute = appMode === 'NUTRITION_AND_TRAINING'
+          ? ('/(onboarding)/training-next-step' as Href)
+          : ('/(tabs)/today' as Href);
+        router.replace(nextRoute);
+      } catch {
+        router.replace('/(tabs)/today');
+      }
     },
     onError: () => Alert.alert(t('onboarding.preferencesNotSaved'), t('errors.unableSave'))
   });

@@ -1,15 +1,15 @@
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 export default function OnboardingLayout() {
+  const { t } = useTranslation();
+
   return (
     <Stack>
-      <Stack.Screen name="profile" options={{ title: 'Profile' }} />
-      <Stack.Screen name="goal" options={{ title: 'Goal' }} />
-      <Stack.Screen name="nutrition-preferences" options={{ title: 'Nutrition' }} />
-      <Stack.Screen name="training-preferences" options={{ title: 'Training preferences' }} />
-      <Stack.Screen name="training-schedule/index" options={{ title: 'Training schedule' }} />
-      <Stack.Screen name="training-schedule/create" options={{ title: 'Add workout' }} />
-      <Stack.Screen name="training-schedule/edit" options={{ title: 'Edit workout' }} />
+      <Stack.Screen name="profile" options={{ title: t('onboarding.foundationTitle') }} />
+      <Stack.Screen name="goal" options={{ title: t('onboarding.directionTitle') }} />
+      <Stack.Screen name="nutrition-preferences" options={{ title: t('onboarding.foodTitle') }} />
+      <Stack.Screen name="training-next-step" options={{ title: t('training.title') }} />
     </Stack>
   );
 }

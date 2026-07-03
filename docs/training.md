@@ -35,6 +35,8 @@ Training Setup is general only: training focus, level, and default equipment. Pr
 
 Environment and equipment remain separate. `HOME + BARBELL` is valid, and `GYM` does not imply any equipment. Duration belongs to each routine day.
 
+Training setup is no longer part of onboarding. If a user chooses `NUTRITION_AND_TRAINING`, onboarding offers one optional bridge to the Training tab after nutrition preferences. Users can skip it, reach Today, and return to Training later without losing the enabled training mode.
+
 ## Today training progress
 
 The Today dashboard shows training progress from the existing plan-linked `WorkoutSession`:

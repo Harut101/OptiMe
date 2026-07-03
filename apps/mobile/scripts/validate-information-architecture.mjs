@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
@@ -28,11 +28,17 @@ assert(trainingDayEditor.includes("'BARBELL'"), 'Weekly Routine equipment must k
 const foodStandalone = read('app/(tabs)/food.tsx');
 const foodOnboarding = read('app/(onboarding)/nutrition-preferences.tsx');
 const trainingStandalone = read('app/(tabs)/training.tsx');
-const trainingOnboarding = read('app/(onboarding)/training-preferences.tsx');
+const onboardingLayout = read('app/(onboarding)/_layout.tsx');
+const trainingNextStep = read('app/(onboarding)/training-next-step.tsx');
 assert(foodStandalone.includes('FoodPreferencesForm'), 'Food tab must use the shared food form.');
 assert(foodOnboarding.includes('FoodPreferencesForm'), 'Onboarding must use the shared food form.');
 assert(trainingStandalone.includes('TrainingSetupForm'), 'Training tab must use the shared training form.');
-assert(trainingOnboarding.includes('TrainingSetupForm'), 'Onboarding must use the shared training form.');
+assert(!existsSync(resolve(root, 'app/(onboarding)/training-preferences.tsx')), 'Onboarding must not include detailed training setup.');
+assert(!existsSync(resolve(root, 'app/(onboarding)/training-schedule/index.tsx')), 'Weekly Routine editor must not live inside onboarding.');
+assert(!onboardingLayout.includes('training-schedule'), 'Onboarding stack must not register weekly routine routes.');
+assert(trainingNextStep.includes("t('onboarding.setUpWeeklyRoutine')"), 'Onboarding must offer optional routine setup after training mode.');
+assert(trainingNextStep.includes("router.replace('/(tabs)/training')"), 'Optional training setup must route to the Training tab.');
+assert(trainingNextStep.includes("router.replace('/(tabs)/today')"), 'Optional training setup must be skippable.');
 
 for (const [name, source] of [['Food', foodStandalone], ['Training', trainingStandalone]]) {
   assert(!source.includes('generateDailyPlan'), `${name} save must not regenerate a plan.`);

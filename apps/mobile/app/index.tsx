@@ -30,12 +30,10 @@ function firstOnboardingRoute(status: Awaited<ReturnType<typeof getOnboardingSta
   }
 
   if (missing.includes('allergyInformation')) return '/(onboarding)/nutrition-preferences';
-  if (missing.includes('basicTrainingIntent')) return '/(onboarding)/training-schedule';
 
   if (!status.profileCompleted || !status.privacyConsentCompleted) return '/(onboarding)/profile';
   if (!status.goalCompleted) return '/(onboarding)/goal';
   if (!status.nutritionPreferencesCompleted) return '/(onboarding)/nutrition-preferences';
-  if (!status.trainingScheduleCompleted) return '/(onboarding)/training-schedule';
   return '/(tabs)/today';
 }
 

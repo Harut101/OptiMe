@@ -666,7 +666,7 @@ function routeForMissingStage1Fields(missingFields: string[]) {
     return '/(onboarding)/nutrition-preferences' as const;
   }
 
-  return '/(onboarding)/training-schedule' as const;
+  return '/(tabs)/today' as const;
 }
 
 function formatUsageLimitMessage(error: UsageLimitExceededError, t: TFunction, locale: string) {

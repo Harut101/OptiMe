@@ -82,10 +82,25 @@ assert(goalEditor.includes('mutation.isPending || !dirty'), 'Goals must prevent 
 
 const goalsForm = read('src/features/goals/GoalsForm.tsx');
 const onboardingGoal = read('app/(onboarding)/goal.tsx');
+const onboardingNutrition = read('app/(onboarding)/nutrition-preferences.tsx');
+const onboardingLayout = read('app/(onboarding)/_layout.tsx');
+const onboardingTrainingNextStep = read('app/(onboarding)/training-next-step.tsx');
 assert(goalsForm.includes('GOAL_VALUES') && goalsForm.includes('getGoalTypeLabel'), 'Goal labels must be centralized.');
 assert(!goalsForm.includes('expo-router'), 'GoalsForm must not navigate.');
 assert(!goalsForm.includes('@/api/'), 'GoalsForm must not persist data.');
 assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.');
+assert(!existsSync(resolve(root, 'app/(onboarding)/training-preferences.tsx')), 'Onboarding must not include Training Setup.');
+assert(!existsSync(resolve(root, 'app/(onboarding)/training-schedule/index.tsx')), 'Onboarding must not include Weekly Routine.');
+assert(!onboardingLayout.includes('training-schedule'), 'Onboarding stack must not expose routine editor screens.');
+assertIncludes(onboardingNutrition, ['ensureQueryData', "'/(onboarding)/training-next-step' as Href", "'/(tabs)/today' as Href", 'router.replace(nextRoute)'], 'Nutrition onboarding routing');
+assertIncludes(onboardingTrainingNextStep, [
+  "t('onboarding.trainingEnabledTitle')",
+  "t('onboarding.trainingOptionalMessage')",
+  "t('onboarding.setUpWeeklyRoutine')",
+  "t('onboarding.skipTrainingSetup')",
+  "router.replace('/(tabs)/training')",
+  "router.replace('/(tabs)/today')"
+], 'Optional training setup');
 
 const planDetails = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
