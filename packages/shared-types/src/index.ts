@@ -948,7 +948,11 @@ export interface DailyPlanJson {
     exerciseSelection?: {
       candidateCount: number;
       requestedExerciseCount: number;
-      fallbackMode: 'NONE' | 'BODYWEIGHT_ONLY' | 'RECOVERY_FOCUSED' | 'MINIMAL_SAFE_POOL';
+      minExerciseCount?: number;
+      maxExerciseCount?: number;
+      workoutDurationMinutes?: number;
+      volumeReasonCodes?: string[];
+      fallbackMode: 'NONE' | 'BODYWEIGHT_ONLY' | 'RECOVERY_FOCUSED' | 'MINIMAL_SAFE_POOL' | 'NOT_ENOUGH_SAFE_EXERCISES';
       usedAiRetry: boolean;
       usedDeterministicFallback: boolean;
       resolvedLocale: SupportedLocale;

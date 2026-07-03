@@ -15,6 +15,7 @@ for (const route of ['today', 'food', 'training', 'profile']) {
 const foodForm = read('src/features/food-preferences/FoodPreferencesForm.tsx');
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
 const trainingDayEditor = read('app/training-schedule/day.tsx');
+const today = read('app/(tabs)/today.tsx');
 assert(!foodForm.includes('expo-router'), 'FoodPreferencesForm must not navigate.');
 assert(!trainingForm.includes('expo-router'), 'TrainingSetupForm must not navigate.');
 assert(!foodForm.includes('@/api/'), 'FoodPreferencesForm must not persist data.');
@@ -24,6 +25,9 @@ assert(!trainingForm.includes("t('training.preferredDays')"), 'TrainingSetupForm
 assert(!trainingForm.includes("t('training.limitationsLabel')"), 'TrainingSetupForm must not collect global pain or limitations.');
 assert(trainingDayEditor.includes('BodyMapSelector'), 'Weekly Routine day editor must render BodyMapSelector.');
 assert(trainingDayEditor.includes("'BARBELL'"), 'Weekly Routine equipment must keep BARBELL selectable.');
+assert(today.includes("t('today.trainingTodayPromptTitle')"), 'Today Generate Plan must ask training-enabled rest-day users before generation.');
+assert(today.includes("router.push({") && today.includes("returnToGenerate: '1'"), 'Today training prompt must route to the current weekday editor.');
+assert(trainingDayEditor.includes("params: { generateAfterRoutine: '1' }"), 'Weekly Routine day editor must return to Generate Plan flow when opened from Today.');
 
 const foodStandalone = read('app/(tabs)/food.tsx');
 const foodOnboarding = read('app/(onboarding)/nutrition-preferences.tsx');

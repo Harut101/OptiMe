@@ -18,7 +18,7 @@ import type { NutritionTarget } from '@optime/shared-types';
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { HealthPlanningContext } from '../health/health-planning.types';
 import { SelectedProtocols } from '../protocol/protocol.types';
-import type { ExerciseCandidate } from '../exercise-selection/exercise-selection.types';
+import type { ExerciseCandidate, WorkoutVolumePlan } from '../exercise-selection/exercise-selection.types';
 
 export interface GenerateDailyPlanSafetyFeedback {
   riskLevel: 'low' | 'medium' | 'high';
@@ -36,7 +36,10 @@ export interface GenerateDailyPlanExerciseSelection {
     'internalScore' | 'internalReasonCodes' | 'contraindicationTags' | 'exerciseUpdatedAt'
   >>;
   requestedExerciseCount: number;
+  minExerciseCount: number;
+  maxExerciseCount: number;
   workoutDurationMinutes: number;
+  volumePlan: WorkoutVolumePlan;
 }
 
 export interface GenerateDailyPlanPersonalizationContext {

@@ -163,6 +163,15 @@ export const frFR = createLocaleResource({
     configureTrainingAnytime: "Vous pourrez configurer l'entraînement à tout moment depuis l'onglet Entraînement.",
     activityLevel: "Niveau d'activité"
   },
+  today: {
+    trainingTodayPromptTitle: "Vous vous entraînez aujourd'hui ?",
+    trainingTodayPromptMessage: "Aujourd'hui est actuellement un jour de repos dans votre Routine hebdomadaire. Le repos est utile aussi, choisissez ce qui convient aujourd'hui.",
+    generateRestDayPlan: 'Non, créer un plan de repos',
+    setUpTodaysWorkout: "Oui, configurer la séance d'aujourd'hui",
+    trainingRoutineUpdated: 'Routine hebdomadaire mise à jour',
+    trainingRoutineUpdatedReady: 'Routine enregistrée. Création de votre plan.',
+    trainingRoutineUpdatedExistingPlan: "Votre routine est enregistrée. Vous avez déjà un plan pour aujourd'hui, donc actualisez seulement si vous voulez le remplacer."
+  },
   schedule: {
     weekly: 'Routine hebdomadaire',
     weeklySchedule: 'Routine hebdomadaire',
@@ -177,6 +186,7 @@ export const frFR = createLocaleResource({
     deactivateSchedule: 'Désactiver la routine',
     deactivatedMessage: 'Routine hebdomadaire désactivée. Les prochains plans utiliseront les réglages généraux.',
     dayEditorHelp: 'Personnalisez ce jour de routine ou héritez des réglages généraux.',
+    usualRoutineUpdateHelp: 'Cela met à jour votre routine hebdomadaire habituelle pour ce jour. Les exceptions ponctuelles viendront plus tard.',
     location: 'Environnement',
     equipmentRule: "L'environnement n'ajoute ni ne retire d'équipement. Choisissez exactement ce qui est disponible."
   }

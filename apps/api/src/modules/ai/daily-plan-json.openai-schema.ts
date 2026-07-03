@@ -185,7 +185,7 @@ export const dailyPlanJsonOpenAiSchema = {
         exercises: {
           type: 'array',
           description:
-            'Choose only from allowedExerciseCandidates. Use exact exerciseId and slug. Return the requested exercise count, or [] when requestedExerciseCount is zero.',
+            'Choose only from allowedExerciseCandidates. Use exact exerciseId and slug. Return requestedExerciseCount items within deterministic min/max duration-volume constraints, or [] when requestedExerciseCount is zero.',
           items: exerciseSchema
         }
       }

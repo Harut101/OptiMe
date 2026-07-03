@@ -159,6 +159,8 @@ function getRecoveryGuidance(
 
 function createLibraryExercises(selection: GenerateDailyPlanExerciseSelection): NonNullable<DailyPlanJson['training']['exercises']> {
   return selection.candidates.slice(0, selection.requestedExerciseCount).map((candidate) => {
+    const sets = selection.volumePlan.suggestedSetsPerExercise || 2;
+    const rest = selection.volumePlan.suggestedRestSeconds || 60;
     const common = {
       exerciseId: candidate.exerciseId,
       slug: candidate.slug,
@@ -167,10 +169,10 @@ function createLibraryExercises(selection: GenerateDailyPlanExerciseSelection): 
       equipment: candidate.equipment,
       intensityCue: 'Keep the movement controlled and leave comfortable effort in reserve.',
       safetyNotes: candidate.safetyNotes.join(' ').slice(0, 220),
-      notes: 'Use a comfortable range and adjust down when needed.'
+      notes: `Planned for a ${selection.workoutDurationMinutes}-minute session with safe pacing.`
     };
-    if (candidate.category === 'STRENGTH') return { ...common, sets: '2', reps: '8-10', rest: '60 seconds' };
-    if (candidate.category === 'CARDIO') return { ...common, duration: '10 minutes' };
+    if (candidate.category === 'STRENGTH') return { ...common, sets: String(Math.max(1, Math.min(5, sets))), reps: '8-10', rest: `${rest} seconds` };
+    if (candidate.category === 'CARDIO') return { ...common, duration: `${Math.max(5, Math.min(15, Math.floor(selection.workoutDurationMinutes / 3)))} minutes` };
     return { ...common, duration: '5 minutes' };
   });
 }

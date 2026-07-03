@@ -163,6 +163,15 @@ export const ruRU = createLocaleResource({
     configureTrainingAnytime: 'Вы сможете настроить тренировки в любое время во вкладке «Тренировки».',
     activityLevel: 'Уровень активности'
   },
+  today: {
+    trainingTodayPromptTitle: 'Вы тренируетесь сегодня?',
+    trainingTodayPromptMessage: 'Сегодня в вашей Недельной рутине стоит день отдыха. Отдых тоже полезен, выберите то, что подходит сегодня.',
+    generateRestDayPlan: 'Нет, создать план дня отдыха',
+    setUpTodaysWorkout: 'Да, настроить тренировку на сегодня',
+    trainingRoutineUpdated: 'Недельная рутина обновлена',
+    trainingRoutineUpdatedReady: 'Рутина сохранена. Создаём план.',
+    trainingRoutineUpdatedExistingPlan: 'Рутина сохранена. На сегодня уже есть план, поэтому обновляйте его только если хотите заменить.'
+  },
   schedule: {
     weekly: 'Недельная рутина',
     weeklySchedule: 'Недельная рутина',
@@ -177,6 +186,7 @@ export const ruRU = createLocaleResource({
     deactivateSchedule: 'Отключить рутину',
     deactivatedMessage: 'Недельная рутина отключена. Будущие планы будут использовать общие настройки.',
     dayEditorHelp: 'Настройте этот день рутины или используйте общие настройки.',
+    usualRoutineUpdateHelp: 'Это обновит вашу обычную недельную рутину для этого дня недели. Разовые исключения можно добавить позже.',
     location: 'Среда',
     equipmentRule: 'Среда не добавляет и не убирает оборудование. Выберите то, что действительно доступно.'
   }

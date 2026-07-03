@@ -225,8 +225,26 @@ assertIncludes(today, [
   'resolveTrainingProgress',
   'getHealthConnections'
 ], 'Today dashboard');
+assertIncludes(today, [
+  "queryKey: ['training-schedule']",
+  "t('today.trainingTodayPromptTitle')",
+  "t('today.trainingTodayPromptMessage')",
+  "t('today.generateRestDayPlan')",
+  "t('today.setUpTodaysWorkout')",
+  "router.push({",
+  "returnToGenerate: '1'",
+  "generateAfterRoutine !== '1'",
+  "t('today.trainingRoutineUpdatedExistingPlan')"
+], 'Generate Plan training-day prompt');
 assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
 assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
+const trainingDayEditor = read('app/training-schedule/day.tsx');
+assertIncludes(trainingDayEditor, [
+  'returnToGenerate',
+  'saveTrainingSchedule',
+  "t('schedule.usualRoutineUpdateHelp')",
+  "params: { generateAfterRoutine: '1' }"
+], 'Weekly Routine return-to-generate flow');
 assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', "profile.sections.connections"], 'Profile polish');
 
 for (const component of [

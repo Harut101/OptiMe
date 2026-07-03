@@ -1067,7 +1067,10 @@ export class DailyPlansService {
             ...candidate
           }) => candidate),
           requestedExerciseCount: input.exerciseSelection.requestedExerciseCount,
-          workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes
+          minExerciseCount: input.exerciseSelection.minExerciseCount,
+          maxExerciseCount: input.exerciseSelection.maxExerciseCount,
+          workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes,
+          volumePlan: input.exerciseSelection.volumePlan
         },
         exerciseFeedback: input.exerciseFeedback,
         safetyFeedback: input.safetyFeedback
@@ -1618,6 +1621,12 @@ export class DailyPlansService {
       `qualityMode=${personalizationContext.mode}`,
       `candidateCount=${selection.candidates.length}`,
       `requestedExerciseCount=${selection.requestedExerciseCount}`,
+      `minExerciseCount=${selection.minExerciseCount}`,
+      `maxExerciseCount=${selection.maxExerciseCount}`,
+      `durationMinutes=${selection.workoutDurationMinutes}`,
+      `sets=${selection.volumePlan.suggestedSetsPerExercise}`,
+      `restSeconds=${selection.volumePlan.suggestedRestSeconds}`,
+      `volumeReasons=${selection.volumePlan.volumeReasonCodes.join(',') || 'none'}`,
       `fallbackMode=${selection.fallbackMode}`,
       `resolvedLocale=${selection.candidates[0]?.resolvedLocale ?? 'en-US'}`,
       `exclusions=${JSON.stringify(selection.internalExclusionSummary)}`
@@ -1638,6 +1647,10 @@ export class DailyPlansService {
         exerciseSelection: {
           candidateCount: selection.candidates.length,
           requestedExerciseCount: selection.requestedExerciseCount,
+          minExerciseCount: selection.minExerciseCount,
+          maxExerciseCount: selection.maxExerciseCount,
+          workoutDurationMinutes: selection.workoutDurationMinutes,
+          volumeReasonCodes: selection.volumePlan.volumeReasonCodes,
           fallbackMode: selection.fallbackMode,
           usedAiRetry,
           usedDeterministicFallback,
@@ -1712,8 +1725,22 @@ export class DailyPlansService {
     return {
       candidates: [],
       requestedExerciseCount: 0,
+      minExerciseCount: 0,
+      maxExerciseCount: 0,
       candidatePoolLimit: 0,
       workoutDurationMinutes: 0,
+      volumePlan: {
+        targetExerciseCount: 0,
+        minExerciseCount: 0,
+        maxExerciseCount: 0,
+        suggestedSetsPerExercise: 0,
+        suggestedRestSeconds: 0,
+        estimatedSessionMinutes: 0,
+        warmupMinutes: 0,
+        cooldownMinutes: 0,
+        transitionSecondsPerExercise: 0,
+        volumeReasonCodes: ['REST_DAY']
+      },
       normalizedTargetMuscles: [],
       fallbackMode: 'NONE',
       internalExclusionSummary: {}

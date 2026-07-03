@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
   DayOfWeek,
   ExerciseEquipment,
@@ -11,6 +12,7 @@ import type {
   TrainingScheduleOverrideMode
 } from '@optime/shared-types';
 
+import { saveTrainingSchedule } from '@/api/training-schedule';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
@@ -20,7 +22,7 @@ import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
-import { ORDERED_DAYS } from '@/features/training-schedule/weekly-schedule';
+import { ORDERED_DAYS, createEmptyDraft, toDraft } from '@/features/training-schedule/weekly-schedule';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import {
   enumOptions,
@@ -48,11 +50,14 @@ const EQUIPMENT: ExerciseEquipment[] = [
 
 export default function TrainingScheduleDayScreen() {
   const { t } = useTranslation();
-  const { dayOfWeek } = useLocalSearchParams<{ dayOfWeek?: DayOfWeek }>();
+  const queryClient = useQueryClient();
+  const { dayOfWeek, returnToGenerate } = useLocalSearchParams<{ dayOfWeek?: DayOfWeek; returnToGenerate?: string }>();
   const draft = useTrainingScheduleDraftStore((state) => state.draft);
   const updateDay = useTrainingScheduleDraftStore((state) => state.updateDay);
+  const setDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const initialDay = draft?.days.find((item) => item.dayOfWeek === dayOfWeek);
   const [value, setValue] = useState<TrainingScheduleDayRequest | null>(initialDay ?? null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setValue(initialDay ?? null);
@@ -69,6 +74,7 @@ export default function TrainingScheduleDayScreen() {
     <Screen>
       <Text variant="heading">{getDayOfWeekLabel(t, dayOfWeek)}</Text>
       <Text variant="muted">{t('schedule.dayEditorHelp')}</Text>
+      {returnToGenerate === '1' ? <Text variant="muted">{t('schedule.usualRoutineUpdateHelp')}</Text> : null}
 
       <SelectChips
         label={t('schedule.dayType')}
@@ -152,20 +158,50 @@ export default function TrainingScheduleDayScreen() {
 
       <View style={styles.actions}>
         <Button
-          title={t('common.save')}
-          disabled={!dirty}
-          onPress={() => {
-            updateDay(value);
-            router.back();
-          }}
+          title={isSaving ? t('common.saving') : t('common.save')}
+          disabled={isSaving || (!dirty && returnToGenerate !== '1')}
+          onPress={handleSave}
         />
-        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.cancel')} variant="secondary" disabled={isSaving} onPress={() => router.back()} />
       </View>
       {value.equipmentMode === 'CUSTOM' ? (
         <Text style={styles.note}>{t('schedule.equipmentRule')}</Text>
       ) : null}
     </Screen>
   );
+
+  async function handleSave() {
+    if (!value) return;
+
+    updateDay(value);
+
+    if (returnToGenerate !== '1') {
+      router.back();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const baseDraft = draft ?? createEmptyDraft();
+      const nextDraft = {
+        ...baseDraft,
+        isActive: true,
+        days: baseDraft.days.map((day) => day.dayOfWeek === value.dayOfWeek ? value : day)
+      };
+      const saved = await saveTrainingSchedule(nextDraft);
+      setDraft(toDraft(saved));
+      queryClient.setQueryData(['training-schedule'], saved);
+      await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
+      router.replace({
+        pathname: '/(tabs)/today' as never,
+        params: { generateAfterRoutine: '1' }
+      });
+    } catch {
+      Alert.alert(t('schedule.saveFailed'), t('errors.unableSave'));
+    } finally {
+      setIsSaving(false);
+    }
+  }
 }
 
 function OverrideMode({

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
+import { getTrainingSchedule } from '@/api/training-schedule';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
   answerProgressivePrompt,
@@ -48,6 +49,8 @@ import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
+import { ORDERED_DAYS, toDraft } from '@/features/training-schedule/weekly-schedule';
+import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
 import {
   formatWorkoutFocus,
   formatWorkoutSetCount,
@@ -63,10 +66,13 @@ import type {
 
 export default function TodayScreen() {
   const { t } = useTranslation();
+  const { generateAfterRoutine } = useLocalSearchParams<{ generateAfterRoutine?: string }>();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
+  const setTrainingScheduleDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
+  const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
@@ -96,6 +102,10 @@ export default function TodayScreen() {
   const nutritionTarget = useQuery({
     queryKey: ['nutrition-target-preview'],
     queryFn: () => getNutritionTargetPreview()
+  });
+  const trainingSchedule = useQuery({
+    queryKey: ['training-schedule'],
+    queryFn: getTrainingSchedule
   });
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const progressivePrompt = useQuery({
@@ -188,6 +198,28 @@ export default function TodayScreen() {
     progressivePrompt.isRefetching ||
     workoutSession.isRefetching ||
     foodLog.isRefetching;
+
+  useEffect(() => {
+    if (generateAfterRoutine !== '1' || handledRoutineReturn || today.isLoading || generate.isPending) {
+      return;
+    }
+
+    setHandledRoutineReturn(true);
+    if (today.data) {
+      Alert.alert(
+        t('today.trainingRoutineUpdated'),
+        t('today.trainingRoutineUpdatedExistingPlan'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+        ]
+      );
+      return;
+    }
+
+    setRefreshMessage(t('today.trainingRoutineUpdatedReady'));
+    generate.mutate(false);
+  }, [generateAfterRoutine, generate, handledRoutineReturn, t, today.data, today.isLoading]);
 
   if (today.isLoading) {
     return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
@@ -307,7 +339,7 @@ export default function TodayScreen() {
             title={t('today.noPlan')}
             message={t('today.noPlanMessage')}
             actionTitle={generate.isPending ? t('today.generating') : t('today.generate')}
-            onAction={() => generate.mutate(false)}
+            onAction={() => handleGeneratePlan(false)}
           />
         </>
       ) : (
@@ -388,12 +420,66 @@ export default function TodayScreen() {
             title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
             variant="secondary"
             disabled={generate.isPending}
-            onPress={() => generate.mutate(true)}
+            onPress={() => handleGeneratePlan(true)}
           />
         </>
       )}
     </Screen>
   );
+
+  async function handleGeneratePlan(forceRegenerate: boolean) {
+    if (forceRegenerate || appMode === 'NUTRITION_ONLY') {
+      generate.mutate(forceRegenerate);
+      return;
+    }
+
+    try {
+      const schedule = trainingSchedule.data ?? await queryClient.fetchQuery({
+        queryKey: ['training-schedule'],
+        queryFn: getTrainingSchedule
+      });
+      if (!schedule) {
+        throw new Error('Training schedule unavailable');
+      }
+      const todayDayOfWeek = getTodayDayOfWeek();
+      const todayRoutineDay = schedule.days.find((day) => day.dayOfWeek === todayDayOfWeek);
+      const isTrainingDay = Boolean(schedule.isActive && todayRoutineDay?.isTrainingDay);
+
+      if (isTrainingDay) {
+        generate.mutate(false);
+        return;
+      }
+
+      Alert.alert(
+        t('today.trainingTodayPromptTitle'),
+        t('today.trainingTodayPromptMessage'),
+        [
+          {
+            text: t('today.generateRestDayPlan'),
+            onPress: () => generate.mutate(false)
+          },
+          {
+            text: t('today.setUpTodaysWorkout'),
+            onPress: () => {
+              setTrainingScheduleDraft(toDraft(schedule));
+              router.push({
+                pathname: '/training-schedule/day' as never,
+                params: { dayOfWeek: todayDayOfWeek, returnToGenerate: '1' }
+              });
+            }
+          },
+          { text: t('common.cancel'), style: 'cancel' }
+        ]
+      );
+    } catch {
+      Alert.alert(t('schedule.unavailable'), t('errors.unableLoad'));
+    }
+  }
+}
+
+function getTodayDayOfWeek() {
+  const jsDay = new Date().getDay();
+  return ORDERED_DAYS[(jsDay + 6) % 7];
 }
 
 function WearableContextNote({

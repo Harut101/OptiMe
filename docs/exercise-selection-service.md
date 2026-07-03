@@ -16,11 +16,27 @@ Level eligibility is hierarchical. Advanced eligibility is not a preference for 
 
 Named scores prioritize exact targets, secondary targets, protocol movement/category fit, equipment, level, lower complexity, recovery signals, and accessible movement. Catalog `sortOrder` then slug are stable tie-breakers. Target coverage is promoted when availability permits.
 
-Duration requests 3 exercises up to 20 minutes, 4 up to 35, 5 up to 50, and 6 after 50 minutes. Recovery signals reduce this by one. The candidate pool is larger than the workout and bounded to 6-16 entries. `NO_TRAINING_PLANNED` requests no exercises.
+## Duration-Based Workout Volume
+
+`WorkoutVolumePlanner` converts routine-day duration and safety context into deterministic workout volume before exercise candidates are selected.
+
+Base tiers:
+
+- 15-25 minutes: target 2 exercises, range 2-3.
+- 26-35 minutes: target 4 exercises, range 3-4.
+- 36-50 minutes: target 5 exercises, range 4-5.
+- 51-65 minutes: target 6 exercises, range 5-6.
+- 66-80 minutes: target 7 exercises, range 6-7.
+- 81+ minutes: target 8 exercises, range 7-8.
+
+The planner also estimates suggested sets per exercise, suggested rest seconds, and total session minutes using warm-up, work, rest, transition, and cool-down buffers. These values are planning guidance only; they do not create a live timer.
+
+Safety can reduce volume for beginner level, safe mode/minor users, pregnancy/postpartum/breastfeeding context, current pain or limitations, low sleep, high recent activity, recovery-focused protocols, or too few safe eligible candidates. Without one of those reasons, a normal 60-90 minute strength plan should not return only 2-3 exercises.
+
+The candidate pool is sized from the planned max exercise count and remains bounded. `NO_TRAINING_PLANNED` requests no exercises.
 
 ## Result and fallback
 
-The internal result includes candidates, requested count, pool limit, normalized targets, fallback mode, and aggregate exclusion counts. Scores and reasons remain internal. Fallback modes are `NONE`, `BODYWEIGHT_ONLY`, `RECOVERY_FOCUSED`, and `MINIMAL_SAFE_POOL`; safety exclusions are never relaxed and exercises are never invented.
+The internal result includes candidates, requested count, min/max count, workout volume plan, pool limit, normalized targets, fallback mode, and aggregate exclusion counts. Scores and reasons remain internal. Fallback modes are `NONE`, `BODYWEIGHT_ONLY`, `RECOVERY_FOCUSED`, `MINIMAL_SAFE_POOL`, and `NOT_ENOUGH_SAFE_EXERCISES`; safety exclusions are never relaxed and exercises are never invented.
 
 AI receives a reduced candidate projection without ranking data, contraindication tags, database timestamps, media, or Prisma rows. Backend validation restores names, classification, instructions, cues, safety notes, and immutable localized snapshots from trusted candidates.
-

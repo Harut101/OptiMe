@@ -35,7 +35,40 @@ export type ExerciseSelectionFallbackMode =
   | 'NONE'
   | 'BODYWEIGHT_ONLY'
   | 'RECOVERY_FOCUSED'
-  | 'MINIMAL_SAFE_POOL';
+  | 'MINIMAL_SAFE_POOL'
+  | 'NOT_ENOUGH_SAFE_EXERCISES';
+
+export type WorkoutVolumeReasonCode =
+  | 'DURATION_15_25'
+  | 'DURATION_25_35'
+  | 'DURATION_35_50'
+  | 'DURATION_50_65'
+  | 'DURATION_65_80'
+  | 'DURATION_80_95'
+  | 'BEGINNER_REDUCTION'
+  | 'SAFE_MODE_REDUCTION'
+  | 'MINOR_REDUCTION'
+  | 'PREGNANCY_CONTEXT_REDUCTION'
+  | 'LIMITATION_REDUCTION'
+  | 'LOW_SLEEP_REDUCTION'
+  | 'HIGH_ACTIVITY_REDUCTION'
+  | 'RECOVERY_PROTOCOL_REDUCTION'
+  | 'NO_TRAINING_PLANNED'
+  | 'REST_DAY'
+  | 'NOT_ENOUGH_SAFE_EXERCISES';
+
+export interface WorkoutVolumePlan {
+  targetExerciseCount: number;
+  minExerciseCount: number;
+  maxExerciseCount: number;
+  suggestedSetsPerExercise: number;
+  suggestedRestSeconds: number;
+  estimatedSessionMinutes: number;
+  warmupMinutes: number;
+  cooldownMinutes: number;
+  transitionSecondsPerExercise: number;
+  volumeReasonCodes: WorkoutVolumeReasonCode[];
+}
 
 export interface ExerciseSelectionContext {
   locale: SupportedLocale;
@@ -81,8 +114,11 @@ export interface ExerciseCandidate {
 export interface ExerciseSelectionResult {
   candidates: ExerciseCandidate[];
   requestedExerciseCount: number;
+  minExerciseCount: number;
+  maxExerciseCount: number;
   candidatePoolLimit: number;
   workoutDurationMinutes: number;
+  volumePlan: WorkoutVolumePlan;
   normalizedTargetMuscles: TargetMuscleGroup[];
   fallbackMode: ExerciseSelectionFallbackMode;
   internalExclusionSummary: Partial<Record<ExerciseExclusionReason, number>>;

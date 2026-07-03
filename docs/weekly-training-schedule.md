@@ -33,6 +33,14 @@ Daily plan generation resolves the active routine day before selecting exercises
 - Existing daily plans are not mutated when app mode or weekly routine changes.
 - Future daily plans receive the updated context.
 
+When a training-enabled user taps Generate Plan on a rest day, mobile asks whether they are training today. If they choose to train, the app opens the editor for the current weekday and explains that saving updates their usual Weekly Routine for that weekday. After saving, the app returns to Today and continues the generation flow. This is a repeating-routine update, not a one-off date exception.
+
+If a Daily Plan already exists for today after a routine edit, the app does not silently overwrite it. The user must explicitly refresh the plan.
+
+## Duration and Volume
+
+Routine-day duration now feeds the deterministic workout volume planner. The planner estimates exercise count, set count, rest interval, and total session timing before exercise selection and AI generation. Longer routine days can therefore produce fuller library-backed workouts while still allowing safety reductions when needed.
+
 ## Safety
 
 Safety is not paywalled and is not bypassed by schedule settings.
@@ -46,4 +54,5 @@ Safety is not paywalled and is not bypassed by schedule settings.
 
 - Rest timers.
 - AI-generated weekly routines.
+- One-off date-specific workout exceptions.
 - Exercise media expansion beyond the current library-backed plan details flow.

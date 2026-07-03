@@ -56,7 +56,7 @@ export function composeDeterministicFallbackWorkout(
 ): DailyPlanJson {
   const exercises = selection.candidates
     .slice(0, selection.requestedExerciseCount)
-    .map((candidate) => toTrustedExercise(fallbackPrescription(candidate, selection.workoutDurationMinutes), candidate));
+    .map((candidate) => toTrustedExercise(fallbackPrescription(candidate, selection), candidate));
   return { ...planJson, training: { ...planJson.training, exercises } };
 }
 
@@ -99,9 +99,18 @@ function isValidDuration(value: string, workoutDurationMinutes: number) {
     isValidRange(value, 'minutes', 1, Math.max(1, workoutDurationMinutes));
 }
 
-function fallbackPrescription(candidate: ExerciseCandidate, workoutDurationMinutes: number) {
+function fallbackPrescription(candidate: ExerciseCandidate, selection: ExerciseSelectionResult) {
+  const workoutDurationMinutes = selection.workoutDurationMinutes;
+  const sets = selection.volumePlan.suggestedSetsPerExercise || 2;
+  const restSeconds = selection.volumePlan.suggestedRestSeconds || 60;
   if (candidate.category === ExerciseCategory.STRENGTH) {
-    return { sets: '2', reps: '8-10', rest: '60 seconds', intensityCue: 'Move with steady control and keep effort comfortable.', notes: 'Use a comfortable range.' };
+    return {
+      sets: String(Math.max(1, Math.min(5, sets))),
+      reps: '8-10',
+      rest: `${restSeconds} seconds`,
+      intensityCue: 'Move with steady control and keep effort comfortable.',
+      notes: `Planned for a ${workoutDurationMinutes}-minute session with safe pacing.`
+    };
   }
   if (candidate.category === ExerciseCategory.CARDIO) {
     return { duration: `${Math.max(1, Math.min(10, workoutDurationMinutes))} minutes`, intensityCue: 'Choose a sustainable, conversational pace.', notes: 'Reduce the pace whenever needed.' };

@@ -163,6 +163,15 @@ export const zhCN = createLocaleResource({
     configureTrainingAnytime: '你可以随时在“训练”标签中配置训练。',
     activityLevel: '活动水平'
   },
+  today: {
+    trainingTodayPromptTitle: '今天训练吗？',
+    trainingTodayPromptMessage: '今天在你的每周训练例程中目前是休息日。休息也有价值，请选择今天适合你的方式。',
+    generateRestDayPlan: '不，生成休息日计划',
+    setUpTodaysWorkout: '是，设置今天的训练',
+    trainingRoutineUpdated: '每周训练例程已更新',
+    trainingRoutineUpdatedReady: '例程已保存，正在生成计划。',
+    trainingRoutineUpdatedExistingPlan: '例程已保存。今天已有计划，只有在想替换时才刷新。'
+  },
   schedule: {
     weekly: '每周训练例程',
     weeklySchedule: '每周训练例程',
@@ -177,6 +186,7 @@ export const zhCN = createLocaleResource({
     deactivateSchedule: '停用例程',
     deactivatedMessage: '每周训练例程已停用。未来计划会使用通用训练设置。',
     dayEditorHelp: '自定义这个例程日，或使用默认训练设置。',
+    usualRoutineUpdateHelp: '这会更新此星期几的常规每周训练例程。一次性训练例外可在后续加入。',
     location: '环境',
     equipmentRule: '环境不会自动添加或移除器械。请选择实际可用的器械。'
   }

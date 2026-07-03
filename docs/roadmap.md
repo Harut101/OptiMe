@@ -72,3 +72,9 @@ Training now uses clearer mobile IA: Today's workout/rest day, training load not
 ## Onboarding Simplification
 
 Onboarding now focuses on the person, goal, app mode, nutrition basics, activity level, and safety-critical allergy/profile data. Detailed training setup, preferred training days, Weekly Routine editing, day-specific equipment/environment/duration, and pain/limitations are removed from onboarding. Training-enabled users receive an optional post-onboarding bridge to set up Weekly Routine or skip to Today; training can always be configured later from the Training tab.
+
+## Generate Plan Training Prompt And Duration Volume
+
+Generate Plan now checks the current Weekly Routine weekday before creating a training-enabled plan. Rest-day users can generate a rest-day plan or open the current weekday editor to update their usual routine and then continue generation. This is not a one-off calendar exception; date-specific overrides remain deferred.
+
+Workout duration now drives deterministic training volume through `WorkoutVolumePlanner`: target/min/max exercise count, suggested sets, rest interval, and estimated session time are calculated before AI generation. Exercise selection, OpenAI prompting, validation, and deterministic fallback all use those constraints so 60-90 minute normal strength plans no longer default to tiny workouts without a safety or candidate-availability reason.

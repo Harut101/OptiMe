@@ -94,10 +94,24 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
   });
 
   it('sizes exercise count by duration and reduces volume for recovery signals', async () => {
-    const counts = await Promise.all([15, 30, 45, 60].map(async (duration) =>
-      (await service.selectCandidates(baseContext({ workoutDurationMinutes: duration }))).requestedExerciseCount
+    const normalContext = {
+      availableEquipment: allExerciseEquipment(),
+      trainingLevel: TrainingLevel.INTERMEDIATE,
+      targetMuscles: []
+    };
+    const counts = await Promise.all([20, 30, 45, 60, 75, 90].map(async (duration) =>
+      (await service.selectCandidates(baseContext({ ...normalContext, workoutDurationMinutes: duration }))).requestedExerciseCount
     ));
-    expect(counts).toEqual([3, 4, 5, 6]);
+    expect(counts).toEqual([2, 4, 5, 6, 7, 8]);
+
+    const sixtyMinute = await service.selectCandidates(baseContext({ ...normalContext, workoutDurationMinutes: 60 }));
+    expect(sixtyMinute.volumePlan).toMatchObject({
+      minExerciseCount: 5,
+      maxExerciseCount: 6,
+      suggestedSetsPerExercise: 3
+    });
+    expect(sixtyMinute.volumePlan.suggestedRestSeconds).toBeGreaterThanOrEqual(60);
+
     const lowSleep = await service.selectCandidates(baseContext({
       workoutDurationMinutes: 45,
       targetMuscles: [],
@@ -105,6 +119,20 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     }));
     expect(lowSleep.requestedExerciseCount).toBe(4);
     expect(['MOBILITY', 'RECOVERY']).toContain(lowSleep.candidates[0].category);
+  });
+
+  it('reduces volume safely when candidate pool is smaller than duration target', async () => {
+    const plannerResult = await service.selectCandidates(baseContext({
+      workoutDurationMinutes: 90,
+      availableEquipment: [],
+      trainingLevel: TrainingLevel.ADVANCED,
+      targetMuscles: [TargetMuscleGroup.CHEST]
+    }));
+
+    expect(plannerResult.requestedExerciseCount).toBeLessThanOrEqual(plannerResult.candidates.length);
+    if (plannerResult.candidates.length < 8) {
+      expect(plannerResult.volumePlan.volumeReasonCodes).toContain('NOT_ENOUGH_SAFE_EXERCISES');
+    }
   });
 
   it('excludes inactive records and adjusts conservatively for high activity', async () => {
@@ -214,6 +242,28 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     expect(exercises.every((item) => !(item.equipment as string[]).includes('DUMBBELLS'))).toBe(true);
   });
 
+  it('generates fuller library-backed workouts for longer normal strength sessions', async () => {
+    const sixty = await setupUser('selection-60-min@example.com', 60);
+    await saveTrainingPreference(sixty.accessToken, {
+      targetMuscleGroups: ['QUADRICEPS', 'GLUTES'],
+      equipment: ['GYM', 'DUMBBELLS', 'MACHINES'],
+      trainingLevel: 'INTERMEDIATE'
+    });
+    const sixtyPlan = await generate(sixty.accessToken);
+    expect(sixtyPlan.body.plan.training.exercises).toHaveLength(6);
+    expect(sixtyPlan.body.plan.debug.exerciseSelection.requestedExerciseCount).toBe(6);
+
+    const ninety = await setupUser('selection-90-min@example.com', 90);
+    await saveTrainingPreference(ninety.accessToken, {
+      targetMuscleGroups: ['FULL_BODY'],
+      equipment: ['GYM', 'DUMBBELLS', 'MACHINES'],
+      trainingLevel: 'INTERMEDIATE'
+    });
+    const ninetyPlan = await generate(ninety.accessToken);
+    expect(ninetyPlan.body.plan.training.exercises.length).toBeGreaterThanOrEqual(7);
+    expect(ninetyPlan.body.plan.debug.exerciseSelection.requestedExerciseCount).toBeGreaterThanOrEqual(7);
+  });
+
   it('keeps home bodyweight plans free of machine exercises and expands legacy LEGS', async () => {
     const user = await setupUser('selection-home@example.com');
     await saveTrainingPreference(user.accessToken, {
@@ -247,7 +297,7 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     }
   });
 
-  async function setupUser(email: string) {
+  async function setupUser(email: string, durationMinutes = 30) {
     const user = await registerTestUser(ctx.app, email);
     const headers = authHeader(user.accessToken);
     await request(ctx.app.getHttpServer()).put('/v1/profile').set(headers).send({
@@ -259,7 +309,7 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
       .send({ noKnownAllergiesConfirmed: true }).expect(200);
     await request(ctx.app.getHttpServer()).post('/v1/training-schedule/items').set(headers).send({
       dayOfWeek: new Date().getUTCDay(), localTime: '08:00', sportType: 'STRENGTH',
-      durationMinutes: 30, intensity: 'MODERATE', description: 'Controlled training'
+      durationMinutes, intensity: 'MODERATE', description: 'Controlled training'
     }).expect(201);
     return user;
   }
@@ -286,4 +336,19 @@ function baseContext(overrides: Partial<ExerciseSelectionContext> = {}): Exercis
     qualityMode: PlanQualityMode.PERSONALIZED,
     ...overrides
   };
+}
+
+function allExerciseEquipment() {
+  return [
+    ExerciseEquipment.BODYWEIGHT,
+    ExerciseEquipment.DUMBBELLS,
+    ExerciseEquipment.BARBELL,
+    ExerciseEquipment.BENCH,
+    ExerciseEquipment.MACHINES,
+    ExerciseEquipment.CABLE_MACHINE,
+    ExerciseEquipment.PULL_UP_BAR,
+    ExerciseEquipment.KETTLEBELL,
+    ExerciseEquipment.RESISTANCE_BANDS,
+    ExerciseEquipment.CARDIO_MACHINE
+  ];
 }

@@ -18,6 +18,7 @@ import type {
   ExerciseSelectionReason,
   ExerciseSelectionResult
 } from './exercise-selection.types';
+import { WorkoutVolumePlanner } from './workout-volume-planner';
 
 const SCORE = {
   EXACT_TARGET: 100,
@@ -60,12 +61,14 @@ const ACCESSIBLE_MOVEMENT_CATEGORIES = new Set<ExerciseCategory>([
 
 @Injectable()
 export class ExerciseSelectionService {
+  private readonly volumePlanner = new WorkoutVolumePlanner();
+
   constructor(private readonly exercisesService: ExercisesService) {}
 
   async selectCandidates(context: ExerciseSelectionContext): Promise<ExerciseSelectionResult> {
     const normalizedTargetMuscles = normalizeLegacyTargetMuscles(context.targetMuscles);
-    const requestedExerciseCount = this.getRequestedExerciseCount(context);
-    const candidatePoolLimit = Math.min(16, Math.max(6, requestedExerciseCount * 2));
+    const initialVolumePlan = this.volumePlanner.plan(context);
+    const candidatePoolLimit = Math.min(20, Math.max(6, initialVolumePlan.maxExerciseCount * 2));
     const records = await this.exercisesService.getActiveForSelection(context.locale);
     const exclusions: Partial<Record<ExerciseExclusionReason, number>> = {};
     const eligible = records.filter((record) => {
@@ -78,14 +81,19 @@ export class ExerciseSelectionService {
       .sort((left, right) => right.internalScore - left.internalScore || left.sortOrder - right.sortOrder || left.slug.localeCompare(right.slug));
     const covered = this.ensureTargetCoverage(ranked, normalizedTargetMuscles);
     const candidates = covered.slice(0, candidatePoolLimit).map(({ sortOrder: _sortOrder, ...candidate }) => candidate);
+    const volumePlan = this.volumePlanner.withAvailableCandidateCount(initialVolumePlan, candidates.length);
+    const requestedExerciseCount = volumePlan.targetExerciseCount;
 
     return {
       candidates,
-      requestedExerciseCount: Math.min(requestedExerciseCount, candidates.length),
+      requestedExerciseCount,
+      minExerciseCount: volumePlan.minExerciseCount,
+      maxExerciseCount: volumePlan.maxExerciseCount,
       candidatePoolLimit,
       workoutDurationMinutes: context.workoutDurationMinutes ?? 30,
+      volumePlan,
       normalizedTargetMuscles,
-      fallbackMode: this.getFallbackMode(context, candidates.length),
+      fallbackMode: this.getFallbackMode(context, candidates.length, initialVolumePlan.targetExerciseCount, volumePlan),
       internalExclusionSummary: exclusions
     };
   }
@@ -164,20 +172,17 @@ export class ExerciseSelectionService {
     return [...prioritized, ...ranked.filter((candidate) => !used.has(candidate.exerciseId))];
   }
 
-  private getRequestedExerciseCount(context: ExerciseSelectionContext) {
-    if (context.protocol.id === 'NO_TRAINING_PLANNED') return 0;
-    const duration = context.workoutDurationMinutes ?? 30;
-    let count = duration <= 20 ? 3 : duration <= 35 ? 4 : duration <= 50 ? 5 : 6;
-    if (context.healthSignals.lowSleep || context.healthSignals.highActivity || context.limitationsPresent) count = Math.max(2, count - 1);
-    if (['NO_TRAINING_PLANNED', 'RECOVERY', 'CONSERVATIVE_PAIN_LIMITATION'].includes(context.protocol.id)) count = Math.min(count, 3);
-    return count;
-  }
-
-  private getFallbackMode(context: ExerciseSelectionContext, count: number): ExerciseSelectionFallbackMode {
+  private getFallbackMode(
+    context: ExerciseSelectionContext,
+    candidateCount: number,
+    initialTargetCount: number,
+    volumePlan: ExerciseSelectionResult['volumePlan']
+  ): ExerciseSelectionFallbackMode {
     if (context.healthSignals.lowSleep || context.healthSignals.highActivity || context.limitationsPresent ||
       ['RECOVERY', 'CONSERVATIVE_PAIN_LIMITATION', 'NO_TRAINING_PLANNED'].includes(context.protocol.id)) return 'RECOVERY_FOCUSED';
     if (context.availableEquipment.length === 0) return 'BODYWEIGHT_ONLY';
-    if (count < 6) return 'MINIMAL_SAFE_POOL';
+    if (candidateCount < initialTargetCount || volumePlan.volumeReasonCodes.includes('NOT_ENOUGH_SAFE_EXERCISES')) return 'NOT_ENOUGH_SAFE_EXERCISES';
+    if (candidateCount < 6) return 'MINIMAL_SAFE_POOL';
     return 'NONE';
   }
 

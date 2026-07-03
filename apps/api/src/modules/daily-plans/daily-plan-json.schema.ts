@@ -401,9 +401,13 @@ export const dailyPlanJsonSchema = z.object({
         })
         .optional(),
       exerciseSelection: z.object({
-        candidateCount: z.number().int().min(0).max(16),
+        candidateCount: z.number().int().min(0).max(20),
         requestedExerciseCount: z.number().int().min(0).max(8),
-        fallbackMode: z.enum(['NONE', 'BODYWEIGHT_ONLY', 'RECOVERY_FOCUSED', 'MINIMAL_SAFE_POOL']),
+        minExerciseCount: z.number().int().min(0).max(8).optional(),
+        maxExerciseCount: z.number().int().min(0).max(8).optional(),
+        workoutDurationMinutes: z.number().int().min(0).max(240).optional(),
+        volumeReasonCodes: z.array(z.string()).max(12).optional(),
+        fallbackMode: z.enum(['NONE', 'BODYWEIGHT_ONLY', 'RECOVERY_FOCUSED', 'MINIMAL_SAFE_POOL', 'NOT_ENOUGH_SAFE_EXERCISES']),
         usedAiRetry: z.boolean(),
         usedDeterministicFallback: z.boolean(),
         resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN'])

@@ -37,6 +37,24 @@ Environment and equipment remain separate. `HOME + BARBELL` is valid, and `GYM` 
 
 Training setup is no longer part of onboarding. If a user chooses `NUTRITION_AND_TRAINING`, onboarding offers one optional bridge to the Training tab after nutrition preferences. Users can skip it, reach Today, and return to Training later without losing the enabled training mode.
 
+## Generate Plan Rest-Day Prompt
+
+Today checks the current Weekly Routine day when a training-enabled user taps Generate Plan.
+
+- `NUTRITION_ONLY` users are not asked about training.
+- Training-enabled users with a configured training day proceed directly to plan generation.
+- Training-enabled users whose current weekday is a rest day are asked, "Are you training today?"
+- Choosing the rest-day option generates a nutrition/recovery plan without a normal workout.
+- Choosing the workout option opens the current weekday editor so the user can update their usual Weekly Routine before generation continues.
+
+This is intentionally not a one-off calendar exception. The current sprint updates the repeating weekday routine. A future batch may add date-specific overrides.
+
+## Duration-Based Workout Volume
+
+Training duration is now a deterministic input to workout volume. The backend estimates target exercise count, min/max count, suggested sets, suggested rest, and session duration before AI writes user-facing copy.
+
+Longer normal strength sessions should not collapse to a tiny workout without a safe reason. Safety, recovery, beginner level, pregnancy/postpartum/breastfeeding context, under-18 safe mode, current pain/limitations, or a small safe candidate pool can reduce volume without shame or pressure.
+
 ## Today training progress
 
 The Today dashboard shows training progress from the existing plan-linked `WorkoutSession`:

@@ -44,6 +44,24 @@ When the current app mode is `NUTRITION_AND_TRAINING`, existing protocol selecti
 
 Changing app mode or primary goal affects future plans only. Existing saved Daily Plans are not regenerated automatically.
 
+## Generate Plan Training Prompt
+
+When a training-enabled user taps Generate Plan, mobile resolves today's Weekly Routine day before calling the generation endpoint.
+
+- If the user is in `NUTRITION_ONLY`, generation proceeds without a training prompt.
+- If today is already a training day, generation proceeds normally.
+- If today is a rest day or no training day is configured, mobile asks whether the user is training today.
+- Choosing "No" generates a rest-day/no-training plan.
+- Choosing "Yes" opens the current weekday editor in Weekly Routine. Saving the day returns to Today and resumes the Generate Plan flow.
+
+Weekly Routine remains a repeating template. This flow updates the usual weekday routine for the current weekday; it does not create a one-off calendar exception. Existing plans are not silently overwritten. If a plan already exists after the routine edit, the user must explicitly refresh/replace it through the existing regenerate convention.
+
+## Duration-Based Workout Volume
+
+For training plans with selected exercises, the backend computes workout volume before invoking AI. Duration influences target exercise count, set count, rest guidance, and estimated session length. The model receives deterministic `targetExerciseCount`, `minExerciseCount`, `maxExerciseCount`, duration, sets, rest, and selected exercise candidates. It may not invent exercises.
+
+Normal 60-90 minute strength sessions should produce a fuller workout unless safety, recovery, level, pregnancy/postpartum context, under-18 safe mode, pain/limitations, or too few safe candidates require a smaller session.
+
 Daily Plans generated after the deterministic nutrition target batch include `plan.nutritionTargetSnapshot`. The snapshot stores backend-owned calorie and macro targets plus localized-ready explanation reason codes. Mobile renders those codes in the selected app language.
 
 Older Daily Plans without the snapshot, or with legacy `explanation.title` and `explanation.bullets`, remain readable and are not migrated or rewritten.
