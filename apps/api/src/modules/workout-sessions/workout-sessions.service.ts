@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException
 } from '@nestjs/common';
-import { Prisma, WorkoutSessionStatus } from '@prisma/client';
+import { PreWorkoutReadinessStatus, Prisma, WorkoutSessionStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { normalizeDailyPlanJson } from '../daily-plans/daily-plan-normalizer';
@@ -40,6 +40,12 @@ interface PlanExerciseForExecution {
   rest?: string;
 }
 
+interface NormalizedPreWorkoutCheck {
+  readinessStatus: PreWorkoutReadinessStatus;
+  painAreas: string[];
+  note: string | null;
+}
+
 @Injectable()
 export class WorkoutSessionsService {
   private readonly logger = new Logger(WorkoutSessionsService.name);
@@ -52,6 +58,7 @@ export class WorkoutSessionsService {
 
     const plan = await this.getOwnedDailyPlan(userId, dto.dailyPlanId);
     const plannedExercises = this.snapshotPlannedExercises(plan);
+    const preWorkoutCheck = this.normalizePreWorkoutCheck(dto.preWorkoutCheck);
 
     if (!plannedExercises.length) {
       throw new BadRequestException('Workout is unavailable for this plan.');
@@ -67,6 +74,9 @@ export class WorkoutSessionsService {
         data: {
           userId,
           dailyPlanId: dto.dailyPlanId,
+          preWorkoutReadinessStatus: preWorkoutCheck?.readinessStatus,
+          preWorkoutPainAreas: preWorkoutCheck?.painAreas ?? [],
+          preWorkoutNote: preWorkoutCheck?.note ?? null,
           plannedExerciseCount: plannedExercises.length,
           completedExerciseCount: 0,
           plannedSetCount,
@@ -441,6 +451,49 @@ export class WorkoutSessionsService {
     return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
   }
 
+  private normalizePreWorkoutCheck(
+    value: StartWorkoutSessionDto['preWorkoutCheck']
+  ): NormalizedPreWorkoutCheck | null {
+    if (!value) return null;
+
+    const painAreas = this.normalizeStringList(value.painAreas ?? [], 12, 80);
+    const note = typeof value.note === 'string'
+      ? value.note.trim().slice(0, 500) || null
+      : null;
+
+    return {
+      readinessStatus: value.readinessStatus,
+      painAreas,
+      note
+    };
+  }
+
+  private normalizeStringList(values: string[], maxItems: number, maxLength: number) {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const value of values) {
+      const trimmed = value.trim().replace(/\s+/g, ' ').slice(0, maxLength);
+      const key = trimmed.toLowerCase();
+      if (!trimmed || seen.has(key)) continue;
+      seen.add(key);
+      normalized.push(trimmed);
+      if (normalized.length >= maxItems) break;
+    }
+
+    return normalized;
+  }
+
+  private toPreWorkoutCheck(session: WorkoutSessionWithProgress) {
+    if (!session.preWorkoutReadinessStatus) return null;
+
+    return {
+      readinessStatus: session.preWorkoutReadinessStatus,
+      painAreas: session.preWorkoutPainAreas,
+      note: session.preWorkoutNote
+    };
+  }
+
   private toResponse(session: WorkoutSessionWithProgress) {
     const sortedProgress = [...session.exerciseProgress].sort(
       (a, b) => a.planExerciseOrder - b.planExerciseOrder
@@ -453,6 +506,7 @@ export class WorkoutSessionsService {
       id: session.id,
       dailyPlanId: session.dailyPlanId,
       status: session.status,
+      preWorkoutCheck: this.toPreWorkoutCheck(session),
       summary: this.toSummary(session),
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() ?? null,
@@ -500,6 +554,7 @@ export class WorkoutSessionsService {
       id: session.id,
       dailyPlanId: session.dailyPlanId,
       status: session.status,
+      preWorkoutCheck: this.toPreWorkoutCheck(session),
       localDate: session.dailyPlan.planLocalDate,
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() ?? null,

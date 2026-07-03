@@ -2,9 +2,11 @@
 
 ## Standalone Training ownership
 
-The Training tab owns `TrainingPreference`, target-muscle selection, equipment, experience level, preferred days, limitations, and weekly schedule management. `TrainingSetupForm` is controlled and route-free, and is shared with the optional onboarding step.
+The Training tab owns general `TrainingPreference` defaults and Weekly Routine management. `TrainingSetupForm` is controlled and route-free, and is shared with the optional onboarding step where needed.
 
-The Body Map selects training targets only. Limitations and pain areas remain a separate safety field. Schedule items continue to own workout type, duration, intensity, and description through the existing training-schedule API.
+The Body Map is used for day-specific muscle focus in Weekly Routine and progressive prompts. Limitations and pain areas are no longer a visible global Training Setup field; current pain or limitations are collected through the pre-workout check before starting a workout session. Legacy `limitationsOrPainAreas` can remain for compatibility and progressive profile data, but it should not be the primary mobile setup UX.
+
+Weekly Routine owns training days, target muscles, environment, concrete equipment, duration, and protocol preference. The backend may keep existing schedule API names for compatibility.
 
 A missing setup does not block planning. The Training tab shows a setup state and safe defaults remain active. Saving preferences affects future plans only and does not regenerate the current plan or modify history.
 
@@ -12,7 +14,7 @@ Training uses the shared draft comparison and unsaved-change guard used by Food,
 
 Training preferences are optional profile details used to improve training recommendations. They must not block first plan generation.
 
-ExerciseLibrary reuses the existing `TrainingLevel` and canonical `TargetMuscleGroup` values. Selection keeps broad environment preferences such as `GYM` or `HOME` separate from concrete equipment and does not change persisted values. Gym does not imply access to every equipment type.
+ExerciseLibrary reuses the existing `TrainingLevel` and canonical `TargetMuscleGroup` values. Weekly Routine keeps environment (`HOME`, `GYM`, `OUTDOOR`) separate from concrete equipment (`BARBELL`, `DUMBBELLS`, `BODYWEIGHT`, etc.). Gym does not imply access to every equipment type.
 
 Stage 1 onboarding remains safety-first and short. Training preferences belong mostly to Stage 2 progressive profile prompts.
 
@@ -68,20 +70,20 @@ Use:
 
 ### equipment
 
-Available training equipment.
+Legacy/default training equipment.
 
 Example values:
 
-- `GYM`
-- `HOME`
 - `DUMBBELLS`
 - `BODYWEIGHT`
 - `MACHINES`
 
 Use:
 
-- Avoid suggesting unavailable equipment.
-- Make Plus and Pro exercise recommendations more practical.
+- Provide general defaults when no day-specific routine equipment is set.
+- Keep simple setup fast.
+
+Day-specific equipment lives in Weekly Routine and uses the richer `ExerciseEquipment` enum. `HOME + BARBELL` is valid when explicitly selected on a routine day.
 
 ### trainingLevel
 
@@ -101,7 +103,7 @@ Use:
 
 ### limitationsOrPainAreas
 
-Safety-sensitive limitations, pain areas, or movement concerns.
+Legacy safety-sensitive limitations, pain areas, or movement concerns.
 
 Examples:
 
@@ -112,15 +114,14 @@ Examples:
 
 Use:
 
-- Prioritize conservative training guidance.
-- Influence recovery protocol.
-- Trigger safety checks.
+- Preserve older/progressive-profile context.
+- Avoid treating this as the primary current-session safety signal.
 
-This field is safety-sensitive and should be collected early in progressive prompts. It must not be treated as a diagnosis.
+Current pain, soreness, tiredness, or limitation should be collected in the pre-workout check and stored on `WorkoutSession`.
 
 ### preferredTrainingDays
 
-Optional preferred training days.
+Legacy optional preferred training days.
 
 Example values:
 
@@ -130,14 +131,15 @@ Example values:
 
 Use:
 
-- Later schedule refinement.
-- Avoid overbuilding in Sprint 6.
+- Compatibility only.
+- Do not show as a primary mobile setup field; Weekly Routine owns days.
 
 ## Safety-Sensitive Fields
 
 Safety-sensitive:
 
-- `limitationsOrPainAreas`
+- current-session pre-workout check pain/limitation status
+- legacy `limitationsOrPainAreas` when present
 - training notes that mention pain, injury, dizziness, illness, exhaustion, or unusual fatigue
 - pregnancy, postpartum, or breastfeeding context from profile
 - under-18 safe mode
@@ -154,12 +156,11 @@ Not safety-sensitive by themselves:
 
 Recommended prompt order:
 
-1. `limitationsOrPainAreas`
-2. `equipment`
-3. `trainingLevel`
-4. `targetMuscleGroups`
-5. `trainingOutcome`
-6. `preferredTrainingDays`
+1. `equipment`
+2. `trainingLevel`
+3. `targetMuscleGroups`
+4. `trainingOutcome`
+5. `limitationsOrPainAreas` only as progressive/history context, not current-session state
 
 Prompt rules:
 
@@ -199,8 +200,8 @@ Example:
   "trainingOutcome": "STRENGTH",
   "equipment": ["DUMBBELLS", "BODYWEIGHT"],
   "trainingLevel": "BEGINNER",
-  "limitationsOrPainAreas": ["knee discomfort"],
-  "preferredTrainingDays": [1, 3, 5]
+  "limitationsOrPainAreas": [],
+  "preferredTrainingDays": []
 }
 ```
 
@@ -210,8 +211,8 @@ Validation:
 - `equipment`: enum array, max 5.
 - `trainingOutcome`: enum or `null`.
 - `trainingLevel`: enum or `null`.
-- `limitationsOrPainAreas`: string array, max 20 items, max 120 characters each.
-- `preferredTrainingDays`: integer array, values `0-6`, max 7.
+- `limitationsOrPainAreas`: string array, max 20 items, max 120 characters each. Compatibility/progressive context only.
+- `preferredTrainingDays`: integer array, values `0-6`, max 7. Compatibility only; Weekly Routine owns visible days.
 
 ## Progressive Prompt Mapping
 
@@ -235,7 +236,7 @@ The user should see value quickly. Missing training preferences should use safe 
 - training level: `BEGINNER`
 - limitations: none reported
 
-Safety-critical signals still override defaults. If a user reports pain, dizziness, illness, exhaustion, or injury, the plan should become more conservative across all tiers.
+Safety-critical signals still override defaults. If a user reports pain, dizziness, illness, exhaustion, or injury in any current-session flow, guidance should become more conservative across all tiers.
 
 ## Protocol Selection Use
 
@@ -247,9 +248,10 @@ Current protocol effects:
 - `trainingOutcome=STRENGTH` can select strength training.
 - `trainingOutcome=ENDURANCE` can select endurance training.
 - `trainingOutcome=MOBILITY` can select mobility training.
-- `equipment=HOME` or `BODYWEIGHT` can select home workout guidance.
+- day-specific environment `HOME` or equipment `BODYWEIGHT` can select home/bodyweight workout guidance.
 - `trainingLevel=BEGINNER` with gym or machines can select beginner gym guidance.
-- `limitationsOrPainAreas` always has safety priority and selects conservative training/recovery.
+- legacy `limitationsOrPainAreas` remains safety-sensitive when present.
+- pre-workout `PAIN_OR_LIMITATION` applies only to the current workout session.
 
 ## Batch Boundary
 
@@ -272,4 +274,4 @@ Implemented after Batch 3:
 - Plan Details exercise rendering when exercises are present
 ## Localization
 
-Training environment, outcome, level, equipment, schedule, muscle labels, limitations, and editor states use centralized translations. API payloads continue to contain exact enum values, never translated labels or Body Map path IDs.
+Training environment, outcome, level, equipment, Weekly Routine, pre-workout check, muscle labels, and editor states use centralized translations. API payloads continue to contain exact enum values, never translated labels or Body Map path IDs.

@@ -25,7 +25,6 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
-import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
@@ -47,6 +46,7 @@ import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import {
   getDayOfWeekLabel,
+  getEquipmentLabel,
   getExerciseEquipmentLabel,
   getMuscleGroupLabel,
   getTrainingEnvironmentLabel,
@@ -54,8 +54,6 @@ import {
   getTrainingOutcomeLabel
 } from '@/i18n/enum-labels';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
-
-type TrainingSection = 'weekly' | 'settings';
 
 export default function TrainingScreen() {
   const { t } = useTranslation();
@@ -65,7 +63,6 @@ export default function TrainingScreen() {
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const draft = useTrainingScheduleDraftStore((state) => state.draft);
   const setDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
-  const [section, setSection] = useState<TrainingSection>('weekly');
   const [editingSettings, setEditingSettings] = useState(false);
   const [value, setValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
   const [savedValue, setSavedValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
@@ -157,37 +154,36 @@ export default function TrainingScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('training.title')} subtitle={t('training.intro')} />
-      <Button
-        title={t('workout.workoutHistory')}
-        variant="secondary"
-        accessibilityLabel={t('workout.openWorkoutHistory')}
-        onPress={() => router.push('/workout-history')}
+      <TodaysWorkoutCard response={weeklySchedule.data!} />
+      <ContextNoteCard
+        title={t('training.trainingLoadNote')}
+        message={t('training.trainingLoadMessage')}
+        tone="training"
       />
-      <SelectChips
-        label={t('training.section')}
-        value={section}
-        onChange={setSection}
-        options={[
-          { label: t('schedule.weeklySchedule'), value: 'weekly' },
-          { label: t('schedule.settings'), value: 'settings' }
-        ]}
+      <WeeklyScheduleSection
+        response={weeklySchedule.data!}
+        draft={draft}
+        hasPreferences={hasPreferences}
+        onCreate={() => {
+          setSuccessMessage(null);
+          setDraft(createSuggestedDraft(weeklySchedule.data?.derivedWeeklyFrequency || 3));
+        }}
+        onSave={(next) => saveSchedule.mutate(next)}
+        onDeactivate={() => deactivateSchedule.mutate()}
+        saving={saveSchedule.isPending || deactivateSchedule.isPending}
+        dirty={scheduleDirty}
       />
-
-      {section === 'weekly' ? (
-        <WeeklyScheduleSection
-          response={weeklySchedule.data!}
-          draft={draft}
-          hasPreferences={hasPreferences}
-          onCreate={() => {
-            setSuccessMessage(null);
-            setDraft(createSuggestedDraft(weeklySchedule.data?.derivedWeeklyFrequency || 3));
-          }}
-          onSave={(next) => saveSchedule.mutate(next)}
-          onDeactivate={() => deactivateSchedule.mutate()}
-          saving={saveSchedule.isPending || deactivateSchedule.isPending}
-          dirty={scheduleDirty}
+      <Card>
+        <SectionHeader title={t('workout.workoutHistory')} subtitle={t('workout.historyHelp')} />
+        <Button
+          title={t('workout.openWorkoutHistory')}
+          variant="secondary"
+          accessibilityLabel={t('workout.openWorkoutHistory')}
+          onPress={() => router.push('/workout-history')}
         />
-      ) : editingSettings ? (
+      </Card>
+
+      {editingSettings ? (
         <>
           <TrainingSetupForm value={value} onChange={setValue} />
           {saveSettings.isError ? <Text style={styles.error}>{saveSettings.error.message}</Text> : null}
@@ -208,12 +204,41 @@ export default function TrainingScreen() {
       ) : (
         <>
           <TrainingSummary value={savedValue} />
-          <Button title={t('common.edit')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditingSettings(true); }} />
+          <Button title={t('training.editSetup')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditingSettings(true); }} />
         </>
       )}
 
       {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
     </Screen>
+  );
+}
+
+function TodaysWorkoutCard({ response }: { response: TrainingScheduleResponse }) {
+  const { t } = useTranslation();
+  const today = getTodayDayOfWeek();
+  const day = response.days.find((item) => item.dayOfWeek === today);
+  const resolved = day?.resolved;
+  const isTrainingDay = Boolean(response.isActive && day?.isTrainingDay);
+  const muscles = formatMuscles(t, resolved?.targetMuscles ?? []);
+
+  return (
+    <Card>
+      <View style={styles.dayHeader}>
+        <SectionHeader title={isTrainingDay ? t('training.todaysWorkout') : t('training.restDayToday')} />
+        <StatusPill
+          label={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
+          tone={isTrainingDay ? 'success' : 'neutral'}
+        />
+      </View>
+      {isTrainingDay ? (
+        <>
+          <Text variant="body">{muscles || t('training.generalWorkoutToday')}</Text>
+          <Text variant="muted">{resolved?.durationMinutes ?? 30} {t('common.minutesShort')}</Text>
+        </>
+      ) : (
+        <Text variant="muted">{t('training.restDayTodayMessage')}</Text>
+      )}
+    </Card>
   );
 }
 
@@ -345,12 +370,10 @@ function TrainingSummary({ value }: { value: TrainingSetupFormValue }) {
   const { t } = useTranslation();
   return (
     <Card>
-      <SectionHeader title={t('training.current')} />
+      <SectionHeader title={t('training.current')} subtitle={t('training.setupSummaryHelp')} />
       <Text>{t('training.focus')}: {value.trainingOutcome ? getTrainingOutcomeLabel(t, value.trainingOutcome) : t('common.notSet')}</Text>
       <Text variant="muted">{t('training.level')}: {value.trainingLevel ? getTrainingLevelLabel(t, value.trainingLevel) : t('common.notSet')}</Text>
-      <Text variant="muted">{t('training.equipment')}: {value.equipment.length ? value.equipment.join(', ') : t('common.notSet')}</Text>
-      <Text variant="muted">{t('training.targetMuscles')}: {formatMuscles(t, value.targetMuscleGroups) || t('common.notSet')}</Text>
-      <Text variant="muted">{t('training.limitations')}: {value.limitationsOrPainAreas || t('common.noneAdded')}</Text>
+      <Text variant="muted">{t('training.defaultEquipment')}: {value.equipment.length ? value.equipment.map((item) => getEquipmentLabel(t, item)).join(' · ') : t('common.notSet')}</Text>
     </Card>
   );
 }
@@ -361,6 +384,11 @@ function formatMuscles(t: ReturnType<typeof useTranslation>['t'], muscles: Targe
 
 function formatEquipment(t: ReturnType<typeof useTranslation>['t'], equipment: ExerciseEquipment[]) {
   return equipment.map((item) => getExerciseEquipmentLabel(t, item)).join(' · ');
+}
+
+function getTodayDayOfWeek(): DayOfWeek {
+  const index = new Date().getDay();
+  return (['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const)[index];
 }
 
 const styles = StyleSheet.create({

@@ -4,6 +4,8 @@ import type {
   DailyPlanJson,
   ExerciseListItem,
   MealCheckInStatus,
+  PreWorkoutCheckRequest,
+  PreWorkoutReadinessStatus,
   SupportedLocale,
   TrainingCheckInStatus
 } from '@optime/shared-types';
@@ -17,6 +19,8 @@ import { getExerciseSummaries } from '@/api/exercises';
 import { getWorkoutSessionByPlan, startWorkoutSession } from '@/api/workout-sessions';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { Field } from '@/components/Field';
+import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
 import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
@@ -51,10 +55,13 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
     queryFn: () => getWorkoutSessionByPlan(planId),
     enabled: exercises.length > 0
   });
+  const [preWorkoutOpen, setPreWorkoutOpen] = useState(false);
   const startWorkout = useMutation({
-    mutationFn: () => startWorkoutSession({ dailyPlanId: planId }),
+    mutationFn: (preWorkoutCheck?: PreWorkoutCheckRequest) =>
+      startWorkoutSession({ dailyPlanId: planId, preWorkoutCheck }),
     onSuccess: async (session) => {
       queryClient.setQueryData(['workout-session-by-plan', planId], session);
+      setPreWorkoutOpen(false);
       router.push({ pathname: '/workout-session' as never, params: { sessionId: session.id } });
     }
   });
@@ -85,9 +92,12 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
           workoutSession={workoutSession.data ?? null}
           workoutSessionUnavailable={workoutSession.isError}
           workoutSessionLoading={workoutSession.isLoading}
+          preWorkoutOpen={preWorkoutOpen}
           workoutStartPending={startWorkout.isPending}
           workoutStartFailed={startWorkout.isError}
-          onStartWorkout={() => startWorkout.mutate()}
+          onStartWorkout={() => setPreWorkoutOpen(true)}
+          onCancelPreWorkout={() => setPreWorkoutOpen(false)}
+          onSubmitPreWorkout={(preWorkoutCheck) => startWorkout.mutate(preWorkoutCheck)}
           onOpenWorkout={(sessionId) =>
             router.push({ pathname: '/workout-session' as never, params: { sessionId } })
           }
@@ -143,9 +153,12 @@ function TrainingContent(props: PlanTabbedContentProps & {
   workoutSession: WorkoutSessionResponse | null;
   workoutSessionUnavailable: boolean;
   workoutSessionLoading: boolean;
+  preWorkoutOpen: boolean;
   workoutStartPending: boolean;
   workoutStartFailed: boolean;
   onStartWorkout: () => void;
+  onCancelPreWorkout: () => void;
+  onSubmitPreWorkout: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
   onOpenWorkout: (sessionId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
 }) {
@@ -192,6 +205,14 @@ function TrainingContent(props: PlanTabbedContentProps & {
           onOpen={props.onOpenWorkout}
         />
       ) : null}
+      {exercises.length && props.preWorkoutOpen && !props.workoutSession ? (
+        <PreWorkoutCheckCard
+          t={t}
+          saving={props.workoutStartPending}
+          onCancel={props.onCancelPreWorkout}
+          onSubmit={props.onSubmitPreWorkout}
+        />
+      ) : null}
       {exercises.length ? (
         <Card>
           <Text variant="label">{t('plan.exercises')}</Text>
@@ -217,6 +238,83 @@ function TrainingContent(props: PlanTabbedContentProps & {
         </Card>
       ) : <Card><Text variant="muted">{t('plan.noExercises')}</Text></Card>}
     </>
+  );
+}
+
+function PreWorkoutCheckCard({
+  t,
+  saving,
+  onCancel,
+  onSubmit
+}: {
+  t: TFunction;
+  saving: boolean;
+  onCancel: () => void;
+  onSubmit: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
+}) {
+  const [readinessStatus, setReadinessStatus] = useState<PreWorkoutReadinessStatus>('GOOD');
+  const [painAreasText, setPainAreasText] = useState('');
+  const [note, setNote] = useState('');
+  const isPainContext = readinessStatus === 'PAIN_OR_LIMITATION';
+  const submit = (status = readinessStatus) => {
+    const includePainContext = status === 'PAIN_OR_LIMITATION';
+    onSubmit({
+      readinessStatus: status,
+      painAreas: includePainContext ? splitCsv(painAreasText) : [],
+      note: status === 'SKIPPED' ? null : note.trim() || null
+    });
+  };
+
+  return (
+    <Card>
+      <Text variant="label">{t('workout.preWorkoutCheck')}</Text>
+      <Text variant="muted">{t('workout.preWorkoutHelp')}</Text>
+      <SelectChips
+        label={t('workout.feelToday')}
+        value={readinessStatus}
+        onChange={setReadinessStatus}
+        options={preWorkoutOptions(t)}
+      />
+      {isPainContext ? (
+        <>
+          <Field
+            label={t('workout.painAreas')}
+            placeholder={t('workout.painAreasPlaceholder')}
+            value={painAreasText}
+            onChangeText={setPainAreasText}
+          />
+          <Text variant="muted">{t('workout.keepWorkoutControlled')}</Text>
+        </>
+      ) : null}
+      <Field
+        label={t('workout.preWorkoutNote')}
+        placeholder={t('workout.preWorkoutNotePlaceholder')}
+        multiline
+        value={note}
+        onChangeText={setNote}
+      />
+      <View style={styles.preWorkoutActions}>
+        <Button
+          title={saving ? t('workout.saving') : t('workout.continueToWorkout')}
+          disabled={saving}
+          accessibilityLabel={t('workout.continueToWorkout')}
+          onPress={() => submit()}
+        />
+        <Button
+          title={t('workout.skipPreWorkoutCheck')}
+          variant="secondary"
+          disabled={saving}
+          accessibilityLabel={t('workout.skipPreWorkoutCheck')}
+          onPress={() => submit('SKIPPED')}
+        />
+        <Button
+          title={t('common.cancel')}
+          variant="secondary"
+          disabled={saving}
+          onPress={onCancel}
+        />
+      </View>
+    </Card>
   );
 }
 
@@ -282,6 +380,14 @@ const trainingStatuses = (t: TFunction): Array<{ label: string; value: TrainingC
   { label: t('plan.statusSkipped'), value: 'SKIPPED' },
   { label: t('plan.statusRested'), value: 'RESTED_INSTEAD' }
 ];
+const preWorkoutOptions = (t: TFunction): Array<{ label: string; value: PreWorkoutReadinessStatus }> => [
+  { label: t('workout.readinessGood'), value: 'GOOD' },
+  { label: t('workout.readinessTired'), value: 'TIRED' },
+  { label: t('workout.readinessSore'), value: 'SORE' },
+  { label: t('workout.readinessPain'), value: 'PAIN_OR_LIMITATION' }
+];
+const splitCsv = (value: string) =>
+  value.split(',').map((item) => item.trim()).filter(Boolean);
 const getMealStatus = (items: DailyPlanCheckInResponse[] | undefined, index: number) => {
   const payload = items?.find((item) => item.type === 'MEAL' && item.subjectKey === `meal:${index}`)?.payload;
   return payload && 'status' in payload ? payload.status as MealCheckInStatus : null;
@@ -299,6 +405,7 @@ const styles = StyleSheet.create({
   block: { gap: 8, paddingTop: 6 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
+  preWorkoutActions: { gap: 8 },
   mediaError: { gap: 8 },
   errorText: { color: colors.danger, fontWeight: '700' }
 });

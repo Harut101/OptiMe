@@ -8,12 +8,9 @@ import type {
 } from '@optime/shared-types';
 import { useTranslation } from 'react-i18next';
 
-import { Card } from '@/components/Card';
-import { Field } from '@/components/Field';
 import { MultiSelectChips } from '@/components/MultiSelectChips';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
-import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import type { TrainingPreferencesRequest } from '@/types/api';
 import { enumOptions, getEquipmentLabel, getTrainingLevelLabel, getTrainingOutcomeLabel } from '@/i18n/enum-labels';
 
@@ -42,7 +39,6 @@ export const EMPTY_TRAINING_SETUP: TrainingSetupFormValue = {
 
 export function TrainingSetupForm({ value, onChange }: TrainingSetupFormProps) {
   const { t } = useTranslation();
-  const dayOptions = DAY_KEYS.map((key, value) => ({ label: t(`enums.weekdays.${key}` as never), value }));
   return (
     <View style={styles.form}>
       <SelectChips
@@ -58,35 +54,10 @@ export function TrainingSetupForm({ value, onChange }: TrainingSetupFormProps) {
         options={enumOptions(LEVELS, (item) => getTrainingLevelLabel(t, item))}
       />
       <MultiSelectChips
-        label={t('training.environmentEquipment')}
+        label={t('training.defaultEquipment')}
         value={value.equipment}
         onChange={(equipment) => onChange({ ...value, equipment })}
         options={enumOptions(EQUIPMENT, (item) => getEquipmentLabel(t, item))}
-      />
-      <MultiSelectChips
-        label={t('training.preferredDays')}
-        value={value.preferredTrainingDays}
-        onChange={(preferredTrainingDays) => onChange({ ...value, preferredTrainingDays })}
-        options={dayOptions}
-      />
-      <Card>
-        <Text variant="label">{t('training.targetMuscles')}</Text>
-        <Text variant="muted">
-          {t('training.targetHelp')}
-        </Text>
-        <BodyMapSelector
-          value={value.targetMuscleGroups}
-          onChange={(targetMuscleGroups) => onChange({ ...value, targetMuscleGroups })}
-        />
-      </Card>
-      <Field
-        label={t('training.limitationsLabel')}
-        placeholder={t('training.limitationsPlaceholder')}
-        multiline
-        value={value.limitationsOrPainAreas}
-        onChangeText={(limitationsOrPainAreas) =>
-          onChange({ ...value, limitationsOrPainAreas })
-        }
       />
       <Text variant="muted">
         {t('training.scheduleHelp')}
@@ -97,8 +68,7 @@ export function TrainingSetupForm({ value, onChange }: TrainingSetupFormProps) {
 
 const OUTCOMES: TrainingOutcome[] = ['GENERAL_FITNESS', 'STRENGTH', 'MUSCLE_GROWTH', 'ENDURANCE', 'MOBILITY'];
 const LEVELS: TrainingLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
-const EQUIPMENT: TrainingEquipment[] = ['GYM', 'HOME', 'DUMBBELLS', 'BODYWEIGHT', 'MACHINES'];
-const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+const EQUIPMENT: TrainingEquipment[] = ['DUMBBELLS', 'BODYWEIGHT', 'MACHINES'];
 
 export function fromTrainingPreference(
   preference: TrainingPreferenceResponse
@@ -124,8 +94,7 @@ export function toTrainingPreferenceRequest(
 
 export function hasTrainingSetup(value: TrainingSetupFormValue) {
   return Boolean(
-    value.targetMuscleGroups.length || value.trainingOutcome || value.equipment.length ||
-    value.trainingLevel || value.limitationsOrPainAreas.trim() || value.preferredTrainingDays.length
+    value.trainingOutcome || value.equipment.length || value.trainingLevel
   );
 }
 

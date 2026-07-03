@@ -44,13 +44,19 @@ assertIncludes(training, [
   "t('training.disabledTitle')", "t('training.disabledMessage')", "t('training.enableTraining')",
   "router.push('/goal-editor')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
   "t('training.savedMessage')", 'useUnsavedChangesGuard',
-  'setValue(savedValue)', 'saveTrainingPreferences', 'saveSettings.isPending || !settingsDirty'
+  'setValue(savedValue)', 'saveTrainingPreferences', 'saveSettings.isPending || !settingsDirty',
+  'TodaysWorkoutCard', "t('training.trainingLoadNote')", "t('workout.openWorkoutHistory')",
+  "t('training.editSetup')", "t('schedule.weeklySchedule')"
 ], 'Training');
+assert(!training.includes("t('training.section')"), 'Training tab must not use the old weekly/settings section toggle.');
 
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
 assertIncludes(trainingForm, [
-  'BodyMapSelector', 'targetMuscleGroups', 'toTrainingPreferenceRequest'
+  'targetMuscleGroups', 'toTrainingPreferenceRequest', "t('training.defaultEquipment')"
 ], 'TrainingSetupForm');
+assert(!trainingForm.includes("t('training.preferredDays')"), 'Preferred training days must not appear in Training Setup.');
+assert(!trainingForm.includes("t('training.limitationsLabel')"), 'Pain or limitations must not be collected as global Training Setup.');
+assert(!trainingForm.includes("'GYM', 'HOME'"), 'Training Setup must not mix environment values into equipment defaults.');
 assert(!trainingForm.includes('path.id'), 'Training preference payload must never persist SVG path IDs.');
 
 const profile = read('app/(tabs)/profile.tsx');
@@ -95,6 +101,10 @@ assertIncludes(planContent, [
   "plan.nutrition.meals.length > 0 ? 'food'", "exercises.length > 0 ? 'training'", "useState<PlanContentTab>(defaultTab)",
   "queryKey: ['exercise-summaries', locale, exerciseIds]", 'FoodContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
 ], 'Plan tab content');
+assertIncludes(planContent, [
+  'PreWorkoutCheckCard', "t('workout.preWorkoutCheck')", "t('workout.skipPreWorkoutCheck')",
+  "submit('SKIPPED')", 'preWorkoutCheck'
+], 'Pre-workout check');
 assertIncludes(exerciseCard, [
   'exercise.name', 'formatExercisePrescription', 'getMuscleGroupLabel', 'getExerciseEquipmentLabel',
   'summary?.thumbnail', 'summary?.thumbnail?.url', 'resizeMode="contain"', 'barbell-outline'

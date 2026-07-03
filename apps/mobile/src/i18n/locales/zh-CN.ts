@@ -113,4 +113,56 @@ export const zhCN = createLocaleResource({
       BASED_ON_RECENT_ACTIVITY: '近期活动背景会被保守考虑，不会带来激进目标变化。'
     }
   }
+}, {
+  workout: {
+    preWorkoutCheck: '训练前检查',
+    preWorkoutHelp: '只用于本次训练的快速检查。你也可以跳过。',
+    feelToday: '训练前感觉如何？',
+    readinessGood: '状态不错',
+    readinessTired: '有些疲劳',
+    readinessSore: '有酸痛',
+    readinessPain: '疼痛或限制',
+    readinessSkipped: '已跳过检查',
+    painAreas: '疼痛或限制部位',
+    painAreasPlaceholder: '膝盖、肩膀、下背',
+    preWorkoutNote: '可选备注',
+    preWorkoutNotePlaceholder: '本次训练需要注意的事项',
+    continueToWorkout: '继续训练',
+    skipPreWorkoutCheck: '跳过检查',
+    keepWorkoutControlled: '保持训练可控；如果不适加重，请停止。',
+    painAreasSummary: '部位：{{value}}。'
+  },
+  training: {
+    intro: '规划一周训练，让每次训练更现实，并在开始前安全调整。',
+    emptyMessage: '添加一个基础训练目标、水平和默认器械。每天的细节在每周训练例程中设置。',
+    editSetup: '编辑训练设置',
+    current: '训练设置',
+    setupSummaryHelp: '这里只是通用默认值。肌群、环境、器械和时长可在每周训练例程中按天设置。',
+    defaultEquipment: '默认器械',
+    targetHelp: '选择这个例程日的肌群重点。',
+    scheduleHelp: '在每周训练例程中按天设置肌群、环境、器械和时长。',
+    todaysWorkout: '今日训练',
+    restDayToday: '今天休息',
+    generalWorkoutToday: '综合训练重点',
+    restDayTodayMessage: '今天没有安排训练。恢复和轻柔活动同样有价值。',
+    trainingLoadNote: '训练负荷提示',
+    trainingLoadMessage: '开始训练前，OptiMe 会快速确认状态，让疼痛、酸痛或疲劳使本次训练更安全。'
+  },
+  schedule: {
+    weekly: '每周训练例程',
+    weeklySchedule: '每周训练例程',
+    weeklyScheduleHelp: '为每天设置肌群重点、环境、器械和时长。',
+    settings: '训练设置',
+    noWeeklySchedule: '还没有每周训练例程',
+    noWeeklyScheduleMessage: '创建七天例程，按天设置肌群、器械和时长。',
+    inactiveHelp: '每周训练例程未启用。仍可使用通用训练设置。',
+    createSchedule: '创建例程',
+    saveSchedule: '保存例程',
+    savedMessage: '每周训练例程已保存。未来计划会使用对应日期。',
+    deactivateSchedule: '停用例程',
+    deactivatedMessage: '每周训练例程已停用。未来计划会使用通用训练设置。',
+    dayEditorHelp: '自定义这个例程日，或使用默认训练设置。',
+    location: '环境',
+    equipmentRule: '环境不会自动添加或移除器械。请选择实际可用的器械。'
+  }
 });

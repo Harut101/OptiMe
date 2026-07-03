@@ -19,6 +19,22 @@ The Training tab now uses shared headers, section headers, and status pills for 
 
 The polish pass does not change exercise selection, weekly schedule resolution, workout execution, or workout history behavior.
 
+## Training Tab Information Architecture
+
+The Training tab uses a compact user-facing order:
+
+1. Today's workout or rest-day status.
+2. Training load note explaining that the current session can be adjusted safely before start.
+3. Weekly Routine.
+4. Workout History.
+5. Small Edit Training Setup action.
+
+User-facing copy says Weekly Routine. Backend schedule models and routes can keep their existing names for compatibility.
+
+Training Setup is general only: training focus, level, and default equipment. Preferred training days are removed from the visible setup UI because the Weekly Routine owns days. Pain and limitations are removed from global Training Setup and are collected in the pre-workout check for the current workout session.
+
+Environment and equipment remain separate. `HOME + BARBELL` is valid, and `GYM` does not imply any equipment. Duration belongs to each routine day.
+
 ## Today training progress
 
 The Today dashboard shows training progress from the existing plan-linked `WorkoutSession`:

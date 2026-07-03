@@ -64,3 +64,7 @@ Today now provides a clearer daily dashboard with nutrition progress, training p
 ## Today Dashboard Electric Ring Tuning
 
 The Today dashboard rings now use brighter electric segmented gradients for better physical-device readability in Expo Go. This is a visual tuning batch only; Today layout, progress calculations, wearable behavior, backend models, nutrition formulas, exercise selection, and native health behavior remain unchanged.
+
+## Training Cleanup And Pre-Workout Check
+
+Training now uses clearer mobile IA: Today's workout/rest day, training load note, Weekly Routine, Workout History, and Edit Training Setup. Preferred training days and global pain/limitations are removed from visible Training Setup. Pain or limitations are collected in a skippable pre-workout check when starting the current workout session. The check is stored on `WorkoutSession`, does not mutate DailyPlan, and does not call AI.

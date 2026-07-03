@@ -1,20 +1,22 @@
-# Weekly Training Schedule
+# Weekly Training Routine
 
-The weekly training schedule is the foundation for day-specific training context. It lets a user keep training optional while still giving OptiMe enough structure to make future daily plans more useful when training is enabled.
+The Weekly Training Routine is the foundation for day-specific training context. The backend model and API can keep the existing schedule naming for compatibility, but user-facing mobile copy should say Weekly Routine.
 
 ## Scope
 
-- A schedule contains seven days, Monday through Sunday.
+- A routine contains seven days, Monday through Sunday.
 - Each day can be a training day or a rest day.
-- Training days can inherit global training preferences or customize target muscles, location, available equipment, duration, and protocol preference.
+- Training days can inherit general training setup or customize target muscles, environment, available equipment, duration, and protocol preference.
 - Rest days are treated as recovery context and should not generate a normal strength workout.
-- Disabling training through app mode does not delete saved training preferences or weekly schedule settings.
+- Disabling training through app mode does not delete saved training preferences or weekly routine settings.
+- Preferred training days are not shown as a separate Training Setup field. The routine itself is the visible source of truth for days.
+- Duration belongs to each routine day. A global/default duration may exist only as a fallback.
 
-## Location vs Equipment
+## Environment vs Equipment
 
-Location and equipment are intentionally separate.
+Environment and equipment are intentionally separate.
 
-- Location is context: `HOME`, `GYM`, or `OUTDOOR`.
+- Environment is context: `HOME`, `GYM`, or `OUTDOOR`.
 - Equipment is a hard filter for exercise selection.
 - `HOME + BARBELL` is valid when the user explicitly has a barbell at home.
 - `GYM` does not automatically add `BARBELL`; the user must select it.
@@ -22,25 +24,24 @@ Location and equipment are intentionally separate.
 
 ## Daily Plan Integration
 
-Daily plan generation resolves the active day before selecting exercises.
+Daily plan generation resolves the active routine day before selecting exercises.
 
 - `NUTRITION_ONLY` skips exercise selection and returns a safe rest-style training block.
 - `NUTRITION_AND_TRAINING` can use the resolved day to filter exercises by target muscles, equipment, duration, and rest-day status.
-- Existing daily plans are not mutated when app mode or weekly schedule changes.
+- Existing daily plans are not mutated when app mode or weekly routine changes.
 - Future daily plans receive the updated context.
 
 ## Safety
 
 Safety is not paywalled and is not bypassed by schedule settings.
 
-- Pain, limitations, pregnancy/postpartum context, safe mode, and minor-user rules still apply.
+- Pregnancy/postpartum context, safe mode, and minor-user rules still apply.
+- Pain or limitation checks happen as a pre-workout check when starting the current workout session. They are not a global Training Setup field.
 - Rest days do not generate normal strength workouts.
 - Equipment filtering is deterministic before AI wording is considered.
 
 ## Deferred
 
-- Workout execution sessions.
-- Workout history.
 - Rest timers.
-- AI-generated weekly schedules.
+- AI-generated weekly routines.
 - Exercise media expansion beyond the current library-backed plan details flow.

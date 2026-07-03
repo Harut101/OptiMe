@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import type { TFunction } from 'i18next';
 import { useMemo } from 'react';
 import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -160,6 +161,14 @@ export default function WorkoutSessionScreen() {
       </Card>
 
       <ContextNoteCard title={t('workout.safetyNote')} message={t('workout.safetyMessage')} tone="warning" />
+
+      {data.preWorkoutCheck ? (
+        <ContextNoteCard
+          title={t('workout.preWorkoutCheck')}
+          message={formatPreWorkoutCheck(data.preWorkoutCheck, t)}
+          tone={data.preWorkoutCheck.readinessStatus === 'PAIN_OR_LIMITATION' ? 'warning' : 'neutral'}
+        />
+      ) : null}
 
       {completed ? (
         <ContextNoteCard title={t('workout.readOnly')} message={t('workout.thisWorkoutCompleted')} />
@@ -353,6 +362,33 @@ function formatPrescription(
 function formatSeconds(seconds: number) {
   if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} min`;
   return `${seconds} sec`;
+}
+
+function formatPreWorkoutCheck(
+  check: NonNullable<WorkoutSessionResponse['preWorkoutCheck']>,
+  t: TFunction
+) {
+  const label = getPreWorkoutReadinessLabel(check.readinessStatus, t);
+  const painAreas = check.painAreas.length
+    ? ` ${t('workout.painAreasSummary', { value: check.painAreas.join(', ') })}`
+    : '';
+  const note = check.note ? ` ${check.note}` : '';
+  const safety = check.readinessStatus === 'PAIN_OR_LIMITATION'
+    ? ` ${t('workout.keepWorkoutControlled')}`
+    : '';
+
+  return `${label}.${painAreas}${note}${safety}`.trim();
+}
+
+function getPreWorkoutReadinessLabel(
+  status: NonNullable<WorkoutSessionResponse['preWorkoutCheck']>['readinessStatus'],
+  t: TFunction
+) {
+  if (status === 'GOOD') return t('workout.readinessGood');
+  if (status === 'TIRED') return t('workout.readinessTired');
+  if (status === 'SORE') return t('workout.readinessSore');
+  if (status === 'PAIN_OR_LIMITATION') return t('workout.readinessPain');
+  return t('workout.readinessSkipped');
 }
 
 const styles = StyleSheet.create({

@@ -14,11 +14,16 @@ for (const route of ['today', 'food', 'training', 'profile']) {
 
 const foodForm = read('src/features/food-preferences/FoodPreferencesForm.tsx');
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
+const trainingDayEditor = read('app/training-schedule/day.tsx');
 assert(!foodForm.includes('expo-router'), 'FoodPreferencesForm must not navigate.');
 assert(!trainingForm.includes('expo-router'), 'TrainingSetupForm must not navigate.');
 assert(!foodForm.includes('@/api/'), 'FoodPreferencesForm must not persist data.');
 assert(!trainingForm.includes('@/api/'), 'TrainingSetupForm must not persist data.');
-assert(trainingForm.includes('BodyMapSelector'), 'TrainingSetupForm must render BodyMapSelector.');
+assert(!trainingForm.includes('BodyMapSelector'), 'TrainingSetupForm must not collect day-specific muscles globally.');
+assert(!trainingForm.includes("t('training.preferredDays')"), 'TrainingSetupForm must not show preferred training days.');
+assert(!trainingForm.includes("t('training.limitationsLabel')"), 'TrainingSetupForm must not collect global pain or limitations.');
+assert(trainingDayEditor.includes('BodyMapSelector'), 'Weekly Routine day editor must render BodyMapSelector.');
+assert(trainingDayEditor.includes("'BARBELL'"), 'Weekly Routine equipment must keep BARBELL selectable.');
 
 const foodStandalone = read('app/(tabs)/food.tsx');
 const foodOnboarding = read('app/(onboarding)/nutrition-preferences.tsx');

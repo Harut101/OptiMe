@@ -85,6 +85,37 @@ describe('Workout sessions', () => {
     expect(second.body.exerciseProgress).toHaveLength(2);
   });
 
+  it('stores optional pre-workout check context on the current workout session', async () => {
+    const user = await registerTestUser(ctx.app, 'workout-pre-check@example.com');
+    const plan = await createDailyPlan(user.user.id);
+
+    const response = await request(ctx.app.getHttpServer())
+      .post('/v1/workout-sessions')
+      .set(authHeader(user.accessToken))
+      .send({
+        dailyPlanId: plan.id,
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['left knee', 'left knee', 'lower back'],
+          note: 'Keeping this one controlled today.'
+        }
+      })
+      .expect(201);
+
+    expect(response.body.preWorkoutCheck).toEqual({
+      readinessStatus: 'PAIN_OR_LIMITATION',
+      painAreas: ['left knee', 'lower back'],
+      note: 'Keeping this one controlled today.'
+    });
+    expect(response.body.summary.preWorkoutCheck).toEqual(response.body.preWorkoutCheck);
+
+    const fetched = await request(ctx.app.getHttpServer())
+      .get(`/v1/workout-sessions/${response.body.id}`)
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(fetched.body.preWorkoutCheck).toEqual(response.body.preWorkoutCheck);
+  });
+
   it('rejects rest plans and plans without exercises', async () => {
     const user = await registerTestUser(ctx.app, 'workout-rest@example.com');
     const restPlan = await createDailyPlan(user.user.id, {

@@ -113,4 +113,56 @@ export const frFR = createLocaleResource({
       BASED_ON_RECENT_ACTIVITY: 'Le contexte d’activité récent est pris en compte prudemment, sans changement agressif de cible.'
     }
   }
+}, {
+  workout: {
+    preWorkoutCheck: 'Vérification avant séance',
+    preWorkoutHelp: 'Une vérification rapide pour cette séance seulement. Vous pouvez la passer.',
+    feelToday: 'Comment vous sentez-vous avant la séance ?',
+    readinessGood: 'Bien',
+    readinessTired: 'Fatigué',
+    readinessSore: 'Courbatures',
+    readinessPain: 'Douleur ou limite',
+    readinessSkipped: 'Vérification passée',
+    painAreas: 'Zones de douleur ou de limite',
+    painAreasPlaceholder: 'genou, épaule, bas du dos',
+    preWorkoutNote: 'Note facultative',
+    preWorkoutNotePlaceholder: 'Quelque chose à garder en tête pour cette séance',
+    continueToWorkout: 'Continuer vers la séance',
+    skipPreWorkoutCheck: 'Passer la vérification',
+    keepWorkoutControlled: 'Gardez cette séance contrôlée et arrêtez si la gêne augmente.',
+    painAreasSummary: 'Zones : {{value}}.'
+  },
+  training: {
+    intro: 'Planifiez votre semaine, gardez chaque séance réaliste et ajustez prudemment avant de commencer.',
+    emptyMessage: 'Ajoutez un objectif général, un niveau et un équipement par défaut. Les détails par jour vivent dans la Routine hebdomadaire.',
+    editSetup: "Modifier la configuration d'entraînement",
+    current: "Configuration d'entraînement",
+    setupSummaryHelp: 'Valeurs générales seulement. Muscles, environnement, équipement et durée se règlent par jour dans la Routine hebdomadaire.',
+    defaultEquipment: 'Équipement par défaut',
+    targetHelp: 'Choisissez le focus musculaire pour ce jour de routine.',
+    scheduleHelp: 'Définissez muscles, environnement, équipement et durée par jour dans la Routine hebdomadaire.',
+    todaysWorkout: "Séance d'aujourd'hui",
+    restDayToday: "Jour de repos aujourd'hui",
+    generalWorkoutToday: "Focus d'entraînement général",
+    restDayTodayMessage: "Aucune séance n'est prévue aujourd'hui. La récupération et le mouvement doux comptent aussi.",
+    trainingLoadNote: 'Note de charge',
+    trainingLoadMessage: 'Avant de commencer, OptiMe posera une question rapide pour que douleur, fatigue ou courbatures rendent cette séance plus sûre.'
+  },
+  schedule: {
+    weekly: 'Routine hebdomadaire',
+    weeklySchedule: 'Routine hebdomadaire',
+    weeklyScheduleHelp: 'Définissez le focus musculaire, l’environnement, l’équipement et la durée pour chaque jour.',
+    settings: "Configuration d'entraînement",
+    noWeeklySchedule: 'Aucune routine hebdomadaire pour le moment',
+    noWeeklyScheduleMessage: 'Créez une routine sur sept jours pour un focus, un équipement et une durée par jour.',
+    inactiveHelp: 'La routine hebdomadaire est inactive. Les réglages généraux restent disponibles.',
+    createSchedule: 'Créer une routine',
+    saveSchedule: 'Enregistrer la routine',
+    savedMessage: 'Routine hebdomadaire enregistrée. Les prochains plans utiliseront le jour résolu.',
+    deactivateSchedule: 'Désactiver la routine',
+    deactivatedMessage: 'Routine hebdomadaire désactivée. Les prochains plans utiliseront les réglages généraux.',
+    dayEditorHelp: 'Personnalisez ce jour de routine ou héritez des réglages généraux.',
+    location: 'Environnement',
+    equipmentRule: "L'environnement n'ajoute ni ne retire d'équipement. Choisissez exactement ce qui est disponible."
+  }
 });

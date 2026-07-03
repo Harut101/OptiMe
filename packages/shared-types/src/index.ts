@@ -1057,9 +1057,28 @@ export interface DailyPlanCheckInsResponse {
 }
 
 export type WorkoutSessionStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type PreWorkoutReadinessStatus =
+  | 'GOOD'
+  | 'TIRED'
+  | 'SORE'
+  | 'PAIN_OR_LIMITATION'
+  | 'SKIPPED';
+
+export interface PreWorkoutCheckRequest {
+  readinessStatus: PreWorkoutReadinessStatus;
+  painAreas?: string[];
+  note?: string | null;
+}
+
+export interface WorkoutSessionPreWorkoutCheck {
+  readinessStatus: PreWorkoutReadinessStatus;
+  painAreas: string[];
+  note: string | null;
+}
 
 export interface StartWorkoutSessionRequest {
   dailyPlanId: string;
+  preWorkoutCheck?: PreWorkoutCheckRequest;
 }
 
 export interface ToggleWorkoutSetRequest {
@@ -1079,6 +1098,7 @@ export interface WorkoutSessionSummary {
   id: string;
   dailyPlanId: string;
   status: WorkoutSessionStatus;
+  preWorkoutCheck: WorkoutSessionPreWorkoutCheck | null;
   localDate: string;
   startedAt: string;
   completedAt: string | null;
@@ -1121,6 +1141,7 @@ export interface WorkoutSessionResponse {
   id: string;
   dailyPlanId: string;
   status: WorkoutSessionStatus;
+  preWorkoutCheck: WorkoutSessionPreWorkoutCheck | null;
   summary: WorkoutSessionSummary;
   startedAt: string;
   completedAt: string | null;
