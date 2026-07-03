@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { logNativeHealthEvent } from './native-health.diagnostics';
 import {
   getLocalDayRange,
   makeEmptyWearableSnapshot,
@@ -38,6 +39,15 @@ type HealthCallbackMethod = (
   callback: (error: string | Error | null, result: unknown) => void
 ) => void;
 
+type AppleHealthMetricName =
+  | 'steps'
+  | 'activeEnergy'
+  | 'exerciseTime'
+  | 'sleep'
+  | 'restingHeartRate'
+  | 'hrv'
+  | 'respiratoryRate';
+
 const READ_PERMISSION_KEYS = [
   'StepCount',
   'ActiveEnergyBurned',
@@ -52,25 +62,50 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
   provider: 'APPLE_HEALTH',
   async getAvailability() {
     if (Platform.OS !== 'ios') {
+      logNativeHealthEvent('availability checked', {
+        provider: 'APPLE_HEALTH',
+        available: false,
+        reason: 'PLATFORM_UNSUPPORTED'
+      });
       return { available: false, reason: 'PLATFORM_UNSUPPORTED' };
     }
 
     const appleHealth = loadAppleHealthKit();
     if (!appleHealth?.initHealthKit) {
+      logNativeHealthEvent('availability checked', {
+        provider: 'APPLE_HEALTH',
+        available: false,
+        reason: 'MISSING_NATIVE_MODULE'
+      }, 'warn');
       return { available: false, reason: 'MISSING_NATIVE_MODULE' };
     }
 
     if (!appleHealth.isAvailable) {
+      logNativeHealthEvent('availability checked', {
+        provider: 'APPLE_HEALTH',
+        available: true,
+        nativeAvailabilityApi: false
+      });
       return { available: true };
     }
 
     return new Promise((resolve) => {
       appleHealth.isAvailable?.((error, available) => {
         if (error) {
+          logNativeHealthEvent('availability checked', {
+            provider: 'APPLE_HEALTH',
+            available: false,
+            reason: 'PERMISSION_UNAVAILABLE'
+          }, 'warn');
           resolve({ available: false, reason: 'PERMISSION_UNAVAILABLE' });
           return;
         }
 
+        logNativeHealthEvent('availability checked', {
+          provider: 'APPLE_HEALTH',
+          available,
+          reason: available ? null : 'PERMISSION_UNAVAILABLE'
+        }, available ? 'log' : 'warn');
         resolve(available ? { available: true } : { available: false, reason: 'PERMISSION_UNAVAILABLE' });
       });
     });
@@ -79,6 +114,11 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
   async requestPermissions() {
     const appleHealth = loadAppleHealthKit();
     if (!appleHealth?.initHealthKit) {
+      logNativeHealthEvent('permission request result', {
+        provider: 'APPLE_HEALTH',
+        grantedCorePermissions: 0,
+        reason: 'MISSING_NATIVE_MODULE'
+      }, 'warn');
       return emptyPermissions();
     }
 
@@ -93,10 +133,25 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
         },
         (error) => {
           if (error) {
+            logNativeHealthEvent('permission request result', {
+              provider: 'APPLE_HEALTH',
+              grantedCorePermissions: 0,
+              reason: 'INIT_HEALTHKIT_ERROR'
+            }, 'warn');
             resolve(emptyPermissions());
             return;
           }
 
+          logNativeHealthEvent('permission request result', {
+            provider: 'APPLE_HEALTH',
+            steps: true,
+            sleep: true,
+            workouts: true,
+            activeEnergy: true,
+            restingHeartRate: true,
+            hrv: true,
+            respiratoryRate: true
+          });
           resolve({
             steps: true,
             sleep: true,
@@ -132,13 +187,13 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
       const query = { startDate: start.toISOString(), endDate: end.toISOString() };
       const [steps, activeEnergy, exerciseTime, sleep, restingHeartRate, hrv, respiratoryRate] =
         await Promise.all([
-          callHealthMethod(appleHealth.getStepCount, query),
-          callHealthMethod(appleHealth.getActiveEnergyBurned, query),
-          callHealthMethod(appleHealth.getAppleExerciseTime, query),
-          callHealthMethod(appleHealth.getSleepSamples, query),
-          callHealthMethod(appleHealth.getRestingHeartRate, query),
-          callHealthMethod(appleHealth.getHeartRateVariabilitySamples, query),
-          callHealthMethod(appleHealth.getRespiratoryRateSamples, query)
+          readMetricSafely('steps', appleHealth.getStepCount, query, localDate),
+          readMetricSafely('activeEnergy', appleHealth.getActiveEnergyBurned, query, localDate),
+          readMetricSafely('exerciseTime', appleHealth.getAppleExerciseTime, query, localDate),
+          readMetricSafely('sleep', appleHealth.getSleepSamples, query, localDate),
+          readMetricSafely('restingHeartRate', appleHealth.getRestingHeartRate, query, localDate),
+          readMetricSafely('hrv', appleHealth.getHeartRateVariabilitySamples, query, localDate),
+          readMetricSafely('respiratoryRate', appleHealth.getRespiratoryRateSamples, query, localDate)
         ]);
 
       snapshot.steps = firstNumericValue(steps, ['value', 'count']);
@@ -153,7 +208,26 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
 
       const sanitized = sanitizeWearableSnapshot(snapshot);
       if (sanitized) {
+        logNativeHealthEvent('normalized wearable snapshot payload', {
+          provider: 'APPLE_HEALTH',
+          localDate,
+          fieldsPresent: countPresentFields(sanitized),
+          hasSteps: sanitized.steps !== null,
+          hasActiveCalories: sanitized.activeCaloriesKcal !== null,
+          hasWorkoutMinutes: sanitized.workoutMinutes !== null,
+          hasSleepMinutes: sanitized.sleepMinutes !== null,
+          hasRestingHeartRate: sanitized.restingHeartRateBpm !== null,
+          hasHrv: sanitized.hrvMs !== null,
+          hasRespiratoryRate: sanitized.respiratoryRate !== null
+        });
         snapshots.push(sanitized);
+      } else {
+        logNativeHealthEvent('normalized wearable snapshot payload', {
+          provider: 'APPLE_HEALTH',
+          localDate,
+          fieldsPresent: 0,
+          reason: 'NO_USEFUL_FIELDS'
+        }, 'warn');
       }
     }
 
@@ -193,20 +267,79 @@ function emptyPermissions(): NativeHealthPermissions {
   };
 }
 
-function callHealthMethod(method: HealthCallbackMethod | undefined, options: Record<string, unknown>) {
+function readMetricSafely(
+  metric: AppleHealthMetricName,
+  method: HealthCallbackMethod | undefined,
+  options: Record<string, unknown>,
+  localDate: string
+) {
   if (!method) {
+    logNativeHealthEvent('metric read skipped', {
+      provider: 'APPLE_HEALTH',
+      metric,
+      localDate,
+      reason: 'METHOD_UNAVAILABLE'
+    }, 'warn');
     return Promise.resolve(null);
   }
 
   return new Promise<unknown>((resolve) => {
     try {
       method(options, (error, result) => {
-        resolve(error ? null : result);
+        if (error) {
+          logNativeHealthEvent('metric read failed', {
+            provider: 'APPLE_HEALTH',
+            metric,
+            localDate,
+            reason: normalizeErrorReason(error)
+          }, 'warn');
+          resolve(null);
+          return;
+        }
+
+        logNativeHealthEvent('metric read succeeded', {
+          provider: 'APPLE_HEALTH',
+          metric,
+          localDate,
+          resultKind: Array.isArray(result) ? 'array' : typeof result,
+          itemCount: Array.isArray(result) ? result.length : isRecord(result) ? 1 : 0
+        });
+        resolve(result);
       });
-    } catch {
+    } catch (error) {
+      logNativeHealthEvent('metric read failed', {
+        provider: 'APPLE_HEALTH',
+        metric,
+        localDate,
+        reason: normalizeErrorReason(error)
+      }, 'warn');
       resolve(null);
     }
   });
+}
+
+function normalizeErrorReason(error: unknown) {
+  if (error instanceof Error) {
+    return error.name || 'ERROR';
+  }
+
+  if (typeof error === 'string') {
+    return error.slice(0, 80);
+  }
+
+  return 'UNKNOWN';
+}
+
+function countPresentFields(snapshot: NativeWearableSnapshotInput) {
+  return [
+    snapshot.steps,
+    snapshot.activeCaloriesKcal,
+    snapshot.workoutMinutes,
+    snapshot.sleepMinutes,
+    snapshot.restingHeartRateBpm,
+    snapshot.hrvMs,
+    snapshot.respiratoryRate
+  ].filter((value) => value !== undefined && value !== null).length;
 }
 
 function firstNumericValue(value: unknown, keys: string[]) {

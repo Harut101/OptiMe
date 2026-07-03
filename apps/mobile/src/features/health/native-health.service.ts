@@ -4,7 +4,9 @@ import {
   upsertHealthDailySummary,
   upsertWearableSnapshot
 } from '@/api/health';
+import { ApiError } from '@/api/client';
 import { nativeHealthAdapter } from './native-health';
+import { logNativeHealthEvent } from './native-health.diagnostics';
 import type { NativeHealthSyncResult, NativeWearableSnapshotInput } from './native-health.types';
 
 export const nativeHealthService = {
@@ -29,10 +31,18 @@ export const nativeHealthService = {
     const availability = await nativeHealthAdapter.getAvailability();
 
     if (provider !== 'APPLE_HEALTH') {
+      logNativeHealthEvent('sync stopped', {
+        provider: provider ?? 'none',
+        reason: 'PLATFORM_UNSUPPORTED'
+      }, 'warn');
       throw new NativeHealthServiceError('PLATFORM_UNSUPPORTED');
     }
 
     if (!availability.available) {
+      logNativeHealthEvent('sync stopped', {
+        provider,
+        reason: availability.reason
+      }, 'warn');
       await updateHealthConnectionStatus('APPLE_HEALTH', {
         status: availability.reason === 'PLATFORM_UNSUPPORTED' ? 'DISABLED' : 'ERROR',
         errorCode: availability.reason
@@ -45,6 +55,11 @@ export const nativeHealthService = {
       permissions.steps || permissions.sleep || permissions.workouts || permissions.activeEnergy;
 
     if (!grantedCorePermission) {
+      logNativeHealthEvent('sync stopped', {
+        provider,
+        reason: 'APPLE_HEALTH_PERMISSION_DENIED',
+        grantedCorePermissions: 0
+      }, 'warn');
       await updateHealthConnectionStatus('APPLE_HEALTH', {
         status: 'NEEDS_REAUTH',
         errorCode: 'APPLE_HEALTH_PERMISSION_DENIED'
@@ -56,16 +71,55 @@ export const nativeHealthService = {
       provider,
       permissionsGranted: permissions
     });
+    logNativeHealthEvent('health provider connected', {
+      provider,
+      permissionSteps: Boolean(permissions.steps),
+      permissionSleep: Boolean(permissions.sleep),
+      permissionWorkouts: Boolean(permissions.workouts),
+      permissionActiveEnergy: Boolean(permissions.activeEnergy)
+    });
 
     const snapshots = await (nativeHealthAdapter.readWearableSnapshots?.({ days: 1 }) ?? []);
+    logNativeHealthEvent('wearable snapshot read completed', {
+      provider,
+      attemptedDays: 1,
+      snapshotCount: snapshots.length
+    });
     let fieldsPresent = 0;
 
     for (const snapshot of snapshots) {
       fieldsPresent += countPresentFields(snapshot);
-      await upsertWearableSnapshot(snapshot);
+      try {
+        const response = await upsertWearableSnapshot(snapshot);
+        logNativeHealthEvent('wearable snapshot POST succeeded', {
+          provider,
+          localDate: snapshot.localDate,
+          fieldsPresent: countPresentFields(snapshot),
+          hasRecentData: response.hasRecentData,
+          messageCode: response.messageCode
+        });
+      } catch (error) {
+        const errorCode = getSnapshotSaveErrorCode(error);
+        logNativeHealthEvent('wearable snapshot POST failed', {
+          provider,
+          localDate: snapshot.localDate,
+          fieldsPresent: countPresentFields(snapshot),
+          errorCode,
+          status: error instanceof ApiError ? error.status : null
+        }, 'error');
+        await updateHealthConnectionStatus('APPLE_HEALTH', {
+          status: 'ERROR',
+          errorCode
+        });
+        throw new NativeHealthServiceError(errorCode);
+      }
     }
 
     if (snapshots.length === 0) {
+      logNativeHealthEvent('wearable snapshot sync completed without data', {
+        provider,
+        attemptedDays: 1
+      }, 'warn');
       await updateHealthConnectionStatus('APPLE_HEALTH', {
         status: 'CONNECTED',
         errorCode: 'APPLE_HEALTH_NO_DATA'
@@ -133,4 +187,28 @@ function countPresentFields(snapshot: NativeWearableSnapshotInput) {
     snapshot.hrvMs,
     snapshot.respiratoryRate
   ].filter((value) => value !== undefined && value !== null).length;
+}
+
+function getSnapshotSaveErrorCode(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return 'APPLE_HEALTH_API_AUTH_FAILED';
+    }
+
+    if (error.status === 400) {
+      return getBodyCode(error.body) ?? 'APPLE_HEALTH_SNAPSHOT_VALIDATION_FAILED';
+    }
+
+    return getBodyCode(error.body) ?? 'APPLE_HEALTH_SNAPSHOT_SAVE_FAILED';
+  }
+
+  return 'APPLE_HEALTH_SNAPSHOT_SAVE_FAILED';
+}
+
+function getBodyCode(body: unknown) {
+  if (typeof body === 'object' && body !== null && 'code' in body) {
+    return String((body as { code?: unknown }).code).slice(0, 80);
+  }
+
+  return null;
 }

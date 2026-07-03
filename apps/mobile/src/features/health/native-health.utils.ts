@@ -53,6 +53,7 @@ export function sanitizeDailySummary(
 export function sanitizeWearableSnapshot(
   snapshot: NativeWearableSnapshotInput
 ): NativeWearableSnapshotInput | null {
+  const capturedAt = sanitizeIsoDateOrNow(snapshot.capturedAt);
   const sanitized: NativeWearableSnapshotInput = {
     localDate: snapshot.localDate,
     timezone: snapshot.timezone,
@@ -67,7 +68,7 @@ export function sanitizeWearableSnapshot(
     restingHeartRateBpm: sanitizeIntegerOrNull(snapshot.restingHeartRateBpm, 30, 220),
     hrvMs: sanitizeIntegerOrNull(snapshot.hrvMs, 1, 300),
     respiratoryRate: sanitizeNumberOrNull(snapshot.respiratoryRate, 5, 40),
-    capturedAt: snapshot.capturedAt ?? new Date().toISOString()
+    capturedAt
   };
 
   return hasWearableSnapshotData(sanitized) ? sanitized : null;
@@ -156,4 +157,13 @@ function sanitizeNumberOrNull(value: number | null | undefined, min: number, max
   }
 
   return Math.max(min, Math.min(max, value));
+}
+
+function sanitizeIsoDateOrNow(value: string | undefined) {
+  if (!value) {
+    return new Date().toISOString();
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString();
 }

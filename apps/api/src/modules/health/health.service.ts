@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { HealthConnectionStatus, HealthProvider, Prisma } from '@prisma/client';
+import { HealthConnectionStatus, HealthProvider, Prisma, WearableDailySnapshot } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConnectHealthDto } from './dto/connect-health.dto';
@@ -294,32 +294,41 @@ export class HealthService {
 
   async upsertWearableSnapshot(userId: string, dto: UpsertWearableSnapshotDto) {
     const capturedAt = dto.capturedAt ? new Date(dto.capturedAt) : new Date();
-    const saved = await this.prisma.wearableDailySnapshot.upsert({
-      where: {
-        userId_source_localDate: {
-          userId,
-          source: dto.source,
-          localDate: dto.localDate
-        }
-      },
-      update: this.toWearableSnapshotWriteData(
-        dto,
-        dto.localDate,
-        dto.timezone,
-        capturedAt,
-        dto.source
-      ),
-      create: {
-        userId,
-        ...this.toWearableSnapshotWriteData(
+    let saved: WearableDailySnapshot;
+
+    try {
+      saved = await this.prisma.wearableDailySnapshot.upsert({
+        where: {
+          userId_source_localDate: {
+            userId,
+            source: dto.source,
+            localDate: dto.localDate
+          }
+        },
+        update: this.toWearableSnapshotWriteData(
           dto,
           dto.localDate,
           dto.timezone,
           capturedAt,
           dto.source
-        )
-      }
-    });
+        ),
+        create: {
+          userId,
+          ...this.toWearableSnapshotWriteData(
+            dto,
+            dto.localDate,
+            dto.timezone,
+            capturedAt,
+            dto.source
+          )
+        }
+      });
+    } catch (error) {
+      this.logger.error(
+        `wearable snapshot save failed; source=${dto.source}; localDate=${dto.localDate}; fieldsPresent=${this.countPresentWearableFields(dto)}; reason=${this.getSafeErrorReason(error)}`
+      );
+      throw error;
+    }
 
     await this.prisma.healthConnection.upsert({
       where: { userId_provider: { userId, provider: dto.source } },
@@ -675,6 +684,18 @@ export class HealthService {
       dto.hrvMs,
       dto.respiratoryRate
     ].filter((value) => value !== undefined && value !== null).length;
+  }
+
+  private getSafeErrorReason(error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return error.code;
+    }
+
+    if (error instanceof Error) {
+      return error.name || 'Error';
+    }
+
+    return 'unknown_error';
   }
 
   private toWearableSnapshotResponse(snapshot: {

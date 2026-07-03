@@ -125,6 +125,32 @@ const health = read('app/health-data.tsx');
 assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard'], 'Connections');
 assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown.');
 
+const nativeHealthIos = read('src/features/health/native-health.ios.ts');
+const nativeHealthService = read('src/features/health/native-health.service.ts');
+const nativeHealthUtils = read('src/features/health/native-health.utils.ts');
+assertIncludes(nativeHealthIos, [
+  'readMetricSafely',
+  'metric read failed',
+  'resolve(null)',
+  'normalized wearable snapshot payload',
+  'countPresentFields(sanitized)'
+], 'Apple Health metric hardening');
+assertIncludes(nativeHealthService, [
+  'wearable snapshot POST failed',
+  "status: 'ERROR'",
+  "status: 'NEEDS_REAUTH'",
+  "status: 'CONNECTED'",
+  'APPLE_HEALTH_SNAPSHOT_SAVE_FAILED',
+  'APPLE_HEALTH_PERMISSION_DENIED',
+  'APPLE_HEALTH_NO_DATA'
+], 'Apple Health sync status handling');
+assertIncludes(nativeHealthUtils, [
+  'sanitizeIsoDateOrNow',
+  'sanitizeIntegerOrNull',
+  'sanitizeNumberOrNull',
+  'capturedAt'
+], 'Apple Health snapshot sanitization');
+
 const today = read('app/(tabs)/today.tsx');
 assertIncludes(today, ['ScreenHeader', 'StatusPill', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
 assertIncludes(today, [

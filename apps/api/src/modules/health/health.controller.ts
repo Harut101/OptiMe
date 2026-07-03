@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseFilters, UseGuards } from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -15,9 +15,11 @@ import { HealthSourceParamDto } from './dto/health-source-param.dto';
 import { UpdateHealthConnectionStatusDto } from './dto/update-health-connection-status.dto';
 import { UpsertHealthDailySummaryDto } from './dto/upsert-health-daily-summary.dto';
 import { UpsertWearableSnapshotDto } from './dto/upsert-wearable-snapshot.dto';
+import { HealthExceptionFilter } from './health-exception.filter';
 import { HealthService } from './health.service';
 
 @UseGuards(JwtAuthGuard)
+@UseFilters(HealthExceptionFilter)
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
