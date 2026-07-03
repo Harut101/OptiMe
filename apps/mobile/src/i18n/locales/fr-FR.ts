@@ -55,7 +55,7 @@ export const frFR = createLocaleResource({
     disconnectAppleHealth: 'Déconnecter Apple Health',
     appleHealthConnected: 'Apple Health connecté',
     appleHealthUnavailable: 'Apple Health est indisponible sur cet appareil.',
-    appleHealthNativeUnavailable: 'Apple Health nécessite une build iOS avec HealthKit activé.',
+    appleHealthNativeUnavailable: 'Apple Health nécessite une build iOS de développement. Expo Go n’inclut pas le module natif HealthKit.',
     appleHealthPermissionDenied: 'L’autorisation Apple Health n’a pas été accordée. Vous pouvez la gérer dans les réglages iOS.',
     appleHealthSynced: 'Données Apple Health synchronisées.',
     appleHealthNoData: 'Aucune donnée Apple Health trouvée pour aujourd’hui.',

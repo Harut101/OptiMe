@@ -35,7 +35,7 @@ export const nativeHealthService = {
         provider: provider ?? 'none',
         reason: 'PLATFORM_UNSUPPORTED'
       }, 'warn');
-      throw new NativeHealthServiceError('PLATFORM_UNSUPPORTED');
+      return unavailableResult('PLATFORM_UNSUPPORTED', provider ?? undefined);
     }
 
     if (!availability.available) {
@@ -43,11 +43,11 @@ export const nativeHealthService = {
         provider,
         reason: availability.reason
       }, 'warn');
-      await updateHealthConnectionStatus('APPLE_HEALTH', {
-        status: availability.reason === 'PLATFORM_UNSUPPORTED' ? 'DISABLED' : 'ERROR',
+      await updateConnectionStatusBestEffort('APPLE_HEALTH', {
+        status: getUnavailableConnectionStatus(availability.reason),
         errorCode: availability.reason
       });
-      throw new NativeHealthServiceError(availability.reason);
+      return unavailableResult(availability.reason, provider);
     }
 
     const permissions = await nativeHealthAdapter.requestPermissions();
@@ -60,11 +60,18 @@ export const nativeHealthService = {
         reason: 'APPLE_HEALTH_PERMISSION_DENIED',
         grantedCorePermissions: 0
       }, 'warn');
-      await updateHealthConnectionStatus('APPLE_HEALTH', {
+      await updateConnectionStatusBestEffort('APPLE_HEALTH', {
         status: 'NEEDS_REAUTH',
         errorCode: 'APPLE_HEALTH_PERMISSION_DENIED'
       });
-      throw new NativeHealthServiceError('APPLE_HEALTH_PERMISSION_DENIED');
+      return {
+        syncedDays: 0,
+        attemptedDays: 1,
+        source: provider,
+        fieldsPresent: 0,
+        messageCode: 'PERMISSION_DENIED',
+        errorCode: 'APPLE_HEALTH_PERMISSION_DENIED'
+      };
     }
 
     await connectHealthProvider({
@@ -120,7 +127,7 @@ export const nativeHealthService = {
         provider,
         attemptedDays: 1
       }, 'warn');
-      await updateHealthConnectionStatus('APPLE_HEALTH', {
+      await updateConnectionStatusBestEffort('APPLE_HEALTH', {
         status: 'CONNECTED',
         errorCode: 'APPLE_HEALTH_NO_DATA'
       });
@@ -211,4 +218,39 @@ function getBodyCode(body: unknown) {
   }
 
   return null;
+}
+
+function unavailableResult(
+  errorCode: string,
+  source?: NativeHealthSyncResult['source']
+): NativeHealthSyncResult {
+  return {
+    syncedDays: 0,
+    attemptedDays: 1,
+    source,
+    fieldsPresent: 0,
+    messageCode: 'UNAVAILABLE',
+    errorCode
+  };
+}
+
+function getUnavailableConnectionStatus(errorCode: string) {
+  return errorCode === 'PLATFORM_UNSUPPORTED' || errorCode === 'MISSING_NATIVE_MODULE'
+    ? 'DISABLED'
+    : 'ERROR';
+}
+
+async function updateConnectionStatusBestEffort(
+  source: Parameters<typeof updateHealthConnectionStatus>[0],
+  request: Parameters<typeof updateHealthConnectionStatus>[1]
+) {
+  try {
+    await updateHealthConnectionStatus(source, request);
+  } catch (error) {
+    logNativeHealthEvent('connection status update skipped', {
+      provider: source,
+      requestedStatus: request.status,
+      errorCode: error instanceof ApiError ? getBodyCode(error.body) ?? `HTTP_${error.status}` : 'STATUS_UPDATE_FAILED'
+    }, 'warn');
+  }
 }

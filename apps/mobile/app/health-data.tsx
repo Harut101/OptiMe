@@ -22,6 +22,8 @@ import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { nativeHealthService, NativeHealthServiceError } from '@/features/health/native-health.service';
 import { getHealthProviderLabel } from '@/i18n/enum-labels';
+import { formatNumber, formatTime } from '@/i18n/formatters';
+import { useSettingsStore } from '@/store/settings-store';
 import { colors } from '@/theme/colors';
 import type { HealthConnectionFoundation, HealthProvider, WearableSnapshotResponse } from '@/types/api';
 
@@ -29,6 +31,7 @@ const FOUNDATION_SOURCES: HealthProvider[] = ['APPLE_HEALTH', 'HEALTH_CONNECT', 
 
 export default function HealthDataScreen() {
   const { t } = useTranslation();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const connections = useQuery({
@@ -61,11 +64,7 @@ export default function HealthDataScreen() {
     mutationFn: nativeHealthService.syncAppleHealthToday,
     onSuccess: async (result) => {
       await refreshHealthQueries(queryClient);
-      setActionMessage(
-        result.messageCode === 'NO_DATA'
-          ? t('health.appleHealthNoData')
-          : t('health.appleHealthSynced')
-      );
+      setActionMessage(getAppleHealthResultMessage(t, result));
     },
     onError: (error) => {
       setActionMessage(getAppleHealthErrorMessage(t, error));
@@ -124,6 +123,7 @@ export default function HealthDataScreen() {
           onConnect={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
           onSync={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
           onDisconnect={source === 'APPLE_HEALTH' ? () => appleHealthDisconnect.mutate() : undefined}
+          locale={preferredLocale}
           isActionPending={
             source === 'APPLE_HEALTH' &&
             (appleHealthSync.isPending || appleHealthDisconnect.isPending)
@@ -134,6 +134,7 @@ export default function HealthDataScreen() {
       <WearableSnapshotCard
         snapshot={snapshot.data}
         isUnavailable={snapshot.isError}
+        locale={preferredLocale}
       />
 
       <Card>
@@ -196,6 +197,7 @@ function ConnectionCard({
   onConnect,
   onSync,
   onDisconnect,
+  locale,
   isActionPending = false
 }: {
   source: HealthProvider;
@@ -203,6 +205,7 @@ function ConnectionCard({
   onConnect?: () => void;
   onSync?: () => void;
   onDisconnect?: () => void;
+  locale: string;
   isActionPending?: boolean;
 }) {
   const { t } = useTranslation();
@@ -227,16 +230,16 @@ function ConnectionCard({
         />
       </View>
       </View>
-      <Text variant="body">{getProviderDescription(source, t)}</Text>
+      <Text variant="body">{getConnectionBodyCopy(source, isConnected, t)}</Text>
       <Text variant="muted">
-        {isConnected ? t('health.wearableDataConnected') : t('health.comingSoon')}
+        {getConnectionHelperCopy(source, isConnected, t)}
       </Text>
       {connection?.lastSyncAt ? (
-        <Text variant="muted">{t('health.lastSynced', { value: connection.lastSyncAt })}</Text>
+        <Text variant="muted">{t('health.lastSynced', { value: formatHealthTimestamp(connection.lastSyncAt, locale, t) })}</Text>
       ) : null}
       {source === 'APPLE_HEALTH' ? (
         <>
-          <Text variant="muted">{t('health.appleHealthIosOnly')}</Text>
+          {!isConnected ? <Text variant="muted">{t('health.appleHealthIosOnly')}</Text> : null}
           <View style={styles.actionRow}>
             {!isConnected ? (
               <Button
@@ -272,10 +275,12 @@ function ConnectionCard({
 
 function WearableSnapshotCard({
   snapshot,
-  isUnavailable
+  isUnavailable,
+  locale
 }: {
   snapshot?: WearableSnapshotResponse;
   isUnavailable: boolean;
+  locale: string;
 }) {
   const { t } = useTranslation();
 
@@ -314,12 +319,18 @@ function WearableSnapshotCard({
       </Text>
       <Text variant="muted">{getHealthProviderLabel(t, snapshot.snapshot.source)} · {snapshot.snapshot.localDate}</Text>
       <View style={styles.metricGrid}>
-        <MetricCard label={t('health.steps')} value={snapshot.snapshot.steps} tone="health" />
-        <MetricCard label={t('health.activeCalories')} value={snapshot.snapshot.activeCaloriesKcal} tone="training" />
-        <MetricCard label={t('health.sleepDuration')} value={snapshot.snapshot.sleepMinutes} tone="recovery" />
-        <MetricCard label={t('health.recoveryScore')} value={snapshot.snapshot.recoveryScore} tone="recovery" />
-        <MetricCard label={t('health.strain')} value={snapshot.snapshot.strainScore} tone="training" />
+        {getSnapshotMetrics(snapshot.snapshot, locale, t).map((metric) => (
+          <MetricCard
+            key={metric.label}
+            label={metric.label}
+            value={metric.value}
+            tone={metric.tone}
+          />
+        ))}
       </View>
+      {hasMissingAppleHealthMetric(snapshot.snapshot) ? (
+        <Text variant="muted">{t('health.appleHealthPartialData')}</Text>
+      ) : null}
     </Card>
   );
 }
@@ -338,9 +349,111 @@ function getProviderDescription(source: HealthProvider, t: TFunction) {
   return t('health.whoopDescription');
 }
 
+function getConnectionBodyCopy(source: HealthProvider, isConnected: boolean, t: TFunction) {
+  if (source === 'APPLE_HEALTH' && isConnected) {
+    return t('health.appleHealthConnected');
+  }
+
+  return getProviderDescription(source, t);
+}
+
+function getConnectionHelperCopy(source: HealthProvider, isConnected: boolean, t: TFunction) {
+  if (source === 'APPLE_HEALTH' && isConnected) {
+    return t('health.wearableDataConnected');
+  }
+
+  return source === 'APPLE_HEALTH' ? t('health.beforeConnect') : t('health.comingSoon');
+}
+
 function getProviderName(source: HealthProvider, t: TFunction) {
   if (source === 'HEALTH_CONNECT') return t('health.healthConnect');
   return getHealthProviderLabel(t, source);
+}
+
+function getSnapshotMetrics(
+  snapshot: NonNullable<WearableSnapshotResponse['snapshot']>,
+  locale: string,
+  t: TFunction
+) {
+  const baseMetrics = [
+    snapshot.steps !== null
+      ? { label: t('health.steps'), value: formatNumber(snapshot.steps, locale), tone: 'health' as const }
+      : null,
+    snapshot.activeCaloriesKcal !== null
+      ? {
+          label: t('health.activeCalories'),
+          value: t('todayDashboard.kcalValue', { value: formatNumber(snapshot.activeCaloriesKcal, locale) }),
+          tone: 'nutrition' as const
+        }
+      : null,
+    snapshot.sleepMinutes !== null
+      ? { label: t('health.sleepDuration'), value: formatSleep(snapshot.sleepMinutes, t), tone: 'recovery' as const }
+      : null,
+    snapshot.workoutMinutes !== null
+      ? {
+          label: t('health.workoutMinutes'),
+          value: t('todayDashboard.minuteValue', { value: String(snapshot.workoutMinutes) }),
+          tone: 'training' as const
+        }
+      : null
+  ].filter((metric): metric is NonNullable<typeof metric> => Boolean(metric));
+
+  if (snapshot.source === 'APPLE_HEALTH') {
+    return baseMetrics;
+  }
+
+  return [
+    ...baseMetrics,
+    snapshot.recoveryScore !== null
+      ? { label: t('health.recoveryScore'), value: formatNumber(snapshot.recoveryScore, locale), tone: 'recovery' as const }
+      : null,
+    snapshot.strainScore !== null
+      ? { label: t('health.strain'), value: formatNumber(snapshot.strainScore, locale), tone: 'training' as const }
+      : null
+  ].filter((metric): metric is NonNullable<typeof metric> => Boolean(metric));
+}
+
+function hasMissingAppleHealthMetric(snapshot: NonNullable<WearableSnapshotResponse['snapshot']>) {
+  return snapshot.source === 'APPLE_HEALTH' && [
+    snapshot.steps,
+    snapshot.activeCaloriesKcal,
+    snapshot.sleepMinutes,
+    snapshot.workoutMinutes
+  ].some((value) => value === null);
+}
+
+function formatSleep(value: number, t: TFunction) {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return hours > 0
+    ? t('todayDashboard.sleepValue', { hours: String(hours), minutes: String(minutes) })
+    : t('todayDashboard.minuteValue', { value: String(minutes) });
+}
+
+function formatHealthTimestamp(value: string, locale: string, t: TFunction) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return t('health.notSynced');
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const time = formatTime(date, locale);
+
+  if (isSameLocalDay(date, today)) {
+    return t('health.todayAt', { time });
+  }
+
+  if (isSameLocalDay(date, yesterday)) {
+    return t('health.yesterdayAt', { time });
+  }
+
+  return `${date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}, ${time}`;
+}
+
+function isSameLocalDay(left: Date, right: Date) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
 }
 
 async function refreshHealthQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -358,11 +471,39 @@ function getAppleHealthErrorMessage(t: TFunction, error: unknown) {
         : null;
 
   if (code === 'PLATFORM_UNSUPPORTED') return t('health.appleHealthUnavailable');
-  if (code === 'MISSING_NATIVE_MODULE') return t('health.appleHealthNativeUnavailable');
-  if (code === 'PERMISSION_UNAVAILABLE') return t('health.appleHealthUnavailable');
+  if (code === 'MISSING_NATIVE_MODULE') return getAppleHealthUnavailableMessage(t, code);
+  if (code === 'PERMISSION_UNAVAILABLE') return getAppleHealthUnavailableMessage(t, code);
   if (code === 'APPLE_HEALTH_PERMISSION_DENIED') return t('health.appleHealthPermissionDenied');
 
   return t('health.syncError');
+}
+
+function getAppleHealthResultMessage(
+  t: TFunction,
+  result: Awaited<ReturnType<typeof nativeHealthService.syncAppleHealthToday>>
+) {
+  if (result.messageCode === 'UNAVAILABLE') {
+    return getAppleHealthUnavailableMessage(t, result.errorCode);
+  }
+
+  if (result.messageCode === 'PERMISSION_DENIED') {
+    return t('health.appleHealthPermissionDenied');
+  }
+
+  if (result.messageCode === 'NO_DATA') {
+    return t('health.appleHealthNoData');
+  }
+
+  return t('health.appleHealthSynced');
+}
+
+function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
+  if (code === 'MISSING_NATIVE_MODULE') return t('health.appleHealthNativeUnavailable');
+  if (code === 'PERMISSION_UNAVAILABLE' || code === 'APPLE_HEALTH_UNAVAILABLE') {
+    return t('health.appleHealthUnavailable');
+  }
+
+  return t('health.providerUnavailable');
 }
 
 const styles = StyleSheet.create({

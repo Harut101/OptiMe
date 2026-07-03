@@ -57,7 +57,8 @@ export interface NativeHealthSyncResult {
   attemptedDays: number;
   source?: HealthProvider;
   fieldsPresent?: number;
-  messageCode?: 'SYNCED' | 'NO_DATA';
+  messageCode?: 'SYNCED' | 'NO_DATA' | 'UNAVAILABLE' | 'PERMISSION_DENIED';
+  errorCode?: string;
 }
 
 export interface NativeHealthAdapter {

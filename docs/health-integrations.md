@@ -4,6 +4,8 @@ Sprint 7 prepares OptiMe for health integrations and now includes the first real
 
 The integration strategy is summarized-data-first: read useful daily signals on device, sync only daily summaries to the backend, and use those summaries conservatively in planning.
 
+Apple Health is now the first real provider path. It syncs available daily activity, sleep, workout, and limited heart-rate-adjacent summary fields into `WearableDailySnapshot`. Missing metrics are represented as `null`, and one failed metric read does not fail the entire sync.
+
 ## Recovery-Aware Planning
 
 When a recent wearable snapshot exists, backend planning derives safe wearable and training-load summaries. These summaries can influence recovery wording, controlled-intensity training guidance, and nutrition target explanations. If data is missing or stale, plan generation continues from profile, preferences, and schedule.
@@ -72,6 +74,8 @@ Batch 4A feasibility result:
 - Config plugins are the preferred path.
 - `react-native-health-connect` / `expo-health-connect` is the leading Android candidate.
 - The Apple Health MVP uses `react-native-health` behind safe native-module checks.
+- Apple Health requires an iOS development or production build. Expo Go shows a safe unavailable state because it does not include the native HealthKit module.
+- RN new architecture remains disabled for the iOS development client until `react-native-health` compatibility is verified.
 - See `docs/health-native-feasibility.md` for full details.
 
 Batch 4B native spike result:

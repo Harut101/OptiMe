@@ -123,6 +123,28 @@ for (const [name, source] of [
 
 const health = read('app/health-data.tsx');
 assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard'], 'Connections');
+assertIncludes(health, [
+  "result.messageCode === 'UNAVAILABLE'",
+  'getAppleHealthUnavailableMessage',
+  "t('health.appleHealthNativeUnavailable')",
+  'getAppleHealthResultMessage'
+], 'Apple Health unavailable UI');
+assertIncludes(health, [
+  'formatHealthTimestamp',
+  'health.todayAt',
+  'health.yesterdayAt',
+  'getConnectionBodyCopy',
+  'getConnectionHelperCopy',
+  '!isConnected ? <Text variant="muted">{t(\'health.appleHealthIosOnly\')}</Text> : null'
+], 'Apple Health connection polish');
+assertIncludes(health, [
+  'getSnapshotMetrics',
+  "snapshot.source === 'APPLE_HEALTH'",
+  'hasMissingAppleHealthMetric',
+  "t('health.appleHealthPartialData')",
+  "t('health.workoutMinutes')"
+], 'Apple Health snapshot metrics');
+assert(!health.includes('console.error'), 'Expected Apple Health unavailable states must not console.error from UI.');
 assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown.');
 
 const nativeHealthIos = read('src/features/health/native-health.ios.ts');
@@ -136,6 +158,9 @@ assertIncludes(nativeHealthIos, [
   'countPresentFields(sanitized)'
 ], 'Apple Health metric hardening');
 assertIncludes(nativeHealthService, [
+  'unavailableResult',
+  "messageCode: 'UNAVAILABLE'",
+  'updateConnectionStatusBestEffort',
   'wearable snapshot POST failed',
   "status: 'ERROR'",
   "status: 'NEEDS_REAUTH'",

@@ -15,7 +15,11 @@ Apple Health sync must be tested on an iPhone development or production build. E
 9. Grant at least one core permission: steps, sleep, workouts, or active energy.
 10. Confirm the UI shows a synced or no-data message.
 11. Confirm the Apple Health connection status updates.
-12. Confirm Today can generate a plan with or without synced data.
+12. Confirm `Last synced` is formatted for people, not shown as a raw ISO timestamp.
+13. Confirm the Apple Health card no longer shows the dev/prod build helper text after it is connected.
+14. Confirm the Wearable Snapshot card shows Apple Health-appropriate metrics: steps, active calories, sleep if available, and workout minutes if available.
+15. Confirm Recovery score and Strain are not shown as normal Apple Health metric cards.
+16. Confirm Today can generate a plan with or without synced data.
 
 ## Denied Permission
 
@@ -31,7 +35,12 @@ Apple Health sync must be tested on an iPhone development or production build. E
 2. Open Profile -> Connections.
 3. Tap Connect Apple Health or Sync Apple Health.
 4. Confirm OptiMe shows the development-build-required message.
-5. Confirm no backend snapshot is created.
+5. Confirm no red screen appears.
+6. Confirm no backend snapshot is created.
+
+Expected message:
+
+`Apple Health requires an iOS development build. Expo Go does not include the native HealthKit module.`
 
 ## Android
 
@@ -48,3 +57,12 @@ After a successful iOS sync:
 - `recoveryScore` and `strainScore` should remain `null`.
 - Missing Apple Health values should be `null`, not invented.
 - `GET /v1/health/connections` should show Apple Health connected with `lastSyncAt`.
+
+## Native Rebuild Checklist
+
+If the iOS build shows `MISSING_NATIVE_MODULE` even though this is not Expo Go:
+
+1. Confirm the app was rebuilt after adding or changing `react-native-health`.
+2. Reinstall the development client on the iPhone.
+3. Confirm RN new architecture remains disabled for this native health path until `react-native-health` compatibility is verified.
+4. Relaunch the app and retry Connect Apple Health.

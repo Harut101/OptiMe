@@ -55,7 +55,7 @@ export const zhCN = createLocaleResource({
     disconnectAppleHealth: '断开 Apple 健康',
     appleHealthConnected: 'Apple 健康已连接',
     appleHealthUnavailable: '此设备无法使用 Apple 健康。',
-    appleHealthNativeUnavailable: 'Apple 健康需要启用 HealthKit 的 iOS 开发版。',
+    appleHealthNativeUnavailable: 'Apple 健康需要 iOS 开发构建。Expo Go 不包含原生 HealthKit 模块。',
     appleHealthPermissionDenied: '未授予 Apple 健康权限。你可以在 iOS 设置中管理权限。',
     appleHealthSynced: 'Apple 健康数据已同步。',
     appleHealthNoData: '今天未找到 Apple 健康数据。',

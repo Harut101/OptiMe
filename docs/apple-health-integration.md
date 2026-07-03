@@ -36,6 +36,14 @@ Required native setup:
 
 The adapter returns a safe unavailable state when the native module is missing, including in Expo Go.
 
+## iOS Build Notes
+
+Apple Health does not work in Expo Go because Expo Go does not include the native HealthKit module used by `react-native-health`. Use an iOS development or production build for physical-device QA.
+
+During physical iPhone QA, `react-native-health` was missing from `NativeModules` while React Native new architecture was enabled. The project keeps RN new architecture disabled for the iOS dev client until `react-native-health` is verified to work safely with it. After changing native health configuration, rebuild and reinstall the iOS development client before retesting.
+
+The iOS native project may be generated outside this repository checkout. The source-of-truth Expo configuration is `apps/mobile/app.json`, which includes HealthKit entitlements and HealthKit usage descriptions.
+
 ## Permissions
 
 OptiMe requests read-only access for:
@@ -49,6 +57,8 @@ OptiMe requests read-only access for:
 - respiratory rate
 
 Permissions are requested only when the user taps Connect or Sync. If permission is denied, OptiMe marks the connection as needing attention and keeps the app usable.
+
+Partial permissions are allowed. If at least one useful metric can be read, OptiMe syncs the available daily snapshot fields and leaves unavailable metrics as `null`.
 
 ## Snapshot Mapping
 
@@ -66,6 +76,19 @@ Apple Health values are normalized into `WearableDailySnapshot`:
 - `strainScore`: `null`
 
 Missing data remains `null`. OptiMe does not invent values or compute WHOOP-style recovery/strain from Apple Health in this MVP.
+
+One failed metric read must not fail the whole sync. Native diagnostics log the metric name, date, and safe reason, then continue with that metric as unavailable.
+
+## UI Behavior
+
+After a successful sync, Apple Health shows as connected, `lastSyncAt` is formatted as user-friendly text, and the wearable snapshot card displays Apple Health-appropriate metrics:
+
+- steps
+- active calories
+- sleep duration when available
+- workout minutes when available
+
+Apple Health does not provide WHOOP-style recovery score or strain, so those cards are not shown for Apple Health snapshots. If only part of the Apple Health snapshot is available, the UI shows a calm note that some metrics were unavailable for that sync.
 
 ## Safety Boundary
 

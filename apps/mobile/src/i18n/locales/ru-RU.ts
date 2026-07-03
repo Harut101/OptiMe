@@ -55,7 +55,7 @@ export const ruRU = createLocaleResource({
     disconnectAppleHealth: 'Отключить Apple Health',
     appleHealthConnected: 'Apple Health подключён',
     appleHealthUnavailable: 'Apple Health недоступен на этом устройстве.',
-    appleHealthNativeUnavailable: 'Для Apple Health нужна iOS development-сборка с включённым HealthKit.',
+    appleHealthNativeUnavailable: 'Для Apple Health нужна iOS development-сборка. Expo Go не включает нативный модуль HealthKit.',
     appleHealthPermissionDenied: 'Разрешение Apple Health не предоставлено. Его можно изменить в настройках iOS.',
     appleHealthSynced: 'Данные Apple Health синхронизированы.',
     appleHealthNoData: 'За сегодня данных Apple Health не найдено.',

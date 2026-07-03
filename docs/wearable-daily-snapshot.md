@@ -40,6 +40,8 @@ Rules:
 - nullable fields are accepted for missing permissions or unavailable data
 - upsert key is user, source, and local date
 - connection status is marked connected and `lastSyncAt` is updated after successful sync
+- same-day snapshots are upserted by user, source, and local date
+- Apple Health `recoveryScore` and `strainScore` remain `null`
 
 Apple Health maps:
 
@@ -64,6 +66,17 @@ Daily Plan debug metadata may include only:
 - localDate
 
 It must not include exact steps, sleep minutes, calories, HRV, RHR, or respiratory rate.
+
+## Mobile Display
+
+Apple Health snapshots are displayed with Apple Health-appropriate fields only:
+
+- steps
+- active calories
+- sleep duration when available
+- workout minutes when available
+
+The mobile UI should not show empty Recovery score or Strain cards for Apple Health. Those fields are reserved for providers that actually supply recovery/strain-style metrics, such as future WHOOP support.
 
 ## Stale Behavior
 

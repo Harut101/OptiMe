@@ -17,6 +17,7 @@ export function Screen({ children, scroll = true, refreshing = false, onRefresh 
     <SafeAreaView style={styles.safeArea}>
       {scroll ? (
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scroll}
           refreshControl={onRefresh ? (
