@@ -65,9 +65,9 @@ export function sanitizeWearableSnapshot(
     sleepQualityScore: null,
     recoveryScore: null,
     strainScore: null,
-    restingHeartRateBpm: sanitizeIntegerOrNull(snapshot.restingHeartRateBpm, 30, 220),
-    hrvMs: sanitizeIntegerOrNull(snapshot.hrvMs, 1, 300),
-    respiratoryRate: sanitizeNumberOrNull(snapshot.respiratoryRate, 5, 40),
+    restingHeartRateBpm: null,
+    hrvMs: null,
+    respiratoryRate: null,
     capturedAt
   };
 
@@ -94,7 +94,10 @@ export function makeEmptyWearableSnapshot(
     timezone: getDeviceTimezone(),
     source: provider,
     recoveryScore: null,
-    strainScore: null
+    strainScore: null,
+    restingHeartRateBpm: null,
+    hrvMs: null,
+    respiratoryRate: null
   };
 }
 
@@ -113,10 +116,7 @@ export function hasWearableSnapshotData(snapshot: NativeWearableSnapshotInput) {
     snapshot.steps !== undefined && snapshot.steps !== null ||
     snapshot.sleepMinutes !== undefined && snapshot.sleepMinutes !== null ||
     snapshot.activeCaloriesKcal !== undefined && snapshot.activeCaloriesKcal !== null ||
-    snapshot.workoutMinutes !== undefined && snapshot.workoutMinutes !== null ||
-    snapshot.restingHeartRateBpm !== undefined && snapshot.restingHeartRateBpm !== null ||
-    snapshot.hrvMs !== undefined && snapshot.hrvMs !== null ||
-    snapshot.respiratoryRate !== undefined && snapshot.respiratoryRate !== null
+    snapshot.workoutMinutes !== undefined && snapshot.workoutMinutes !== null
   );
 }
 

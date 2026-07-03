@@ -43,7 +43,7 @@ Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact
 
 Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Real native permissions, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
 
-Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, Health Connections UI states, friendly last-sync display, and Apple Health-specific snapshot metrics. Health Connect real sync, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
+Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, Health Connections UI states, friendly last-sync display, and Apple Health-specific snapshot metrics. The MVP permission scope is intentionally limited to activity and sleep signals; respiratory rate, resting heart rate, and HRV remain future nullable fields until advanced recovery/training-load UX is introduced. Health Connect real sync, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
 
 ## UI/UX Polish Sprint
 

@@ -155,8 +155,23 @@ assertIncludes(nativeHealthIos, [
   'metric read failed',
   'resolve(null)',
   'normalized wearable snapshot payload',
-  'countPresentFields(sanitized)'
+  'countPresentFields(sanitized)',
+  "const READ_PERMISSION_KEYS = [",
+  "'StepCount'",
+  "'ActiveEnergyBurned'",
+  "'AppleExerciseTime'",
+  "'SleepAnalysis'",
+  'futureFieldsDefaultedToNull',
+  'snapshot.restingHeartRateBpm = null',
+  'snapshot.hrvMs = null',
+  'snapshot.respiratoryRate = null'
 ], 'Apple Health metric hardening');
+for (const advancedPermission of ['RestingHeartRate', 'HeartRateVariabilitySDNN', 'RespiratoryRate']) {
+  assert(!nativeHealthIos.includes(`'${advancedPermission}'`), `Apple Health MVP must not request ${advancedPermission}.`);
+}
+for (const advancedRead of ['getRestingHeartRate', 'getHeartRateVariabilitySamples', 'getRespiratoryRateSamples']) {
+  assert(!nativeHealthIos.includes(advancedRead), `Apple Health MVP must not read ${advancedRead}.`);
+}
 assertIncludes(nativeHealthService, [
   'unavailableResult',
   "messageCode: 'UNAVAILABLE'",

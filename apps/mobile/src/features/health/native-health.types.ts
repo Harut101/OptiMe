@@ -42,9 +42,9 @@ export interface NativeWearableSnapshotInput {
   sleepQualityScore?: number | null;
   recoveryScore?: null;
   strainScore?: null;
-  restingHeartRateBpm?: number | null;
-  hrvMs?: number | null;
-  respiratoryRate?: number | null;
+  restingHeartRateBpm?: null;
+  hrvMs?: null;
+  respiratoryRate?: null;
   capturedAt?: string;
 }
 

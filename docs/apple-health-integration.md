@@ -46,19 +46,18 @@ The iOS native project may be generated outside this repository checkout. The so
 
 ## Permissions
 
-OptiMe requests read-only access for:
+OptiMe currently requests read-only access only for MVP activity and sleep signals:
 
 - steps
 - active energy
 - exercise time / workouts
 - sleep analysis
-- resting heart rate
-- HRV
-- respiratory rate
 
 Permissions are requested only when the user taps Connect or Sync. If permission is denied, OptiMe marks the connection as needing attention and keeps the app usable.
 
 Partial permissions are allowed. If at least one useful metric can be read, OptiMe syncs the available daily snapshot fields and leaves unavailable metrics as `null`.
+
+Respiratory rate, resting heart rate, and HRV are intentionally not requested in the MVP permission sheet because they are more medical-looking and are not currently used in user-facing behavior. They can be added later behind an advanced recovery/training-load feature with clearer explanation.
 
 ## Snapshot Mapping
 
@@ -69,9 +68,9 @@ Apple Health values are normalized into `WearableDailySnapshot`:
 - `activeCaloriesKcal`: active energy when available
 - `workoutMinutes`: exercise time when available
 - `sleepMinutes`: sleep sample duration when available
-- `restingHeartRateBpm`: resting heart rate when available
-- `hrvMs`: HRV SDNN when available
-- `respiratoryRate`: respiratory rate when available
+- `restingHeartRateBpm`: `null` in the MVP Apple Health sync
+- `hrvMs`: `null` in the MVP Apple Health sync
+- `respiratoryRate`: `null` in the MVP Apple Health sync
 - `recoveryScore`: `null`
 - `strainScore`: `null`
 

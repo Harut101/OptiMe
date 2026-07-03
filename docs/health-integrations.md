@@ -4,7 +4,9 @@ Sprint 7 prepares OptiMe for health integrations and now includes the first real
 
 The integration strategy is summarized-data-first: read useful daily signals on device, sync only daily summaries to the backend, and use those summaries conservatively in planning.
 
-Apple Health is now the first real provider path. It syncs available daily activity, sleep, workout, and limited heart-rate-adjacent summary fields into `WearableDailySnapshot`. Missing metrics are represented as `null`, and one failed metric read does not fail the entire sync.
+Apple Health is now the first real provider path. The MVP sync requests activity and sleep signals only: steps, active energy, exercise/workout minutes, and sleep. Missing metrics are represented as `null`, and one failed metric read does not fail the entire sync.
+
+Respiratory rate, resting heart rate, and HRV remain future-ready nullable fields in `WearableDailySnapshot`, but Apple Health does not request or read them yet.
 
 ## Recovery-Aware Planning
 

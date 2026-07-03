@@ -12,14 +12,16 @@ Apple Health sync must be tested on an iPhone development or production build. E
 6. Confirm Apple Health card is visible and says it is iOS-only.
 7. Tap Connect Apple Health.
 8. Confirm the iOS permission sheet appears.
-9. Grant at least one core permission: steps, sleep, workouts, or active energy.
-10. Confirm the UI shows a synced or no-data message.
-11. Confirm the Apple Health connection status updates.
-12. Confirm `Last synced` is formatted for people, not shown as a raw ISO timestamp.
-13. Confirm the Apple Health card no longer shows the dev/prod build helper text after it is connected.
-14. Confirm the Wearable Snapshot card shows Apple Health-appropriate metrics: steps, active calories, sleep if available, and workout minutes if available.
-15. Confirm Recovery score and Strain are not shown as normal Apple Health metric cards.
-16. Confirm Today can generate a plan with or without synced data.
+9. Confirm the permission sheet asks only for MVP activity and sleep data: steps, sleep, workouts/exercise minutes, and active energy.
+10. Confirm it does not request respiratory rate, resting heart rate, or HRV.
+11. Grant at least one core permission: steps, sleep, workouts, or active energy.
+12. Confirm the UI shows a synced or no-data message.
+13. Confirm the Apple Health connection status updates.
+14. Confirm `Last synced` is formatted for people, not shown as a raw ISO timestamp.
+15. Confirm the Apple Health card no longer shows the dev/prod build helper text after it is connected.
+16. Confirm the Wearable Snapshot card shows Apple Health-appropriate metrics: steps, active calories, sleep if available, and workout minutes if available.
+17. Confirm Recovery score, Strain, Respiratory Rate, Resting HR, and HRV are not shown as normal Apple Health metric cards.
+18. Confirm Today can generate a plan with or without synced data.
 
 ## Denied Permission
 
@@ -55,6 +57,7 @@ After a successful iOS sync:
 
 - `GET /v1/health/wearable-snapshots/today` should return `source: APPLE_HEALTH`.
 - `recoveryScore` and `strainScore` should remain `null`.
+- `restingHeartRateBpm`, `hrvMs`, and `respiratoryRate` should remain `null` for MVP Apple Health sync.
 - Missing Apple Health values should be `null`, not invented.
 - `GET /v1/health/connections` should show Apple Health connected with `lastSyncAt`.
 

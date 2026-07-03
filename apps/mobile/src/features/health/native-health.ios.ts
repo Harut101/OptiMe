@@ -29,9 +29,6 @@ type AppleHealthKitModule = {
   getActiveEnergyBurned?: HealthCallbackMethod;
   getAppleExerciseTime?: HealthCallbackMethod;
   getSleepSamples?: HealthCallbackMethod;
-  getRestingHeartRate?: HealthCallbackMethod;
-  getHeartRateVariabilitySamples?: HealthCallbackMethod;
-  getRespiratoryRateSamples?: HealthCallbackMethod;
 };
 
 type HealthCallbackMethod = (
@@ -43,19 +40,16 @@ type AppleHealthMetricName =
   | 'steps'
   | 'activeEnergy'
   | 'exerciseTime'
-  | 'sleep'
-  | 'restingHeartRate'
-  | 'hrv'
-  | 'respiratoryRate';
+  | 'sleep';
+
+const REQUESTED_METRICS = 'steps, activeEnergy, exerciseMinutes, sleep';
+const FUTURE_NULL_FIELDS = 'restingHeartRateBpm, hrvMs, respiratoryRate, recoveryScore, strainScore';
 
 const READ_PERMISSION_KEYS = [
   'StepCount',
   'ActiveEnergyBurned',
   'AppleExerciseTime',
-  'SleepAnalysis',
-  'RestingHeartRate',
-  'HeartRateVariabilitySDNN',
-  'RespiratoryRate'
+  'SleepAnalysis'
 ];
 
 export const nativeHealthAdapter: NativeHealthAdapter = {
@@ -148,9 +142,8 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
             sleep: true,
             workouts: true,
             activeEnergy: true,
-            restingHeartRate: true,
-            hrv: true,
-            respiratoryRate: true
+            requestedMetrics: REQUESTED_METRICS,
+            futureFieldsDefaultedToNull: FUTURE_NULL_FIELDS
           });
           resolve({
             steps: true,
@@ -159,9 +152,9 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
             activeEnergy: true,
             weight: false,
             heartRate: false,
-            restingHeartRate: true,
-            hrv: true,
-            respiratoryRate: true
+            restingHeartRate: false,
+            hrv: false,
+            respiratoryRate: false
           });
         }
       );
@@ -185,15 +178,12 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
       const { localDate, start, end } = getLocalDayRange(daysAgo);
       const snapshot = makeEmptyWearableSnapshot('APPLE_HEALTH', localDate);
       const query = { startDate: start.toISOString(), endDate: end.toISOString() };
-      const [steps, activeEnergy, exerciseTime, sleep, restingHeartRate, hrv, respiratoryRate] =
+      const [steps, activeEnergy, exerciseTime, sleep] =
         await Promise.all([
           readMetricSafely('steps', appleHealth.getStepCount, query, localDate),
           readMetricSafely('activeEnergy', appleHealth.getActiveEnergyBurned, query, localDate),
           readMetricSafely('exerciseTime', appleHealth.getAppleExerciseTime, query, localDate),
-          readMetricSafely('sleep', appleHealth.getSleepSamples, query, localDate),
-          readMetricSafely('restingHeartRate', appleHealth.getRestingHeartRate, query, localDate),
-          readMetricSafely('hrv', appleHealth.getHeartRateVariabilitySamples, query, localDate),
-          readMetricSafely('respiratoryRate', appleHealth.getRespiratoryRateSamples, query, localDate)
+          readMetricSafely('sleep', appleHealth.getSleepSamples, query, localDate)
         ]);
 
       snapshot.steps = firstNumericValue(steps, ['value', 'count']);
@@ -201,9 +191,9 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
       snapshot.workoutMinutes =
         sumNumericValues(exerciseTime, ['value', 'minutes']) ?? sumDurationMinutes(exerciseTime);
       snapshot.sleepMinutes = sumDurationMinutes(sleep);
-      snapshot.restingHeartRateBpm = firstNumericValue(restingHeartRate, ['value']);
-      snapshot.hrvMs = firstNumericValue(hrv, ['value']);
-      snapshot.respiratoryRate = firstNumericValue(respiratoryRate, ['value']);
+      snapshot.restingHeartRateBpm = null;
+      snapshot.hrvMs = null;
+      snapshot.respiratoryRate = null;
       snapshot.capturedAt = new Date().toISOString();
 
       const sanitized = sanitizeWearableSnapshot(snapshot);
@@ -216,9 +206,8 @@ export const nativeHealthAdapter: NativeHealthAdapter = {
           hasActiveCalories: sanitized.activeCaloriesKcal !== null,
           hasWorkoutMinutes: sanitized.workoutMinutes !== null,
           hasSleepMinutes: sanitized.sleepMinutes !== null,
-          hasRestingHeartRate: sanitized.restingHeartRateBpm !== null,
-          hasHrv: sanitized.hrvMs !== null,
-          hasRespiratoryRate: sanitized.respiratoryRate !== null
+          requestedMetrics: REQUESTED_METRICS,
+          futureFieldsDefaultedToNull: FUTURE_NULL_FIELDS
         });
         snapshots.push(sanitized);
       } else {
@@ -335,10 +324,7 @@ function countPresentFields(snapshot: NativeWearableSnapshotInput) {
     snapshot.steps,
     snapshot.activeCaloriesKcal,
     snapshot.workoutMinutes,
-    snapshot.sleepMinutes,
-    snapshot.restingHeartRateBpm,
-    snapshot.hrvMs,
-    snapshot.respiratoryRate
+    snapshot.sleepMinutes
   ].filter((value) => value !== undefined && value !== null).length;
 }
 
