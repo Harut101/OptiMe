@@ -45,9 +45,12 @@ Today checks the current Weekly Routine day when a training-enabled user taps Ge
 - Training-enabled users with a configured training day proceed directly to plan generation.
 - Training-enabled users whose current weekday is a rest day are asked, "Are you training today?"
 - Choosing the rest-day option generates a nutrition/recovery plan without a normal workout.
-- Choosing the workout option opens the current weekday editor so the user can update their usual Weekly Routine before generation continues.
+- Choosing the workout option opens a Today-only editor that saves `DailyTrainingOverride` for the current local date. It does not change the usual Weekly Routine.
+- Choosing Edit Weekly Routine opens the recurring weekday editor explicitly.
 
-This is intentionally not a one-off calendar exception. The current sprint updates the repeating weekday routine. A future batch may add date-specific overrides.
+Training-day users can also choose Rest today only from Today. This creates a one-off rest override and leaves the usual routine unchanged.
+
+Move workout is available as a backend foundation: it creates a one-off rest override on the source date and a one-off training override on the target date. A fuller calendar-style mobile UI is still deferred.
 
 ## Duration-Based Workout Volume
 

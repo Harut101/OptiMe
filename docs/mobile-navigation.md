@@ -23,7 +23,9 @@ Workout history is a standalone route opened from Training and Profile. Complete
 
 The Training tab shows Today's workout or rest day, a training-load note, Weekly Routine, Workout History, and a small Edit Training Setup action. The old visible Weekly Schedule wording is replaced by Weekly Routine. Training Setup is no longer a tab switch and no longer collects global pain/limitations or preferred training days.
 
-Today's Generate Plan action can open the current weekday editor when training mode is enabled and the resolved Weekly Routine day is a rest day. The return path uses the existing Weekly Routine day route, saves the weekday template first, then returns to Today with a generation continuation flag. If a plan already exists, Today asks the user to refresh instead of silently replacing it.
+Today's Generate Plan action can open the Today-only training override editor when training mode is enabled and the resolved routine day is a rest day. The return path saves `/training-overrides/:localDate`, then returns to Today with a generation continuation flag. If a plan already exists, Today asks the user to refresh instead of silently replacing it.
+
+The recurring Weekly Routine editor is still reachable from the prompt through an explicit Edit Weekly Routine action. This keeps one-off training changes separate from the usual weekly template.
 
 Starting a workout from Plan Details Training shows a skippable pre-workout check before opening `workout-session`. This check applies only to the new workout session and does not change the Daily Plan.
 

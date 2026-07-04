@@ -18,6 +18,7 @@ import { ProtocolModule } from './modules/protocol/protocol.module';
 import { SafetyAgentModule } from './modules/safety-agent/safety-agent.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TrainingPreferencesModule } from './modules/training-preferences/training-preferences.module';
+import { TrainingOverridesModule } from './modules/training-overrides/training-overrides.module';
 import { TrainingScheduleModule } from './modules/training-schedule/training-schedule.module';
 import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
@@ -40,6 +41,7 @@ import { PrismaModule } from './prisma/prisma.module';
     NutritionPreferencesModule,
     NutritionTargetsModule,
     TrainingScheduleModule,
+    TrainingOverridesModule,
     TrainingPreferencesModule,
     ProgressiveProfileModule,
     ProtocolModule,

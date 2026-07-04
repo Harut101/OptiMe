@@ -33,6 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="design-system-preview" options={{ title: t('navigation.designSystem'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="training-schedule/create" options={{ title: t('navigation.addWorkout'), headerBackTitle: t('tabs.training') }} />
         <Stack.Screen name="training-schedule/edit" options={{ title: t('navigation.editWorkout'), headerBackTitle: t('tabs.training') }} />
+        <Stack.Screen name="training-overrides/day" options={{ title: t('trainingOverrides.todayOnly'), headerBackTitle: t('tabs.today') }} />
       </Stack>
     </AppProviders>
   );

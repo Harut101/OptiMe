@@ -1,5 +1,6 @@
 import request from 'supertest';
 import {
+  DailyTrainingOverrideSource,
   ExerciseEquipment,
   TargetMuscleGroup,
   TrainingEnvironment,
@@ -181,6 +182,246 @@ describe('Weekly Training Schedule', () => {
     expect(plan.body.plan.training.exercises ?? []).toHaveLength(0);
   });
 
+  it('resolves one-off training override before weekly rest day without mutating the routine', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTrainingPreference(user.user.id);
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-schedule')
+      .set(authHeader(user.accessToken))
+      .send(weeklyPayload({
+        FRIDAY: { isTrainingDay: false }
+      }))
+      .expect(200);
+
+    const override = await request(ctx.app.getHttpServer())
+      .put('/v1/training-overrides/2026-06-26')
+      .set(authHeader(user.accessToken))
+      .send({
+        overrideType: 'TRAINING_DAY',
+        targetMuscles: ['CHEST'],
+        environment: 'HOME',
+        availableEquipment: ['BARBELL'],
+        durationMinutes: 75,
+        source: 'USER_SELECTED_TRAIN_TODAY'
+      })
+      .expect(200);
+
+    expect(override.body.source).toBe(DailyTrainingOverrideSource.USER_SELECTED_TRAIN_TODAY);
+
+    const resolved = await resolver.resolveForUser({
+      userId: user.user.id,
+      planLocalDate: '2026-06-26',
+      trainingPreference: await ctx.prisma.trainingPreference.findUnique({ where: { userId: user.user.id } }),
+      legacyScheduleItems: [],
+      noTrainingPlanned: false
+    });
+
+    expect(resolved.source).toBe('DAILY_OVERRIDE');
+    expect(resolved.overrideType).toBe('TRAINING_DAY');
+    expect(resolved.isTrainingDay).toBe(true);
+    expect(resolved.durationMinutes).toBe(75);
+    expect(resolved.availableEquipment).toEqual([ExerciseEquipment.BARBELL]);
+
+    const schedule = await request(ctx.app.getHttpServer())
+      .get('/v1/training-schedule')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    const friday = schedule.body.days.find((day: { dayOfWeek: string }) => day.dayOfWeek === 'FRIDAY');
+    expect(friday.isTrainingDay).toBe(false);
+  });
+
+  it('resolves one-off rest override before weekly training day', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTrainingPreference(user.user.id);
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-schedule')
+      .set(authHeader(user.accessToken))
+      .send(weeklyPayload({
+        MONDAY: {
+          isTrainingDay: true,
+          durationMode: 'CUSTOM',
+          durationMinutes: 60,
+          equipmentMode: 'CUSTOM',
+          availableEquipment: ['BARBELL']
+        }
+      }))
+      .expect(200);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-overrides/2026-06-22')
+      .set(authHeader(user.accessToken))
+      .send({
+        overrideType: 'REST_DAY',
+        source: 'USER_SELECTED_REST_TODAY'
+      })
+      .expect(200);
+
+    const resolved = await resolver.resolveForUser({
+      userId: user.user.id,
+      planLocalDate: '2026-06-22',
+      trainingPreference: await ctx.prisma.trainingPreference.findUnique({ where: { userId: user.user.id } }),
+      legacyScheduleItems: [],
+      noTrainingPlanned: false
+    });
+
+    expect(resolved.source).toBe('DAILY_OVERRIDE');
+    expect(resolved.overrideType).toBe('REST_DAY');
+    expect(resolved.isTrainingDay).toBe(false);
+    expect(resolved.availableEquipment).not.toContain(ExerciseEquipment.BARBELL);
+  });
+
+  it('validates daily override API ownership, dates, duplicates, and idempotent delete', async () => {
+    const owner = await registerTestUser(ctx.app, 'override-owner@example.com');
+    const other = await registerTestUser(ctx.app, 'override-other@example.com');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-overrides/not-a-date')
+      .set(authHeader(owner.accessToken))
+      .send({ overrideType: 'REST_DAY' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-overrides/2026-06-27')
+      .set(authHeader(owner.accessToken))
+      .send({
+        overrideType: 'TRAINING_DAY',
+        availableEquipment: ['BARBELL', 'BARBELL']
+      })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-overrides/2026-06-27')
+      .set(authHeader(owner.accessToken))
+      .send({
+        overrideType: 'TRAINING_DAY',
+        environment: 'GYM',
+        availableEquipment: [],
+        durationMinutes: 30
+      })
+      .expect(200);
+
+    const otherRead = await request(ctx.app.getHttpServer())
+      .get('/v1/training-overrides?date=2026-06-27')
+      .set(authHeader(other.accessToken))
+      .expect(200);
+    expect(otherRead.body.override).toBeNull();
+
+    const ownerRead = await request(ctx.app.getHttpServer())
+      .get('/v1/training-overrides?date=2026-06-27')
+      .set(authHeader(owner.accessToken))
+      .expect(200);
+    expect(ownerRead.body.override.overrideType).toBe('TRAINING_DAY');
+    expect(ownerRead.body.override.environment).toBe('GYM');
+    expect(ownerRead.body.override.availableEquipment).toEqual([]);
+
+    await request(ctx.app.getHttpServer())
+      .delete('/v1/training-overrides/2026-06-27')
+      .set(authHeader(owner.accessToken))
+      .expect(200);
+
+    const deleted = await request(ctx.app.getHttpServer())
+      .get('/v1/training-overrides?date=2026-06-27')
+      .set(authHeader(owner.accessToken))
+      .expect(200);
+    expect(deleted.body.override).toBeNull();
+  });
+
+  it('moves a workout by creating rest and training overrides without changing routine', async () => {
+    const user = await registerTestUser(ctx.app);
+    await createTrainingPreference(user.user.id);
+    await request(ctx.app.getHttpServer())
+      .put('/v1/training-schedule')
+      .set(authHeader(user.accessToken))
+      .send(weeklyPayload({
+        MONDAY: {
+          isTrainingDay: true,
+          targetMusclesMode: 'CUSTOM',
+          targetMuscles: ['CHEST'],
+          durationMode: 'CUSTOM',
+          durationMinutes: 60
+        }
+      }))
+      .expect(200);
+
+    const moved = await request(ctx.app.getHttpServer())
+      .post('/v1/training-overrides/move-workout')
+      .set(authHeader(user.accessToken))
+      .send({
+        fromLocalDate: '2026-06-22',
+        toLocalDate: '2026-06-24'
+      })
+      .expect(201);
+
+    expect(moved.body.from.overrideType).toBe('REST_DAY');
+    expect(moved.body.to.overrideType).toBe('TRAINING_DAY');
+    expect(moved.body.to.durationMinutes).toBe(60);
+    expect(moved.body.to.targetMuscles).toEqual(['CHEST']);
+
+    const schedule = await request(ctx.app.getHttpServer())
+      .get('/v1/training-schedule')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    const monday = schedule.body.days.find((day: { dayOfWeek: string }) => day.dayOfWeek === 'MONDAY');
+    expect(monday.isTrainingDay).toBe(true);
+  });
+
+  it('stores a daily override source snapshot in newly generated daily plans', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStageOne(user.accessToken);
+    await createTrainingPreference(user.user.id);
+    const today = todayLocalDate();
+
+    await request(ctx.app.getHttpServer())
+      .put(`/v1/training-overrides/${today}`)
+      .set(authHeader(user.accessToken))
+      .send({
+        overrideType: 'TRAINING_DAY',
+        targetMuscles: ['CHEST'],
+        availableEquipment: ['BODYWEIGHT'],
+        durationMinutes: 75,
+        source: 'USER_SELECTED_TRAIN_TODAY'
+      })
+      .expect(200);
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    expect(plan.body.plan.trainingScheduleSnapshot.source).toBe('DAILY_OVERRIDE');
+    expect(plan.body.plan.trainingScheduleSnapshot.overrideType).toBe('TRAINING_DAY');
+    expect(plan.body.plan.trainingScheduleSnapshot.durationMinutes).toBe(75);
+    expect(plan.body.plan.debug.exerciseSelection.workoutDurationMinutes).toBe(75);
+  });
+
+  it('uses a daily rest override to generate a rest-day plan without exercises', async () => {
+    const user = await registerTestUser(ctx.app);
+    await completeStageOne(user.accessToken);
+    await createTrainingPreference(user.user.id);
+    const today = todayLocalDate();
+
+    await request(ctx.app.getHttpServer())
+      .put(`/v1/training-overrides/${today}`)
+      .set(authHeader(user.accessToken))
+      .send({
+        overrideType: 'REST_DAY',
+        source: 'USER_SELECTED_REST_TODAY'
+      })
+      .expect(200);
+
+    const plan = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    expect(plan.body.plan.trainingScheduleSnapshot.source).toBe('DAILY_OVERRIDE');
+    expect(plan.body.plan.trainingScheduleSnapshot.overrideType).toBe('REST_DAY');
+    expect(plan.body.plan.trainingScheduleSnapshot.isTrainingDay).toBe(false);
+    expect(plan.body.plan.training.exercises ?? []).toHaveLength(0);
+  });
+
   async function createTrainingPreference(userId: string) {
     return ctx.prisma.trainingPreference.create({
       data: {
@@ -238,4 +479,8 @@ function baseDay(dayOfWeek: typeof DAYS[number]): TrainingScheduleDayRequest {
     protocolMode: TrainingScheduleOverrideMode.USE_DEFAULT,
     protocolPreference: null
   };
+}
+
+function todayLocalDate() {
+  return new Date().toISOString().slice(0, 10);
 }

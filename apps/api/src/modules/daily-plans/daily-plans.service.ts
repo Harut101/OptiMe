@@ -1800,9 +1800,11 @@ export class DailyPlansService {
         ? [{
             durationMinutes: resolvedTrainingDay.durationMinutes,
             intensity: 'MODERATE',
-            description: resolvedTrainingDay.source === 'WEEKLY_SCHEDULE'
-              ? `Weekly schedule: ${resolvedTrainingDay.dayOfWeek}`
-              : null
+            description: resolvedTrainingDay.source === 'DAILY_OVERRIDE'
+              ? `Daily override: ${resolvedTrainingDay.dayOfWeek}`
+              : resolvedTrainingDay.source === 'WEEKLY_SCHEDULE'
+                ? `Weekly schedule: ${resolvedTrainingDay.dayOfWeek}`
+                : null
           }]
         : [],
       trainingPreference,

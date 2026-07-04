@@ -52,9 +52,19 @@ When a training-enabled user taps Generate Plan, mobile resolves today's Weekly 
 - If today is already a training day, generation proceeds normally.
 - If today is a rest day or no training day is configured, mobile asks whether the user is training today.
 - Choosing "No" generates a rest-day/no-training plan.
-- Choosing "Yes" opens the current weekday editor in Weekly Routine. Saving the day returns to Today and resumes the Generate Plan flow.
+- Choosing "Yes" opens the Today-only training override editor. Saving the one-off override returns to Today and resumes the Generate Plan flow.
 
-Weekly Routine remains a repeating template. This flow updates the usual weekday routine for the current weekday; it does not create a one-off calendar exception. Existing plans are not silently overwritten. If a plan already exists after the routine edit, the user must explicitly refresh/replace it through the existing regenerate convention.
+Weekly Routine remains a repeating template. Date-specific training changes are represented by `DailyTrainingOverride`, which applies to one local date only and resolves before the Weekly Routine. Existing plans are not silently overwritten. If a plan already exists after a today-only override or routine edit, the user must explicitly refresh/replace it through the existing regenerate convention.
+
+## Daily Training Overrides
+
+`DailyTrainingOverride` lets the user train today only or rest today only without changing their usual Weekly Routine.
+
+- `TRAINING_DAY` overrides a routine rest day for one local date and can specify target muscles, environment, equipment, duration, and protocol preference.
+- `REST_DAY` overrides a routine training day for one local date and prevents normal exercise selection for that date.
+- Missing one-off training fields inherit safely from the resolved Weekly Routine/default context.
+- Overrides are resolved by user local date and stored in new Daily Plan snapshots through `trainingScheduleSnapshot.source = DAILY_OVERRIDE`.
+- Historical Daily Plans and WorkoutSessions are not rewritten when an override is added or removed.
 
 ## Duration-Based Workout Volume
 

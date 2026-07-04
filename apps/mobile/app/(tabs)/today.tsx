@@ -13,6 +13,7 @@ import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { getTrainingSchedule } from '@/api/training-schedule';
+import { getTrainingOverride, saveTrainingOverride } from '@/api/training-overrides';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
   answerProgressivePrompt,
@@ -49,6 +50,7 @@ import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
+import { getLocalDateString } from '@/features/training-overrides/local-date';
 import { ORDERED_DAYS, toDraft } from '@/features/training-schedule/weekly-schedule';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
 import {
@@ -66,13 +68,18 @@ import type {
 
 export default function TodayScreen() {
   const { t } = useTranslation();
-  const { generateAfterRoutine } = useLocalSearchParams<{ generateAfterRoutine?: string }>();
+  const { generateAfterRoutine, generateAfterOverride } = useLocalSearchParams<{
+    generateAfterRoutine?: string;
+    generateAfterOverride?: string;
+  }>();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const setTrainingScheduleDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
+  const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
+  const todayLocalDate = getLocalDateString();
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
@@ -106,6 +113,10 @@ export default function TodayScreen() {
   const trainingSchedule = useQuery({
     queryKey: ['training-schedule'],
     queryFn: getTrainingSchedule
+  });
+  const trainingOverride = useQuery({
+    queryKey: ['training-override', todayLocalDate],
+    queryFn: () => getTrainingOverride(todayLocalDate)
   });
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const progressivePrompt = useQuery({
@@ -177,7 +188,9 @@ export default function TodayScreen() {
       nutritionTarget.refetch(),
       wearableSnapshot.refetch(),
       healthConnections.refetch(),
-      progressivePrompt.refetch()
+      progressivePrompt.refetch(),
+      trainingSchedule.refetch(),
+      trainingOverride.refetch()
     ];
 
     if (today.data?.id) {
@@ -196,6 +209,8 @@ export default function TodayScreen() {
     wearableSnapshot.isRefetching ||
     healthConnections.isRefetching ||
     progressivePrompt.isRefetching ||
+    trainingSchedule.isRefetching ||
+    trainingOverride.isRefetching ||
     workoutSession.isRefetching ||
     foodLog.isRefetching;
 
@@ -220,6 +235,28 @@ export default function TodayScreen() {
     setRefreshMessage(t('today.trainingRoutineUpdatedReady'));
     generate.mutate(false);
   }, [generateAfterRoutine, generate, handledRoutineReturn, t, today.data, today.isLoading]);
+
+  useEffect(() => {
+    if (generateAfterOverride !== '1' || handledOverrideReturn || today.isLoading || generate.isPending) {
+      return;
+    }
+
+    setHandledOverrideReturn(true);
+    if (today.data) {
+      Alert.alert(
+        t('trainingOverrides.dailyOverrideSaved'),
+        t('trainingOverrides.overrideSavedExistingPlan'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+        ]
+      );
+      return;
+    }
+
+    setRefreshMessage(t('trainingOverrides.overrideSavedGenerating'));
+    generate.mutate(false);
+  }, [generateAfterOverride, generate, handledOverrideReturn, t, today.data, today.isLoading]);
 
   if (today.isLoading) {
     return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
@@ -391,6 +428,12 @@ export default function TodayScreen() {
               <SectionHeader title={t('today.training')} />
               <Text variant="body">{plan.training.recommendation}</Text>
               <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
+              <Button
+                title={t('trainingOverrides.restTodayOnly')}
+                variant="ghost"
+                disabled={generate.isPending}
+                onPress={handleRestTodayOnly}
+              />
             </Card>
           )}
 
@@ -443,7 +486,13 @@ export default function TodayScreen() {
       }
       const todayDayOfWeek = getTodayDayOfWeek();
       const todayRoutineDay = schedule.days.find((day) => day.dayOfWeek === todayDayOfWeek);
-      const isTrainingDay = Boolean(schedule.isActive && todayRoutineDay?.isTrainingDay);
+      const override = trainingOverride.data ?? await queryClient.fetchQuery({
+        queryKey: ['training-override', todayLocalDate],
+        queryFn: () => getTrainingOverride(todayLocalDate)
+      });
+      const isTrainingDay = override
+        ? override.overrideType === 'TRAINING_DAY'
+        : Boolean(schedule.isActive && todayRoutineDay?.isTrainingDay);
 
       if (isTrainingDay) {
         generate.mutate(false);
@@ -461,6 +510,15 @@ export default function TodayScreen() {
           {
             text: t('today.setUpTodaysWorkout'),
             onPress: () => {
+              router.push({
+                pathname: '/training-overrides/day' as never,
+                params: { dayOfWeek: todayDayOfWeek, localDate: todayLocalDate, returnToGenerate: '1' }
+              });
+            }
+          },
+          {
+            text: t('trainingOverrides.editWeeklyRoutine'),
+            onPress: () => {
               setTrainingScheduleDraft(toDraft(schedule));
               router.push({
                 pathname: '/training-schedule/day' as never,
@@ -474,6 +532,45 @@ export default function TodayScreen() {
     } catch {
       Alert.alert(t('schedule.unavailable'), t('errors.unableLoad'));
     }
+  }
+
+  async function handleRestTodayOnly() {
+    Alert.alert(
+      t('trainingOverrides.restTodayTitle'),
+      t('trainingOverrides.restTodayConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('trainingOverrides.restTodayOnly'),
+          onPress: async () => {
+            try {
+              const saved = await saveTrainingOverride(todayLocalDate, {
+                overrideType: 'REST_DAY',
+                source: 'USER_SELECTED_REST_TODAY'
+              });
+              queryClient.setQueryData(['training-override', todayLocalDate], saved);
+              await queryClient.invalidateQueries({ queryKey: ['training-override', todayLocalDate] });
+              await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+              if (today.data) {
+                Alert.alert(
+                  t('trainingOverrides.dailyOverrideSaved'),
+                  t('trainingOverrides.restOverrideExistingPlan'),
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+                  ]
+                );
+                return;
+              }
+              setRefreshMessage(t('trainingOverrides.overrideSavedGenerating'));
+              generate.mutate(false);
+            } catch {
+              Alert.alert(t('trainingOverrides.saveFailed'), t('errors.unableSave'));
+            }
+          }
+        }
+      ]
+    );
   }
 }
 

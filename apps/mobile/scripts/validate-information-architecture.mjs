@@ -15,6 +15,7 @@ for (const route of ['today', 'food', 'training', 'profile']) {
 const foodForm = read('src/features/food-preferences/FoodPreferencesForm.tsx');
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
 const trainingDayEditor = read('app/training-schedule/day.tsx');
+const trainingOverrideEditor = read('app/training-overrides/day.tsx');
 const today = read('app/(tabs)/today.tsx');
 assert(!foodForm.includes('expo-router'), 'FoodPreferencesForm must not navigate.');
 assert(!trainingForm.includes('expo-router'), 'TrainingSetupForm must not navigate.');
@@ -25,8 +26,13 @@ assert(!trainingForm.includes("t('training.preferredDays')"), 'TrainingSetupForm
 assert(!trainingForm.includes("t('training.limitationsLabel')"), 'TrainingSetupForm must not collect global pain or limitations.');
 assert(trainingDayEditor.includes('BodyMapSelector'), 'Weekly Routine day editor must render BodyMapSelector.');
 assert(trainingDayEditor.includes("'BARBELL'"), 'Weekly Routine equipment must keep BARBELL selectable.');
+assert(trainingOverrideEditor.includes('BodyMapSelector'), 'Today-only override editor must render BodyMapSelector.');
+assert(trainingOverrideEditor.includes("'BARBELL'"), 'Today-only override equipment must keep BARBELL selectable.');
+assert(trainingOverrideEditor.includes('saveTrainingOverride'), 'Today-only override editor must save DailyTrainingOverride, not Weekly Routine.');
+assert(trainingOverrideEditor.includes("t('trainingOverrides.todayOnlyHelp')"), 'Today-only override editor must clearly say Weekly Routine is unchanged.');
 assert(today.includes("t('today.trainingTodayPromptTitle')"), 'Today Generate Plan must ask training-enabled rest-day users before generation.');
-assert(today.includes("router.push({") && today.includes("returnToGenerate: '1'"), 'Today training prompt must route to the current weekday editor.');
+assert(today.includes("pathname: '/training-overrides/day'") && today.includes("returnToGenerate: '1'"), 'Today training prompt must route to the today-only override editor.');
+assert(today.includes("t('trainingOverrides.editWeeklyRoutine')"), 'Today prompt must keep recurring Weekly Routine editing explicit.');
 assert(trainingDayEditor.includes("params: { generateAfterRoutine: '1' }"), 'Weekly Routine day editor must return to Generate Plan flow when opened from Today.');
 
 const foodStandalone = read('app/(tabs)/food.tsx');
@@ -71,6 +77,7 @@ const rootStack = read('app/_layout.tsx');
 const planDetails = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
 assert(rootStack.includes('name="exercise-details"'), 'Exercise Details must be a full-screen stack route.');
+assert(rootStack.includes('name="training-overrides/day"'), 'Today-only training override editor must be registered as a stack route.');
 assert(planDetails.includes('PlanTabbedContent'), 'Plan Details must own the Food/Training content views.');
 assert(planDetails.includes("t('plan.recovery')") && planDetails.includes("t('plan.reminders')"), 'Shared recovery and reminders are missing.');
 assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Shared sections must not be duplicated inside content tabs.');

@@ -145,6 +145,13 @@ const exerciseEquipmentSchema = z.enum([
 export const dayOfWeekSchema = z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
 export const trainingEnvironmentSchema = z.enum(['HOME', 'GYM', 'OUTDOOR']);
 export const trainingScheduleOverrideModeSchema = z.enum(['USE_DEFAULT', 'CUSTOM']);
+export const dailyTrainingOverrideTypeSchema = z.enum(['TRAINING_DAY', 'REST_DAY']);
+export const dailyTrainingOverrideSourceSchema = z.enum([
+  'USER_SELECTED_TRAIN_TODAY',
+  'USER_SELECTED_REST_TODAY',
+  'USER_MOVED_WORKOUT',
+  'MANUAL'
+]);
 
 export const trainingScheduleDaySchema = z.object({
   dayOfWeek: dayOfWeekSchema,
@@ -167,16 +174,36 @@ export const trainingScheduleSchema = z.object({
 });
 
 export const resolvedTrainingDayContextSchema = z.object({
-  source: z.enum(['WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
+  source: z.enum(['DAILY_OVERRIDE', 'WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
   localDate: z.string(),
   dayOfWeek: dayOfWeekSchema,
   isTrainingDay: z.boolean(),
+  overrideType: dailyTrainingOverrideTypeSchema.optional(),
   targetMuscles: z.array(targetMuscleGroupSchema),
   environment: trainingEnvironmentSchema.nullable(),
   availableEquipment: z.array(exerciseEquipmentSchema),
   durationMinutes: z.number().int().min(1).max(300),
   protocolPreference: z.string().nullable(),
   inheritedFields: z.array(z.enum(['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']))
+});
+
+export const dailyTrainingOverrideSchema = z.object({
+  overrideType: dailyTrainingOverrideTypeSchema,
+  timezone: z.string().trim().min(1).max(80).optional(),
+  targetMuscles: z.array(targetMuscleGroupSchema).max(20).optional(),
+  environment: trainingEnvironmentSchema.nullable().optional(),
+  availableEquipment: z.array(exerciseEquipmentSchema).max(20).optional(),
+  durationMinutes: z.coerce.number().int().min(1).max(300).nullable().optional(),
+  protocolPreference: z.string().trim().max(80).nullable().optional(),
+  source: dailyTrainingOverrideSourceSchema.optional(),
+  movedFromLocalDate: z.string().trim().max(10).nullable().optional(),
+  movedToLocalDate: z.string().trim().max(10).nullable().optional()
+});
+
+export const moveWorkoutSchema = z.object({
+  fromLocalDate: z.string().trim().max(10),
+  toLocalDate: z.string().trim().max(10),
+  timezone: z.string().trim().min(1).max(80).optional()
 });
 
 export const nutritionDayTypeSchema = z.enum([

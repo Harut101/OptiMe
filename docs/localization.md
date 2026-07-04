@@ -54,7 +54,7 @@ Workout history and summary strings also live in `workout`. History list labels,
 
 The pre-workout check also lives in `workout` and must be localized in all four supported locales. Weekly Routine copy lives under `schedule`, while Training Setup copy lives under `training`. Do not concatenate old "Weekly Schedule" wording manually.
 
-The Generate Plan training-day prompt lives under `today`, and the return-to-generation helper copy lives under `schedule`. Required concepts include training today, rest-day plan generation, setting up today's workout, updating the usual Weekly Routine, and routine-update completion. Add complete strings for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`; do not concatenate English fragments.
+The Generate Plan training-day prompt lives under `today`, recurring routine helper copy lives under `schedule`, and one-off override copy lives under `trainingOverrides`. Required concepts include training today, train today only, rest today only, skip today's workout, move workout, today only, usual Weekly Routine, return to Generate Plan, and save failure. Add complete strings for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`; do not concatenate English fragments.
 
 Simplified onboarding copy lives under `onboarding` in all four supported locales. The optional training bridge uses complete localized strings for training enabled, training optional, Set up weekly routine, Skip for now, and configure training anytime. Do not concatenate these labels manually.
 ## Food Tracking Localization

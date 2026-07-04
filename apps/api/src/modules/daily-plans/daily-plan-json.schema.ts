@@ -92,10 +92,11 @@ const exerciseSchema = z.object({
 });
 
 const resolvedTrainingDayContextSchema = z.object({
-  source: z.enum(['WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
+  source: z.enum(['DAILY_OVERRIDE', 'WEEKLY_SCHEDULE', 'GLOBAL_DEFAULTS']),
   localDate: z.string(),
   dayOfWeek: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
   isTrainingDay: z.boolean(),
+  overrideType: z.enum(['TRAINING_DAY', 'REST_DAY']).optional(),
   targetMuscles: z.array(z.enum([
     'CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS',
     'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',

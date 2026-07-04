@@ -231,13 +231,26 @@ assertIncludes(today, [
   "t('today.trainingTodayPromptMessage')",
   "t('today.generateRestDayPlan')",
   "t('today.setUpTodaysWorkout')",
+  "t('trainingOverrides.editWeeklyRoutine')",
+  "t('trainingOverrides.restTodayOnly')",
   "router.push({",
+  "pathname: '/training-overrides/day'",
   "returnToGenerate: '1'",
+  "generateAfterOverride !== '1'",
   "generateAfterRoutine !== '1'",
   "t('today.trainingRoutineUpdatedExistingPlan')"
 ], 'Generate Plan training-day prompt');
 assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
 assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
+const trainingOverrideEditor = read('app/training-overrides/day.tsx');
+assertIncludes(trainingOverrideEditor, [
+  "t('trainingOverrides.todayOnly')",
+  "t('trainingOverrides.todayOnlyHelp')",
+  'saveTrainingOverride',
+  "source: value.isTrainingDay ? 'USER_SELECTED_TRAIN_TODAY' : 'USER_SELECTED_REST_TODAY'",
+  "params: { generateAfterOverride: '1' }",
+  "pathname: '/training-schedule/day'"
+], 'Today-only training override editor');
 const trainingDayEditor = read('app/training-schedule/day.tsx');
 assertIncludes(trainingDayEditor, [
   'returnToGenerate',

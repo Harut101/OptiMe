@@ -31,7 +31,9 @@ Base tiers:
 
 The planner also estimates suggested sets per exercise, suggested rest seconds, and total session minutes using warm-up, work, rest, transition, and cool-down buffers. These values are planning guidance only; they do not create a live timer.
 
-Safety can reduce volume for beginner level, safe mode/minor users, pregnancy/postpartum/breastfeeding context, current pain or limitations, low sleep, high recent activity, recovery-focused protocols, or too few safe eligible candidates. Without one of those reasons, a normal 60-90 minute strength plan should not return only 2-3 exercises.
+Safety can reduce volume for beginner level, safe mode/minor users, pregnancy/postpartum/breastfeeding context, current pain or limitations, low sleep, high recent activity, recovery-focused protocols, one-off rest overrides, or too few safe eligible candidates. Without one of those reasons, a normal 60-90 minute strength plan should not return only 2-3 exercises.
+
+One-off training overrides feed the same resolved context as Weekly Routine days. If the override duration is 75 minutes, `WorkoutVolumePlanner` uses the 75-minute tier. If the override is `REST_DAY`, normal strength exercise selection receives no workout volume.
 
 The candidate pool is sized from the planned max exercise count and remains bounded. `NO_TRAINING_PLANNED` requests no exercises.
 

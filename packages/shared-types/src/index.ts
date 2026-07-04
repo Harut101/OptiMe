@@ -93,6 +93,12 @@ export type TrainingEnvironment = (typeof TRAINING_ENVIRONMENTS)[number];
 export const DAYS_OF_WEEK = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as const;
 export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
 export type TrainingScheduleOverrideMode = 'USE_DEFAULT' | 'CUSTOM';
+export type DailyTrainingOverrideType = 'TRAINING_DAY' | 'REST_DAY';
+export type DailyTrainingOverrideSource =
+  | 'USER_SELECTED_TRAIN_TODAY'
+  | 'USER_SELECTED_REST_TODAY'
+  | 'USER_MOVED_WORKOUT'
+  | 'MANUAL';
 export type TrainingScheduleInheritedField =
   | 'TARGET_MUSCLES'
   | 'ENVIRONMENT'
@@ -261,16 +267,59 @@ export interface TrainingPreferenceResponse {
 }
 
 export interface ResolvedTrainingDayContext {
-  source: 'WEEKLY_SCHEDULE' | 'GLOBAL_DEFAULTS';
+  source: 'DAILY_OVERRIDE' | 'WEEKLY_SCHEDULE' | 'GLOBAL_DEFAULTS';
   localDate: string;
   dayOfWeek: DayOfWeek;
   isTrainingDay: boolean;
+  overrideType?: DailyTrainingOverrideType;
   targetMuscles: TargetMuscleGroup[];
   environment: TrainingEnvironment | null;
   availableEquipment: ExerciseEquipment[];
   durationMinutes: number;
   protocolPreference: string | null;
   inheritedFields: TrainingScheduleInheritedField[];
+}
+
+export interface DailyTrainingOverrideRequest {
+  overrideType: DailyTrainingOverrideType;
+  timezone?: string;
+  targetMuscles?: TargetMuscleGroup[];
+  environment?: TrainingEnvironment | null;
+  availableEquipment?: ExerciseEquipment[];
+  durationMinutes?: number | null;
+  protocolPreference?: string | null;
+  source?: DailyTrainingOverrideSource;
+  movedFromLocalDate?: string | null;
+  movedToLocalDate?: string | null;
+}
+
+export interface DailyTrainingOverrideResponse {
+  id: string;
+  userId: string;
+  localDate: string;
+  timezone: string;
+  overrideType: DailyTrainingOverrideType;
+  targetMuscles: TargetMuscleGroup[];
+  environment: TrainingEnvironment | null;
+  availableEquipment: ExerciseEquipment[];
+  durationMinutes: number | null;
+  protocolPreference: string | null;
+  source: DailyTrainingOverrideSource;
+  movedFromLocalDate: string | null;
+  movedToLocalDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MoveWorkoutRequest {
+  fromLocalDate: string;
+  toLocalDate: string;
+  timezone?: string;
+}
+
+export interface MoveWorkoutResponse {
+  from: DailyTrainingOverrideResponse;
+  to: DailyTrainingOverrideResponse;
 }
 
 export interface TrainingScheduleDayRequest {

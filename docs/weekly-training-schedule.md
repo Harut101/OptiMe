@@ -33,7 +33,12 @@ Daily plan generation resolves the active routine day before selecting exercises
 - Existing daily plans are not mutated when app mode or weekly routine changes.
 - Future daily plans receive the updated context.
 
-When a training-enabled user taps Generate Plan on a rest day, mobile asks whether they are training today. If they choose to train, the app opens the editor for the current weekday and explains that saving updates their usual Weekly Routine for that weekday. After saving, the app returns to Today and continues the generation flow. This is a repeating-routine update, not a one-off date exception.
+When a training-enabled user taps Generate Plan on a rest day, mobile asks whether they are training today. If they choose to train, the app opens the Today-only override editor and saves a `TRAINING_DAY` override for the current local date. After saving, the app returns to Today and continues the generation flow.
+
+The recurring weekday editor remains available through the explicit Edit Weekly Routine action. User-facing copy must keep this distinction clear:
+
+- Today only: date-specific `DailyTrainingOverride`.
+- Usual Weekly Routine: repeating weekday template.
 
 If a Daily Plan already exists for today after a routine edit, the app does not silently overwrite it. The user must explicitly refresh the plan.
 
@@ -54,5 +59,5 @@ Safety is not paywalled and is not bypassed by schedule settings.
 
 - Rest timers.
 - AI-generated weekly routines.
-- One-off date-specific workout exceptions.
+- Full calendar-style one-off exception UI.
 - Exercise media expansion beyond the current library-backed plan details flow.

@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  DailyTrainingOverride,
+  DailyTrainingOverrideType,
   ExerciseEquipment,
   TargetMuscleGroup,
   TrainingEnvironment,
@@ -52,41 +54,48 @@ export class TrainingScheduleResolverService {
   async resolveForUser(input: DefaultsInput & {
     userId: string;
     planLocalDate: string;
+    ignoreDailyOverride?: boolean;
   }): Promise<ResolvedTrainingDayContext> {
     const defaults = this.resolveDefaults(input);
     const dayOfWeek = this.getDayOfWeek(input.planLocalDate);
-    const schedule = await this.prisma.trainingSchedule.findUnique({
-      where: { userId: input.userId },
-      include: { days: true }
+
+    const [schedule, dailyOverride] = await Promise.all([
+      this.prisma.trainingSchedule.findUnique({
+        where: { userId: input.userId },
+        include: { days: true }
+      }),
+      input.ignoreDailyOverride
+        ? Promise.resolve(null)
+        : this.prisma.dailyTrainingOverride.findUnique({
+            where: {
+              userId_localDate: {
+                userId: input.userId,
+                localDate: input.planLocalDate
+              }
+            }
+          })
+    ]);
+
+    const baseContext = this.resolveWithoutDailyOverride({
+      defaults,
+      dayOfWeek,
+      localDate: input.planLocalDate,
+      noTrainingPlanned: input.noTrainingPlanned,
+      schedule
     });
 
-    if (!schedule?.isActive) {
-      const context: ResolvedTrainingDayContext = {
-        source: 'GLOBAL_DEFAULTS',
-        localDate: input.planLocalDate,
-        dayOfWeek,
-        isTrainingDay: !input.noTrainingPlanned,
-        targetMuscles: defaults.targetMuscles,
-        environment: defaults.environment,
-        availableEquipment: defaults.availableEquipment,
-        durationMinutes: defaults.durationMinutes,
-        protocolPreference: defaults.protocolPreference,
-        inheritedFields: ['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']
-      };
+    if (dailyOverride) {
+      const context = this.applyDailyOverride({
+        override: dailyOverride,
+        baseContext,
+        defaults
+      });
       this.logResolution(context);
       return context;
     }
 
-    const day = schedule.days.find((item) => item.dayOfWeek === dayOfWeek);
-    const context = this.resolveDay({
-      day,
-      defaults,
-      source: 'WEEKLY_SCHEDULE',
-      localDate: input.planLocalDate,
-      dayOfWeek
-    });
-    this.logResolution(context);
-    return context;
+    this.logResolution(baseContext);
+    return baseContext;
   }
 
   resolveDefaults(input: DefaultsInput): TrainingScheduleDefaults {
@@ -155,6 +164,81 @@ export class TrainingScheduleResolverService {
     };
   }
 
+  private resolveWithoutDailyOverride(input: {
+    defaults: TrainingScheduleDefaults;
+    dayOfWeek: TrainingScheduleDayOfWeek;
+    localDate: string;
+    noTrainingPlanned: boolean;
+    schedule: { isActive: boolean; days: TrainingScheduleDay[] } | null;
+  }): ResolvedTrainingDayContext {
+    if (!input.schedule?.isActive) {
+      return {
+        source: 'GLOBAL_DEFAULTS',
+        localDate: input.localDate,
+        dayOfWeek: input.dayOfWeek,
+        isTrainingDay: !input.noTrainingPlanned,
+        targetMuscles: input.defaults.targetMuscles,
+        environment: input.defaults.environment,
+        availableEquipment: input.defaults.availableEquipment,
+        durationMinutes: input.defaults.durationMinutes,
+        protocolPreference: input.defaults.protocolPreference,
+        inheritedFields: ['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']
+      };
+    }
+
+    const day = input.schedule.days.find((item) => item.dayOfWeek === input.dayOfWeek);
+    return this.resolveDay({
+      day,
+      defaults: input.defaults,
+      source: 'WEEKLY_SCHEDULE',
+      localDate: input.localDate,
+      dayOfWeek: input.dayOfWeek
+    });
+  }
+
+  private applyDailyOverride(input: {
+    override: DailyTrainingOverride;
+    baseContext: ResolvedTrainingDayContext;
+    defaults: TrainingScheduleDefaults;
+  }): ResolvedTrainingDayContext {
+    const inheritedFields: TrainingScheduleInheritedField[] = [];
+    const override = input.override;
+
+    if (override.overrideType === DailyTrainingOverrideType.REST_DAY) {
+      return {
+        source: 'DAILY_OVERRIDE',
+        localDate: override.localDate,
+        dayOfWeek: input.baseContext.dayOfWeek,
+        isTrainingDay: false,
+        overrideType: 'REST_DAY',
+        targetMuscles: input.defaults.targetMuscles,
+        environment: input.defaults.environment,
+        availableEquipment: input.defaults.availableEquipment,
+        durationMinutes: input.defaults.durationMinutes,
+        protocolPreference: input.defaults.protocolPreference,
+        inheritedFields: ['TARGET_MUSCLES', 'ENVIRONMENT', 'EQUIPMENT', 'DURATION', 'PROTOCOL']
+      };
+    }
+
+    return {
+      source: 'DAILY_OVERRIDE',
+      localDate: override.localDate,
+      dayOfWeek: input.baseContext.dayOfWeek,
+      isTrainingDay: true,
+      overrideType: 'TRAINING_DAY',
+      targetMuscles: override.targetMuscles.length
+        ? override.targetMuscles
+        : this.inherit(inheritedFields, 'TARGET_MUSCLES', input.baseContext.targetMuscles),
+      environment: override.environment ?? this.inherit(inheritedFields, 'ENVIRONMENT', input.baseContext.environment),
+      availableEquipment: override.availableEquipment.length
+        ? override.availableEquipment
+        : this.inherit(inheritedFields, 'EQUIPMENT', input.baseContext.availableEquipment),
+      durationMinutes: override.durationMinutes ?? this.inherit(inheritedFields, 'DURATION', input.baseContext.durationMinutes),
+      protocolPreference: override.protocolPreference ?? this.inherit(inheritedFields, 'PROTOCOL', input.baseContext.protocolPreference),
+      inheritedFields
+    };
+  }
+
   getOrderedDays() {
     return ORDERED_DAYS;
   }
@@ -204,6 +288,7 @@ export class TrainingScheduleResolverService {
   private logResolution(context: ResolvedTrainingDayContext) {
     this.logger.log([
       `training schedule resolved; source=${context.source}`,
+      `overrideType=${context.overrideType ?? 'none'}`,
       `dayOfWeek=${context.dayOfWeek}`,
       `isTrainingDay=${context.isTrainingDay}`,
       `inherited=${context.inheritedFields.join(',') || 'none'}`,

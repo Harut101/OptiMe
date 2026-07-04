@@ -75,6 +75,12 @@ Onboarding now focuses on the person, goal, app mode, nutrition basics, activity
 
 ## Generate Plan Training Prompt And Duration Volume
 
-Generate Plan now checks the current Weekly Routine weekday before creating a training-enabled plan. Rest-day users can generate a rest-day plan or open the current weekday editor to update their usual routine and then continue generation. This is not a one-off calendar exception; date-specific overrides remain deferred.
+Generate Plan now checks the current Weekly Routine weekday before creating a training-enabled plan. Rest-day users can generate a rest-day plan or open the Today-only editor to create a one-off daily training override. The usual Weekly Routine remains a repeating template and is edited only through the explicit Edit Weekly Routine action.
 
 Workout duration now drives deterministic training volume through `WorkoutVolumePlanner`: target/min/max exercise count, suggested sets, rest interval, and estimated session time are calculated before AI generation. Exercise selection, OpenAI prompting, validation, and deterministic fallback all use those constraints so 60-90 minute normal strength plans no longer default to tiny workouts without a safety or candidate-availability reason.
+
+## One-off Daily Training Overrides
+
+Daily training overrides add a date-specific layer above Weekly Routine. Users can train today only or rest today only without mutating their usual weekly template. New Daily Plan snapshots can record `trainingScheduleSnapshot.source = DAILY_OVERRIDE`, and the resolved override context feeds nutrition targets, protocol selection, `WorkoutVolumePlanner`, ExerciseSelectionService, and AI generation.
+
+Backend move-workout support creates a rest override on the source date and a training override on the target date. A richer calendar UI for moving workouts remains deferred.
