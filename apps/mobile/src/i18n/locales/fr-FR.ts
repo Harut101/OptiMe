@@ -89,7 +89,23 @@ export const frFR = createLocaleResource({
     needsAttention: 'Attention requise',
     disabled: 'Désactivé',
     comingSoon: 'Bientôt disponible',
-    lastSynced: 'Dernière synchronisation : {{value}}'
+    lastSynced: 'Dernière synchronisation : {{value}}',
+    appleHealthUnavailableTitle: 'Apple Health indisponible',
+    readinessUpdateTitle: 'Mettre à jour les données santé ?',
+    readinessUpdateBody: "Vos dernières données Apple Health peuvent aider à personnaliser la nutrition, l'entraînement et la récupération du jour.",
+    readinessConnectTitle: 'Connecter les données santé ?',
+    readinessConnectBody: 'Apple Health peut aider OptiMe à personnaliser votre plan avec les pas, le sommeil, les calories actives et les minutes d’exercice.',
+    readinessNoDataTitle: 'Aucune donnée Apple Health trouvée pour aujourd’hui',
+    readinessNoDataBody: 'Vous pouvez quand même créer votre plan avec votre profil, vos préférences et votre routine.',
+    readinessUnavailableContinue: 'Vous pouvez quand même créer votre plan sans données santé.',
+    healthDataOptional: 'Les données santé sont facultatives',
+    healthDataOptionalCopy: 'Les données santé peuvent rendre le plan du jour plus personnalisé. Vous pouvez continuer sans elles.',
+    syncNow: 'Synchroniser maintenant',
+    continueWithoutLatestData: 'Continuer sans les dernières données',
+    continueWithoutHealthData: 'Continuer sans données santé',
+    notNow: 'Pas maintenant',
+    permissionDeniedContinue: 'L’autorisation n’a pas été accordée. Vous pouvez quand même créer votre plan sans données santé.',
+    syncFailedContinue: 'La synchronisation santé n’a pas pu se terminer maintenant. Vous pouvez continuer sans les dernières données.'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Manuel', MOCK: 'Mock' } }
 }, {

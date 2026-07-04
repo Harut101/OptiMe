@@ -261,3 +261,22 @@ Today can show a compact wearable summary from the existing `WearableDailySnapsh
 - last synced day label
 
 The widget intentionally does not show HRV, resting heart rate, respiratory rate, raw provider payloads, or medical interpretations. If no source is connected, it shows a calm empty state with a Health Data entry point. This does not implement real Health Connect sync, WHOOP OAuth, background sync, or new native permissions.
+
+## Generate Plan Readiness Prompt
+
+Today now checks health data readiness before generating a Daily Plan:
+
+- `FRESH`: a connected source has a same-local-date wearable snapshot, so generation continues immediately.
+- `STALE`: Apple Health is connected but the snapshot is missing or not from the target local date, so the user can Sync now or Continue without latest data.
+- `NOT_CONNECTED`: iOS users can Connect Apple Health or choose Not now.
+- `DISMISSED_RECENTLY`: the no-provider prompt is suppressed locally after Not now.
+- `UNAVAILABLE`: non-iOS platforms or builds without a supported native provider continue without health data.
+
+The prompt is intentionally optional. It must not imply the plan is inaccurate without health data, and it must not block plan generation.
+
+Provider scope remains unchanged:
+
+- Apple Health is the only real provider path in this sprint.
+- Health Connect remains represented for Android but deferred.
+- WHOOP remains represented but deferred.
+- No background sync, provider tokens, OAuth, or automatic app-launch sync is added.

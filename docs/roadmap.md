@@ -84,3 +84,9 @@ Workout duration now drives deterministic training volume through `WorkoutVolume
 Daily training overrides add a date-specific layer above Weekly Routine. Users can train today only or rest today only without mutating their usual weekly template. New Daily Plan snapshots can record `trainingScheduleSnapshot.source = DAILY_OVERRIDE`, and the resolved override context feeds nutrition targets, protocol selection, `WorkoutVolumePlanner`, ExerciseSelectionService, and AI generation.
 
 Backend move-workout support creates a rest override on the source date and a training override on the target date. A richer calendar UI for moving workouts remains deferred.
+
+## Health Data Readiness Before Daily Plan
+
+Today now checks optional wearable readiness before Daily Plan generation. Fresh same-day snapshots proceed immediately; stale connected Apple Health prompts Sync now or Continue without latest data; no connected iOS provider prompts Connect Apple Health or Not now. Not now is suppressed locally for a short period so users are not nagged.
+
+Health data remains optional for both app modes. Nutrition-only users can still benefit from activity/sleep context, but plan generation always continues without wearable data when unavailable. Health Connect real sync, WHOOP OAuth, provider tokens, background sync, and automatic launch sync remain deferred.

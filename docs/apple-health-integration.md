@@ -89,6 +89,18 @@ After a successful sync, Apple Health shows as connected, `lastSyncAt` is format
 
 Apple Health does not provide WHOOP-style recovery score or strain, so those cards are not shown for Apple Health snapshots. If only part of the Apple Health snapshot is available, the UI shows a calm note that some metrics were unavailable for that sync.
 
+## Generate Plan Readiness Flow
+
+Today can launch the existing Apple Health connect/sync flow before Daily Plan generation:
+
+- connected but stale Apple Health data: prompt with Sync now or Continue without latest data
+- no connected Apple Health source on iOS: prompt with Connect Apple Health or Not now
+- Expo Go or missing native module: show the safe unavailable message and allow generation without health data
+- no data after sync: show a no-data state and allow retry or continue
+- permission denied: show a permission-specific state and allow continue
+
+The sync action reuses `nativeHealthService.syncAppleHealthToday`, which requests read-only MVP permissions, upserts a normalized `WearableDailySnapshot`, refreshes health queries, and then lets Daily Plan generation use the latest backend snapshot.
+
 ## Safety Boundary
 
 Apple Health data is optional wellness context. It can gently inform activity, nutrition, and recovery context, but it must not:

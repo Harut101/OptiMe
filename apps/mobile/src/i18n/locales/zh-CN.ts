@@ -89,7 +89,23 @@ export const zhCN = createLocaleResource({
     needsAttention: '需要注意',
     disabled: '已禁用',
     comingSoon: '即将推出',
-    lastSynced: '上次同步：{{value}}'
+    lastSynced: '上次同步：{{value}}',
+    appleHealthUnavailableTitle: 'Apple 健康不可用',
+    readinessUpdateTitle: '更新健康数据？',
+    readinessUpdateBody: '最新 Apple 健康数据可帮助个性化今天的饮食、训练和恢复计划。',
+    readinessConnectTitle: '连接健康数据？',
+    readinessConnectBody: 'Apple 健康可帮助 OptiMe 使用步数、睡眠、活动能量和训练分钟来个性化计划。',
+    readinessNoDataTitle: '今天未找到 Apple 健康数据',
+    readinessNoDataBody: '你仍可使用个人资料、偏好和例程生成计划。',
+    readinessUnavailableContinue: '你仍可在没有健康数据的情况下生成计划。',
+    healthDataOptional: '健康数据是可选的',
+    healthDataOptionalCopy: '健康数据可以让今天的计划更个性化。你也可以不使用它继续。',
+    syncNow: '立即同步',
+    continueWithoutLatestData: '不使用最新数据继续',
+    continueWithoutHealthData: '不使用健康数据继续',
+    notNow: '暂不',
+    permissionDeniedContinue: '未授予权限。你仍可在没有健康数据的情况下生成计划。',
+    syncFailedContinue: '健康同步暂时未完成。你可以不使用最新数据继续。'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple 健康', HEALTH_CONNECT: '健康互联', WHOOP: 'WHOOP', MANUAL: '手动', MOCK: '模拟' } }
 }, {

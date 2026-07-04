@@ -151,3 +151,16 @@ Today now surfaces progress before the saved plan overview:
 - Wearable summary is derived from the existing `WearableDailySnapshot`.
 
 The dashboard does not mutate `DailyPlan.planJson`, regenerate plans, change nutrition targets, change exercise selection, or expose debug/protocol internals.
+
+## Health Data Readiness Before Generation
+
+Before Today calls Daily Plan generation, mobile now resolves a soft health data readiness state:
+
+- fresh wearable snapshot for the user local date: continue generation without a prompt
+- connected Apple Health with stale or missing snapshot: ask whether to sync now or continue without latest data
+- no connected provider on iOS: offer Connect Apple Health or Not now
+- unavailable platform/build: continue generation without health data
+
+This readiness step runs after existing plan replacement handling and after the training-day/rest-day prompt. It applies to both `NUTRITION_ONLY` and `NUTRITION_AND_TRAINING` because activity and sleep can still inform nutrition and recovery. Health data remains optional and never blocks generation.
+
+The backend DailyPlan pipeline is unchanged: after a successful sync, generation reads the latest `WearableDailySnapshot` through the existing health planning context resolver.

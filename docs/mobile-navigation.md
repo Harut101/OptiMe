@@ -27,6 +27,8 @@ Today's Generate Plan action can open the Today-only training override editor wh
 
 The recurring Weekly Routine editor is still reachable from the prompt through an explicit Edit Weekly Routine action. This keeps one-off training changes separate from the usual weekly template.
 
+After plan replacement and training-day prompts, Today runs a soft Health Data Readiness prompt. It can ask connected Apple Health users to sync stale data, ask iOS users to connect Apple Health, or continue without data. This prompt never blocks plan generation, and Health Connect/WHOOP actions remain deferred.
+
 Starting a workout from Plan Details Training shows a skippable pre-workout check before opening `workout-session`. This check applies only to the new workout session and does not change the Daily Plan.
 
 Health Connections are available from Profile / Connections. The Health data route now supports Apple Health connect/sync on iOS development or production builds, while Expo Go and non-iOS platforms show safe unavailable states. Connected Apple Health shows a focused connected state, friendly last-sync formatting, and Apple Health-specific wearable metrics. Health Connect and WHOOP remain represented as future provider cards. Development mock snapshots remain available in dev builds.

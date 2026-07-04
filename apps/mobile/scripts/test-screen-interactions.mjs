@@ -240,6 +240,19 @@ assertIncludes(today, [
   "generateAfterRoutine !== '1'",
   "t('today.trainingRoutineUpdatedExistingPlan')"
 ], 'Generate Plan training-day prompt');
+assertIncludes(today, [
+  'resolveHealthDataReadiness',
+  'continueThroughHealthReadiness',
+  'nativeHealthService.syncAppleHealthToday',
+  'getHealthReadinessPromptDismissedAt',
+  'dismissHealthReadinessPrompt',
+  "t('health.readinessUpdateTitle')",
+  "t('health.readinessConnectTitle')",
+  "t('health.syncNow')",
+  "t('health.continueWithoutLatestData')",
+  "t('health.notNow')",
+  "t('health.appleHealthNativeUnavailable')"
+], 'Generate Plan health readiness prompt');
 assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
 assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
 const trainingOverrideEditor = read('app/training-overrides/day.tsx');

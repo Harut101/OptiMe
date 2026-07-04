@@ -76,6 +76,8 @@ Use `getHealthProviderLabel` for stable provider enums: `APPLE_HEALTH`, `HEALTH_
 
 Apple Health iOS MVP strings also live under `health`, including Connect Apple Health, Sync Apple Health, permission denied, native unavailable, no-data, and iOS Settings guidance. Health Connect must remain labeled exactly `Health Connect`.
 
+The Health Data Readiness prompt before Generate Plan also lives under `health` in all four supported locales. Required concepts include Update health data, Connect health data, Sync now, Continue without latest data, Continue without health data, Not now, no Apple Health data for today, permission denied, and Expo Go/native-module unavailable. Use complete translated sentences; do not concatenate provider/action fragments manually.
+
 ## UI polish strings
 
 The UI polish pass reused existing localized strings for headers, status labels, empty states, errors, and health connection actions. New visual primitives receive already-localized text from their calling screens. Avoid adding English-only props or manually concatenated English fragments when extending these primitives.

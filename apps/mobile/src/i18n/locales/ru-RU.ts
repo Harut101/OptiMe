@@ -89,7 +89,23 @@ export const ruRU = createLocaleResource({
     needsAttention: 'Требует внимания',
     disabled: 'Отключено',
     comingSoon: 'Скоро',
-    lastSynced: 'Последняя синхронизация: {{value}}'
+    lastSynced: 'Последняя синхронизация: {{value}}',
+    appleHealthUnavailableTitle: 'Apple Health недоступен',
+    readinessUpdateTitle: 'Обновить данные здоровья?',
+    readinessUpdateBody: 'Последние данные Apple Health помогут точнее настроить питание, тренировку и восстановление на сегодня.',
+    readinessConnectTitle: 'Подключить данные здоровья?',
+    readinessConnectBody: 'Apple Health может помочь OptiMe учитывать шаги, сон, активную энергию и минуты тренировок.',
+    readinessNoDataTitle: 'За сегодня данных Apple Health не найдено',
+    readinessNoDataBody: 'Можно всё равно создать план на основе профиля, предпочтений и рутины.',
+    readinessUnavailableContinue: 'Можно всё равно создать план без данных здоровья.',
+    healthDataOptional: 'Данные здоровья необязательны',
+    healthDataOptionalCopy: 'Данные здоровья могут сделать план точнее. Можно продолжить без них.',
+    syncNow: 'Синхронизировать сейчас',
+    continueWithoutLatestData: 'Продолжить без свежих данных',
+    continueWithoutHealthData: 'Продолжить без данных здоровья',
+    notNow: 'Не сейчас',
+    permissionDeniedContinue: 'Разрешение не предоставлено. Можно всё равно создать план без данных здоровья.',
+    syncFailedContinue: 'Синхронизацию здоровья сейчас не удалось завершить. Можно продолжить без свежих данных.'
   },
   enums: { healthProvider: { APPLE_HEALTH: 'Apple Health', HEALTH_CONNECT: 'Health Connect', WHOOP: 'WHOOP', MANUAL: 'Вручную', MOCK: 'Тестовый' } }
 }, {

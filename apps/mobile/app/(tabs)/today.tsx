@@ -50,6 +50,14 @@ import { formatTime } from '@/i18n/formatters';
 import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
+import { getPlatformHealthProvider } from '@/features/health/health-platform';
+import {
+  dismissHealthReadinessPrompt,
+  getHealthReadinessPromptDismissedAt,
+  isHealthReadinessPromptDismissedRecently
+} from '@/features/health/health-readiness-storage';
+import { nativeHealthService, NativeHealthServiceError } from '@/features/health/native-health.service';
+import { resolveHealthDataReadiness } from '@/features/health/health-readiness';
 import { getLocalDateString } from '@/features/training-overrides/local-date';
 import { ORDERED_DAYS, toDraft } from '@/features/training-schedule/weekly-schedule';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
@@ -77,6 +85,7 @@ export default function TodayScreen() {
   const setTrainingScheduleDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
+  const [healthReadinessMessage, setHealthReadinessMessage] = useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
   const todayLocalDate = getLocalDateString();
@@ -181,6 +190,15 @@ export default function TodayScreen() {
       Alert.alert(t('today.updateFailed'), t('errors.network'));
     }
   });
+  const appleHealthSync = useMutation({
+    mutationFn: nativeHealthService.syncAppleHealthToday,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['health-connections'] });
+      await queryClient.invalidateQueries({ queryKey: ['wearable-snapshot', 'today'] });
+      await queryClient.refetchQueries({ queryKey: ['health-connections'], type: 'active' });
+      await queryClient.refetchQueries({ queryKey: ['wearable-snapshot', 'today'], type: 'active' });
+    }
+  });
   const handleRefresh = async () => {
     const refreshes: Array<Promise<unknown>> = [
       today.refetch(),
@@ -226,14 +244,14 @@ export default function TodayScreen() {
         t('today.trainingRoutineUpdatedExistingPlan'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+          { text: t('today.refresh'), onPress: () => void continueThroughHealthReadiness(true) }
         ]
       );
       return;
     }
 
     setRefreshMessage(t('today.trainingRoutineUpdatedReady'));
-    generate.mutate(false);
+    void continueThroughHealthReadiness(false);
   }, [generateAfterRoutine, generate, handledRoutineReturn, t, today.data, today.isLoading]);
 
   useEffect(() => {
@@ -248,14 +266,14 @@ export default function TodayScreen() {
         t('trainingOverrides.overrideSavedExistingPlan'),
         [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+          { text: t('today.refresh'), onPress: () => void continueThroughHealthReadiness(true) }
         ]
       );
       return;
     }
 
     setRefreshMessage(t('trainingOverrides.overrideSavedGenerating'));
-    generate.mutate(false);
+    void continueThroughHealthReadiness(false);
   }, [generateAfterOverride, generate, handledOverrideReturn, t, today.data, today.isLoading]);
 
   if (today.isLoading) {
@@ -350,6 +368,14 @@ export default function TodayScreen() {
           title={t('today.limitReached')}
           message={`${limitMessage} ${t('today.upgradeSoon')}`}
           tone="warning"
+        />
+      ) : null}
+
+      {healthReadinessMessage ? (
+        <ContextNoteCard
+          title={t('health.healthDataOptional')}
+          message={healthReadinessMessage}
+          tone="health"
         />
       ) : null}
 
@@ -472,7 +498,7 @@ export default function TodayScreen() {
 
   async function handleGeneratePlan(forceRegenerate: boolean) {
     if (forceRegenerate || appMode === 'NUTRITION_ONLY') {
-      generate.mutate(forceRegenerate);
+      await continueThroughHealthReadiness(forceRegenerate);
       return;
     }
 
@@ -495,7 +521,7 @@ export default function TodayScreen() {
         : Boolean(schedule.isActive && todayRoutineDay?.isTrainingDay);
 
       if (isTrainingDay) {
-        generate.mutate(false);
+        await continueThroughHealthReadiness(false);
         return;
       }
 
@@ -505,7 +531,7 @@ export default function TodayScreen() {
         [
           {
             text: t('today.generateRestDayPlan'),
-            onPress: () => generate.mutate(false)
+            onPress: () => void continueThroughHealthReadiness(false)
           },
           {
             text: t('today.setUpTodaysWorkout'),
@@ -557,17 +583,166 @@ export default function TodayScreen() {
                   t('trainingOverrides.restOverrideExistingPlan'),
                   [
                     { text: t('common.cancel'), style: 'cancel' },
-                    { text: t('today.refresh'), onPress: () => generate.mutate(true) }
+                    { text: t('today.refresh'), onPress: () => void continueThroughHealthReadiness(true) }
                   ]
                 );
                 return;
               }
               setRefreshMessage(t('trainingOverrides.overrideSavedGenerating'));
-              generate.mutate(false);
+              void continueThroughHealthReadiness(false);
             } catch {
               Alert.alert(t('trainingOverrides.saveFailed'), t('errors.unableSave'));
             }
           }
+        }
+      ]
+    );
+  }
+
+  async function continueThroughHealthReadiness(forceRegenerate: boolean) {
+    try {
+      const [connectionsResult, snapshotResult, dismissedAt] = await Promise.all([
+        queryClient.fetchQuery({
+          queryKey: ['health-connections'],
+          queryFn: getHealthConnections
+        }),
+        queryClient.fetchQuery({
+          queryKey: ['wearable-snapshot', 'today'],
+          queryFn: getTodayWearableSnapshot
+        }),
+        getHealthReadinessPromptDismissedAt()
+      ]);
+      const readiness = resolveHealthDataReadiness({
+        connections: connectionsResult.connections,
+        snapshot: snapshotResult,
+        planLocalDate: todayLocalDate,
+        platformProvider: getPlatformHealthProvider(),
+        noProviderPromptDismissedRecently: isHealthReadinessPromptDismissedRecently(dismissedAt)
+      });
+
+      if (!readiness.shouldPrompt || readiness.state === 'FRESH') {
+        generate.mutate(forceRegenerate);
+        return;
+      }
+
+      if (readiness.state === 'STALE' && readiness.source === 'APPLE_HEALTH') {
+        Alert.alert(
+          t('health.readinessUpdateTitle'),
+          t('health.readinessUpdateBody'),
+          [
+            {
+              text: t('health.syncNow'),
+              onPress: () => void syncAppleHealthThenGenerate(forceRegenerate)
+            },
+            {
+              text: t('health.continueWithoutLatestData'),
+              onPress: () => generate.mutate(forceRegenerate)
+            },
+            { text: t('common.cancel'), style: 'cancel' }
+          ]
+        );
+        return;
+      }
+
+      if (readiness.state === 'NOT_CONNECTED') {
+        Alert.alert(
+          t('health.readinessConnectTitle'),
+          t('health.readinessConnectBody'),
+          [
+            {
+              text: t('health.connectAppleHealth'),
+              onPress: () => void syncAppleHealthThenGenerate(forceRegenerate)
+            },
+            {
+              text: t('health.notNow'),
+              onPress: () => void dismissHealthReadinessAndGenerate(forceRegenerate)
+            },
+            { text: t('common.cancel'), style: 'cancel' }
+          ]
+        );
+        return;
+      }
+
+      generate.mutate(forceRegenerate);
+    } catch {
+      setHealthReadinessMessage(t('health.readinessUnavailableContinue'));
+      generate.mutate(forceRegenerate);
+    }
+  }
+
+  async function dismissHealthReadinessAndGenerate(forceRegenerate: boolean) {
+    await dismissHealthReadinessPrompt();
+    setHealthReadinessMessage(t('health.healthDataOptionalCopy'));
+    generate.mutate(forceRegenerate);
+  }
+
+  async function syncAppleHealthThenGenerate(forceRegenerate: boolean) {
+    try {
+      const result = await appleHealthSync.mutateAsync();
+
+      if (result.messageCode === 'SYNCED') {
+        setHealthReadinessMessage(t('health.appleHealthSynced'));
+        generate.mutate(forceRegenerate);
+        return;
+      }
+
+      if (result.messageCode === 'NO_DATA') {
+        Alert.alert(
+          t('health.readinessNoDataTitle'),
+          t('health.readinessNoDataBody'),
+          [
+            {
+              text: t('health.continueWithoutLatestData'),
+              onPress: () => generate.mutate(forceRegenerate)
+            },
+            {
+              text: t('common.retry'),
+              onPress: () => void syncAppleHealthThenGenerate(forceRegenerate)
+            }
+          ]
+        );
+        return;
+      }
+
+      if (result.messageCode === 'PERMISSION_DENIED') {
+        showHealthReadinessContinueAlert(
+          forceRegenerate,
+          t('health.permissionDenied'),
+          t('health.permissionDeniedContinue')
+        );
+        return;
+      }
+
+      showHealthReadinessContinueAlert(
+        forceRegenerate,
+        t('health.appleHealthUnavailableTitle'),
+        getAppleHealthUnavailableMessage(t, result.errorCode)
+      );
+    } catch (error) {
+      const code = getNativeHealthErrorCode(error);
+      const title =
+        code === 'MISSING_NATIVE_MODULE' || code === 'APPLE_HEALTH_UNAVAILABLE'
+          ? t('health.appleHealthUnavailableTitle')
+          : t('health.syncError');
+      const message = code
+        ? getAppleHealthUnavailableMessage(t, code)
+        : t('health.syncFailedContinue');
+      showHealthReadinessContinueAlert(forceRegenerate, title, message);
+    }
+  }
+
+  function showHealthReadinessContinueAlert(forceRegenerate: boolean, title: string, message: string) {
+    Alert.alert(
+      title,
+      message,
+      [
+        {
+          text: t('health.continueWithoutHealthData'),
+          onPress: () => generate.mutate(forceRegenerate)
+        },
+        {
+          text: t('common.retry'),
+          onPress: () => void syncAppleHealthThenGenerate(forceRegenerate)
         }
       ]
     );
@@ -884,6 +1059,30 @@ function formatResetAt(value: string, locale: string) {
   }
 
   return formatTime(date, locale);
+}
+
+function getNativeHealthErrorCode(error: unknown) {
+  if (error instanceof NativeHealthServiceError) {
+    return error.code;
+  }
+
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    return String((error as { code?: unknown }).code);
+  }
+
+  return null;
+}
+
+function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
+  if (code === 'MISSING_NATIVE_MODULE') {
+    return t('health.appleHealthNativeUnavailable');
+  }
+
+  if (code === 'PERMISSION_UNAVAILABLE' || code === 'APPLE_HEALTH_UNAVAILABLE') {
+    return t('health.appleHealthUnavailable');
+  }
+
+  return t('health.readinessUnavailableContinue');
 }
 
 const styles = StyleSheet.create({
