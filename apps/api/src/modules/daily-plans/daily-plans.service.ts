@@ -67,6 +67,7 @@ import {
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
 import { UsageGuardService } from '../usage/usage-guard.service';
+import { TrainingLoadAgentService } from '../training-load-agent/training-load-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { withRecoveryAwareContextNotes } from './daily-plan-context-notes';
@@ -101,6 +102,7 @@ export class DailyPlansService {
     private readonly nutritionAgent: NutritionAgentService,
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly protocolSelector: ProtocolSelectorService,
+    private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
@@ -265,6 +267,19 @@ export class DailyPlansService {
         status: exercisePreparation.status,
         planJson: this.withFoodPlan(exercisePreparation.planJson, foodPlanResult.foodPlan)
       };
+      providerPlanResult = {
+        ...providerPlanResult,
+        planJson: await this.withTrainingLoadAgentSnapshot({
+          planJson: providerPlanResult.planJson,
+          user,
+          planLocalDate,
+          planQualityMode,
+          personalizationContext,
+          exerciseSelection,
+          resolvedTrainingDay,
+          appMode
+        })
+      };
       let safePlanResult = await this.validateProviderPlan({
         providerPlan: providerPlanResult.planJson,
         blockedFoods,
@@ -352,6 +367,16 @@ export class DailyPlansService {
             exercisePreparation.usedDeterministicFallback ||
             retryExercisePreparation.usedDeterministicFallback
         };
+        retryExercisePreparation.planJson = await this.withTrainingLoadAgentSnapshot({
+          planJson: retryExercisePreparation.planJson,
+          user,
+          planLocalDate,
+          planQualityMode,
+          personalizationContext,
+          exerciseSelection,
+          resolvedTrainingDay,
+          appMode
+        });
 
         safePlanResult = await this.validateProviderPlan({
           providerPlan: this.withFoodPlan(
@@ -1714,6 +1739,36 @@ export class DailyPlansService {
         notes: 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
         exercises: []
       }
+    };
+  }
+
+  private async withTrainingLoadAgentSnapshot(input: {
+    planJson: DailyPlanJson;
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
+    planLocalDate: string;
+    planQualityMode: PlanQualityMode;
+    personalizationContext: GenerateDailyPlanPersonalizationContext;
+    exerciseSelection: ExerciseSelectionResult;
+    resolvedTrainingDay: ResolvedTrainingDayContext;
+    appMode: GoalImpactMode;
+  }): Promise<DailyPlanJson> {
+    const snapshot = await this.trainingLoadAgent.generate({
+      planLocalDate: input.planLocalDate,
+      locale: this.resolvePlanningLocale(input.user),
+      appMode: input.appMode,
+      safeMode: input.user.safeMode,
+      isMinor: input.user.isMinor,
+      planQualityMode: input.planQualityMode,
+      trainingLevel: input.user.trainingPreference?.trainingLevel ?? null,
+      resolvedTrainingDay: input.resolvedTrainingDay,
+      personalizationContext: input.personalizationContext,
+      exerciseSelection: input.exerciseSelection,
+      planTraining: input.planJson.training
+    });
+
+    return {
+      ...input.planJson,
+      trainingLoadAgentSnapshot: snapshot
     };
   }
 

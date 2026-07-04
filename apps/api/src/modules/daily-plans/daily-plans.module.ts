@@ -12,6 +12,7 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
 import { ProtocolModule } from '../protocol/protocol.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
+import { TrainingLoadAgentModule } from '../training-load-agent/training-load-agent.module';
 import { TrainingScheduleModule } from '../training-schedule/training-schedule.module';
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlansController } from './daily-plans.controller';
@@ -31,6 +32,7 @@ import { DailyPlansService } from './daily-plans.service';
     ProtocolModule,
     SafetyModule,
     SafetyAgentModule,
+    TrainingLoadAgentModule,
     TrainingScheduleModule,
     UsageModule
   ],

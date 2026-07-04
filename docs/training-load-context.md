@@ -18,4 +18,6 @@
 
 ## Product Boundary
 
-This is not a Training Load Agent. It does not diagnose recovery, calculate readiness scores, or replace exercise selection. Future agents may use this context, but deterministic safety remains the authority.
+This deterministic context is not the source of exercise selection and does not diagnose recovery or calculate a medical readiness score.
+
+The AI Training Load Agent may use this context to produce `trainingLoadAgentSnapshot` guidance, but deterministic safety remains the authority. The agent cannot invent exercises, override equipment filters, replace `WorkoutVolumePlanner`, or tell the user to push through pain.

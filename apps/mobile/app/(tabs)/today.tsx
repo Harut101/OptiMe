@@ -406,6 +406,15 @@ export default function TodayScreen() {
           ) : (
             <Card>
               <SectionHeader title={t('today.training')} />
+              {plan.trainingLoadAgentSnapshot ? (
+                <>
+                  <StatusPill
+                    label={getTrainingLoadReadinessLabel(plan.trainingLoadAgentSnapshot.readiness, t)}
+                    tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
+                  />
+                  <Text variant="body">{plan.trainingLoadAgentSnapshot.userFacingSummary}</Text>
+                </>
+              ) : null}
               <Text variant="body">{plan.training.recommendation}</Text>
               <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
               <Button
@@ -705,6 +714,17 @@ export default function TodayScreen() {
 function getTodayDayOfWeek() {
   const jsDay = new Date().getDay();
   return ORDERED_DAYS[(jsDay + 6) % 7];
+}
+
+function getTrainingLoadReadinessLabel(
+  readiness: NonNullable<DailyPlanJson['trainingLoadAgentSnapshot']>['readiness'],
+  t: TFunction
+) {
+  if (readiness === 'NORMAL') return t('trainingLoad.normal');
+  if (readiness === 'CONTROLLED') return t('trainingLoad.controlled');
+  if (readiness === 'LIGHT') return t('trainingLoad.light');
+  if (readiness === 'RECOVERY_FOCUSED') return t('trainingLoad.recoveryFocused');
+  return t('trainingLoad.unknown');
 }
 
 function WearableContextNote({

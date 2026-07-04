@@ -120,6 +120,12 @@ assertIncludes(planContent, [
   'PreWorkoutCheckCard', "t('workout.preWorkoutCheck')", "t('workout.skipPreWorkoutCheck')",
   "submit('SKIPPED')", 'preWorkoutCheck'
 ], 'Pre-workout check');
+assertIncludes(planContent, [
+  'trainingLoadAgentSnapshot',
+  "t('trainingLoad.title')",
+  "t('trainingLoad.exerciseCaution')",
+  'getTrainingLoadReadinessLabel'
+], 'Plan Details Training Load Agent guidance');
 assertIncludes(exerciseCard, [
   'exercise.name', 'formatExercisePrescription', 'getMuscleGroupLabel', 'getExerciseEquipmentLabel',
   'summary?.thumbnail', 'summary?.thumbnail?.url', 'resizeMode="contain"', 'barbell-outline'
@@ -219,6 +225,12 @@ assertIncludes(nativeHealthUtils, [
 const today = read('app/(tabs)/today.tsx');
 assertIncludes(today, ['ScreenHeader', 'StatusPill', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
 assertIncludes(today, [
+  'trainingLoadAgentSnapshot',
+  'getTrainingLoadReadinessLabel',
+  "t('trainingLoad.controlled')",
+  "t('trainingLoad.recoveryFocused')"
+], 'Today Training Load Agent guidance');
+assertIncludes(today, [
   'DashboardProgressCard',
   'WearableSummaryCard',
   'resolveNutritionProgress',
@@ -276,6 +288,13 @@ assertIncludes(trainingDayEditor, [
   "params: { generateAfterRoutine: '1' }"
 ], 'Weekly Routine return-to-generate flow');
 assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', "profile.sections.connections"], 'Profile polish');
+const workoutSession = read('app/workout-session.tsx');
+assertIncludes(workoutSession, [
+  'trainingLoadAgentSnapshot',
+  "t('trainingLoad.workoutGuidance')",
+  'formatTrainingLoadSessionMessage',
+  "t('trainingLoad.takeLongerRests')"
+], 'Workout Session Training Load Agent guidance');
 
 for (const component of [
   'src/components/ScreenHeader.tsx',

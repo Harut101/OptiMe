@@ -21,6 +21,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
+import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
 import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
@@ -167,9 +168,32 @@ function TrainingContent(props: PlanTabbedContentProps & {
     <>
       <Card>
         <Text variant="label">{t('plan.trainingRecommendation')}</Text>
+        {plan.trainingLoadAgentSnapshot ? (
+          <View style={styles.loadBlock}>
+            <Text variant="label">{t('trainingLoad.title')}</Text>
+            <StatusPill
+              label={getTrainingLoadReadinessLabel(plan.trainingLoadAgentSnapshot.readiness, t)}
+              tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
+            />
+            <Text variant="body">{plan.trainingLoadAgentSnapshot.userFacingSummary}</Text>
+            {plan.trainingLoadAgentSnapshot.trainingGuidanceBullets.map((bullet) => (
+              <Text key={bullet} variant="muted">- {bullet}</Text>
+            ))}
+          </View>
+        ) : null}
         <Text variant="body">{plan.training.recommendation}</Text>
         <Text variant="muted">{plan.training.notes}</Text>
       </Card>
+      {plan.trainingLoadAgentSnapshot?.exerciseCautions.length ? (
+        <Card>
+          <Text variant="label">{t('trainingLoad.exerciseCaution')}</Text>
+          {plan.trainingLoadAgentSnapshot.exerciseCautions.map((caution, index) => (
+            <Text key={`${caution.exerciseId ?? caution.exerciseSlug ?? 'session'}-${index}`} variant="muted">
+              {caution.message}
+            </Text>
+          ))}
+        </Card>
+      ) : null}
       <Card>
         <Text variant="label">{t('plan.trainingCheckIn')}</Text>
         <Text variant="muted">{t('plan.trainingHelp')}</Text>
@@ -400,9 +424,20 @@ const getPainSignal = (items?: DailyPlanCheckInResponse[]) => {
   const payload = items?.find((item) => item.type === 'TRAINING')?.payload;
   return Boolean(payload && 'painOrDiscomfort' in payload && payload.painOrDiscomfort);
 };
+const getTrainingLoadReadinessLabel = (
+  readiness: NonNullable<DailyPlanJson['trainingLoadAgentSnapshot']>['readiness'],
+  t: TFunction
+) => {
+  if (readiness === 'NORMAL') return t('trainingLoad.normal');
+  if (readiness === 'CONTROLLED') return t('trainingLoad.controlled');
+  if (readiness === 'LIGHT') return t('trainingLoad.light');
+  if (readiness === 'RECOVERY_FOCUSED') return t('trainingLoad.recoveryFocused');
+  return t('trainingLoad.unknown');
+};
 
 const styles = StyleSheet.create({
   block: { gap: 8, paddingTop: 6 },
+  loadBlock: { gap: 8 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
   preWorkoutActions: { gap: 8 },

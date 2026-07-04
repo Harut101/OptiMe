@@ -119,6 +119,29 @@ type DailyPlanJson = {
       exerciseSnapshot?: DailyPlanExerciseSnapshot;
     }>;
   };
+  trainingLoadAgentSnapshot?: {
+    source: "AI_TRAINING_LOAD_AGENT" | "DETERMINISTIC_FALLBACK";
+    readiness: "NORMAL" | "CONTROLLED" | "LIGHT" | "RECOVERY_FOCUSED" | "UNKNOWN";
+    adjustments: {
+      intensity: "NORMAL" | "REDUCE" | "UNKNOWN";
+      volume: "NORMAL" | "REDUCE" | "UNKNOWN";
+      restTime: "NORMAL" | "INCREASE" | "UNKNOWN";
+    };
+    reasonCodes: string[];
+    userFacingSummary: string;
+    trainingGuidanceBullets: string[];
+    exerciseCautions: Array<{
+      exerciseId?: string | null;
+      exerciseSlug?: string | null;
+      planExerciseKey?: string | null;
+      cautionCode: string;
+      message: string;
+    }>;
+    validation: {
+      status: "VALID" | "FALLBACK" | "INVALID";
+      reasons: string[];
+    };
+  };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   nutritionTargetSnapshot?: {
     engineVersion: number;
@@ -177,7 +200,9 @@ type DailyPlanJson = {
 };
 ```
 
-`training.exercises` is optional for compatibility. Workout execution can start only when the normalized plan has non-empty exercises and the training intensity is not `REST`.
+`training.exercises` and `trainingLoadAgentSnapshot` are optional for compatibility. Workout execution can start only when the normalized plan has non-empty exercises and the training intensity is not `REST`.
+
+`trainingLoadAgentSnapshot` is display guidance only. It cannot replace deterministic exercise selection, workout volume limits, nutrition targets, or safety rules.
 
 ## Structured Food Plan
 

@@ -498,6 +498,12 @@ export class WorkoutSessionsService {
     const sortedProgress = [...session.exerciseProgress].sort(
       (a, b) => a.planExerciseOrder - b.planExerciseOrder
     );
+    const planJson = normalizeDailyPlanJson({
+      planJson: session.dailyPlan.planJson,
+      planLocalDate: session.dailyPlan.planLocalDate,
+      planTimezone: session.dailyPlan.planTimezone,
+      readinessLevel: session.dailyPlan.readinessLevel
+    });
     const progressPercent = session.plannedSetCount > 0
       ? Math.round((session.completedSetCount / session.plannedSetCount) * 100)
       : 0;
@@ -507,6 +513,7 @@ export class WorkoutSessionsService {
       dailyPlanId: session.dailyPlanId,
       status: session.status,
       preWorkoutCheck: this.toPreWorkoutCheck(session),
+      trainingLoadAgentSnapshot: planJson.trainingLoadAgentSnapshot,
       summary: this.toSummary(session),
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() ?? null,

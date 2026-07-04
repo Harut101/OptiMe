@@ -10,4 +10,6 @@ Exercise validation compares model output to the deterministic request. Too few 
 
 Deterministic `SafetyService` and the optional Safety Agent continue after validation. Safety Agent retry output uses the same candidates and cannot introduce an identity. Logs contain only protocol/mode/counts/reason codes/retry/fallback/final IDs/locale, never prompts, raw health values, private notes, or chain-of-thought.
 
+After deterministic exercise selection and food-plan generation, the AI Training Load Agent may add `trainingLoadAgentSnapshot`. This is a bounded explanation layer for readiness, intensity/volume/rest adjustments, and planned-exercise cautions. It receives deterministic context and selected exercises, returns structured JSON, retries invalid output once, and falls back to deterministic guidance if validation fails. It cannot change exercise identity, workout volume, nutrition targets, or safety rules.
+
 The mobile Food/Training views, thumbnail batch request, Exercise Details route, and media carousel are read-only. They never call OpenAI or any generation endpoint. Live media loading is deliberately separate from generated immutable exercise snapshots.

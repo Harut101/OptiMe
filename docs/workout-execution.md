@@ -117,6 +117,8 @@ Plan Details shows:
 
 The workout screen renders exercise names, optional thumbnails, planned prescription, set controls, completion controls, safety notes, and Exercise Details links for library-backed exercises.
 
+If the saved Daily Plan includes `trainingLoadAgentSnapshot`, the workout screen shows a concise session-level guidance note. This note is read-only and cannot replace exercises, change sets/reps, or mutate the workout session.
+
 ## Legacy Support
 
 Older Daily Plans without exercises do not show workout controls. Free-text exercises without library IDs can still be tracked, but they do not open Exercise Details.

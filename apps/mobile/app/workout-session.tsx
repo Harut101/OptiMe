@@ -162,6 +162,14 @@ export default function WorkoutSessionScreen() {
 
       <ContextNoteCard title={t('workout.safetyNote')} message={t('workout.safetyMessage')} tone="warning" />
 
+      {data.trainingLoadAgentSnapshot ? (
+        <ContextNoteCard
+          title={t('trainingLoad.workoutGuidance')}
+          message={formatTrainingLoadSessionMessage(data.trainingLoadAgentSnapshot, t)}
+          tone={data.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
+        />
+      ) : null}
+
       {data.preWorkoutCheck ? (
         <ContextNoteCard
           title={t('workout.preWorkoutCheck')}
@@ -389,6 +397,16 @@ function getPreWorkoutReadinessLabel(
   if (status === 'SORE') return t('workout.readinessSore');
   if (status === 'PAIN_OR_LIMITATION') return t('workout.readinessPain');
   return t('workout.readinessSkipped');
+}
+
+function formatTrainingLoadSessionMessage(
+  snapshot: NonNullable<WorkoutSessionResponse['trainingLoadAgentSnapshot']>,
+  t: TFunction
+) {
+  const restGuidance = snapshot.adjustments.restTime === 'INCREASE'
+    ? ` ${t('trainingLoad.takeLongerRests')}`
+    : '';
+  return `${snapshot.userFacingSummary}${restGuidance}`;
 }
 
 const styles = StyleSheet.create({

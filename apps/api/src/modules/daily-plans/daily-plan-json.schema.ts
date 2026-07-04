@@ -231,6 +231,55 @@ const trainingLoadReasonCodeSchema = z.enum([
   'NO_WEARABLE_DATA'
 ]);
 
+export const trainingLoadAgentReasonCodeSchema = z.enum([
+  'NORMAL_ROUTINE',
+  'LOW_SLEEP_CONTEXT',
+  'HIGH_ACTIVITY_CONTEXT',
+  'RECENT_WORKOUT_LOAD',
+  'RECOVERY_FOCUSED_CONTEXT',
+  'PRE_WORKOUT_TIRED',
+  'PRE_WORKOUT_SORE',
+  'PRE_WORKOUT_PAIN_OR_LIMITATION',
+  'NO_RECENT_WEARABLE_DATA',
+  'PARTIAL_WEARABLE_DATA',
+  'SAFETY_LIMITED_CONTEXT',
+  'BEGINNER_LEVEL',
+  'DURATION_VOLUME_LIMIT'
+]);
+
+export const trainingExerciseCautionCodeSchema = z.enum([
+  'KEEP_CONTROLLED',
+  'TAKE_LONGER_RESTS',
+  'STOP_IF_PAIN_INCREASES',
+  'USE_STEADY_PACE',
+  'REDUCE_RANGE_IF_UNCOMFORTABLE'
+]);
+
+export const trainingLoadAgentSnapshotSchema = z.object({
+  source: z.enum(['AI_TRAINING_LOAD_AGENT', 'DETERMINISTIC_FALLBACK']),
+  readiness: z.enum(['NORMAL', 'CONTROLLED', 'LIGHT', 'RECOVERY_FOCUSED', 'UNKNOWN']),
+  adjustments: z.object({
+    intensity: z.enum(['NORMAL', 'REDUCE', 'UNKNOWN']),
+    volume: z.enum(['NORMAL', 'REDUCE', 'UNKNOWN']),
+    restTime: z.enum(['NORMAL', 'INCREASE', 'UNKNOWN'])
+  }),
+  reasonCodes: z.array(trainingLoadAgentReasonCodeSchema).max(12),
+  userFacingSummary: z.string().trim().min(1).max(280),
+  trainingGuidanceBullets: z.array(z.string().trim().min(1).max(180)).min(1).max(5),
+  exerciseCautions: z.array(z.object({
+    exerciseId: z.string().nullable(),
+    exerciseSlug: z.string().nullable(),
+    planExerciseKey: z.string().nullable(),
+    cautionCode: trainingExerciseCautionCodeSchema,
+    message: z.string().trim().min(1).max(180)
+  })).max(8),
+  validation: z.object({
+    status: z.enum(['VALID', 'FALLBACK', 'INVALID']),
+    reasons: z.array(z.string().trim().min(1).max(120)).max(12)
+  })
+});
+export type TrainingLoadAgentSnapshot = z.infer<typeof trainingLoadAgentSnapshotSchema>;
+
 const dailyPlanContextNotesSchema = z.object({
   wearable: z
     .object({
@@ -349,6 +398,7 @@ export const dailyPlanJsonSchema = z.object({
     notes: z.string(),
     exercises: z.array(exerciseSchema).max(8).optional()
   }),
+  trainingLoadAgentSnapshot: trainingLoadAgentSnapshotSchema.optional(),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
   contextNotes: dailyPlanContextNotesSchema.optional(),

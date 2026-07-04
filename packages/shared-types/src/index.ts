@@ -532,6 +532,60 @@ export interface TrainingLoadContext {
   userFacingHint: string | null;
 }
 
+export type TrainingLoadAgentSource = 'AI_TRAINING_LOAD_AGENT' | 'DETERMINISTIC_FALLBACK';
+export type TrainingLoadAgentReadiness =
+  | 'NORMAL'
+  | 'CONTROLLED'
+  | 'LIGHT'
+  | 'RECOVERY_FOCUSED'
+  | 'UNKNOWN';
+export type TrainingLoadAgentAdjustment = 'NORMAL' | 'REDUCE' | 'INCREASE' | 'UNKNOWN';
+export type TrainingLoadAgentValidationStatus = 'VALID' | 'FALLBACK' | 'INVALID';
+export type TrainingLoadAgentReasonCode =
+  | 'NORMAL_ROUTINE'
+  | 'LOW_SLEEP_CONTEXT'
+  | 'HIGH_ACTIVITY_CONTEXT'
+  | 'RECENT_WORKOUT_LOAD'
+  | 'RECOVERY_FOCUSED_CONTEXT'
+  | 'PRE_WORKOUT_TIRED'
+  | 'PRE_WORKOUT_SORE'
+  | 'PRE_WORKOUT_PAIN_OR_LIMITATION'
+  | 'NO_RECENT_WEARABLE_DATA'
+  | 'PARTIAL_WEARABLE_DATA'
+  | 'SAFETY_LIMITED_CONTEXT'
+  | 'BEGINNER_LEVEL'
+  | 'DURATION_VOLUME_LIMIT';
+export type TrainingExerciseCautionCode =
+  | 'KEEP_CONTROLLED'
+  | 'TAKE_LONGER_RESTS'
+  | 'STOP_IF_PAIN_INCREASES'
+  | 'USE_STEADY_PACE'
+  | 'REDUCE_RANGE_IF_UNCOMFORTABLE';
+
+export interface TrainingLoadAgentSnapshot {
+  source: TrainingLoadAgentSource;
+  readiness: TrainingLoadAgentReadiness;
+  adjustments: {
+    intensity: Exclude<TrainingLoadAgentAdjustment, 'INCREASE'>;
+    volume: Exclude<TrainingLoadAgentAdjustment, 'INCREASE'>;
+    restTime: Exclude<TrainingLoadAgentAdjustment, 'REDUCE'>;
+  };
+  reasonCodes: TrainingLoadAgentReasonCode[];
+  userFacingSummary: string;
+  trainingGuidanceBullets: string[];
+  exerciseCautions: Array<{
+    exerciseId: string | null;
+    exerciseSlug: string | null;
+    planExerciseKey: string | null;
+    cautionCode: TrainingExerciseCautionCode;
+    message: string;
+  }>;
+  validation: {
+    status: TrainingLoadAgentValidationStatus;
+    reasons: string[];
+  };
+}
+
 export interface NutritionTargetContext {
   trainingEnabled: boolean;
   scheduledTrainingDay: boolean;
@@ -964,6 +1018,7 @@ export interface DailyPlanJson {
     notes: string;
     exercises?: DailyPlanExercise[];
   };
+  trainingLoadAgentSnapshot?: TrainingLoadAgentSnapshot;
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   nutritionTargetSnapshot?: NutritionTargetSnapshot;
   contextNotes?: DailyPlanContextNotes;
@@ -1195,6 +1250,7 @@ export interface WorkoutSessionResponse {
   dailyPlanId: string;
   status: WorkoutSessionStatus;
   preWorkoutCheck: WorkoutSessionPreWorkoutCheck | null;
+  trainingLoadAgentSnapshot?: TrainingLoadAgentSnapshot;
   summary: WorkoutSessionSummary;
   startedAt: string;
   completedAt: string | null;

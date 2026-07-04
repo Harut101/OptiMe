@@ -290,7 +290,16 @@ describe('Sprint 1 backend vertical slice', () => {
       const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
       expect(response.body.status).toBe('READY');
       expect(dailyPlanRequests).toHaveLength(2);
+      expect(filterOpenAiRequestsBySchema(requests, 'training_load_agent_snapshot')).toHaveLength(1);
       expect(JSON.stringify(dailyPlanRequests[1])).toContain('EXERCISE_NOT_ALLOWED');
+      expect(response.body.plan.trainingLoadAgentSnapshot).toMatchObject({
+        source: 'AI_TRAINING_LOAD_AGENT',
+        readiness: 'NORMAL',
+        validation: {
+          status: 'VALID',
+          reasons: []
+        }
+      });
       expect(response.body.plan.debug.exerciseSelection).toMatchObject({
         usedAiRetry: true,
         usedDeterministicFallback: true
@@ -2769,6 +2778,14 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(stored.planJson).toBeTruthy();
     expect(first.body.id).toBe(stored.id);
     expect(dailyPlanJsonSchema.safeParse(first.body.plan).success).toBe(true);
+    expect(first.body.plan.trainingLoadAgentSnapshot).toMatchObject({
+      source: 'DETERMINISTIC_FALLBACK',
+      readiness: 'UNKNOWN',
+      validation: {
+        status: 'FALLBACK',
+        reasons: ['mock_mode']
+      }
+    });
     expect(first.body).toMatchObject({
       id: stored.id,
       status: 'READY',
@@ -5211,7 +5228,8 @@ describe('Sprint 1 backend vertical slice', () => {
         retryResult: 'approved'
       });
       expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(2);
-      expect(filterOutOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(4);
+      expect(filterOpenAiRequestsBySchema(requests, 'training_load_agent_snapshot')).toHaveLength(2);
+      expect(filterOutOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(6);
       const retryRequestInput = filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[1]
         .input as Array<{ content?: string }>;
       const retryContext = JSON.parse(retryRequestInput[1].content ?? '{}') as {
@@ -6991,14 +7009,40 @@ function getOpenAiMockResponse(
   responses: Array<() => MockOpenAiResponse>,
   callIndex: number
 ) {
-  if (getOpenAiRequestSchemaName(input) === 'daily_food_plan_content') {
+  const schemaName = getOpenAiRequestSchemaName(input);
+  if (schemaName === 'daily_food_plan_content') {
     return createMockDailyFoodPlanContentResponse(input);
+  }
+  if (schemaName === 'training_load_agent_snapshot') {
+    return createMockTrainingLoadAgentResponse();
   }
 
   return hydrateLegacyDailyPlanResponse(
     responses[Math.min(callIndex, responses.length - 1)](),
     input
   );
+}
+
+function shouldAdvanceOpenAiResponseIndex(input: Record<string, unknown>) {
+  const schemaName = getOpenAiRequestSchemaName(input);
+  return schemaName !== 'daily_food_plan_content' && schemaName !== 'training_load_agent_snapshot';
+}
+
+function createMockTrainingLoadAgentResponse(): MockOpenAiResponse {
+  return {
+    output_text: JSON.stringify({
+      readiness: 'NORMAL',
+      adjustments: {
+        intensity: 'NORMAL',
+        volume: 'NORMAL',
+        restTime: 'NORMAL'
+      },
+      reasonCodes: ['NORMAL_ROUTINE'],
+      userFacingSummary: "Today's workout can follow your usual plan.",
+      trainingGuidanceBullets: ['Use steady pacing and leave effort in reserve.'],
+      exerciseCautions: []
+    })
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -7024,7 +7068,7 @@ async function createOpenAiModeTestApp(options: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
               const response = getOpenAiMockResponse(input, options.responses, callIndex);
-              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+              if (shouldAdvanceOpenAiResponseIndex(input)) {
                 callIndex += 1;
               }
               if ('throw' in response) {
@@ -7063,7 +7107,7 @@ async function createOpenAiSafetyAgentModeTestApp(options: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
               const response = getOpenAiMockResponse(input, options.responses, callIndex);
-              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+              if (shouldAdvanceOpenAiResponseIndex(input)) {
                 callIndex += 1;
               }
               if ('throw' in response) {
@@ -7102,7 +7146,7 @@ async function createOpenAiDailyAndSafetyAgentModeTestApp(options: {
             create: async (input: Record<string, unknown>, requestOptions?: Record<string, unknown>) => {
               options.requests?.push(input);
               const response = getOpenAiMockResponse(input, options.responses, callIndex);
-              if (getOpenAiRequestSchemaName(input) !== 'daily_food_plan_content') {
+              if (shouldAdvanceOpenAiResponseIndex(input)) {
                 callIndex += 1;
               }
               if ('throw' in response) {

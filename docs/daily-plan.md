@@ -75,6 +75,20 @@ Normal 60-90 minute strength sessions should produce a fuller workout unless saf
 Daily Plans generated after the deterministic nutrition target batch include `plan.nutritionTargetSnapshot`. The snapshot stores backend-owned calorie and macro targets plus localized-ready explanation reason codes. Mobile renders those codes in the selected app language.
 
 Older Daily Plans without the snapshot, or with legacy `explanation.title` and `explanation.bullets`, remain readable and are not migrated or rewritten.
+
+## Training Load Agent Snapshot
+
+New plans may include optional `plan.trainingLoadAgentSnapshot`. The snapshot stores training-load guidance generated from deterministic context after exercise selection:
+
+- readiness: normal, controlled, light, recovery-focused, or unknown
+- intensity, volume, and rest-time adjustments
+- safe reason codes
+- user-facing summary and guidance bullets
+- optional cautions for already planned exercises only
+
+This snapshot is advisory and display-oriented. It does not replace deterministic safety, selected exercises, workout volume limits, nutrition targets, or Safety Agent review.
+
+Old plans without `trainingLoadAgentSnapshot` remain valid and render normally.
 # Daily Plan
 
 Daily plans are stored as normalized `DailyPlan.planJson` snapshots. New plans keep both backward-compatible nutrition summary fields and richer structured snapshots where available.
