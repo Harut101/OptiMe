@@ -6,7 +6,7 @@ import { profileSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
 
-import { getEntitlements, getUsageSummary } from '@/api/account';
+import { getEntitlements } from '@/api/account';
 import { getGoal } from '@/api/goals';
 import { getHealthStatus } from '@/api/health';
 import { getProfile, saveProfile } from '@/api/profile';
@@ -223,7 +223,6 @@ function ConnectionsSection() {
         <Text variant="muted">{t('health.intro')}</Text>
         <Button title={connection?.status === 'CONNECTED' ? t('health.manage') : t('health.connect')} variant="secondary" onPress={() => router.push('/health-data')} />
       </Card>
-      <Text variant="muted">{t('health.providerUnavailable')}</Text>
     </View>
   );
 }
@@ -237,7 +236,6 @@ function SettingsSection() {
   const currentLocale = useSettingsStore((state) => state.preferredLocale);
   const currentMeasurementSystem = useSettingsStore((state) => state.measurementSystem);
   const entitlements = useQuery({ queryKey: ['entitlements'], queryFn: getEntitlements });
-  const usage = useQuery({ queryKey: ['usage-summary'], queryFn: getUsageSummary });
   const settings = useQuery({ queryKey: ['settings'], queryFn: getSettings });
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [measurementSystem, setMeasurementSystem] = useState<MeasurementSystem>(currentMeasurementSystem);
@@ -271,7 +269,6 @@ function SettingsSection() {
       <Card>
         <SectionHeader title={t('settings.subscription')} />
         <Text>{entitlements.isError ? t('settings.planUnavailable') : `${getSubscriptionPlanLabel(t, entitlements.data?.currentPlan ?? 'FREE')} · ${getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}`}</Text>
-        <Text variant="muted">{usage.isError ? t('settings.usageUnavailable') : t('settings.usageToday')}</Text>
         <Text variant="muted">{t('settings.upgradeSoon')}</Text>
       </Card>
       <Card>

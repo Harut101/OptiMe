@@ -90,3 +90,18 @@ Backend move-workout support creates a rest override on the source date and a tr
 Today now checks optional wearable readiness before Daily Plan generation. Fresh same-day snapshots proceed immediately; stale connected Apple Health prompts Sync now or Continue without latest data; no connected iOS provider prompts Connect Apple Health or Not now. Not now is suppressed locally for a short period so users are not nagged.
 
 Health data remains optional for both app modes. Nutrition-only users can still benefit from activity/sleep context, but plan generation always continues without wearable data when unavailable. Health Connect real sync, WHOOP OAuth, provider tokens, background sync, and automatic launch sync remain deferred.
+
+## Screen Logic Audit And Content Simplification
+
+The mobile IA now has clearer ownership boundaries across Today, Food, Meal Details, Training, Weekly Routine, Workout Session, Workout History, Health Data, Plan Details, Profile, and Onboarding.
+
+Completed simplifications:
+
+- Today no longer renders permanent usage/limit status.
+- Today no longer duplicates Food tab nutrition target or detailed food-progress blocks.
+- Usage-limit messages remain contextual to generation or refresh errors.
+- Food and Meal Details no longer show noisy missing-image placeholder copy when media is absent.
+- Profile keeps account, plan, settings, and connections entry points without permanent usage or provider warning clutter.
+- Docs now define a screen responsibility matrix so future batches can add value without piling duplicate content onto Today.
+
+No backend models, payments, WHOOP, Health Connect sync, AI Coach, embeddings, admin, web, or new product flows were added in this cleanup.

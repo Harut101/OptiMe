@@ -73,3 +73,23 @@ The Today progress rings were tuned after Expo Go feedback that the first pass f
 - Nutrition moves from aqua/mint into electric teal and lime.
 - Training moves from electric blue/violet into magenta and Apple Health pink.
 - Rest day keeps a calm blue accent and a strong center label, not a warning color.
+
+## Screen Responsibility Matrix
+
+Each mobile surface should answer one primary user question and avoid repeating detail owned by another screen.
+
+| Screen | Primary question | Owns | Should not own |
+| --- | --- | --- | --- |
+| Today | What should I do today? | daily progress, wearable summary, plan status, generation/refresh actions, high-level nutrition/training/recovery cards | permanent usage counters, full meal details, detailed workout execution, profile setup |
+| Food | What should I eat or mark complete? | nutrition target, food progress, meal cards, meal completion, menu regeneration, food preferences | wearable setup, workout history, profile settings |
+| Meal Details | What is in this meal? | one meal, ingredients, prep, substitutions, meal status, meal regeneration | dashboard progress, health data, training routine |
+| Training | What is my workout/routine? | today's workout/rest state, Weekly Routine, Workout History, training setup entry | nutrition targets, health provider setup, onboarding forms |
+| Weekly Routine | What is my recurring training week? | weekday training/rest, muscle focus, equipment/environment/duration per day | one-off Today overrides, workout execution |
+| Workout Session | What am I doing right now? | exercise execution, sets, current-session safety context, finish flow | routine editing, nutrition tracking |
+| Workout History | What have I completed? | completed sessions and session summaries | live workout execution, plan generation |
+| Health Data | What sources are connected and what data is available? | Apple Health status, future Health Connect/WHOOP cards, wearable snapshot | medical interpretation, plan detail duplication |
+| Plan Details | What did the generated plan recommend? | generated food/training/recovery/reminders, exercises, feedback/check-ins | Today dashboard, permanent usage limits |
+| Profile | Who am I and how is the app configured? | account/profile/goals/app mode/settings/connections entry points | daily progress, workout execution, meal detail |
+| Onboarding | What is required for a first safe plan? | short safety-critical setup and first-plan readiness | detailed routine setup, pain/limitations, deep preferences |
+
+Usage and plan limits should appear only when they help a decision, such as after a generation or refresh limit error. They should not be permanent Today dashboard content.

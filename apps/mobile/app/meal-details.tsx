@@ -180,7 +180,6 @@ export default function MealDetailsScreen() {
         {meal.prepTimeMinutes !== null ? (
           <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
         ) : null}
-        <Text variant="muted">{t('food.noMealImage')}</Text>
       </Card>
 
       <Card>

@@ -5,13 +5,11 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { getUsageSummary } from '@/api/account';
 import { ApiError } from '@/api/client';
 import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
-import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { getTrainingSchedule } from '@/api/training-schedule';
 import { getTrainingOverride, saveTrainingOverride } from '@/api/training-overrides';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
@@ -32,7 +30,6 @@ import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
-import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
 import { DashboardProgressCard } from '@/features/today-dashboard/DashboardProgressCard';
 import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
 import {
@@ -40,10 +37,6 @@ import {
   resolveTrainingProgress
 } from '@/features/today-dashboard/today-progress';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
-import {
-  formatFoodProgress,
-  formatFoodProgressDetail
-} from '@/features/food-tracking/food-tracking-summary';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
@@ -68,9 +61,7 @@ import {
 } from '@/features/workout/workout-summary';
 import type {
   ProgressivePrompt,
-  UsageFeature,
   UsageLimitExceededError,
-  UsageSummaryItem,
   DailyPlanJson
 } from '@/types/api';
 
@@ -111,14 +102,6 @@ export default function TodayScreen() {
     queryKey: ['health-connections'],
     queryFn: getHealthConnections
   });
-  const usage = useQuery({
-    queryKey: ['usage-summary'],
-    queryFn: getUsageSummary
-  });
-  const nutritionTarget = useQuery({
-    queryKey: ['nutrition-target-preview'],
-    queryFn: () => getNutritionTargetPreview()
-  });
   const trainingSchedule = useQuery({
     queryKey: ['training-schedule'],
     queryFn: getTrainingSchedule
@@ -157,10 +140,7 @@ export default function TodayScreen() {
       queryClient.setQueryData(['today-plan'], data);
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
       await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
-      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
-      await queryClient.refetchQueries({ queryKey: ['usage-summary'], type: 'active' });
-      await queryClient.refetchQueries({ queryKey: ['nutrition-target-preview'], type: 'active' });
       setLimitMessage(null);
       setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
     },
@@ -169,7 +149,9 @@ export default function TodayScreen() {
       const onboardingError = getOnboardingIncompleteError(error);
 
       if (usageLimit) {
-        setLimitMessage(formatUsageLimitMessage(usageLimit, t, preferredLocale));
+        const message = formatUsageLimitMessage(usageLimit, t, preferredLocale);
+        setLimitMessage(message);
+        Alert.alert(t('today.limitReached'), `${message} ${t('today.upgradeSoon')}`);
         return;
       }
 
@@ -202,8 +184,6 @@ export default function TodayScreen() {
   const handleRefresh = async () => {
     const refreshes: Array<Promise<unknown>> = [
       today.refetch(),
-      usage.refetch(),
-      nutritionTarget.refetch(),
       wearableSnapshot.refetch(),
       healthConnections.refetch(),
       progressivePrompt.refetch(),
@@ -222,8 +202,6 @@ export default function TodayScreen() {
   };
   const refreshing =
     today.isRefetching ||
-    usage.isRefetching ||
-    nutritionTarget.isRefetching ||
     wearableSnapshot.isRefetching ||
     healthConnections.isRefetching ||
     progressivePrompt.isRefetching ||
@@ -297,11 +275,6 @@ export default function TodayScreen() {
   const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
   const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
   const safetyMessage = getPlanSafetyMessage(today.data);
-  const generationUsage = usage.data?.items.find(
-    (item) => item.feature === 'DAILY_PLAN_GENERATION'
-  );
-  const refreshUsage = usage.data?.items.find((item) => item.feature === 'DAILY_PLAN_REFRESH');
-  const displayedNutritionTarget = plan?.nutritionTargetSnapshot ?? nutritionTarget.data;
   const completedWorkout = workoutSession.data?.status === 'COMPLETED'
     ? workoutSession.data.summary
     : null;
@@ -357,12 +330,6 @@ export default function TodayScreen() {
         </>
       ) : null}
 
-      <UsageStatus
-        isUnavailable={usage.isError}
-        generationUsage={generationUsage}
-        refreshUsage={refreshUsage}
-      />
-
       {limitMessage ? (
         <ContextNoteCard
           title={t('today.limitReached')}
@@ -417,19 +384,6 @@ export default function TodayScreen() {
 
           {safetyMessage ? (
             <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
-          ) : null}
-
-          <NutritionTargetSummaryCard
-            target={displayedNutritionTarget}
-            isUnavailable={!displayedNutritionTarget && nutritionTarget.isError}
-          />
-
-          {plan.nutrition.foodPlan && !foodLog.isError && foodLog.data?.supported !== false ? (
-            <Card>
-              <SectionHeader title={t('foodTracking.todaysFoodProgress')} />
-              <Text variant="body">{formatFoodProgress(foodLog.data, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
-              <Text variant="muted">{formatFoodProgressDetail(foodLog.data, t)}</Text>
-            </Card>
           ) : null}
 
           <Card>
@@ -576,7 +530,6 @@ export default function TodayScreen() {
               });
               queryClient.setQueryData(['training-override', todayLocalDate], saved);
               await queryClient.invalidateQueries({ queryKey: ['training-override', todayLocalDate] });
-              await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
               if (today.data) {
                 Alert.alert(
                   t('trainingOverrides.dailyOverrideSaved'),
@@ -943,41 +896,6 @@ function ProgressivePromptCard({
   );
 }
 
-function UsageStatus({
-  isUnavailable,
-  generationUsage,
-  refreshUsage
-}: {
-  isUnavailable: boolean;
-  generationUsage?: UsageSummaryItem;
-  refreshUsage?: UsageSummaryItem;
-}) {
-  const { t } = useTranslation();
-  if (isUnavailable) {
-    return (
-      <ContextNoteCard title={t('today.planUsage')} message={t('today.usageUnavailable')} />
-    );
-  }
-
-  if (!generationUsage && !refreshUsage) {
-    return null;
-  }
-
-  return (
-    <Card>
-      <SectionHeader title={t('today.planUsage')} />
-      {generationUsage ? (
-        <Text variant="muted">
-          {t('today.generationsLeft', { count: generationUsage.remaining })}
-        </Text>
-      ) : null}
-      {refreshUsage ? (
-        <Text variant="muted">{t('today.refreshesLeft', { count: refreshUsage.remaining })}</Text>
-      ) : null}
-    </Card>
-  );
-}
-
 function getUsageLimitError(error: Error) {
   if (!(error instanceof ApiError) || typeof error.body !== 'object' || error.body === null) {
     return null;
@@ -1039,7 +957,7 @@ function formatUsageLimitMessage(error: UsageLimitExceededError, t: TFunction, l
   }));
 }
 
-function getUsageFeatureLabel(feature: UsageFeature, t: TFunction) {
+function getUsageFeatureLabel(feature: UsageLimitExceededError['feature'], t: TFunction) {
   if (feature === 'DAILY_PLAN_REFRESH') {
     return String(t('today.usageRefresh'));
   }

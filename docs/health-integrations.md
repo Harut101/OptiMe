@@ -280,3 +280,11 @@ Provider scope remains unchanged:
 - Health Connect remains represented for Android but deferred.
 - WHOOP remains represented but deferred.
 - No background sync, provider tokens, OAuth, or automatic app-launch sync is added.
+
+## Health Screen Boundary
+
+Health Data owns connection status, provider actions, and wearable snapshot visibility. Apple Health, Health Connect, WHOOP, manual/mock states, and source-specific availability messages belong here.
+
+Today may show a compact wearable summary and a soft readiness prompt before plan generation, but it should not duplicate the full Health Data screen. Health copy must stay non-medical and should not imply diagnosis, guaranteed recovery scoring, or plan invalidity when health data is missing.
+
+Profile may link to Connections, but it should not show permanent provider warning text unless the user is actively managing health sources.

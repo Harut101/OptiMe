@@ -62,3 +62,11 @@ Food Tracking adds a compact meal-completion layer on top of structured food pla
 - Food tab shows meal progress and quick status actions.
 - Meal Details shows the current meal status and status actions beside meal regeneration.
 - Older plans without `nutrition.foodPlan` render normally and do not show tracking controls.
+
+## Screen Boundary Notes
+
+Today should not duplicate the full nutrition target summary or Food tab progress sections. It can show compact daily progress and links into the detailed surfaces.
+
+Plan Details owns the complete generated plan view, including food, training, recovery, reminders, exercises, feedback, and check-ins. It should not show permanent usage-limit status or raw debug/protocol internals.
+
+Limit errors stay contextual to the action that triggered them. Existing plan content should remain visible after a generation or refresh limit is reached.

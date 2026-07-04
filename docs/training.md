@@ -67,3 +67,11 @@ The Today dashboard shows training progress from the existing plan-linked `Worko
 - rest days and nutrition-only mode show a non-pressure state instead of a percentage.
 
 This does not change workout generation, exercise selection, safety checks, or workout history.
+
+## Training Screen Boundary
+
+The Training tab owns workout readiness, today's workout/rest state, Weekly Routine, Workout History, and the entry point to training setup. It should not show nutrition target cards, health-provider setup details, or onboarding forms.
+
+Weekly Routine owns recurring weekday configuration. Workout Session owns the current execution flow. Workout History owns completed-session summaries. Keeping these separated prevents the Training tab from becoming a long mixed settings page.
+
+Today can summarize training progress and start the plan flow, but detailed routine editing and workout execution remain in Training-specific routes.

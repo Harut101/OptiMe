@@ -380,7 +380,6 @@ function MealCard({
         {meal.prepTimeMinutes !== null ? (
           <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
         ) : null}
-        <Text variant="muted">{t('food.noMealImage')}</Text>
         <Text style={styles.linkText}>{t('food.viewMealDetails')}</Text>
       </Pressable>
       <View style={styles.statusActions}>

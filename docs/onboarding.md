@@ -27,3 +27,9 @@ The current Stage 1 contract requires one goal before first-plan generation, so 
 ## Localization
 
 Stage 1 onboarding and optional progressive setup use the same translated field components as standalone editors. Prompt copy is selected from stable progressive-prompt keys on mobile; answer values sent to the API remain unchanged. Switching language does not restart onboarding or clear draft values.
+
+## Screen Boundary
+
+Onboarding should stay short and safety-first. It collects only what is needed for a first safe plan: identity/safety context, goal, app mode, activity level, allergy confirmation, and basic nutrition setup.
+
+Detailed meal preferences, target muscles, equipment, weekly routine, workout execution, pain/limitations, and health-provider connection flows belong after activation in Food, Training, Health Data, or progressive prompts. If optional context is missing, the backend uses safe defaults and asks later instead of blocking the first plan.

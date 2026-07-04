@@ -225,6 +225,10 @@ assertIncludes(today, [
   'resolveTrainingProgress',
   'getHealthConnections'
 ], 'Today dashboard');
+assert(!today.includes('UsageStatus'), 'Today must not render permanent usage/limit status.');
+assert(!today.includes('getUsageSummary'), 'Today must not fetch usage limits for always-visible dashboard text.');
+assert(!today.includes('NutritionTargetSummaryCard'), 'Today must not duplicate the nutrition target summary.');
+assert(!today.includes('FoodProgressCard'), 'Today must not duplicate Food progress below the dashboard.');
 assertIncludes(today, [
   "queryKey: ['training-schedule']",
   "t('today.trainingTodayPromptTitle')",
