@@ -4,15 +4,22 @@ import {
   Logger,
   NotFoundException
 } from '@nestjs/common';
-import { PreWorkoutReadinessStatus, Prisma, WorkoutSessionStatus } from '@prisma/client';
+import { PreWorkoutReadinessStatus, Prisma, TargetMuscleGroup, WorkoutSessionStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { normalizeDailyPlanJson } from '../daily-plans/daily-plan-normalizer';
 import { CompleteWorkoutSessionDto } from './dto/complete-workout-session.dto';
+import { PostWorkoutCheckInDto } from './dto/post-workout-check-in.dto';
+import { PreWorkoutPreflightDto } from './dto/pre-workout-preflight.dto';
 import { StartWorkoutSessionDto } from './dto/start-workout-session.dto';
 import { ToggleWorkoutSetDto } from './dto/toggle-workout-set.dto';
 import { UpdateWorkoutExerciseProgressDto } from './dto/update-workout-exercise-progress.dto';
 import { WorkoutHistoryQueryDto } from './dto/workout-history-query.dto';
+import {
+  mapPainAreasToMuscles,
+  normalizePainAreas,
+  WorkoutPainArea
+} from './workout-pain-mapping';
 
 type WorkoutSessionWithProgress = Prisma.WorkoutSessionGetPayload<{
   include: { exerciseProgress: true; dailyPlan: true };
@@ -28,6 +35,7 @@ interface PlannedWorkoutExercise {
   plannedReps: string | null;
   plannedDurationSeconds: number | null;
   plannedRestSeconds: number | null;
+  targetMuscles: TargetMuscleGroup[];
 }
 
 interface PlanExerciseForExecution {
@@ -38,12 +46,18 @@ interface PlanExerciseForExecution {
   reps?: string;
   duration?: string;
   rest?: string;
+  targetMuscles?: string[];
+  exerciseSnapshot?: {
+    targetMuscles?: string[];
+    secondaryMuscles?: string[];
+  };
 }
 
 interface NormalizedPreWorkoutCheck {
   readinessStatus: PreWorkoutReadinessStatus;
-  painAreas: string[];
+  painAreas: WorkoutPainArea[];
   note: string | null;
+  acknowledgedPainConflict: boolean;
 }
 
 @Injectable()
@@ -52,6 +66,13 @@ export class WorkoutSessionsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  async preflightCheck(userId: string, dto: PreWorkoutPreflightDto) {
+    const plan = await this.getOwnedDailyPlan(userId, dto.dailyPlanId);
+    const plannedExercises = this.snapshotPlannedExercises(plan);
+    const preWorkoutCheck = this.normalizePreWorkoutCheck(dto.preWorkoutCheck);
+    return this.getPreWorkoutConflict(preWorkoutCheck, plannedExercises);
+  }
+
   async start(userId: string, dto: StartWorkoutSessionDto) {
     const existing = await this.findByPlan(userId, dto.dailyPlanId);
     if (existing) return this.toResponse(existing);
@@ -59,9 +80,14 @@ export class WorkoutSessionsService {
     const plan = await this.getOwnedDailyPlan(userId, dto.dailyPlanId);
     const plannedExercises = this.snapshotPlannedExercises(plan);
     const preWorkoutCheck = this.normalizePreWorkoutCheck(dto.preWorkoutCheck);
+    const conflict = this.getPreWorkoutConflict(preWorkoutCheck, plannedExercises);
 
     if (!plannedExercises.length) {
       throw new BadRequestException('Workout is unavailable for this plan.');
+    }
+
+    if (conflict.conflictDetected && !preWorkoutCheck?.acknowledgedPainConflict) {
+      throw new BadRequestException('This workout targets an area you marked. Please adjust, rest, or acknowledge caution before continuing.');
     }
 
     const plannedSetCount = plannedExercises.reduce(
@@ -77,6 +103,10 @@ export class WorkoutSessionsService {
           preWorkoutReadinessStatus: preWorkoutCheck?.readinessStatus,
           preWorkoutPainAreas: preWorkoutCheck?.painAreas ?? [],
           preWorkoutNote: preWorkoutCheck?.note ?? null,
+          preWorkoutConflictDetected: conflict.conflictDetected,
+          preWorkoutConflictMuscleGroups: conflict.mappedMuscleGroups,
+          preWorkoutConflictingExerciseKeys: conflict.conflictingExercises.map((exercise) => exercise.planExerciseKey),
+          preWorkoutAcknowledgedPainConflict: preWorkoutCheck?.acknowledgedPainConflict ?? false,
           plannedExerciseCount: plannedExercises.length,
           completedExerciseCount: 0,
           plannedSetCount,
@@ -96,7 +126,7 @@ export class WorkoutSessionsService {
               isExerciseCompleted: false
             }))
           }
-        },
+        } as Prisma.WorkoutSessionUncheckedCreateInput,
         include: { exerciseProgress: true, dailyPlan: true }
       });
 
@@ -265,6 +295,31 @@ export class WorkoutSessionsService {
     return this.toResponse(completed);
   }
 
+  async submitPostWorkoutCheckIn(userId: string, sessionId: string, dto: PostWorkoutCheckInDto) {
+    const session = await this.getOwnedSession(userId, sessionId);
+    if (session.status !== WorkoutSessionStatus.COMPLETED) {
+      throw new BadRequestException('Post-workout check-in is available after finishing the workout.');
+    }
+
+    const painAreas = normalizePainAreas(dto.painAreas ?? []);
+    const note = typeof dto.note === 'string' ? dto.note.trim().slice(0, 500) || null : null;
+    const updated = await this.prisma.workoutSession.update({
+      where: { id: session.id },
+      data: {
+        postWorkoutFeeling: dto.feeling,
+        postWorkoutPainAreas: painAreas,
+        postWorkoutNote: note
+      } as Prisma.WorkoutSessionUncheckedUpdateInput,
+      include: { exerciseProgress: true, dailyPlan: true }
+    });
+
+    this.logger.log(
+      `post-workout check-in saved; sessionId=${sessionId}; feeling=${dto.feeling}; painAreas=${painAreas.length}`
+    );
+
+    return this.toResponse(updated);
+  }
+
   private async getOwnedDailyPlan(userId: string, dailyPlanId: string) {
     const plan = await this.prisma.dailyPlan.findFirst({
       where: { id: dailyPlanId, userId }
@@ -344,7 +399,56 @@ export class WorkoutSessionsService {
       plannedSets,
       plannedReps: exercise.reps ?? null,
       plannedDurationSeconds: this.parseDurationSeconds(exercise.duration),
-      plannedRestSeconds: this.parseDurationSeconds(exercise.rest)
+      plannedRestSeconds: this.parseDurationSeconds(exercise.rest),
+      targetMuscles: this.getExerciseTargetMuscles(exercise)
+    };
+  }
+
+  private getExerciseTargetMuscles(exercise: PlanExerciseForExecution) {
+    const values = [
+      ...(exercise.exerciseSnapshot?.targetMuscles ?? []),
+      ...(exercise.exerciseSnapshot?.secondaryMuscles ?? []),
+      ...(exercise.targetMuscles ?? [])
+    ];
+    const muscles = values
+      .map((value) => String(value).trim().toUpperCase())
+      .filter((value): value is TargetMuscleGroup =>
+        Object.values(TargetMuscleGroup).includes(value as TargetMuscleGroup)
+      );
+    return [...new Set(muscles)];
+  }
+
+  private getPreWorkoutConflict(
+    check: NormalizedPreWorkoutCheck | null,
+    plannedExercises: PlannedWorkoutExercise[]
+  ) {
+    const painAreas = check?.readinessStatus === PreWorkoutReadinessStatus.PAIN_OR_LIMITATION
+      ? check.painAreas
+      : [];
+    const mappedMuscleGroups = mapPainAreasToMuscles(painAreas);
+    const mapped = new Set(mappedMuscleGroups);
+    const conflictingExercises = mapped.size
+      ? plannedExercises
+          .map((exercise) => ({
+            planExerciseKey: exercise.planExerciseKey,
+            exerciseId: exercise.exerciseId,
+            exerciseSlug: exercise.exerciseSlug,
+            name: exercise.exerciseNameSnapshot,
+            matchedMuscleGroups: exercise.targetMuscles.filter((muscle) => mapped.has(muscle))
+          }))
+          .filter((exercise) => exercise.matchedMuscleGroups.length > 0)
+      : [];
+    const conflictDetected = conflictingExercises.length > 0;
+
+    return {
+      conflictDetected,
+      painAreas,
+      mappedMuscleGroups,
+      conflictingExercises,
+      recommendedAction: conflictDetected ? 'ADJUST_OR_REST' : check ? 'START' : 'START',
+      userMessage: conflictDetected
+        ? "This workout includes exercises for the area you marked. Consider adjusting today's workout or resting today."
+        : "No direct overlap was detected with today's planned exercises."
     };
   }
 
@@ -456,7 +560,7 @@ export class WorkoutSessionsService {
   ): NormalizedPreWorkoutCheck | null {
     if (!value) return null;
 
-    const painAreas = this.normalizeStringList(value.painAreas ?? [], 12, 80);
+    const painAreas = normalizePainAreas(value.painAreas ?? []);
     const note = typeof value.note === 'string'
       ? value.note.trim().slice(0, 500) || null
       : null;
@@ -464,33 +568,45 @@ export class WorkoutSessionsService {
     return {
       readinessStatus: value.readinessStatus,
       painAreas,
-      note
+      note,
+      acknowledgedPainConflict: value.acknowledgedPainConflict === true
     };
-  }
-
-  private normalizeStringList(values: string[], maxItems: number, maxLength: number) {
-    const seen = new Set<string>();
-    const normalized: string[] = [];
-
-    for (const value of values) {
-      const trimmed = value.trim().replace(/\s+/g, ' ').slice(0, maxLength);
-      const key = trimmed.toLowerCase();
-      if (!trimmed || seen.has(key)) continue;
-      seen.add(key);
-      normalized.push(trimmed);
-      if (normalized.length >= maxItems) break;
-    }
-
-    return normalized;
   }
 
   private toPreWorkoutCheck(session: WorkoutSessionWithProgress) {
     if (!session.preWorkoutReadinessStatus) return null;
+    const compat = session as WorkoutSessionWithProgress & {
+      preWorkoutConflictDetected?: boolean;
+      preWorkoutConflictMuscleGroups?: string[];
+      preWorkoutConflictingExerciseKeys?: string[];
+      preWorkoutAcknowledgedPainConflict?: boolean;
+    };
 
     return {
       readinessStatus: session.preWorkoutReadinessStatus,
-      painAreas: session.preWorkoutPainAreas,
-      note: session.preWorkoutNote
+      painAreas: normalizePainAreas(session.preWorkoutPainAreas),
+      note: session.preWorkoutNote,
+      conflictDetected: compat.preWorkoutConflictDetected ?? false,
+      conflictMuscleGroups: (compat.preWorkoutConflictMuscleGroups ?? []).filter((value): value is TargetMuscleGroup =>
+        Object.values(TargetMuscleGroup).includes(value as TargetMuscleGroup)
+      ),
+      conflictingExerciseKeys: compat.preWorkoutConflictingExerciseKeys ?? [],
+      acknowledgedPainConflict: compat.preWorkoutAcknowledgedPainConflict ?? false
+    };
+  }
+
+  private toPostWorkoutCheckIn(session: WorkoutSessionWithProgress) {
+    const compat = session as WorkoutSessionWithProgress & {
+      postWorkoutFeeling?: string | null;
+      postWorkoutPainAreas?: string[];
+      postWorkoutNote?: string | null;
+    };
+    if (!compat.postWorkoutFeeling) return null;
+
+    return {
+      feeling: compat.postWorkoutFeeling,
+      painAreas: normalizePainAreas(compat.postWorkoutPainAreas ?? []),
+      note: compat.postWorkoutNote ?? null
     };
   }
 
@@ -513,6 +629,7 @@ export class WorkoutSessionsService {
       dailyPlanId: session.dailyPlanId,
       status: session.status,
       preWorkoutCheck: this.toPreWorkoutCheck(session),
+      postWorkoutCheckIn: this.toPostWorkoutCheckIn(session),
       trainingLoadAgentSnapshot: planJson.trainingLoadAgentSnapshot,
       summary: this.toSummary(session),
       startedAt: session.startedAt.toISOString(),
@@ -562,6 +679,7 @@ export class WorkoutSessionsService {
       dailyPlanId: session.dailyPlanId,
       status: session.status,
       preWorkoutCheck: this.toPreWorkoutCheck(session),
+      postWorkoutCheckIn: this.toPostWorkoutCheckIn(session),
       localDate: session.dailyPlan.planLocalDate,
       startedAt: session.startedAt.toISOString(),
       completedAt: session.completedAt?.toISOString() ?? null,

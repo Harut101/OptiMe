@@ -280,6 +280,33 @@ export const trainingLoadAgentSnapshotSchema = z.object({
 });
 export type TrainingLoadAgentSnapshot = z.infer<typeof trainingLoadAgentSnapshotSchema>;
 
+export const trainingAdjustmentSnapshotSchema = z.object({
+  source: z.literal('PRE_WORKOUT_PAIN_ADJUSTMENT'),
+  painAreas: z.array(z.enum([
+    'CORE_ABS',
+    'LOWER_BACK',
+    'SHOULDERS',
+    'CHEST',
+    'UPPER_BACK_LATS',
+    'BICEPS',
+    'TRICEPS',
+    'GLUTES',
+    'HAMSTRINGS',
+    'QUADRICEPS',
+    'CALVES',
+    'KNEES',
+    'WRISTS_FOREARMS',
+    'OTHER'
+  ])).max(12),
+  avoidedMuscleGroups: z.array(z.enum([
+    'CHEST', 'TRAPS', 'LATS', 'LOWER_BACK', 'ABS', 'OBLIQUES', 'BICEPS', 'TRICEPS',
+    'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',
+    'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY'
+  ])).max(20),
+  adjustedAt: z.string().datetime(),
+  reasonCodes: z.array(z.string().trim().min(1).max(80)).max(12)
+});
+
 const dailyPlanContextNotesSchema = z.object({
   wearable: z
     .object({
@@ -399,6 +426,7 @@ export const dailyPlanJsonSchema = z.object({
     exercises: z.array(exerciseSchema).max(8).optional()
   }),
   trainingLoadAgentSnapshot: trainingLoadAgentSnapshotSchema.optional(),
+  trainingAdjustmentSnapshot: trainingAdjustmentSnapshotSchema.optional(),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
   contextNotes: dailyPlanContextNotesSchema.optional(),

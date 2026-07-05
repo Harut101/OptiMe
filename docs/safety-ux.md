@@ -49,6 +49,30 @@ Thanks for letting us know. We'll use this to keep future training guidance more
 
 This is not medical advice and should not diagnose or treat symptoms.
 
+## Pain-Aware Workout UX
+
+Pre-workout pain/limitation copy should be calm, specific, and action-oriented. If a selected body area overlaps the planned workout, the app should say that today's workout includes exercises for the marked area and offer safer choices:
+
+- Adjust today's workout.
+- Rest today.
+- Continue with caution.
+
+Continue with caution requires explicit acknowledgement and should not be presented as the safest primary recommendation when a conflict exists.
+
+Avoid:
+
+- Push through pain.
+- No pain, no gain.
+- Ignore it.
+- You failed.
+
+Use:
+
+- Stop if pain increases.
+- Keep today controlled.
+- Consider adjusting or resting today.
+- This applies only to today's workout.
+
 ## Backend Contract
 
 `DailyPlanJson.safety` is backward-compatible:
@@ -72,4 +96,5 @@ The backend owns `userSafeMessage` for fallback plans. OpenAI does not need to g
 - Open Plan Details for the fallback plan and confirm the Safety note appears.
 - Confirm no debug fields or raw fallback reasons are visible.
 - Try an aggressive adult weight-loss goal and confirm a friendly error appears while staying on Goal setup.
-- Submit a training check-in with pain/discomfort and confirm the conservative guidance message appears.
+- Start a workout, select pain/limitation that overlaps planned exercises, and confirm Adjust today, Rest today, and Continue with caution appear.
+- Finish a workout and confirm post-workout feedback appears only after completion.

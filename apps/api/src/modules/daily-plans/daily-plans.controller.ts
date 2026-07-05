@@ -9,6 +9,7 @@ import { DailyPlansService } from './daily-plans.service';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
+import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -69,5 +70,14 @@ export class DailyPlansController {
     @Body() dto: ExcludeFoodIngredientDto
   ) {
     return this.dailyPlansService.excludeFoodIngredient(user.userId, dailyPlanId, dto);
+  }
+
+  @Post(':id/training/adjust-for-pre-workout')
+  adjustTrainingForPreWorkout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Body() dto: AdjustTrainingForPreWorkoutDto
+  ) {
+    return this.dailyPlansService.adjustTrainingForPreWorkout(user.userId, dailyPlanId, dto);
   }
 }

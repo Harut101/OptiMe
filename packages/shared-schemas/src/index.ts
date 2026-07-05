@@ -611,6 +611,29 @@ export const trainingLoadAgentSnapshotSchema = z.object({
   })
 });
 
+export const trainingAdjustmentSnapshotSchema = z.object({
+  source: z.literal('PRE_WORKOUT_PAIN_ADJUSTMENT'),
+  painAreas: z.array(z.enum([
+    'CORE_ABS',
+    'LOWER_BACK',
+    'SHOULDERS',
+    'CHEST',
+    'UPPER_BACK_LATS',
+    'BICEPS',
+    'TRICEPS',
+    'GLUTES',
+    'HAMSTRINGS',
+    'QUADRICEPS',
+    'CALVES',
+    'KNEES',
+    'WRISTS_FOREARMS',
+    'OTHER'
+  ])).max(12),
+  avoidedMuscleGroups: z.array(targetMuscleGroupSchema).max(20),
+  adjustedAt: z.string().datetime(),
+  reasonCodes: z.array(z.string().trim().min(1).max(80)).max(12)
+});
+
 const dailyPlanContextNoteTitleCodeSchema = z.enum([
   'WEARABLE_DATA_INCLUDED',
   'APPLE_HEALTH_DATA_INCLUDED',
@@ -716,6 +739,7 @@ export const dailyPlanJsonSchema = z.object({
     exercises: z.array(dailyPlanExerciseSchema).max(8).optional()
   }),
   trainingLoadAgentSnapshot: trainingLoadAgentSnapshotSchema.optional(),
+  trainingAdjustmentSnapshot: trainingAdjustmentSnapshotSchema.optional(),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
   contextNotes: dailyPlanContextNotesSchema.optional(),

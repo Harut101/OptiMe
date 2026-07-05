@@ -89,6 +89,45 @@ describe('Workout sessions', () => {
     const user = await registerTestUser(ctx.app, 'workout-pre-check@example.com');
     const plan = await createDailyPlan(user.user.id);
 
+    const preflight = await request(ctx.app.getHttpServer())
+      .post('/v1/workout-sessions/preflight-check')
+      .set(authHeader(user.accessToken))
+      .send({
+        dailyPlanId: plan.id,
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['CORE_ABS'],
+          note: 'Keeping this one controlled today.'
+        }
+      })
+      .expect(201);
+
+    expect(preflight.body).toMatchObject({
+      conflictDetected: true,
+      painAreas: ['CORE_ABS'],
+      mappedMuscleGroups: expect.arrayContaining(['ABS', 'CORE']),
+      recommendedAction: 'ADJUST_OR_REST'
+    });
+    expect(preflight.body.conflictingExercises).toEqual([
+      expect.objectContaining({
+        name: 'Plank hold',
+        matchedMuscleGroups: expect.arrayContaining(['CORE'])
+      })
+    ]);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/workout-sessions')
+      .set(authHeader(user.accessToken))
+      .send({
+        dailyPlanId: plan.id,
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['CORE_ABS'],
+          note: 'Keeping this one controlled today.'
+        }
+      })
+      .expect(400);
+
     const response = await request(ctx.app.getHttpServer())
       .post('/v1/workout-sessions')
       .set(authHeader(user.accessToken))
@@ -96,16 +135,20 @@ describe('Workout sessions', () => {
         dailyPlanId: plan.id,
         preWorkoutCheck: {
           readinessStatus: 'PAIN_OR_LIMITATION',
-          painAreas: ['left knee', 'left knee', 'lower back'],
-          note: 'Keeping this one controlled today.'
+          painAreas: ['CORE_ABS'],
+          note: 'Keeping this one controlled today.',
+          acknowledgedPainConflict: true
         }
       })
       .expect(201);
 
-    expect(response.body.preWorkoutCheck).toEqual({
+    expect(response.body.preWorkoutCheck).toMatchObject({
       readinessStatus: 'PAIN_OR_LIMITATION',
-      painAreas: ['left knee', 'lower back'],
-      note: 'Keeping this one controlled today.'
+      painAreas: ['CORE_ABS'],
+      note: 'Keeping this one controlled today.',
+      conflictDetected: true,
+      conflictMuscleGroups: expect.arrayContaining(['ABS', 'CORE']),
+      acknowledgedPainConflict: true
     });
     expect(response.body.summary.preWorkoutCheck).toEqual(response.body.preWorkoutCheck);
 
@@ -114,6 +157,78 @@ describe('Workout sessions', () => {
       .set(authHeader(user.accessToken))
       .expect(200);
     expect(fetched.body.preWorkoutCheck).toEqual(response.body.preWorkoutCheck);
+  });
+
+  it('adjusts today workout for pre-workout pain without mutating nutrition or weekly routine', async () => {
+    const user = await registerTestUser(ctx.app, 'workout-adjust-pain@example.com');
+    const plan = await createDailyPlan(user.user.id);
+    const before = await ctx.prisma.dailyPlan.findUniqueOrThrow({ where: { id: plan.id } });
+    const beforeJson = before.planJson as Prisma.JsonObject;
+    const beforeNutrition = beforeJson.nutrition;
+
+    const adjusted = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/training/adjust-for-pre-workout`)
+      .set(authHeader(user.accessToken))
+      .send({
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['CORE_ABS']
+        }
+      })
+      .expect(201);
+
+    expect(adjusted.body.plan.training.exercises).toHaveLength(1);
+    expect(adjusted.body.plan.training.exercises[0].name).toBe('Bodyweight squat');
+    expect(adjusted.body.plan.nutrition).toEqual(beforeNutrition);
+    expect(adjusted.body.plan.trainingAdjustmentSnapshot).toMatchObject({
+      source: 'PRE_WORKOUT_PAIN_ADJUSTMENT',
+      painAreas: ['CORE_ABS'],
+      avoidedMuscleGroups: expect.arrayContaining(['ABS', 'CORE'])
+    });
+
+    const session = await startSession(user.accessToken, plan.id);
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/training/adjust-for-pre-workout`)
+      .set(authHeader(user.accessToken))
+      .send({
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['QUADRICEPS']
+        }
+      })
+      .expect(400);
+    expect(session.plannedExerciseCount).toBe(1);
+  });
+
+  it('stores post-workout feedback only after completion', async () => {
+    const user = await registerTestUser(ctx.app, 'workout-post-check@example.com');
+    const plan = await createDailyPlan(user.user.id);
+    const session = await startSession(user.accessToken, plan.id);
+
+    await request(ctx.app.getHttpServer())
+      .patch(`/v1/workout-sessions/${session.id}/post-workout-check-in`)
+      .set(authHeader(user.accessToken))
+      .send({ feeling: 'GOOD' })
+      .expect(400);
+
+    await completePartial(user.accessToken, session.id);
+
+    const feedback = await request(ctx.app.getHttpServer())
+      .patch(`/v1/workout-sessions/${session.id}/post-workout-check-in`)
+      .set(authHeader(user.accessToken))
+      .send({
+        feeling: 'PAIN_DURING_WORKOUT',
+        painAreas: ['LOWER_BACK'],
+        note: 'Felt tight near the end.'
+      })
+      .expect(200);
+
+    expect(feedback.body.postWorkoutCheckIn).toEqual({
+      feeling: 'PAIN_DURING_WORKOUT',
+      painAreas: ['LOWER_BACK'],
+      note: 'Felt tight near the end.'
+    });
+    expect(feedback.body.summary.postWorkoutCheckIn).toEqual(feedback.body.postWorkoutCheckIn);
   });
 
   it('rejects rest plans and plans without exercises', async () => {

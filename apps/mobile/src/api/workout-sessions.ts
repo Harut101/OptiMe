@@ -1,6 +1,9 @@
 import { apiRequest } from './client';
 import type {
   CompleteWorkoutSessionRequest,
+  PostWorkoutCheckInRequest,
+  PreWorkoutPreflightRequest,
+  PreWorkoutPreflightResponse,
   StartWorkoutSessionRequest,
   ToggleWorkoutSetRequest,
   UpdateWorkoutExerciseProgressRequest,
@@ -10,6 +13,13 @@ import type {
 
 export function startWorkoutSession(body: StartWorkoutSessionRequest) {
   return apiRequest<WorkoutSessionResponse>('/workout-sessions', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function preflightWorkoutSession(body: PreWorkoutPreflightRequest) {
+  return apiRequest<PreWorkoutPreflightResponse>('/workout-sessions/preflight-check', {
     method: 'POST',
     body: JSON.stringify(body)
   });
@@ -61,6 +71,16 @@ export function completeWorkoutSession(
 ) {
   return apiRequest<WorkoutSessionResponse>(`/workout-sessions/${sessionId}/complete`, {
     method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function submitPostWorkoutCheckIn(
+  sessionId: string,
+  body: PostWorkoutCheckInRequest
+) {
+  return apiRequest<WorkoutSessionResponse>(`/workout-sessions/${sessionId}/post-workout-check-in`, {
+    method: 'PATCH',
     body: JSON.stringify(body)
   });
 }

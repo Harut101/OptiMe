@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { resolveSupportedLocale } from '@optime/shared-types';
@@ -10,6 +10,7 @@ import { resolveSupportedLocale } from '@optime/shared-types';
 import {
   completeWorkoutSession,
   getWorkoutSession,
+  submitPostWorkoutCheckIn,
   toggleWorkoutSet,
   updateWorkoutExerciseProgress
 } from '@/api/workout-sessions';
@@ -32,7 +33,11 @@ import {
   formatWorkoutTime
 } from '@/features/workout/workout-summary';
 import { colors } from '@/theme/colors';
-import type { WorkoutExerciseProgressResponse, WorkoutSessionResponse } from '@/types/api';
+import { Field } from '@/components/Field';
+import { MultiSelectChips } from '@/components/MultiSelectChips';
+import { SelectChips } from '@/components/SelectChips';
+import type { PostWorkoutFeeling, WorkoutExerciseProgressResponse, WorkoutPainArea, WorkoutSessionResponse } from '@/types/api';
+import { WORKOUT_PAIN_AREAS } from '@optime/shared-types';
 
 export default function WorkoutSessionScreen() {
   const { t, i18n } = useTranslation();
@@ -104,6 +109,12 @@ export default function WorkoutSessionScreen() {
       updateSessionCache(next);
       void queryClient.invalidateQueries({ queryKey: ['workout-history'] });
     },
+    onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
+  });
+  const postWorkoutMutation = useMutation({
+    mutationFn: (body: { feeling: PostWorkoutFeeling; painAreas: WorkoutPainArea[]; note?: string | null }) =>
+      submitPostWorkoutCheckIn(sessionId!, body),
+    onSuccess: updateSessionCache,
     onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
   });
 
@@ -180,6 +191,15 @@ export default function WorkoutSessionScreen() {
 
       {completed ? (
         <ContextNoteCard title={t('workout.readOnly')} message={t('workout.thisWorkoutCompleted')} />
+      ) : null}
+
+      {completed ? (
+        <PostWorkoutCheckInCard
+          session={data}
+          saving={postWorkoutMutation.isPending}
+          onSubmit={(body) => postWorkoutMutation.mutate(body)}
+          t={t}
+        />
       ) : null}
 
       {data.exerciseProgress.map((progress) => (
@@ -320,6 +340,79 @@ function WorkoutExerciseCard({
   );
 }
 
+function PostWorkoutCheckInCard({
+  session,
+  saving,
+  onSubmit,
+  t
+}: {
+  session: WorkoutSessionResponse;
+  saving: boolean;
+  onSubmit: (body: { feeling: PostWorkoutFeeling; painAreas: WorkoutPainArea[]; note?: string | null }) => void;
+  t: TFunction;
+}) {
+  const [feeling, setFeeling] = useState<PostWorkoutFeeling>('GOOD');
+  const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
+  const [note, setNote] = useState('');
+
+  if (session.postWorkoutCheckIn) {
+    return (
+      <ContextNoteCard
+        title={t('workout.postWorkoutFeedback')}
+        message={formatPostWorkoutCheckIn(session.postWorkoutCheckIn, t)}
+        tone={session.postWorkoutCheckIn.feeling === 'PAIN_DURING_WORKOUT' ? 'warning' : 'neutral'}
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <Text variant="label">{t('workout.postWorkoutCheckIn')}</Text>
+      <Text variant="muted">{t('workout.postWorkoutHelp')}</Text>
+      <SelectChips
+        label={t('workout.howWorkoutFelt')}
+        value={feeling}
+        onChange={(next) => {
+          setFeeling(next);
+          if (next !== 'PAIN_DURING_WORKOUT') setPainAreas([]);
+        }}
+        options={postWorkoutOptions(t)}
+      />
+      {feeling === 'PAIN_DURING_WORKOUT' ? (
+        <MultiSelectChips
+          label={t('workout.painAreas')}
+          value={painAreas}
+          onChange={setPainAreas}
+          options={WORKOUT_PAIN_AREAS.map((area) => ({
+            value: area,
+            label: getPainAreaLabel(area, t)
+          }))}
+        />
+      ) : null}
+      <Field
+        label={t('workout.preWorkoutNote')}
+        placeholder={t('workout.postWorkoutNotePlaceholder')}
+        multiline
+        value={note}
+        onChangeText={setNote}
+      />
+      <View style={styles.postWorkoutActions}>
+        <Button
+          title={saving ? t('workout.saving') : t('workout.saveFeedback')}
+          disabled={saving || (feeling === 'PAIN_DURING_WORKOUT' && painAreas.length === 0)}
+          onPress={() => onSubmit({ feeling, painAreas, note: note.trim() || null })}
+        />
+        <Button
+          title={t('workout.skipCheckIn')}
+          variant="secondary"
+          disabled={saving}
+          onPress={() => onSubmit({ feeling: 'SKIPPED', painAreas: [], note: null })}
+        />
+      </View>
+    </Card>
+  );
+}
+
 function applyOptimisticSet(
   session: WorkoutSessionResponse,
   progressId: string,
@@ -399,6 +492,52 @@ function getPreWorkoutReadinessLabel(
   return t('workout.readinessSkipped');
 }
 
+function postWorkoutOptions(t: TFunction): Array<{ label: string; value: PostWorkoutFeeling }> {
+  return [
+    { label: t('workout.postGood'), value: 'GOOD' },
+    { label: t('workout.postTooEasy'), value: 'TOO_EASY' },
+    { label: t('workout.postTooHard'), value: 'TOO_HARD' },
+    { label: t('workout.postPain'), value: 'PAIN_DURING_WORKOUT' }
+  ];
+}
+
+function formatPostWorkoutCheckIn(
+  check: NonNullable<WorkoutSessionResponse['postWorkoutCheckIn']>,
+  t: TFunction
+) {
+  const label = check.feeling === 'GOOD'
+    ? t('workout.postGood')
+    : check.feeling === 'TOO_EASY'
+      ? t('workout.postTooEasy')
+      : check.feeling === 'TOO_HARD'
+        ? t('workout.postTooHard')
+        : check.feeling === 'PAIN_DURING_WORKOUT'
+          ? t('workout.postPain')
+          : t('workout.skipCheckIn');
+  const areas = check.painAreas.length
+    ? ` ${t('workout.painAreasSummary', { value: check.painAreas.map((area) => getPainAreaLabel(area, t)).join(', ') })}`
+    : '';
+  const note = check.note ? ` ${check.note}` : '';
+  return `${label}.${areas}${note}`.trim();
+}
+
+function getPainAreaLabel(area: WorkoutPainArea, t: TFunction) {
+  if (area === 'CORE_ABS') return t('workout.painAreaCoreAbs');
+  if (area === 'LOWER_BACK') return t('workout.painAreaLowerBack');
+  if (area === 'SHOULDERS') return t('workout.painAreaShoulders');
+  if (area === 'CHEST') return t('workout.painAreaChest');
+  if (area === 'UPPER_BACK_LATS') return t('workout.painAreaUpperBackLats');
+  if (area === 'BICEPS') return t('workout.painAreaBiceps');
+  if (area === 'TRICEPS') return t('workout.painAreaTriceps');
+  if (area === 'GLUTES') return t('workout.painAreaGlutes');
+  if (area === 'HAMSTRINGS') return t('workout.painAreaHamstrings');
+  if (area === 'QUADRICEPS') return t('workout.painAreaQuadriceps');
+  if (area === 'CALVES') return t('workout.painAreaCalves');
+  if (area === 'KNEES') return t('workout.painAreaKnees');
+  if (area === 'WRISTS_FOREARMS') return t('workout.painAreaWristsForearms');
+  return t('workout.painAreaOther');
+}
+
 function formatTrainingLoadSessionMessage(
   snapshot: NonNullable<WorkoutSessionResponse['trainingLoadAgentSnapshot']>,
   t: TFunction
@@ -422,6 +561,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   image: { width: '100%', height: '100%' },
+  postWorkoutActions: { gap: 8 },
   setGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   setButton: {
     minHeight: 44,

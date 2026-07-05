@@ -6,6 +6,8 @@ import {
 } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CompleteWorkoutSessionDto } from './dto/complete-workout-session.dto';
+import { PostWorkoutCheckInDto } from './dto/post-workout-check-in.dto';
+import { PreWorkoutPreflightDto } from './dto/pre-workout-preflight.dto';
 import { StartWorkoutSessionDto } from './dto/start-workout-session.dto';
 import { ToggleWorkoutSetDto } from './dto/toggle-workout-set.dto';
 import { UpdateWorkoutExerciseProgressDto } from './dto/update-workout-exercise-progress.dto';
@@ -20,6 +22,11 @@ export class WorkoutSessionsController {
   @Post()
   start(@CurrentUser() user: AuthenticatedUser, @Body() dto: StartWorkoutSessionDto) {
     return this.workoutSessionsService.start(user.userId, dto);
+  }
+
+  @Post('preflight-check')
+  preflightCheck(@CurrentUser() user: AuthenticatedUser, @Body() dto: PreWorkoutPreflightDto) {
+    return this.workoutSessionsService.preflightCheck(user.userId, dto);
   }
 
   @Get('by-plan/:dailyPlanId')
@@ -78,5 +85,14 @@ export class WorkoutSessionsController {
     @Body() dto: CompleteWorkoutSessionDto
   ) {
     return this.workoutSessionsService.complete(user.userId, sessionId, dto);
+  }
+
+  @Patch(':sessionId/post-workout-check-in')
+  submitPostWorkoutCheckIn(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sessionId') sessionId: string,
+    @Body() dto: PostWorkoutCheckInDto
+  ) {
+    return this.workoutSessionsService.submitPostWorkoutCheckIn(user.userId, sessionId, dto);
   }
 }

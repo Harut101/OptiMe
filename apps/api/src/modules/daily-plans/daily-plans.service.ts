@@ -18,6 +18,7 @@ import {
   PlanStatus,
   Prisma,
   PreferredLocale,
+  TargetMuscleGroup,
   TrainingLevel,
   UsageFeature,
   UsagePeriodType
@@ -69,6 +70,7 @@ import {
 import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingLoadAgentService } from '../training-load-agent/training-load-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
+import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { withRecoveryAwareContextNotes } from './daily-plan-context-notes';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
@@ -76,6 +78,7 @@ import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
+import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
 
 interface DailyPlanValidationResult {
@@ -579,6 +582,87 @@ export class DailyPlansService {
     return preference;
   }
 
+  async adjustTrainingForPreWorkout(userId: string, dailyPlanId: string, dto: AdjustTrainingForPreWorkoutDto) {
+    const [plan, existingSession] = await Promise.all([
+      this.getOwnedPlanOrThrow(userId, dailyPlanId),
+      this.prisma.workoutSession.findUnique({
+        where: {
+          userId_dailyPlanId: {
+            userId,
+            dailyPlanId
+          }
+        },
+        select: { id: true }
+      })
+    ]);
+
+    if (existingSession) {
+      throw new BadRequestException('Workout already started. Today’s plan was not changed.');
+    }
+
+    const painAreas = normalizePainAreas(dto.preWorkoutCheck.painAreas ?? []);
+    const avoidedMuscleGroups = mapPainAreasToMuscles(painAreas);
+    if (dto.preWorkoutCheck.readinessStatus !== 'PAIN_OR_LIMITATION' || avoidedMuscleGroups.length === 0) {
+      throw new BadRequestException('Choose a pain or limitation area before adjusting today’s workout.');
+    }
+
+    const avoided = new Set<TargetMuscleGroup>(avoidedMuscleGroups);
+    const currentPlan = normalizeDailyPlanJson({
+      planJson: plan.planJson,
+      planLocalDate: plan.planLocalDate,
+      planTimezone: plan.planTimezone,
+      readinessLevel: plan.readinessLevel
+    });
+    const exercises = currentPlan.training.exercises ?? [];
+    const safeExercises = exercises.filter((exercise) =>
+      !this.getPlanExerciseMuscles(exercise).some((muscle) => avoided.has(muscle))
+    );
+    const removedCount = exercises.length - safeExercises.length;
+
+    if (removedCount === 0) {
+      return this.toResponse(plan);
+    }
+
+    if (safeExercises.length < 1) {
+      throw new BadRequestException('Not enough safe exercises remain for today. Consider resting today instead.');
+    }
+
+    const nextPlan: DailyPlanJson = {
+      ...currentPlan,
+      training: {
+        ...currentPlan.training,
+        exercises: safeExercises,
+        recommendation: 'Use the adjusted workout for today and keep the session controlled.',
+        notes: 'Adjusted from your pre-workout check. Stop if pain increases, dizziness appears, or anything feels unusual.'
+      },
+      trainingAdjustmentSnapshot: {
+        source: 'PRE_WORKOUT_PAIN_ADJUSTMENT',
+        painAreas,
+        avoidedMuscleGroups,
+        adjustedAt: new Date().toISOString(),
+        reasonCodes: ['PRE_WORKOUT_PAIN_CONFLICT', 'CONFLICTING_EXERCISES_REMOVED']
+      }
+    };
+
+    const parsed = dailyPlanJsonSchema.safeParse(nextPlan);
+    if (!parsed.success) {
+      throw new BadRequestException('Could not safely adjust today’s workout. Your current plan was kept.');
+    }
+
+    const updated = await this.prisma.dailyPlan.update({
+      where: { id: plan.id },
+      data: {
+        planJson: parsed.data as Prisma.JsonObject
+      }
+    });
+
+    this.logger.log(
+      `daily plan training adjusted for pre-workout pain; planId=${dailyPlanId}; removedExercises=${removedCount}; avoidedMuscles=${avoidedMuscleGroups.length}`
+    );
+
+    return this.toResponse(updated);
+  }
+
   async submitFeedback(userId: string, dailyPlanId: string, dto: SubmitDailyPlanFeedbackDto) {
     const plan = await this.prisma.dailyPlan.findFirst({
       where: {
@@ -820,6 +904,20 @@ export class DailyPlansService {
       },
       explanation: this.normalizeNutritionTargetExplanation(snapshot.explanation)
     };
+  }
+
+  private getPlanExerciseMuscles(exercise: NonNullable<DailyPlanJson['training']['exercises']>[number]) {
+    const values = [
+      ...(exercise.exerciseSnapshot?.targetMuscles ?? []),
+      ...(exercise.exerciseSnapshot?.secondaryMuscles ?? []),
+      ...(exercise.targetMuscles ?? [])
+    ];
+
+    return [...new Set(values
+      .map((value) => String(value).trim().toUpperCase())
+      .filter((value): value is TargetMuscleGroup =>
+        Object.values(TargetMuscleGroup).includes(value as TargetMuscleGroup)
+      ))];
   }
 
   private normalizeNutritionTargetExplanation(

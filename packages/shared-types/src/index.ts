@@ -1019,6 +1019,13 @@ export interface DailyPlanJson {
     exercises?: DailyPlanExercise[];
   };
   trainingLoadAgentSnapshot?: TrainingLoadAgentSnapshot;
+  trainingAdjustmentSnapshot?: {
+    source: 'PRE_WORKOUT_PAIN_ADJUSTMENT';
+    painAreas: WorkoutPainArea[];
+    avoidedMuscleGroups: TargetMuscleGroup[];
+    adjustedAt: string;
+    reasonCodes: string[];
+  };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   nutritionTargetSnapshot?: NutritionTargetSnapshot;
   contextNotes?: DailyPlanContextNotes;
@@ -1171,22 +1178,102 @@ export type PreWorkoutReadinessStatus =
   | 'SORE'
   | 'PAIN_OR_LIMITATION'
   | 'SKIPPED';
+export type WorkoutPainArea =
+  | 'CORE_ABS'
+  | 'LOWER_BACK'
+  | 'SHOULDERS'
+  | 'CHEST'
+  | 'UPPER_BACK_LATS'
+  | 'BICEPS'
+  | 'TRICEPS'
+  | 'GLUTES'
+  | 'HAMSTRINGS'
+  | 'QUADRICEPS'
+  | 'CALVES'
+  | 'KNEES'
+  | 'WRISTS_FOREARMS'
+  | 'OTHER';
+export const WORKOUT_PAIN_AREAS: WorkoutPainArea[] = [
+  'CORE_ABS',
+  'LOWER_BACK',
+  'SHOULDERS',
+  'CHEST',
+  'UPPER_BACK_LATS',
+  'BICEPS',
+  'TRICEPS',
+  'GLUTES',
+  'HAMSTRINGS',
+  'QUADRICEPS',
+  'CALVES',
+  'KNEES',
+  'WRISTS_FOREARMS',
+  'OTHER'
+];
+export type PostWorkoutFeeling =
+  | 'GOOD'
+  | 'TOO_EASY'
+  | 'TOO_HARD'
+  | 'PAIN_DURING_WORKOUT'
+  | 'SKIPPED';
 
 export interface PreWorkoutCheckRequest {
   readinessStatus: PreWorkoutReadinessStatus;
-  painAreas?: string[];
+  painAreas?: WorkoutPainArea[];
   note?: string | null;
+  acknowledgedPainConflict?: boolean;
 }
 
 export interface WorkoutSessionPreWorkoutCheck {
   readinessStatus: PreWorkoutReadinessStatus;
-  painAreas: string[];
+  painAreas: WorkoutPainArea[];
   note: string | null;
+  conflictDetected: boolean;
+  conflictMuscleGroups: TargetMuscleGroup[];
+  conflictingExerciseKeys: string[];
+  acknowledgedPainConflict: boolean;
 }
 
 export interface StartWorkoutSessionRequest {
   dailyPlanId: string;
   preWorkoutCheck?: PreWorkoutCheckRequest;
+}
+
+export interface PreWorkoutPreflightRequest {
+  dailyPlanId: string;
+  preWorkoutCheck: PreWorkoutCheckRequest;
+}
+
+export interface PreWorkoutConflictExercise {
+  planExerciseKey: string;
+  exerciseId: string | null;
+  exerciseSlug: string | null;
+  name: string;
+  matchedMuscleGroups: TargetMuscleGroup[];
+}
+
+export interface PreWorkoutPreflightResponse {
+  conflictDetected: boolean;
+  painAreas: WorkoutPainArea[];
+  mappedMuscleGroups: TargetMuscleGroup[];
+  conflictingExercises: PreWorkoutConflictExercise[];
+  recommendedAction: 'START' | 'ADJUST_OR_REST' | 'CAUTION';
+  userMessage: string;
+}
+
+export interface AdjustWorkoutForPreWorkoutRequest {
+  preWorkoutCheck: PreWorkoutCheckRequest;
+}
+
+export interface PostWorkoutCheckInRequest {
+  feeling: PostWorkoutFeeling;
+  painAreas?: WorkoutPainArea[];
+  note?: string | null;
+}
+
+export interface WorkoutSessionPostWorkoutCheckIn {
+  feeling: PostWorkoutFeeling;
+  painAreas: WorkoutPainArea[];
+  note: string | null;
 }
 
 export interface ToggleWorkoutSetRequest {
@@ -1207,6 +1294,7 @@ export interface WorkoutSessionSummary {
   dailyPlanId: string;
   status: WorkoutSessionStatus;
   preWorkoutCheck: WorkoutSessionPreWorkoutCheck | null;
+  postWorkoutCheckIn: WorkoutSessionPostWorkoutCheckIn | null;
   localDate: string;
   startedAt: string;
   completedAt: string | null;
@@ -1250,6 +1338,7 @@ export interface WorkoutSessionResponse {
   dailyPlanId: string;
   status: WorkoutSessionStatus;
   preWorkoutCheck: WorkoutSessionPreWorkoutCheck | null;
+  postWorkoutCheckIn: WorkoutSessionPostWorkoutCheckIn | null;
   trainingLoadAgentSnapshot?: TrainingLoadAgentSnapshot;
   summary: WorkoutSessionSummary;
   startedAt: string;

@@ -91,6 +91,14 @@ enum PreWorkoutReadinessStatus {
   SKIPPED
 }
 
+enum PostWorkoutFeeling {
+  GOOD
+  TOO_EASY
+  TOO_HARD
+  PAIN_DURING_WORKOUT
+  SKIPPED
+}
+
 enum PlanFeedbackRating {
   HELPFUL
   NOT_HELPFUL
@@ -680,6 +688,13 @@ model WorkoutSession {
   preWorkoutReadinessStatus PreWorkoutReadinessStatus?
   preWorkoutPainAreas    String[]             @default([])
   preWorkoutNote         String?
+  preWorkoutConflictDetected Boolean           @default(false)
+  preWorkoutConflictMuscleGroups String[]      @default([])
+  preWorkoutConflictingExerciseKeys String[]   @default([])
+  preWorkoutAcknowledgedPainConflict Boolean   @default(false)
+  postWorkoutFeeling     PostWorkoutFeeling?
+  postWorkoutPainAreas   String[]             @default([])
+  postWorkoutNote        String?
   startedAt              DateTime             @default(now())
   completedAt            DateTime?
   plannedExerciseCount   Int                  @default(0)

@@ -220,6 +220,25 @@ Exercise safety diagnostics include:
 
 The backend does not diagnose pain or injury. It only blocks unsafe exercise wording and falls back to safer guidance.
 
+## Pre-Workout Pain Conflict Safety
+
+Pre-workout pain and limitation checks are deterministic and session-scoped. They are not global training settings.
+
+When a user selects pain or limitation before starting a workout:
+
+- the backend validates known pain/body-area values
+- selected areas are mapped to existing `TargetMuscleGroup` values
+- planned exercise target, secondary, and snapshot muscles are checked for overlap
+- conflicts are returned before a `WorkoutSession` is created
+
+If overlap exists, the app should recommend Adjust today's workout or Rest today before Continue with caution. Continue with caution requires explicit acknowledgement and stores conflict metadata on the session.
+
+Adjust today's workout must not mutate Weekly Routine, global Training Setup, or nutrition. It can only update the selected DailyPlan training section after explicit user action.
+
+Rest today should use the one-off daily rest override path and must not change the usual Weekly Routine.
+
+Post-workout feedback is stored after completion only. It can record how the workout felt, optional pain areas, and a note, but it must not diagnose, shame, or mutate the completed workout.
+
 ## Fallback Plan Behavior
 
 Fallback is used when provider output fails validation or violates safety checks.

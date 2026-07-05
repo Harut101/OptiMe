@@ -6,9 +6,12 @@ import type {
   MealCheckInStatus,
   PreWorkoutCheckRequest,
   PreWorkoutReadinessStatus,
+  PreWorkoutPreflightResponse,
   SupportedLocale,
-  TrainingCheckInStatus
+  TrainingCheckInStatus,
+  WorkoutPainArea
 } from '@optime/shared-types';
+import { WORKOUT_PAIN_AREAS } from '@optime/shared-types';
 import type { WorkoutSessionResponse } from '@optime/shared-types';
 import { useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
@@ -16,11 +19,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
-import { getWorkoutSessionByPlan, startWorkoutSession } from '@/api/workout-sessions';
+import { adjustDailyPlanTrainingForPreWorkout } from '@/api/daily-plans';
+import { getWorkoutSessionByPlan, preflightWorkoutSession, startWorkoutSession } from '@/api/workout-sessions';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
+import { MultiSelectChips } from '@/components/MultiSelectChips';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
@@ -57,13 +63,41 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
     enabled: exercises.length > 0
   });
   const [preWorkoutOpen, setPreWorkoutOpen] = useState(false);
+  const [preWorkoutConflict, setPreWorkoutConflict] = useState<PreWorkoutPreflightResponse | null>(null);
+  const [pendingPreWorkoutCheck, setPendingPreWorkoutCheck] = useState<PreWorkoutCheckRequest | null>(null);
   const startWorkout = useMutation({
     mutationFn: (preWorkoutCheck?: PreWorkoutCheckRequest) =>
       startWorkoutSession({ dailyPlanId: planId, preWorkoutCheck }),
     onSuccess: async (session) => {
       queryClient.setQueryData(['workout-session-by-plan', planId], session);
       setPreWorkoutOpen(false);
+      setPreWorkoutConflict(null);
+      setPendingPreWorkoutCheck(null);
       router.push({ pathname: '/workout-session' as never, params: { sessionId: session.id } });
+    }
+  });
+  const preflight = useMutation({
+    mutationFn: (preWorkoutCheck: PreWorkoutCheckRequest) =>
+      preflightWorkoutSession({ dailyPlanId: planId, preWorkoutCheck }),
+    onSuccess: (result, preWorkoutCheck) => {
+      if (result.conflictDetected) {
+        setPreWorkoutConflict(result);
+        setPendingPreWorkoutCheck(preWorkoutCheck);
+        return;
+      }
+      startWorkout.mutate(preWorkoutCheck);
+    }
+  });
+  const adjustWorkout = useMutation({
+    mutationFn: (preWorkoutCheck: PreWorkoutCheckRequest) =>
+      adjustDailyPlanTrainingForPreWorkout(planId, { preWorkoutCheck }),
+    onSuccess: async (updatedPlan) => {
+      queryClient.setQueryData(['today-plan'], updatedPlan);
+      await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['exercise-summaries'] });
+      setPreWorkoutConflict(null);
+      setPendingPreWorkoutCheck(null);
+      setPreWorkoutOpen(false);
     }
   });
   const summaryById = new Map((summaries.data?.items ?? []).map((item) => [item.id, item] as const));
@@ -95,10 +129,31 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
           workoutSessionLoading={workoutSession.isLoading}
           preWorkoutOpen={preWorkoutOpen}
           workoutStartPending={startWorkout.isPending}
-          workoutStartFailed={startWorkout.isError}
+          workoutStartFailed={startWorkout.isError || preflight.isError || adjustWorkout.isError}
+          preWorkoutSaving={startWorkout.isPending || preflight.isPending || adjustWorkout.isPending}
+          preWorkoutConflict={preWorkoutConflict}
           onStartWorkout={() => setPreWorkoutOpen(true)}
-          onCancelPreWorkout={() => setPreWorkoutOpen(false)}
-          onSubmitPreWorkout={(preWorkoutCheck) => startWorkout.mutate(preWorkoutCheck)}
+          onCancelPreWorkout={() => {
+            setPreWorkoutOpen(false);
+            setPreWorkoutConflict(null);
+            setPendingPreWorkoutCheck(null);
+          }}
+          onSubmitPreWorkout={(preWorkoutCheck) => {
+            if (preWorkoutCheck.readinessStatus === 'PAIN_OR_LIMITATION') {
+              preflight.mutate(preWorkoutCheck);
+              return;
+            }
+            startWorkout.mutate(preWorkoutCheck);
+          }}
+          onAdjustWorkout={() => {
+            if (pendingPreWorkoutCheck) adjustWorkout.mutate(pendingPreWorkoutCheck);
+          }}
+          onRestToday={() => router.push('/training-overrides/day' as never)}
+          onContinueWithCaution={() => {
+            if (pendingPreWorkoutCheck) {
+              startWorkout.mutate({ ...pendingPreWorkoutCheck, acknowledgedPainConflict: true });
+            }
+          }}
           onOpenWorkout={(sessionId) =>
             router.push({ pathname: '/workout-session' as never, params: { sessionId } })
           }
@@ -157,9 +212,14 @@ function TrainingContent(props: PlanTabbedContentProps & {
   preWorkoutOpen: boolean;
   workoutStartPending: boolean;
   workoutStartFailed: boolean;
+  preWorkoutSaving: boolean;
+  preWorkoutConflict: PreWorkoutPreflightResponse | null;
   onStartWorkout: () => void;
   onCancelPreWorkout: () => void;
   onSubmitPreWorkout: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
+  onAdjustWorkout: () => void;
+  onRestToday: () => void;
+  onContinueWithCaution: () => void;
   onOpenWorkout: (sessionId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
 }) {
@@ -194,29 +254,6 @@ function TrainingContent(props: PlanTabbedContentProps & {
           ))}
         </Card>
       ) : null}
-      <Card>
-        <Text variant="label">{t('plan.trainingCheckIn')}</Text>
-        <Text variant="muted">{t('plan.trainingHelp')}</Text>
-        <View style={styles.tagRow}>
-          {trainingStatuses(t).map((status) => (
-            <Button
-              key={status.value}
-              title={status.label}
-              variant={getTrainingStatus(checkIns) === status.value ? 'primary' : 'secondary'}
-              style={styles.checkInButton}
-              disabled={checkInPending}
-              onPress={() => props.onTrainingCheckIn(status.value)}
-            />
-          ))}
-        </View>
-        <Button
-          title={t('plan.pain')}
-          variant={getPainSignal(checkIns) ? 'danger' : 'secondary'}
-          disabled={checkInPending}
-          onPress={() => props.onTrainingCheckIn(getTrainingStatus(checkIns) ?? 'RESTED_INSTEAD', true)}
-        />
-        <Text variant="muted">{t('plan.painHelp')}</Text>
-      </Card>
       {exercises.length ? (
         <WorkoutSessionCard
           t={t}
@@ -232,9 +269,13 @@ function TrainingContent(props: PlanTabbedContentProps & {
       {exercises.length && props.preWorkoutOpen && !props.workoutSession ? (
         <PreWorkoutCheckCard
           t={t}
-          saving={props.workoutStartPending}
+          saving={props.preWorkoutSaving}
+          conflict={props.preWorkoutConflict}
           onCancel={props.onCancelPreWorkout}
           onSubmit={props.onSubmitPreWorkout}
+          onAdjustWorkout={props.onAdjustWorkout}
+          onRestToday={props.onRestToday}
+          onContinueWithCaution={props.onContinueWithCaution}
         />
       ) : null}
       {exercises.length ? (
@@ -268,23 +309,31 @@ function TrainingContent(props: PlanTabbedContentProps & {
 function PreWorkoutCheckCard({
   t,
   saving,
+  conflict,
   onCancel,
-  onSubmit
+  onSubmit,
+  onAdjustWorkout,
+  onRestToday,
+  onContinueWithCaution
 }: {
   t: TFunction;
   saving: boolean;
+  conflict: PreWorkoutPreflightResponse | null;
   onCancel: () => void;
   onSubmit: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
+  onAdjustWorkout: () => void;
+  onRestToday: () => void;
+  onContinueWithCaution: () => void;
 }) {
   const [readinessStatus, setReadinessStatus] = useState<PreWorkoutReadinessStatus>('GOOD');
-  const [painAreasText, setPainAreasText] = useState('');
+  const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
   const [note, setNote] = useState('');
   const isPainContext = readinessStatus === 'PAIN_OR_LIMITATION';
   const submit = (status = readinessStatus) => {
     const includePainContext = status === 'PAIN_OR_LIMITATION';
     onSubmit({
       readinessStatus: status,
-      painAreas: includePainContext ? splitCsv(painAreasText) : [],
+      painAreas: includePainContext ? painAreas : [],
       note: status === 'SKIPPED' ? null : note.trim() || null
     });
   };
@@ -293,51 +342,92 @@ function PreWorkoutCheckCard({
     <Card>
       <Text variant="label">{t('workout.preWorkoutCheck')}</Text>
       <Text variant="muted">{t('workout.preWorkoutHelp')}</Text>
-      <SelectChips
-        label={t('workout.feelToday')}
-        value={readinessStatus}
-        onChange={setReadinessStatus}
-        options={preWorkoutOptions(t)}
-      />
-      {isPainContext ? (
+      {conflict ? (
         <>
-          <Field
-            label={t('workout.painAreas')}
-            placeholder={t('workout.painAreasPlaceholder')}
-            value={painAreasText}
-            onChangeText={setPainAreasText}
+          <ContextNoteCard
+            title={t('workout.painConflictTitle')}
+            message={t('workout.painConflictMessage')}
+            tone="warning"
           />
-          <Text variant="muted">{t('workout.keepWorkoutControlled')}</Text>
+          {conflict.conflictingExercises.map((exercise) => (
+            <Text key={exercise.planExerciseKey} variant="muted">- {exercise.name}</Text>
+          ))}
+          <View style={styles.preWorkoutActions}>
+            <Button
+              title={saving ? t('workout.saving') : t('workout.adjustTodaysWorkout')}
+              disabled={saving}
+              onPress={onAdjustWorkout}
+            />
+            <Button
+              title={t('workout.restToday')}
+              variant="secondary"
+              disabled={saving}
+              onPress={onRestToday}
+            />
+            <Button
+              title={t('workout.continueWithCaution')}
+              variant="secondary"
+              disabled={saving}
+              onPress={onContinueWithCaution}
+            />
+            <Button title={t('common.cancel')} variant="secondary" disabled={saving} onPress={onCancel} />
+          </View>
         </>
-      ) : null}
-      <Field
-        label={t('workout.preWorkoutNote')}
-        placeholder={t('workout.preWorkoutNotePlaceholder')}
-        multiline
-        value={note}
-        onChangeText={setNote}
-      />
-      <View style={styles.preWorkoutActions}>
-        <Button
-          title={saving ? t('workout.saving') : t('workout.continueToWorkout')}
-          disabled={saving}
-          accessibilityLabel={t('workout.continueToWorkout')}
-          onPress={() => submit()}
-        />
-        <Button
-          title={t('workout.skipPreWorkoutCheck')}
-          variant="secondary"
-          disabled={saving}
-          accessibilityLabel={t('workout.skipPreWorkoutCheck')}
-          onPress={() => submit('SKIPPED')}
-        />
-        <Button
-          title={t('common.cancel')}
-          variant="secondary"
-          disabled={saving}
-          onPress={onCancel}
-        />
-      </View>
+      ) : (
+        <>
+          <SelectChips
+            label={t('workout.feelToday')}
+            value={readinessStatus}
+            onChange={(next) => {
+              setReadinessStatus(next);
+              if (next !== 'PAIN_OR_LIMITATION') setPainAreas([]);
+            }}
+            options={preWorkoutOptions(t)}
+          />
+          {isPainContext ? (
+            <>
+              <MultiSelectChips
+                label={t('workout.painAreas')}
+                value={painAreas}
+                onChange={setPainAreas}
+                options={WORKOUT_PAIN_AREAS.map((area) => ({
+                  value: area,
+                  label: getPainAreaLabel(area, t)
+                }))}
+              />
+              <Text variant="muted">{t('workout.keepWorkoutControlled')}</Text>
+            </>
+          ) : null}
+          <Field
+            label={t('workout.preWorkoutNote')}
+            placeholder={t('workout.preWorkoutNotePlaceholder')}
+            multiline
+            value={note}
+            onChangeText={setNote}
+          />
+          <View style={styles.preWorkoutActions}>
+            <Button
+              title={saving ? t('workout.saving') : t('workout.continueToWorkout')}
+              disabled={saving || (isPainContext && painAreas.length === 0)}
+              accessibilityLabel={t('workout.continueToWorkout')}
+              onPress={() => submit()}
+            />
+            <Button
+              title={t('workout.skipPreWorkoutCheck')}
+              variant="secondary"
+              disabled={saving}
+              accessibilityLabel={t('workout.skipPreWorkoutCheck')}
+              onPress={() => submit('SKIPPED')}
+            />
+            <Button
+              title={t('common.cancel')}
+              variant="secondary"
+              disabled={saving}
+              onPress={onCancel}
+            />
+          </View>
+        </>
+      )}
     </Card>
   );
 }
@@ -423,6 +513,22 @@ const getTrainingStatus = (items?: DailyPlanCheckInResponse[]) => {
 const getPainSignal = (items?: DailyPlanCheckInResponse[]) => {
   const payload = items?.find((item) => item.type === 'TRAINING')?.payload;
   return Boolean(payload && 'painOrDiscomfort' in payload && payload.painOrDiscomfort);
+};
+const getPainAreaLabel = (area: WorkoutPainArea, t: TFunction) => {
+  if (area === 'CORE_ABS') return t('workout.painAreaCoreAbs');
+  if (area === 'LOWER_BACK') return t('workout.painAreaLowerBack');
+  if (area === 'SHOULDERS') return t('workout.painAreaShoulders');
+  if (area === 'CHEST') return t('workout.painAreaChest');
+  if (area === 'UPPER_BACK_LATS') return t('workout.painAreaUpperBackLats');
+  if (area === 'BICEPS') return t('workout.painAreaBiceps');
+  if (area === 'TRICEPS') return t('workout.painAreaTriceps');
+  if (area === 'GLUTES') return t('workout.painAreaGlutes');
+  if (area === 'HAMSTRINGS') return t('workout.painAreaHamstrings');
+  if (area === 'QUADRICEPS') return t('workout.painAreaQuadriceps');
+  if (area === 'CALVES') return t('workout.painAreaCalves');
+  if (area === 'KNEES') return t('workout.painAreaKnees');
+  if (area === 'WRISTS_FOREARMS') return t('workout.painAreaWristsForearms');
+  return t('workout.painAreaOther');
 };
 const getTrainingLoadReadinessLabel = (
   readiness: NonNullable<DailyPlanJson['trainingLoadAgentSnapshot']>['readiness'],

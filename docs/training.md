@@ -33,6 +33,8 @@ User-facing copy says Weekly Routine. Backend schedule models and routes can kee
 
 Training Setup is general only: training focus, level, and default equipment. Preferred training days are removed from the visible setup UI because the Weekly Routine owns days. Pain and limitations are removed from global Training Setup and are collected in the pre-workout check for the current workout session.
 
+The Training tab must not show an always-visible generic Training check-in. Readiness, soreness, and pain/limitation questions belong to the pre-workout flow for the current planned workout session.
+
 Environment and equipment remain separate. `HOME + BARBELL` is valid, and `GYM` does not imply any equipment. Duration belongs to each routine day.
 
 Training setup is no longer part of onboarding. If a user chooses `NUTRITION_AND_TRAINING`, onboarding offers one optional bridge to the Training tab after nutrition preferences. Users can skip it, reach Today, and return to Training later without losing the enabled training mode.
@@ -75,3 +77,21 @@ The Training tab owns workout readiness, today's workout/rest state, Weekly Rout
 Weekly Routine owns recurring weekday configuration. Workout Session owns the current execution flow. Workout History owns completed-session summaries. Keeping these separated prevents the Training tab from becoming a long mixed settings page.
 
 Today can summarize training progress and start the plan flow, but detailed routine editing and workout execution remain in Training-specific routes.
+
+## Pain-Aware Workout Adaptation
+
+Pain and limitation inputs are session-scoped. They are collected only when the user starts the current workout, not in global Training Setup and not during onboarding.
+
+The backend maps selected body areas to planned exercise muscle groups and detects overlap before creating a `WorkoutSession`. If a conflict exists, mobile shows:
+
+- Adjust today's workout.
+- Rest today.
+- Continue with caution.
+
+Adjust today's workout updates only the selected DailyPlan training section and preserves nutrition, Weekly Routine, and global training settings. The MVP removes conflicting planned exercises where a safe subset remains; it does not invent new exercises or call OpenAI from the workout execution flow.
+
+Rest today routes through the existing one-off rest-day override path and does not mutate the usual Weekly Routine.
+
+Continue with caution requires explicit acknowledgement and stores conflict metadata on the session. Copy should remind the user to stop if pain increases.
+
+Post-workout feedback appears only after Finish workout. It stores how the session felt, optional pain areas, and an optional note on the completed `WorkoutSession` for future personalization.

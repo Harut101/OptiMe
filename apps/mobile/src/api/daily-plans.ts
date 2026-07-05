@@ -5,6 +5,7 @@ import type {
   DailyPlanCheckInResponse,
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
+  AdjustWorkoutForPreWorkoutRequest,
   SubmitDailyPlanFeedbackRequest
 } from '@/types/api';
 
@@ -79,5 +80,15 @@ export function excludeDailyFoodIngredient(
   return apiRequest('/daily-plans/' + dailyPlanId + '/food/exclude-ingredient', {
     method: 'POST',
     body: JSON.stringify({ ingredientName })
+  });
+}
+
+export function adjustDailyPlanTrainingForPreWorkout(
+  dailyPlanId: string,
+  body: AdjustWorkoutForPreWorkoutRequest
+) {
+  return apiRequest<DailyPlanResponse>(`/daily-plans/${dailyPlanId}/training/adjust-for-pre-workout`, {
+    method: 'POST',
+    body: JSON.stringify(body)
   });
 }

@@ -105,3 +105,11 @@ Completed simplifications:
 - Docs now define a screen responsibility matrix so future batches can add value without piling duplicate content onto Today.
 
 No backend models, payments, WHOOP, Health Connect sync, AI Coach, embeddings, admin, web, or new product flows were added in this cleanup.
+
+## Training Check-in Cleanup And Pain-Aware Adaptation
+
+Training check-ins are now split by timing and responsibility. The old always-visible generic Training check-in block is removed from the training surface.
+
+Pre-workout checks run before starting a workout session. Pain or limitation inputs are mapped to planned exercise muscle groups, conflicts are detected server-side, and the user can adjust today's workout, rest today, or explicitly continue with caution.
+
+Post-workout check-ins appear only after Finish workout and store supportive feedback on the completed `WorkoutSession`. Future personalization can use this history, but this sprint does not add diagnosis, physical therapy guidance, analytics, payments, WHOOP, or new ExerciseLibrary content.
