@@ -26,6 +26,10 @@ import {
   getMealStatusActionLabel,
   getMealStatusLabel
 } from '@/features/food-tracking/food-tracking-summary';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
 import { formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
 import { colors } from '@/theme/colors';
@@ -59,9 +63,14 @@ export default function MealDetailsScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
       await queryClient.invalidateQueries({ queryKey: ['food-log', data.id] });
     },
-    onError: () => {
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
       setMessage(null);
-      setErrorMessage(t('food.couldNotRegenerateMeal'));
+      setErrorMessage(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('food.couldNotRegenerateMeal')
+      );
     }
   });
   const excludeIngredient = useMutation({

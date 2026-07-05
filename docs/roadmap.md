@@ -119,3 +119,9 @@ Post-workout check-ins appear only after Finish workout and store supportive fee
 Adjust today's workout now proposes safer ExerciseLibrary-backed replacements before applying changes. Replacements avoid mapped pain/conflict muscles, respect equipment and level filters, and update only today's DailyPlan training section after user confirmation.
 
 If no safe replacements exist, the app keeps the current plan unchanged and offers Rest today or Continue with caution. Weekly Routine, Training Setup, nutrition, ExerciseLibrary, ExerciseMedia, and completed WorkoutSessions are unchanged.
+
+## Pricing / Entitlement Foundation
+
+OptiMe now has a backend-owned Free / Plus / Pro entitlement foundation without real billing. A central entitlement matrix defines `PlanQualityMode`, feature access, and usage limits for daily plan generation, refresh, meal regeneration, menu regeneration, and AI Training Load Agent calls.
+
+Safety remains available for every tier. Nutrition-only users can still receive paid value through nutrition planning, food preferences, meal/menu regeneration, food tracking, and health-aware nutrition context. Mobile shows contextual limit/upgrade placeholders only when an action is blocked; no real App Store, Google Play, Stripe, receipt validation, pricing amounts, or production purchase flow is implemented yet.

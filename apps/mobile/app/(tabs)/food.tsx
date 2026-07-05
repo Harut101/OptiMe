@@ -32,7 +32,12 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDietTypeLabel } from '@/i18n/enum-labels';
+import { useSettingsStore } from '@/store/settings-store';
 import { NutritionTargetSummaryCard } from '@/features/nutrition-targets/NutritionTargetSummaryCard';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
 import {
   FOOD_STATUSES,
   formatFoodProgress,
@@ -50,6 +55,7 @@ export default function FoodScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const preferences = useQuery({
     queryKey: ['nutrition-preferences'],
     queryFn: getNutritionPreferences
@@ -105,8 +111,13 @@ export default function FoodScreen() {
       await queryClient.invalidateQueries({ queryKey: TODAY_PLAN_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ['food-log', data.id] });
     },
-    onError: () => {
-      setValidationError(t('food.couldNotRegenerateMenu'));
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setValidationError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('food.couldNotRegenerateMenu')
+      );
     }
   });
   const updateMealStatus = useMutation({

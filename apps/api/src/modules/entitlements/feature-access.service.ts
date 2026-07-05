@@ -2,19 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { SubscriptionPlan } from '@prisma/client';
 
 import { EntitlementsService, EntitlementSummary } from './entitlements.service';
+import {
+  FEATURE_ACCESS_MATRIX,
+  FeatureAccessMatrix
+} from './entitlement-matrix';
 
-export interface FeatureAccessSummary {
-  canGenerateDailyPlan: boolean;
-  canRefreshPlan: boolean;
-  canUseOpenAIProvider: boolean;
-  canUseAdvancedPersonalization: boolean;
-  canUseFeedbackPersonalization: boolean;
-  canViewHistory: boolean;
-  canSubmitFeedback: boolean;
-  canUseWeeklyReports: boolean;
-  canUseWhoop: boolean;
-  canUseAiCoach: boolean;
-}
+export type FeatureAccessSummary = FeatureAccessMatrix;
 
 export type EntitlementSummaryWithFeatures = EntitlementSummary & {
   features: FeatureAccessSummary;
@@ -81,22 +74,20 @@ export class FeatureAccessService {
     return (await this.getCurrentPlan(userId)) === SubscriptionPlan.PRO;
   }
 
-  getFeaturesForPlan(plan: SubscriptionPlan): FeatureAccessSummary {
-    const isPlusOrPro = this.isPlusOrPro(plan);
-    const isPro = plan === SubscriptionPlan.PRO;
+  async canRegenerateMeals(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canRegenerateMeals;
+  }
 
-    return {
-      canGenerateDailyPlan: true,
-      canRefreshPlan: true,
-      canUseOpenAIProvider: true,
-      canUseAdvancedPersonalization: isPlusOrPro,
-      canUseFeedbackPersonalization: isPlusOrPro,
-      canViewHistory: true,
-      canSubmitFeedback: true,
-      canUseWeeklyReports: isPlusOrPro,
-      canUseWhoop: isPro,
-      canUseAiCoach: isPro
-    };
+  async canRegenerateMenus(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canRegenerateMenus;
+  }
+
+  async canUseAiTrainingLoadAgent(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canUseAiTrainingLoadAgent;
+  }
+
+  getFeaturesForPlan(plan: SubscriptionPlan): FeatureAccessSummary {
+    return FEATURE_ACCESS_MATRIX[plan] ?? FEATURE_ACCESS_MATRIX[SubscriptionPlan.FREE];
   }
 
   private isPlusOrPro(plan: SubscriptionPlan) {

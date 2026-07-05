@@ -34,3 +34,5 @@ When app mode is `NUTRITION_AND_TRAINING`, the existing training, protocol, exer
 During onboarding, `NUTRITION_AND_TRAINING` enables training guidance but does not force weekly routine setup. After nutrition preferences are saved, mobile shows an optional next step to set up the Weekly Routine now or skip and continue to Today. Skipping does not disable training; it uses safe default training behavior until the Training tab is configured.
 
 Safety is not paywalled or mode-gated. Pain, illness, dizziness, exhaustion, under-18 rules, allergy rules, pregnancy/postpartum context, and dangerous-goal validation still apply in every mode.
+
+Pricing is also mode-independent. `NUTRITION_ONLY` users can be Free, Plus, or Pro and still benefit from nutrition planning, food preferences, meal/menu regeneration, food tracking, and health-aware context. Training-specific paid depth applies only when Training is enabled, but safety behavior stays available in all modes.

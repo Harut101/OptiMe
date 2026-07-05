@@ -38,9 +38,12 @@ import {
 } from '@/features/today-dashboard/today-progress';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
-import { getSubscriptionPlanLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
 import { getPlatformHealthProvider } from '@/features/health/health-platform';
@@ -59,11 +62,7 @@ import {
   formatWorkoutSetCount,
   getWorkoutAccessibilityLabel
 } from '@/features/workout/workout-summary';
-import type {
-  ProgressivePrompt,
-  UsageLimitExceededError,
-  DailyPlanJson
-} from '@/types/api';
+import type { ProgressivePrompt, DailyPlanJson } from '@/types/api';
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -916,16 +915,6 @@ function ProgressivePromptCard({
   );
 }
 
-function getUsageLimitError(error: Error) {
-  if (!(error instanceof ApiError) || typeof error.body !== 'object' || error.body === null) {
-    return null;
-  }
-
-  const body = error.body as Partial<UsageLimitExceededError>;
-
-  return body.code === 'USAGE_LIMIT_REACHED' ? (body as UsageLimitExceededError) : null;
-}
-
 function getOnboardingIncompleteError(error: Error) {
   if (!(error instanceof ApiError) || typeof error.body !== 'object' || error.body === null) {
     return null;
@@ -963,40 +952,6 @@ function routeForMissingStage1Fields(missingFields: string[]) {
   }
 
   return '/(tabs)/today' as const;
-}
-
-function formatUsageLimitMessage(error: UsageLimitExceededError, t: TFunction, locale: string) {
-  const action = getUsageFeatureLabel(error.feature, t);
-  const resetAt = formatResetAt(error.resetAt, locale);
-  const reset = resetAt ? String(t('today.tryAfter', { time: resetAt })) : String(t('today.tryAfterReset'));
-  return String(t('today.limitMessage', {
-    plan: String(getSubscriptionPlanLabel(t, error.currentPlan)),
-    limit: String(error.limit),
-    action,
-    reset
-  }));
-}
-
-function getUsageFeatureLabel(feature: UsageLimitExceededError['feature'], t: TFunction) {
-  if (feature === 'DAILY_PLAN_REFRESH') {
-    return String(t('today.usageRefresh'));
-  }
-
-  if (feature === 'AI_DAILY_PLAN_GENERATION') {
-    return String(t('today.usageAiGeneration'));
-  }
-
-  return String(t('today.usageGeneration'));
-}
-
-function formatResetAt(value: string, locale: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return formatTime(date, locale);
 }
 
 function getNativeHealthErrorCode(error: unknown) {

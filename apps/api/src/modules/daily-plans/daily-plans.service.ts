@@ -172,11 +172,14 @@ export class DailyPlansService {
     }
 
     this.assertReadyToGenerate(user);
-    await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate));
 
     const operationStartedAt = Date.now();
+    const consumedUsage: Array<{ id: string; amount: number }> = [];
 
     try {
+      consumedUsage.push(
+        ...(await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate)))
+      );
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
       const appMode = this.resolveAppMode(user);
@@ -487,6 +490,7 @@ export class DailyPlansService {
 
       return this.toResponse(plan);
     } catch (error) {
+      await this.refundConsumedUsage(consumedUsage);
       await this.recordDailyPlanAiOperationError({
         userId,
         latencyMs: Date.now() - operationStartedAt,
@@ -498,16 +502,30 @@ export class DailyPlansService {
 
   async regenerateFoodPlan(userId: string, dailyPlanId: string, dto: RegenerateFoodPlanDto) {
     const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
-    const result = await this.generateReplacementFoodPlan(context, {
-      mode: 'FULL_MENU_REGENERATION',
-      reason: dto.reason
-    });
-
-    this.logger.log(
-      `food plan regeneration completed; type=full_menu; planId=${dailyPlanId}; validationStatus=${result.foodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(result.foodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
+    const consumedUsage = await this.usageGuardService.checkAndConsume(
+      userId,
+      UsageFeature.MENU_REGENERATION,
+      UsagePeriodType.DAILY
     );
 
-    return this.persistRegeneratedFoodPlan(context, this.markFoodPlanRegenerated(result.foodPlan, 'FULL_MENU_REGENERATION'));
+    try {
+      const result = await this.generateReplacementFoodPlan(context, {
+        mode: 'FULL_MENU_REGENERATION',
+        reason: dto.reason
+      });
+
+      this.logger.log(
+        `food plan regeneration completed; type=full_menu; planId=${dailyPlanId}; validationStatus=${result.foodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(result.foodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
+      );
+
+      return this.persistRegeneratedFoodPlan(
+        context,
+        this.markFoodPlanRegenerated(result.foodPlan, 'FULL_MENU_REGENERATION')
+      );
+    } catch (error) {
+      await this.refundConsumedUsage([{ id: consumedUsage.id, amount: 1 }]);
+      throw error;
+    }
   }
 
   async regenerateFoodMeal(
@@ -523,23 +541,34 @@ export class DailyPlansService {
       throw new BadRequestException('Meal not found in this plan.');
     }
 
-    const result = await this.generateReplacementFoodPlan(context, {
-      mode: 'MEAL_REGENERATION',
-      reason: dto.reason,
-      selectedMealId: mealId
-    });
-    const nextMeal = result.foodPlan.meals.find((meal) => meal.id === mealId);
-
-    if (!nextMeal) {
-      throw new BadRequestException('Could not safely regenerate this meal. Your current meal was kept.');
-    }
-
-    const markedFoodPlan = this.markFoodPlanRegenerated(result.foodPlan, 'MEAL_REGENERATION', mealId);
-    this.logger.log(
-      `food plan regeneration completed; type=meal; planId=${dailyPlanId}; mealId=${mealId}; validationStatus=${markedFoodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(markedFoodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
+    const consumedUsage = await this.usageGuardService.checkAndConsume(
+      userId,
+      UsageFeature.MEAL_REGENERATION,
+      UsagePeriodType.DAILY
     );
 
-    return this.persistRegeneratedFoodPlan(context, markedFoodPlan);
+    try {
+      const result = await this.generateReplacementFoodPlan(context, {
+        mode: 'MEAL_REGENERATION',
+        reason: dto.reason,
+        selectedMealId: mealId
+      });
+      const nextMeal = result.foodPlan.meals.find((meal) => meal.id === mealId);
+
+      if (!nextMeal) {
+        throw new BadRequestException('Could not safely regenerate this meal. Your current meal was kept.');
+      }
+
+      const markedFoodPlan = this.markFoodPlanRegenerated(result.foodPlan, 'MEAL_REGENERATION', mealId);
+      this.logger.log(
+        `food plan regeneration completed; type=meal; planId=${dailyPlanId}; mealId=${mealId}; validationStatus=${markedFoodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(markedFoodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
+      );
+
+      return this.persistRegeneratedFoodPlan(context, markedFoodPlan);
+    } catch (error) {
+      await this.refundConsumedUsage([{ id: consumedUsage.id, amount: 1 }]);
+      throw error;
+    }
   }
 
   async excludeFoodIngredient(userId: string, dailyPlanId: string, dto: ExcludeFoodIngredientDto) {
@@ -1337,8 +1366,29 @@ export class DailyPlansService {
       )
     );
 
+    const consumed: Array<{ id: string; amount: number }> = [];
+
     for (const check of usageChecks) {
-      await this.usageGuardService.checkAndConsume(userId, check.feature, check.periodType);
+      const usage = await this.usageGuardService.checkAndConsume(
+        userId,
+        check.feature,
+        check.periodType
+      );
+      consumed.push({ id: usage.id, amount: 1 });
+    }
+
+    return consumed;
+  }
+
+  private async refundConsumedUsage(consumedUsage: Array<{ id: string; amount: number }>) {
+    for (const usage of consumedUsage.reverse()) {
+      try {
+        await this.usageGuardService.refundById(usage.id, usage.amount);
+      } catch (error) {
+        this.logger.warn(
+          `usage refund failed; usageLedgerId=${usage.id}; reason=${error instanceof Error ? error.name : 'unknown'}`
+        );
+      }
     }
   }
 
@@ -2050,7 +2100,7 @@ export class DailyPlansService {
     resolvedTrainingDay: ResolvedTrainingDayContext;
     appMode: GoalImpactMode;
   }): Promise<DailyPlanJson> {
-    const snapshot = await this.trainingLoadAgent.generate({
+    const agentInput = {
       planLocalDate: input.planLocalDate,
       locale: this.resolvePlanningLocale(input.user),
       appMode: input.appMode,
@@ -2062,7 +2112,51 @@ export class DailyPlansService {
       personalizationContext: input.personalizationContext,
       exerciseSelection: input.exerciseSelection,
       planTraining: input.planJson.training
-    });
+    };
+    const canUseAiTrainingLoadAgent =
+      this.getProviderDebugName() === 'openai' &&
+      (await this.featureAccessService.canUseAiTrainingLoadAgent(input.user.id));
+
+    if (!canUseAiTrainingLoadAgent) {
+      return {
+        ...input.planJson,
+        trainingLoadAgentSnapshot: this.trainingLoadAgent.createFallback(agentInput, [
+          'tier_basic_guidance'
+        ])
+      };
+    }
+
+    let consumedUsage: { id: string; amount: number } | null = null;
+    try {
+      const usage = await this.usageGuardService.checkAndConsume(
+        input.user.id,
+        UsageFeature.AI_TRAINING_LOAD_AGENT,
+        UsagePeriodType.DAILY
+      );
+      consumedUsage = { id: usage.id, amount: 1 };
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.warn(
+          `AI TrainingLoadAgent gated; using deterministic fallback; reason=${error.name}`
+        );
+      }
+      return {
+        ...input.planJson,
+        trainingLoadAgentSnapshot: this.trainingLoadAgent.createFallback(agentInput, [
+          'ai_training_load_agent_limit_reached'
+        ])
+      };
+    }
+
+    const snapshot = await this.trainingLoadAgent.generate(agentInput);
+
+    if (
+      consumedUsage &&
+      snapshot.source === 'DETERMINISTIC_FALLBACK' &&
+      snapshot.validation.reasons.includes('training_load_agent_request_failed')
+    ) {
+      await this.refundConsumedUsage([consumedUsage]);
+    }
 
     return {
       ...input.planJson,

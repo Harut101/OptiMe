@@ -280,6 +280,10 @@ describe('Sprint 1 backend vertical slice', () => {
       await cleanupDatabase(customCtx.prisma);
       const user = await registerTestUser(customCtx.app, 'openai-exercise-retry@example.com');
       await completeRequiredOnboarding(customCtx.app, user.accessToken, 'ExerciseRetry');
+      await createTestSubscription(customCtx, user.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
 
       const response = await request(customCtx.app.getHttpServer())
         .post('/v1/daily-plans/generate')
@@ -625,6 +629,27 @@ describe('Sprint 1 backend vertical slice', () => {
     await expect(
       usageGuard.getLimit(
         freeUser.user.id,
+        UsageFeature.MENU_REGENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+    await expect(
+      usageGuard.getLimit(
+        plusUser.user.id,
+        UsageFeature.MEAL_REGENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(5);
+    await expect(
+      usageGuard.getLimit(
+        proUser.user.id,
+        UsageFeature.AI_TRAINING_LOAD_AGENT,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(20);
+    await expect(
+      usageGuard.getLimit(
+        freeUser.user.id,
         UsageFeature.AI_SAFETY_AGENT_REVIEW,
         UsagePeriodType.DAILY
       )
@@ -719,10 +744,31 @@ describe('Sprint 1 backend vertical slice', () => {
           count: 0,
           limit: 1,
           remaining: 1
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.MENU_REGENERATION,
+          periodType: UsagePeriodType.DAILY,
+          count: 0,
+          limit: 1,
+          remaining: 1
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.MEAL_REGENERATION,
+          periodType: UsagePeriodType.DAILY,
+          count: 0,
+          limit: 1,
+          remaining: 1
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.AI_TRAINING_LOAD_AGENT,
+          periodType: UsagePeriodType.DAILY,
+          count: 0,
+          limit: 0,
+          remaining: 0
         })
       ])
     );
-    expect(summary.body.items).toHaveLength(3);
+    expect(summary.body.items).toHaveLength(6);
     expect(summary.body.items[0].resetAt).toEqual(expect.any(String));
   });
 
@@ -2783,7 +2829,7 @@ describe('Sprint 1 backend vertical slice', () => {
       readiness: 'UNKNOWN',
       validation: {
         status: 'FALLBACK',
-        reasons: ['mock_mode']
+        reasons: ['tier_basic_guidance']
       }
     });
     expect(first.body).toMatchObject({
@@ -3044,6 +3090,105 @@ describe('Sprint 1 backend vertical slice', () => {
         })
       ])
     );
+  });
+
+  it('meters full menu regeneration and blocks a second Free menu regeneration without mutating the plan', async () => {
+    const user = await registerTestUser(ctx.app, 'menu-regeneration-limit@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'MenuLimit');
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another safe menu.' })
+      .expect(201);
+
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.MENU_REGENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+
+    const beforeBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id },
+      select: { planJson: true, updatedAt: true }
+    });
+    const blocked = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another safe menu.' })
+      .expect(429);
+
+    expect(blocked.body).toMatchObject({
+      code: 'USAGE_LIMIT_REACHED',
+      feature: UsageFeature.MENU_REGENERATION,
+      currentPlan: SubscriptionPlan.FREE,
+      limit: 1,
+      periodType: UsagePeriodType.DAILY,
+      upgradeSuggestion: 'PLUS'
+    });
+    const afterBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id },
+      select: { planJson: true, updatedAt: true }
+    });
+    expect(afterBlocked).toEqual(beforeBlocked);
+  });
+
+  it('meters meal regeneration and blocks a second Free meal regeneration without mutating the plan', async () => {
+    const user = await registerTestUser(ctx.app, 'meal-regeneration-limit@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'MealLimit');
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+    const mealId = generated.body.plan.nutrition.foodPlan.meals[0].id;
+
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/${mealId}/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another safe meal.' })
+      .expect(201);
+
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.MEAL_REGENERATION,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(1);
+
+    const beforeBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id },
+      select: { planJson: true, updatedAt: true }
+    });
+    const blocked = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/${mealId}/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try another safe meal.' })
+      .expect(429);
+
+    expect(blocked.body).toMatchObject({
+      code: 'USAGE_LIMIT_REACHED',
+      feature: UsageFeature.MEAL_REGENERATION,
+      currentPlan: SubscriptionPlan.FREE,
+      limit: 1,
+      periodType: UsagePeriodType.DAILY,
+      upgradeSuggestion: 'PLUS'
+    });
+    const afterBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: generated.body.id },
+      select: { planJson: true, updatedAt: true }
+    });
+    expect(afterBlocked).toEqual(beforeBlocked);
   });
 
   it('returns menu option count by PlanQualityMode while keeping primary meals for mobile', async () => {
@@ -5210,6 +5355,10 @@ describe('Sprint 1 backend vertical slice', () => {
       await cleanupDatabase(customCtx.prisma);
       const user = await registerTestUser(customCtx.app, 'safety-retry-ready@example.com');
       await completeRequiredOnboarding(customCtx.app, user.accessToken, 'RetrySafety');
+      await createTestSubscription(customCtx, user.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
 
       const plan = await request(customCtx.app.getHttpServer())
         .post('/v1/daily-plans/generate')
@@ -6730,7 +6879,18 @@ function expectedFeaturesForPlan(plan: SubscriptionPlan | 'FREE' | 'PLUS' | 'PRO
     canSubmitFeedback: true,
     canUseWeeklyReports: isPlusOrPro,
     canUseWhoop: isPro,
-    canUseAiCoach: isPro
+    canUseAiCoach: isPro,
+    canRegenerateMeals: true,
+    canRegenerateMenus: true,
+    canUseAiTrainingLoadAgent: isPlusOrPro,
+    canUsePainAwareReplacements: true,
+    canUseWorkoutExecution: true,
+    canUseWorkoutHistory: true,
+    canUseFoodTracking: true,
+    canUseAppleHealthSync: true,
+    canUseWearableContext: true,
+    canUseAdvancedWearableInsights: isPro,
+    canUseHealthConnect: false
   };
 }
 

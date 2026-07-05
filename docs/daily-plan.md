@@ -89,7 +89,7 @@ New plans may include optional `plan.trainingLoadAgentSnapshot`. The snapshot st
 This snapshot is advisory and display-oriented. It does not replace deterministic safety, selected exercises, workout volume limits, nutrition targets, or Safety Agent review.
 
 Old plans without `trainingLoadAgentSnapshot` remain valid and render normally.
-# Daily Plan
+## Pricing And Entitlements
 
 Daily plans are stored as normalized `DailyPlan.planJson` snapshots. New plans keep both backward-compatible nutrition summary fields and richer structured snapshots where available.
 
@@ -150,7 +150,7 @@ Wearable context must never create medical diagnosis language, extreme nutrition
 
 Today and Plan Details now use a shared polished hierarchy:
 
-- Today keeps the at-a-glance plan overview, usage status, nutrition, training, recovery, and refresh actions.
+- Today keeps the at-a-glance plan overview, nutrition, training, recovery, and refresh actions. Usage limits appear only as contextual messages after a blocked action.
 - Plan Details keeps tabbed Food/Training content, recovery guidance, reminders, check-ins, and feedback.
 - Safety, recovery, wearable, and training-load context appear as calm context notes rather than technical debug output.
 
@@ -178,3 +178,10 @@ Before Today calls Daily Plan generation, mobile now resolves a soft health data
 This readiness step runs after existing plan replacement handling and after the training-day/rest-day prompt. It applies to both `NUTRITION_ONLY` and `NUTRITION_AND_TRAINING` because activity and sleep can still inform nutrition and recovery. Health data remains optional and never blocks generation.
 
 The backend DailyPlan pipeline is unchanged: after a successful sync, generation reads the latest `WearableDailySnapshot` through the existing health planning context resolver.
+# Daily Plan
+
+Daily Plan generation is entitlement-checked server-side before expensive generation starts. `FREE`, `PLUS`, and `PRO` users can all generate useful safe plans, but daily generation, refresh, and OpenAI-backed generation are usage-limited by tier.
+
+If generation is blocked by usage, the backend returns `USAGE_LIMIT_REACHED` and mobile keeps the current plan visible. If generation starts and returns a safe fallback, that still counts as usage because provider/backend work happened. If generation throws before returning a plan, reserved usage is refunded.
+
+Safety is never paywalled: schema validation, deterministic `SafetyService`, safe fallback plans, Safety Agent review, under-18 handling, pregnancy/postpartum safety, allergy/excluded-food checks, and dangerous goal protection continue for all users.

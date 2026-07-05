@@ -23,3 +23,13 @@ The Food tab is the primary nutrition working surface. It owns nutrition target 
 Meal cards should stay compact. Full ingredients, prep steps, substitutions, and meal-specific actions belong in Meal Details. Missing media should fail quietly instead of adding noisy placeholder text to every meal card.
 
 Today may summarize food progress, but it should not duplicate the Food tab's nutrition target summary or detailed meal tracking blocks.
+## Pricing And Entitlements
+
+Food remains valuable in both app modes. Nutrition-only users can use Free, Plus, or Pro because paid value is not tied to Training being enabled.
+
+Meal and menu regeneration now use backend usage limits:
+
+- `MENU_REGENERATION` for full menu replacement.
+- `MEAL_REGENERATION` for a single meal replacement.
+
+If a limit is reached, Food and Meal Details show localized contextual upgrade placeholder copy, keep the existing plan visible, and do not mutate `DailyPlan`.

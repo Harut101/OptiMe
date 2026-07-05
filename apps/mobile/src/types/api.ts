@@ -359,6 +359,9 @@ export type UsageFeature =
   | 'DAILY_PLAN_REFRESH'
   | 'AI_DAILY_PLAN_GENERATION'
   | 'AI_SAFETY_AGENT_REVIEW'
+  | 'MEAL_REGENERATION'
+  | 'MENU_REGENERATION'
+  | 'AI_TRAINING_LOAD_AGENT'
   | 'FUTURE_AI_COACH_MESSAGE';
 
 export interface EntitlementSummary {
@@ -378,6 +381,17 @@ export interface EntitlementSummary {
     canUseWeeklyReports: boolean;
     canUseWhoop: boolean;
     canUseAiCoach: boolean;
+    canRegenerateMeals: boolean;
+    canRegenerateMenus: boolean;
+    canUseAiTrainingLoadAgent: boolean;
+    canUsePainAwareReplacements: boolean;
+    canUseWorkoutExecution: boolean;
+    canUseWorkoutHistory: boolean;
+    canUseFoodTracking: boolean;
+    canUseAppleHealthSync: boolean;
+    canUseWearableContext: boolean;
+    canUseAdvancedWearableInsights: boolean;
+    canUseHealthConnect: boolean;
   };
 }
 

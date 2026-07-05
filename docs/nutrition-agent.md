@@ -98,3 +98,13 @@ This batch does not add:
 - restaurant mode
 - user-created custom foods
 - recipe images
+## Pricing And Entitlements
+
+The Nutrition Agent remains available for safe food planning across tiers, but AI-heavy food regeneration is now usage-limited by tier.
+
+- Full menu regeneration uses `MENU_REGENERATION`.
+- Individual meal regeneration uses `MEAL_REGENERATION`.
+- Over-limit requests are blocked before the Nutrition Agent runs.
+- Failed safe-regeneration attempts refund the reserved usage and keep the current plan unchanged.
+
+Nutrition-only users can still receive paid value through deeper food personalization, meal/menu regeneration, food preferences, health-aware nutrition context, and food tracking. Safety checks for allergies, excluded foods, pregnancy/postpartum, minors, and unsafe diet language are not paywalled.

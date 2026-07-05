@@ -117,6 +117,17 @@ Summary shape:
     canUseWeeklyReports: boolean;
     canUseWhoop: boolean;
     canUseAiCoach: boolean;
+    canRegenerateMeals: boolean;
+    canRegenerateMenus: boolean;
+    canUseAiTrainingLoadAgent: boolean;
+    canUsePainAwareReplacements: boolean;
+    canUseWorkoutExecution: boolean;
+    canUseWorkoutHistory: boolean;
+    canUseFoodTracking: boolean;
+    canUseAppleHealthSync: boolean;
+    canUseWearableContext: boolean;
+    canUseAdvancedWearableInsights: boolean;
+    canUseHealthConnect: boolean;
   };
 }
 ```
@@ -138,7 +149,7 @@ Requirements:
 
 Batch 2 adds `FeatureAccessService`.
 
-Current MVP behavior:
+Current MVP behavior comes from the central backend matrix in `apps/api/src/modules/entitlements/entitlement-matrix.ts`:
 
 - `canGenerateDailyPlan`: all tiers.
 - `canRefreshPlan`: all tiers.
@@ -147,9 +158,20 @@ Current MVP behavior:
 - `canUseFeedbackPersonalization`: `PLUS` and `PRO`.
 - `canViewHistory`: all tiers.
 - `canSubmitFeedback`: all tiers.
+- `canRegenerateMeals`: all tiers, usage-limited.
+- `canRegenerateMenus`: all tiers, usage-limited.
+- `canUseAiTrainingLoadAgent`: `PLUS` and `PRO`; Free receives deterministic training-load guidance.
+- `canUsePainAwareReplacements`: all tiers.
+- `canUseWorkoutExecution`: all tiers.
+- `canUseWorkoutHistory`: all tiers.
+- `canUseFoodTracking`: all tiers.
+- `canUseAppleHealthSync`: all tiers.
+- `canUseWearableContext`: all tiers.
+- `canUseAdvancedWearableInsights`: `PRO`, future feature.
 - `canUseWeeklyReports`: `PLUS` and `PRO`, future feature.
 - `canUseWhoop`: `PRO`, future feature.
 - `canUseAiCoach`: `PRO`, future feature.
+- `canUseHealthConnect`: modeled for future support; not enabled yet.
 
 Safety is not represented as a paid feature gate. It always runs independently of entitlement state.
 
@@ -175,12 +197,10 @@ Future payment batches should:
 
 ## Still Not Implemented
 
-- `UsageLedger`.
-- `UsageGuardService`.
 - Real purchases.
 - Receipt validation.
 - Provider webhooks.
-- Paywall UI.
+- Production paywall purchase flow.
 - WHOOP.
 - AI Coach chat.
 - Embeddings.

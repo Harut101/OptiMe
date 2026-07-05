@@ -46,6 +46,8 @@ Food preference, ingredient exclusion, meal regeneration, and menu regeneration 
 
 Use complete translation keys for confirmation dialogs and loading/error states. Do not assemble confirmation text from English fragments, especially for nutrition-target preservation copy.
 
+Pricing and limit placeholder copy lives under `limits`, `today`, and `settings`. Required concepts include current plan labels, daily plan generation, refresh, AI plan generation, meal regeneration, menu regeneration, AI training-load guidance, reset timing, and upgrade-coming-soon copy. Do not concatenate English fragments manually.
+
 ## Workout Execution Strings
 
 Workout execution uses the `workout` namespace in all supported mobile locales. Set labels, progress labels, partial-completion confirmation, read-only completed state, friendly save errors, and safety reminders are localized. Exercise names, cues, and safety notes remain saved plan or ExerciseLibrary content and are not translated at render time.

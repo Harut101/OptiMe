@@ -40,6 +40,9 @@ Current enum values:
 - `DAILY_PLAN_REFRESH`
 - `AI_DAILY_PLAN_GENERATION`
 - `AI_SAFETY_AGENT_REVIEW`
+- `MEAL_REGENERATION`
+- `MENU_REGENERATION`
+- `AI_TRAINING_LOAD_AGENT`
 - `FUTURE_AI_COACH_MESSAGE`
 
 `AI_SAFETY_AGENT_REVIEW` may be tracked for observability or cost visibility, but it must not be blocked when it is needed for safety.
@@ -55,6 +58,9 @@ Current MVP daily limits:
 | `DAILY_PLAN_GENERATION` | 1/day | 5/day | 20/day |
 | `DAILY_PLAN_REFRESH` | 1/day | 5/day | 20/day |
 | `AI_DAILY_PLAN_GENERATION` | 1/day | 5/day | 20/day |
+| `MENU_REGENERATION` | 1/day | 5/day | 20/day |
+| `MEAL_REGENERATION` | 1/day | 5/day | 20/day |
+| `AI_TRAINING_LOAD_AGENT` | 0/day | 5/day | 20/day |
 
 Methods:
 
@@ -75,6 +81,9 @@ These actions count:
 - Creating a new daily plan when no plan exists for today.
 - Explicitly refreshing/regenerating today's plan with `forceRegenerate=true`.
 - OpenAI-backed daily plan generation attempts when `AI_PROVIDER=openai`.
+- Full menu regeneration.
+- Individual meal regeneration.
+- AI Training Load Agent calls for `PLUS` and `PRO`.
 
 Fallback still counts after generation starts. This includes:
 
@@ -97,6 +106,7 @@ These actions do not consume usage:
 - Dangerous goal rejection during setup.
 - Fetching history or usage summary.
 - Internal schema validation or safety checks.
+- Free deterministic training-load fallback guidance.
 
 ## Friendly Limit Error
 

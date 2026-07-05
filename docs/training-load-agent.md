@@ -78,3 +78,12 @@ If retry fails, the backend stores a deterministic fallback snapshot. Daily Plan
 - Workout Session shows session-level guidance.
 
 Mobile never renders debug metadata and never calls OpenAI.
+## Pricing And Entitlements
+
+The AI Training Load Agent is tier-aware:
+
+- `FREE`: deterministic training-load fallback guidance.
+- `PLUS`: AI Training Load Agent access with usage limits.
+- `PRO`: higher AI Training Load Agent limits and future adaptive depth.
+
+When the AI Training Load Agent is unavailable because of tier or usage limits, OptiMe still includes safe deterministic guidance. Safety-critical workout warnings, pain-aware checks, rest options, and exercise replacement suggestions are not paywalled.

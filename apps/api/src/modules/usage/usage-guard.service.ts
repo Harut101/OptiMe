@@ -2,45 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { SubscriptionPlan, UsageFeature, UsagePeriodType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { USAGE_LIMIT_MATRIX } from '../entitlements/entitlement-matrix';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { UsageLedgerService } from './usage-ledger.service';
 import { UsageLimitExceededException } from './usage-limit-exceeded.exception';
-
-interface UsageLimitConfig {
-  feature: UsageFeature;
-  periodType: UsagePeriodType;
-  limits: Record<SubscriptionPlan, number>;
-}
-
-const LIMITED_FEATURES: UsageLimitConfig[] = [
-  {
-    feature: UsageFeature.DAILY_PLAN_GENERATION,
-    periodType: UsagePeriodType.DAILY,
-    limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
-    }
-  },
-  {
-    feature: UsageFeature.DAILY_PLAN_REFRESH,
-    periodType: UsagePeriodType.DAILY,
-    limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
-    }
-  },
-  {
-    feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
-    periodType: UsagePeriodType.DAILY,
-    limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
-    }
-  }
-];
 
 @Injectable()
 export class UsageGuardService {
@@ -83,6 +48,10 @@ export class UsageGuardService {
     return this.usageLedger.incrementUsage(userId, feature, periodType, amount);
   }
 
+  refundById(id: string, amount = 1) {
+    return this.usageLedger.decrementUsageById(id, amount);
+  }
+
   async checkAndConsume(
     userId: string,
     feature: UsageFeature,
@@ -121,7 +90,7 @@ export class UsageGuardService {
     const now = new Date();
 
     const items = await Promise.all(
-      LIMITED_FEATURES.map(async (config) => {
+      USAGE_LIMIT_MATRIX.map(async (config) => {
         const periodStart = this.usageLedger.getPeriodStart(config.periodType, now, user.timezone);
         const count = await this.usageLedger.getUsage(
           userId,
@@ -182,7 +151,7 @@ export class UsageGuardService {
     feature: UsageFeature,
     periodType: UsagePeriodType
   ) {
-    const config = LIMITED_FEATURES.find(
+    const config = USAGE_LIMIT_MATRIX.find(
       (candidate) => candidate.feature === feature && candidate.periodType === periodType
     );
 

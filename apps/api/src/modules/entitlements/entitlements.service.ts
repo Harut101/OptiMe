@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { PLAN_QUALITY_BY_TIER } from './entitlement-matrix';
 
 export interface EntitlementSummary {
   currentPlan: SubscriptionPlan;
@@ -38,15 +39,7 @@ export class EntitlementsService {
   }
 
   getPlanQualityModeForPlan(plan: SubscriptionPlan): PlanQualityMode {
-    switch (plan) {
-      case SubscriptionPlan.PRO:
-        return PlanQualityMode.ADAPTIVE;
-      case SubscriptionPlan.PLUS:
-        return PlanQualityMode.PERSONALIZED;
-      case SubscriptionPlan.FREE:
-      default:
-        return PlanQualityMode.BASIC;
-    }
+    return PLAN_QUALITY_BY_TIER[plan] ?? PlanQualityMode.BASIC;
   }
 
   private resolveActiveSubscription(subscriptions: Subscription[]) {
