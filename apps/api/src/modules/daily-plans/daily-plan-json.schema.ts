@@ -281,7 +281,7 @@ export const trainingLoadAgentSnapshotSchema = z.object({
 export type TrainingLoadAgentSnapshot = z.infer<typeof trainingLoadAgentSnapshotSchema>;
 
 export const trainingAdjustmentSnapshotSchema = z.object({
-  source: z.literal('PRE_WORKOUT_PAIN_ADJUSTMENT'),
+  source: z.enum(['PRE_WORKOUT_PAIN_ADJUSTMENT', 'PRE_WORKOUT_PAIN_REPLACEMENT']),
   painAreas: z.array(z.enum([
     'CORE_ABS',
     'LOWER_BACK',
@@ -303,6 +303,14 @@ export const trainingAdjustmentSnapshotSchema = z.object({
     'FOREARMS', 'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'ABDUCTORS', 'CALVES',
     'BACK', 'LEGS', 'GLUTES', 'CORE', 'SHOULDERS', 'ARMS', 'FULL_BODY'
   ])).max(20),
+  replacedExercises: z.array(z.object({
+    originalPlanExerciseKey: z.string().trim().min(1).max(180),
+    originalExerciseName: z.string().trim().min(1).max(120),
+    replacementExerciseId: z.string().trim().min(1),
+    replacementSlug: z.string().trim().min(1).max(120),
+    replacementName: z.string().trim().min(1).max(120)
+  })).max(8).optional(),
+  unresolvedConflicts: z.array(z.string().trim().min(1).max(180)).max(8).optional(),
   adjustedAt: z.string().datetime(),
   reasonCodes: z.array(z.string().trim().min(1).max(80)).max(12)
 });

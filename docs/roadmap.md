@@ -113,3 +113,9 @@ Training check-ins are now split by timing and responsibility. The old always-vi
 Pre-workout checks run before starting a workout session. Pain or limitation inputs are mapped to planned exercise muscle groups, conflicts are detected server-side, and the user can adjust today's workout, rest today, or explicitly continue with caution.
 
 Post-workout check-ins appear only after Finish workout and store supportive feedback on the completed `WorkoutSession`. Future personalization can use this history, but this sprint does not add diagnosis, physical therapy guidance, analytics, payments, WHOOP, or new ExerciseLibrary content.
+
+## Pain-Aware Exercise Replacement Suggestions
+
+Adjust today's workout now proposes safer ExerciseLibrary-backed replacements before applying changes. Replacements avoid mapped pain/conflict muscles, respect equipment and level filters, and update only today's DailyPlan training section after user confirmation.
+
+If no safe replacements exist, the app keeps the current plan unchanged and offers Rest today or Continue with caution. Weekly Routine, Training Setup, nutrition, ExerciseLibrary, ExerciseMedia, and completed WorkoutSessions are unchanged.

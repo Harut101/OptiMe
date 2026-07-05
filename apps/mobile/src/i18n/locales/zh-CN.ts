@@ -177,7 +177,16 @@ export const zhCN = createLocaleResource({
     painAreaCalves: '小腿',
     painAreaKnees: '膝盖',
     painAreaWristsForearms: '手腕 / 前臂',
-    painAreaOther: '其他'
+    painAreaOther: '其他',
+    replacementSuggestions: '替代动作建议',
+    saferOptionsFound: '我们为今天找到了更安全的选择。',
+    partialReplacements: '我们为部分动作找到了替代方案。有些动作仍需谨慎。',
+    noSafeReplacements: '根据你当前的设置，没有找到足够安全的替代动作。今天休息可能更安全。',
+    applyReplacements: '应用替代动作',
+    originalExercise: '原动作',
+    suggestedReplacement: '建议替代动作',
+    replacementReason: '这会避开你今天标记的区域。',
+    someExercisesStillConflict: '有些动作仍会训练你标记的区域。'
   },
   training: {
     intro: '规划一周训练，让每次训练更现实，并在开始前安全调整。',

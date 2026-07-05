@@ -88,7 +88,9 @@ The backend maps selected body areas to planned exercise muscle groups and detec
 - Rest today.
 - Continue with caution.
 
-Adjust today's workout updates only the selected DailyPlan training section and preserves nutrition, Weekly Routine, and global training settings. The MVP removes conflicting planned exercises where a safe subset remains; it does not invent new exercises or call OpenAI from the workout execution flow.
+Adjust today's workout updates only the selected DailyPlan training section and preserves nutrition, Weekly Routine, and global training settings. The mobile flow first reviews deterministic replacement suggestions from ExerciseLibrary, then applies them only after user confirmation. It does not invent new exercises or call OpenAI from the workout execution flow.
+
+Replacement suggestions avoid the mapped pain/conflict muscle groups, respect available equipment and level filters, and avoid duplicate exercises already kept in the workout. If safe replacements are not available, the app should offer Rest today or Continue with caution instead of silently shortening the workout.
 
 Rest today routes through the existing one-off rest-day override path and does not mutate the usual Weekly Routine.
 

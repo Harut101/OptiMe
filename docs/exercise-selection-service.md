@@ -2,6 +2,20 @@
 
 `ExerciseSelectionService` is the deterministic boundary between user planning context and ExerciseLibrary-backed Daily Plans. It reads active, localized catalog records through `ExercisesService`; it never calls AI, saves plans, diagnoses conditions, or mutates preferences/catalog content.
 
+## Pain-Aware Replacement Use
+
+Pain-aware workout adjustment reuses the deterministic `ExerciseSelectionService` candidate pool. It does not create a second exercise-selection system.
+
+For pre-workout pain conflicts, replacement filtering is layered on top of normal selection:
+
+- remove candidates targeting mapped pain/conflict muscle groups;
+- keep equipment and training-level eligibility from the selection service;
+- avoid inactive exercises and duplicate exercises already kept in today's workout;
+- prefer candidates with similar protocol, category, or movement pattern when safe;
+- prefer recovery or mobility candidates when the original target is fully excluded by pain.
+
+Replacement suggestions are proposals only. The DailyPlan is updated only after the user applies replacements. Weekly Routine, Training Setup, ExerciseLibrary, ExerciseMedia, and completed WorkoutSessions are not mutated.
+
 ## Input and normalization
 
 The internal context contains only locale, local plan date, selected training protocol, optional `GYM`/`HOME` environment, concrete equipment, training level, target muscles, workout duration, limitations presence, pregnancy context, safe-mode/minor flags, boolean health signals, and `PlanQualityMode`. It excludes raw weight, heart rate, sleep, steps, limitations text, tokens, and identifying data.

@@ -8,6 +8,7 @@ import type {
   PreWorkoutReadinessStatus,
   PreWorkoutPreflightResponse,
   SupportedLocale,
+  TrainingReplacementProposalsResponse,
   TrainingCheckInStatus,
   WorkoutPainArea
 } from '@optime/shared-types';
@@ -19,7 +20,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
-import { adjustDailyPlanTrainingForPreWorkout } from '@/api/daily-plans';
+import {
+  applyDailyPlanTrainingReplacements,
+  getDailyPlanTrainingReplacementProposals
+} from '@/api/daily-plans';
 import { getWorkoutSessionByPlan, preflightWorkoutSession, startWorkoutSession } from '@/api/workout-sessions';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -64,6 +68,7 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
   });
   const [preWorkoutOpen, setPreWorkoutOpen] = useState(false);
   const [preWorkoutConflict, setPreWorkoutConflict] = useState<PreWorkoutPreflightResponse | null>(null);
+  const [replacementProposals, setReplacementProposals] = useState<TrainingReplacementProposalsResponse | null>(null);
   const [pendingPreWorkoutCheck, setPendingPreWorkoutCheck] = useState<PreWorkoutCheckRequest | null>(null);
   const startWorkout = useMutation({
     mutationFn: (preWorkoutCheck?: PreWorkoutCheckRequest) =>
@@ -72,6 +77,7 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
       queryClient.setQueryData(['workout-session-by-plan', planId], session);
       setPreWorkoutOpen(false);
       setPreWorkoutConflict(null);
+      setReplacementProposals(null);
       setPendingPreWorkoutCheck(null);
       router.push({ pathname: '/workout-session' as never, params: { sessionId: session.id } });
     }
@@ -88,14 +94,29 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
       startWorkout.mutate(preWorkoutCheck);
     }
   });
-  const adjustWorkout = useMutation({
+  const loadReplacementProposals = useMutation({
     mutationFn: (preWorkoutCheck: PreWorkoutCheckRequest) =>
-      adjustDailyPlanTrainingForPreWorkout(planId, { preWorkoutCheck }),
+      getDailyPlanTrainingReplacementProposals(planId, {
+        preWorkoutCheck,
+        conflictingExerciseKeys: preWorkoutConflict?.conflictingExercises.map((exercise) => exercise.planExerciseKey) ?? []
+      }),
+    onSuccess: (result) => {
+      setReplacementProposals(result);
+    }
+  });
+  const applyReplacements = useMutation({
+    mutationFn: (body: { preWorkoutCheck: PreWorkoutCheckRequest; proposals: TrainingReplacementProposalsResponse }) =>
+      applyDailyPlanTrainingReplacements(planId, {
+        preWorkoutCheck: body.preWorkoutCheck,
+        conflictingExerciseKeys: body.proposals.proposals.map((proposal) => proposal.originalPlanExerciseKey),
+        acceptedOriginalPlanExerciseKeys: body.proposals.proposals.map((proposal) => proposal.originalPlanExerciseKey)
+      }),
     onSuccess: async (updatedPlan) => {
       queryClient.setQueryData(['today-plan'], updatedPlan);
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
       await queryClient.invalidateQueries({ queryKey: ['exercise-summaries'] });
       setPreWorkoutConflict(null);
+      setReplacementProposals(null);
       setPendingPreWorkoutCheck(null);
       setPreWorkoutOpen(false);
     }
@@ -129,13 +150,15 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
           workoutSessionLoading={workoutSession.isLoading}
           preWorkoutOpen={preWorkoutOpen}
           workoutStartPending={startWorkout.isPending}
-          workoutStartFailed={startWorkout.isError || preflight.isError || adjustWorkout.isError}
-          preWorkoutSaving={startWorkout.isPending || preflight.isPending || adjustWorkout.isPending}
+          workoutStartFailed={startWorkout.isError || preflight.isError || loadReplacementProposals.isError || applyReplacements.isError}
+          preWorkoutSaving={startWorkout.isPending || preflight.isPending || loadReplacementProposals.isPending || applyReplacements.isPending}
           preWorkoutConflict={preWorkoutConflict}
+          replacementProposals={replacementProposals}
           onStartWorkout={() => setPreWorkoutOpen(true)}
           onCancelPreWorkout={() => {
             setPreWorkoutOpen(false);
             setPreWorkoutConflict(null);
+            setReplacementProposals(null);
             setPendingPreWorkoutCheck(null);
           }}
           onSubmitPreWorkout={(preWorkoutCheck) => {
@@ -146,7 +169,12 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
             startWorkout.mutate(preWorkoutCheck);
           }}
           onAdjustWorkout={() => {
-            if (pendingPreWorkoutCheck) adjustWorkout.mutate(pendingPreWorkoutCheck);
+            if (pendingPreWorkoutCheck) loadReplacementProposals.mutate(pendingPreWorkoutCheck);
+          }}
+          onApplyReplacements={() => {
+            if (pendingPreWorkoutCheck && replacementProposals) {
+              applyReplacements.mutate({ preWorkoutCheck: pendingPreWorkoutCheck, proposals: replacementProposals });
+            }
           }}
           onRestToday={() => router.push('/training-overrides/day' as never)}
           onContinueWithCaution={() => {
@@ -214,10 +242,12 @@ function TrainingContent(props: PlanTabbedContentProps & {
   workoutStartFailed: boolean;
   preWorkoutSaving: boolean;
   preWorkoutConflict: PreWorkoutPreflightResponse | null;
+  replacementProposals: TrainingReplacementProposalsResponse | null;
   onStartWorkout: () => void;
   onCancelPreWorkout: () => void;
   onSubmitPreWorkout: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
   onAdjustWorkout: () => void;
+  onApplyReplacements: () => void;
   onRestToday: () => void;
   onContinueWithCaution: () => void;
   onOpenWorkout: (sessionId: string) => void;
@@ -271,9 +301,11 @@ function TrainingContent(props: PlanTabbedContentProps & {
           t={t}
           saving={props.preWorkoutSaving}
           conflict={props.preWorkoutConflict}
+          replacementProposals={props.replacementProposals}
           onCancel={props.onCancelPreWorkout}
           onSubmit={props.onSubmitPreWorkout}
           onAdjustWorkout={props.onAdjustWorkout}
+          onApplyReplacements={props.onApplyReplacements}
           onRestToday={props.onRestToday}
           onContinueWithCaution={props.onContinueWithCaution}
         />
@@ -310,18 +342,22 @@ function PreWorkoutCheckCard({
   t,
   saving,
   conflict,
+  replacementProposals,
   onCancel,
   onSubmit,
   onAdjustWorkout,
+  onApplyReplacements,
   onRestToday,
   onContinueWithCaution
 }: {
   t: TFunction;
   saving: boolean;
   conflict: PreWorkoutPreflightResponse | null;
+  replacementProposals: TrainingReplacementProposalsResponse | null;
   onCancel: () => void;
   onSubmit: (preWorkoutCheck: PreWorkoutCheckRequest) => void;
   onAdjustWorkout: () => void;
+  onApplyReplacements: () => void;
   onRestToday: () => void;
   onContinueWithCaution: () => void;
 }) {
@@ -352,24 +388,38 @@ function PreWorkoutCheckCard({
           {conflict.conflictingExercises.map((exercise) => (
             <Text key={exercise.planExerciseKey} variant="muted">- {exercise.name}</Text>
           ))}
+          {replacementProposals ? (
+            <ReplacementProposalReview
+              t={t}
+              proposals={replacementProposals}
+              saving={saving}
+              onApply={onApplyReplacements}
+              onRestToday={onRestToday}
+              onContinueWithCaution={onContinueWithCaution}
+            />
+          ) : null}
           <View style={styles.preWorkoutActions}>
-            <Button
-              title={saving ? t('workout.saving') : t('workout.adjustTodaysWorkout')}
-              disabled={saving}
-              onPress={onAdjustWorkout}
-            />
-            <Button
-              title={t('workout.restToday')}
-              variant="secondary"
-              disabled={saving}
-              onPress={onRestToday}
-            />
-            <Button
-              title={t('workout.continueWithCaution')}
-              variant="secondary"
-              disabled={saving}
-              onPress={onContinueWithCaution}
-            />
+            {!replacementProposals ? (
+              <>
+                <Button
+                  title={saving ? t('workout.saving') : t('workout.adjustTodaysWorkout')}
+                  disabled={saving}
+                  onPress={onAdjustWorkout}
+                />
+                <Button
+                  title={t('workout.restToday')}
+                  variant="secondary"
+                  disabled={saving}
+                  onPress={onRestToday}
+                />
+                <Button
+                  title={t('workout.continueWithCaution')}
+                  variant="secondary"
+                  disabled={saving}
+                  onPress={onContinueWithCaution}
+                />
+              </>
+            ) : null}
             <Button title={t('common.cancel')} variant="secondary" disabled={saving} onPress={onCancel} />
           </View>
         </>
@@ -429,6 +479,72 @@ function PreWorkoutCheckCard({
         </>
       )}
     </Card>
+  );
+}
+
+function ReplacementProposalReview({
+  t,
+  proposals,
+  saving,
+  onApply,
+  onRestToday,
+  onContinueWithCaution
+}: {
+  t: TFunction;
+  proposals: TrainingReplacementProposalsResponse;
+  saving: boolean;
+  onApply: () => void;
+  onRestToday: () => void;
+  onContinueWithCaution: () => void;
+}) {
+  const hasProposals = proposals.proposals.length > 0;
+  const isPartial = proposals.status === 'PARTIAL_REPLACEMENTS_AVAILABLE';
+  const isEmpty = proposals.status === 'NO_SAFE_REPLACEMENTS';
+
+  return (
+    <View style={styles.replacementReview}>
+      <Text variant="label">{t('workout.replacementSuggestions')}</Text>
+      <Text variant="muted">
+        {isEmpty
+          ? t('workout.noSafeReplacements')
+          : isPartial
+            ? t('workout.partialReplacements')
+            : t('workout.saferOptionsFound')}
+      </Text>
+      {proposals.proposals.map((proposal) => (
+        <View key={proposal.originalPlanExerciseKey} style={styles.replacementRow}>
+          <Text variant="muted">{t('workout.originalExercise')}</Text>
+          <Text variant="body">{proposal.originalName}</Text>
+          <Text variant="muted">→ {t('workout.suggestedReplacement')}</Text>
+          <Text variant="body">{proposal.replacementName}</Text>
+          <Text variant="muted">{t('workout.replacementReason')}</Text>
+        </View>
+      ))}
+      {proposals.unresolvedConflicts.length > 0 ? (
+        <Text variant="muted">{t('workout.someExercisesStillConflict')}</Text>
+      ) : null}
+      <View style={styles.preWorkoutActions}>
+        {hasProposals ? (
+          <Button
+            title={saving ? t('workout.saving') : t('workout.applyReplacements')}
+            disabled={saving}
+            onPress={onApply}
+          />
+        ) : null}
+        <Button
+          title={t('workout.restToday')}
+          variant={hasProposals ? 'secondary' : 'primary'}
+          disabled={saving}
+          onPress={onRestToday}
+        />
+        <Button
+          title={t('workout.continueWithCaution')}
+          variant="secondary"
+          disabled={saving}
+          onPress={onContinueWithCaution}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -547,6 +663,8 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
   preWorkoutActions: { gap: 8 },
+  replacementReview: { gap: 10, paddingTop: 8 },
+  replacementRow: { gap: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   mediaError: { gap: 8 },
   errorText: { color: colors.danger, fontWeight: '700' }
 });

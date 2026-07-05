@@ -17,6 +17,7 @@ import { TrainingScheduleModule } from '../training-schedule/training-schedule.m
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlansController } from './daily-plans.controller';
 import { DailyPlansService } from './daily-plans.service';
+import { PainAwareExerciseReplacementService } from './pain-aware-exercise-replacement.service';
 
 @Module({
   imports: [
@@ -37,7 +38,7 @@ import { DailyPlansService } from './daily-plans.service';
     UsageModule
   ],
   controllers: [DailyPlansController],
-  providers: [DailyPlansService],
+  providers: [DailyPlansService, PainAwareExerciseReplacementService],
   exports: [DailyPlansService]
 })
 export class DailyPlansModule {}

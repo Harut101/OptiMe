@@ -6,7 +6,10 @@ import type {
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
   AdjustWorkoutForPreWorkoutRequest,
-  SubmitDailyPlanFeedbackRequest
+  ApplyTrainingReplacementsRequest,
+  SubmitDailyPlanFeedbackRequest,
+  TrainingReplacementProposalsRequest,
+  TrainingReplacementProposalsResponse
 } from '@/types/api';
 
 interface RegenerateFoodPlanRequest {
@@ -88,6 +91,26 @@ export function adjustDailyPlanTrainingForPreWorkout(
   body: AdjustWorkoutForPreWorkoutRequest
 ) {
   return apiRequest<DailyPlanResponse>(`/daily-plans/${dailyPlanId}/training/adjust-for-pre-workout`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function getDailyPlanTrainingReplacementProposals(
+  dailyPlanId: string,
+  body: TrainingReplacementProposalsRequest
+) {
+  return apiRequest<TrainingReplacementProposalsResponse>(`/daily-plans/${dailyPlanId}/training/replacement-proposals`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export function applyDailyPlanTrainingReplacements(
+  dailyPlanId: string,
+  body: ApplyTrainingReplacementsRequest
+) {
+  return apiRequest<DailyPlanResponse>(`/daily-plans/${dailyPlanId}/training/apply-replacements`, {
     method: 'POST',
     body: JSON.stringify(body)
   });

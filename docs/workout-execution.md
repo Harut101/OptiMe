@@ -129,6 +129,29 @@ The `preWorkoutCheck` field is optional for backward compatibility.
 
 `PATCH /v1/workout-sessions/:sessionId/post-workout-check-in` is allowed only after the session is completed.
 
+## Pain-Aware Replacement Suggestions
+
+Adjust today's workout is now a proposal-and-confirm flow.
+
+When pre-workout pain or limitation overlaps planned exercises:
+
+1. Mobile requests replacement proposals.
+2. Backend selects replacement candidates from ExerciseLibrary through the existing deterministic selection rules.
+3. Mobile shows the original exercise and suggested replacement.
+4. The user applies replacements, rests today, or continues with caution.
+
+Replacement candidates must:
+
+- avoid the mapped pain/conflict muscle groups;
+- respect available equipment;
+- respect level and safety filters;
+- avoid duplicate exercises in the current workout;
+- come from existing ExerciseLibrary records.
+
+The apply endpoint revalidates proposals before writing and updates only today's DailyPlan training section. It preserves nutrition, Weekly Routine, Training Setup, ExerciseLibrary, ExerciseMedia, and historical WorkoutSessions.
+
+If no safe replacement is available, mobile shows a safe message and offers Rest today or Continue with caution. The app must not silently invent an exercise or make the workout look complete when safe candidates are insufficient.
+
 ## Safety And Privacy
 
 The workout route shows a supportive safety reminder: stop if pain, dizziness, or unusual discomfort appears. Safety is not tier-gated.

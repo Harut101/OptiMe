@@ -177,7 +177,16 @@ export const frFR = createLocaleResource({
     painAreaCalves: 'Mollets',
     painAreaKnees: 'Genoux',
     painAreaWristsForearms: 'Poignets / avant-bras',
-    painAreaOther: 'Autre'
+    painAreaOther: 'Autre',
+    replacementSuggestions: 'Suggestions de remplacement',
+    saferOptionsFound: 'Nous avons trouvé des options plus sûres pour aujourd’hui.',
+    partialReplacements: 'Nous avons trouvé des remplacements pour certains exercices. Certains demandent encore de la prudence.',
+    noSafeReplacements: 'Nous n’avons pas trouvé assez d’alternatives sûres avec votre configuration actuelle. Se reposer aujourd’hui peut être plus sûr.',
+    applyReplacements: 'Appliquer les remplacements',
+    originalExercise: 'Exercice initial',
+    suggestedReplacement: 'Remplacement suggéré',
+    replacementReason: 'Cela évite la zone indiquée aujourd’hui.',
+    someExercisesStillConflict: 'Certains exercices ciblent encore la zone indiquée.'
   },
   training: {
     intro: 'Planifiez votre semaine, gardez chaque séance réaliste et ajustez prudemment avant de commencer.',

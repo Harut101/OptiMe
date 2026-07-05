@@ -177,7 +177,16 @@ export const ruRU = createLocaleResource({
     painAreaCalves: 'Икры',
     painAreaKnees: 'Колени',
     painAreaWristsForearms: 'Запястья / предплечья',
-    painAreaOther: 'Другое'
+    painAreaOther: 'Другое',
+    replacementSuggestions: 'Предложения замены',
+    saferOptionsFound: 'Мы нашли более безопасные варианты на сегодня.',
+    partialReplacements: 'Мы нашли замены для части упражнений. Некоторые всё ещё требуют осторожности.',
+    noSafeReplacements: 'Не удалось найти достаточно безопасных альтернатив с текущим набором оборудования. Сегодня отдых может быть безопаснее.',
+    applyReplacements: 'Применить замены',
+    originalExercise: 'Исходное упражнение',
+    suggestedReplacement: 'Предложенная замена',
+    replacementReason: 'Этот вариант избегает отмеченной сегодня зоны.',
+    someExercisesStillConflict: 'Некоторые упражнения всё ещё задействуют отмеченную зону.'
   },
   training: {
     intro: 'Планируйте неделю, держите тренировки реалистичными и проверяйте самочувствие перед стартом.',

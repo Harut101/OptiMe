@@ -61,7 +61,9 @@ The pre-workout pain conflict check runs outside the AI Training Load Agent. It 
 
 The agent can explain controlled pacing and future recovery-aware guidance, but it cannot approve an unsafe overlap or remove the acknowledgement requirement.
 
-When a user explicitly adjusts today's workout, the DailyPlan can store `trainingAdjustmentSnapshot` metadata. This is a local deterministic plan adjustment, not an AI agent mutation. Future plan generation may use completed workout feedback and saved check-ins as context, but this sprint does not regenerate future plans automatically from post-workout feedback.
+When a user explicitly adjusts today's workout, the DailyPlan can store `trainingAdjustmentSnapshot` metadata. This is a local deterministic plan adjustment, not an AI agent mutation. Replacement selection is handled by ExerciseSelectionService-backed deterministic filtering, not by the AI Training Load Agent.
+
+The agent may see replacement metadata in the plan and produce calmer guidance later, but it must not select replacements, invent exercises, or override pain conflict rules. Future plan generation may use completed workout feedback and saved check-ins as context, but this sprint does not regenerate future plans automatically from post-workout feedback.
 
 ## Retry And Fallback
 

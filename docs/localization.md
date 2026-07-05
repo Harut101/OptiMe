@@ -56,6 +56,8 @@ The pre-workout check also lives in `workout` and must be localized in all four 
 
 Pain-aware workout adaptation strings also live under `workout` in all supported mobile locales. Required concepts include pain/body-area labels, conflict warning, Adjust today's workout, Rest today, Continue with caution, Stop if pain increases, Post-workout check-in, workout feeling options, Skip check-in, Save feedback, and completed feedback. These strings should be complete localized sentences, not English fragments assembled in UI code.
 
+Pain-aware replacement suggestion strings also live under `workout`: Replacement suggestions, safer options for today, partial replacements, no safe replacements, Apply replacements, Original exercise, Suggested replacement, replacement reason, and unresolved-conflict copy. Keep these as complete strings in `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
+
 The Generate Plan training-day prompt lives under `today`, recurring routine helper copy lives under `schedule`, and one-off override copy lives under `trainingOverrides`. Required concepts include training today, train today only, rest today only, skip today's workout, move workout, today only, usual Weekly Routine, return to Generate Plan, and save failure. Add complete strings for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`; do not concatenate English fragments.
 
 Simplified onboarding copy lives under `onboarding` in all four supported locales. The optional training bridge uses complete localized strings for training enabled, training optional, Set up weekly routine, Skip for now, and configure training anytime. Do not concatenate these labels manually.

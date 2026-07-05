@@ -612,7 +612,7 @@ export const trainingLoadAgentSnapshotSchema = z.object({
 });
 
 export const trainingAdjustmentSnapshotSchema = z.object({
-  source: z.literal('PRE_WORKOUT_PAIN_ADJUSTMENT'),
+  source: z.enum(['PRE_WORKOUT_PAIN_ADJUSTMENT', 'PRE_WORKOUT_PAIN_REPLACEMENT']),
   painAreas: z.array(z.enum([
     'CORE_ABS',
     'LOWER_BACK',
@@ -630,6 +630,14 @@ export const trainingAdjustmentSnapshotSchema = z.object({
     'OTHER'
   ])).max(12),
   avoidedMuscleGroups: z.array(targetMuscleGroupSchema).max(20),
+  replacedExercises: z.array(z.object({
+    originalPlanExerciseKey: z.string().trim().min(1).max(180),
+    originalExerciseName: z.string().trim().min(1).max(120),
+    replacementExerciseId: z.string().trim().min(1),
+    replacementSlug: z.string().trim().min(1).max(120),
+    replacementName: z.string().trim().min(1).max(120)
+  })).max(8).optional(),
+  unresolvedConflicts: z.array(z.string().trim().min(1).max(180)).max(8).optional(),
   adjustedAt: z.string().datetime(),
   reasonCodes: z.array(z.string().trim().min(1).max(80)).max(12)
 });
@@ -679,6 +687,8 @@ export const dailyPlanContextNotesSchema = z.object({
 });
 
 const dailyPlanExerciseSchema = z.object({
+  exerciseId: z.string().trim().min(1).optional(),
+  slug: z.string().trim().min(1).max(120).optional(),
   name: z.string().trim().min(1).max(120),
   targetMuscles: z.array(z.string().trim().min(1).max(60)).max(5),
   equipment: z.array(z.string().trim().min(1).max(60)).max(5),
@@ -687,7 +697,20 @@ const dailyPlanExerciseSchema = z.object({
   rest: z.string().trim().max(40).optional(),
   duration: z.string().trim().max(60).optional(),
   intensityCue: z.string().trim().max(160).optional(),
-  safetyNotes: z.string().trim().max(220).optional()
+  safetyNotes: z.string().trim().max(220).optional(),
+  notes: z.string().trim().max(220).optional(),
+  exerciseSnapshot: z.object({
+    resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN']),
+    category: z.enum(['STRENGTH', 'MOBILITY', 'CARDIO', 'RECOVERY']),
+    movementPattern: z.enum(['SQUAT', 'HINGE', 'HORIZONTAL_PUSH', 'VERTICAL_PUSH', 'HORIZONTAL_PULL', 'VERTICAL_PULL', 'LUNGE', 'CARRY', 'ROTATION', 'ANTI_ROTATION', 'CORE_FLEXION', 'CORE_STABILITY', 'ISOLATION', 'MOBILITY', 'CARDIO', 'RECOVERY']),
+    equipment: z.array(exerciseEquipmentSchema),
+    targetMuscles: z.array(z.string()),
+    secondaryMuscles: z.array(z.string()),
+    instructions: z.array(z.string()),
+    coachingCues: z.array(z.string()),
+    safetyNotes: z.array(z.string()),
+    exerciseUpdatedAt: z.string().datetime()
+  }).optional()
 });
 
 export const dailyPlanJsonSchema = z.object({

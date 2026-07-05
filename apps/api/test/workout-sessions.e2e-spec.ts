@@ -159,45 +159,93 @@ describe('Workout sessions', () => {
     expect(fetched.body.preWorkoutCheck).toEqual(response.body.preWorkoutCheck);
   });
 
-  it('adjusts today workout for pre-workout pain without mutating nutrition or weekly routine', async () => {
+  it('proposes and applies safe exercise replacements without mutating nutrition or weekly routine', async () => {
     const user = await registerTestUser(ctx.app, 'workout-adjust-pain@example.com');
     const plan = await createDailyPlan(user.user.id);
     const before = await ctx.prisma.dailyPlan.findUniqueOrThrow({ where: { id: plan.id } });
     const beforeJson = before.planJson as Prisma.JsonObject;
     const beforeNutrition = beforeJson.nutrition;
 
-    const adjusted = await request(ctx.app.getHttpServer())
-      .post(`/v1/daily-plans/${plan.id}/training/adjust-for-pre-workout`)
+    const preflight = await request(ctx.app.getHttpServer())
+      .post('/v1/workout-sessions/preflight-check')
       .set(authHeader(user.accessToken))
       .send({
+        dailyPlanId: plan.id,
         preWorkoutCheck: {
           readinessStatus: 'PAIN_OR_LIMITATION',
           painAreas: ['CORE_ABS']
         }
       })
       .expect(201);
+    const conflictingExerciseKeys = preflight.body.conflictingExercises.map(
+      (exercise: { planExerciseKey: string }) => exercise.planExerciseKey
+    );
 
-    expect(adjusted.body.plan.training.exercises).toHaveLength(1);
-    expect(adjusted.body.plan.training.exercises[0].name).toBe('Bodyweight squat');
+    const proposals = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/training/replacement-proposals`)
+      .set(authHeader(user.accessToken))
+      .send({
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['CORE_ABS']
+        },
+        conflictingExerciseKeys
+      })
+      .expect(201);
+
+    expect(['REPLACEMENTS_AVAILABLE', 'PARTIAL_REPLACEMENTS_AVAILABLE']).toContain(proposals.body.status);
+    expect(proposals.body.proposals).toHaveLength(1);
+    expect(proposals.body.proposals[0]).toMatchObject({
+      originalName: 'Plank hold',
+      reasonCodes: expect.arrayContaining(['AVOIDS_MARKED_AREA']),
+      avoidedMuscleGroups: expect.arrayContaining(['ABS', 'CORE'])
+    });
+    expect(proposals.body.proposals[0].targetMuscles).not.toEqual(expect.arrayContaining(['ABS', 'CORE', 'OBLIQUES']));
+
+    const adjusted = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/training/apply-replacements`)
+      .set(authHeader(user.accessToken))
+      .send({
+        preWorkoutCheck: {
+          readinessStatus: 'PAIN_OR_LIMITATION',
+          painAreas: ['CORE_ABS']
+        },
+        conflictingExerciseKeys,
+        acceptedOriginalPlanExerciseKeys: proposals.body.proposals.map(
+          (proposal: { originalPlanExerciseKey: string }) => proposal.originalPlanExerciseKey
+        )
+      })
+      .expect(201);
+
+    expect(adjusted.body.plan.training.exercises).toHaveLength(2);
+    expect(adjusted.body.plan.training.exercises.map((exercise: { name: string }) => exercise.name)).toContain('Bodyweight squat');
+    expect(adjusted.body.plan.training.exercises.map((exercise: { name: string }) => exercise.name)).not.toContain('Plank hold');
     expect(adjusted.body.plan.nutrition).toEqual(beforeNutrition);
     expect(adjusted.body.plan.trainingAdjustmentSnapshot).toMatchObject({
-      source: 'PRE_WORKOUT_PAIN_ADJUSTMENT',
+      source: 'PRE_WORKOUT_PAIN_REPLACEMENT',
       painAreas: ['CORE_ABS'],
-      avoidedMuscleGroups: expect.arrayContaining(['ABS', 'CORE'])
+      avoidedMuscleGroups: expect.arrayContaining(['ABS', 'CORE']),
+      replacedExercises: [
+        expect.objectContaining({
+          originalExerciseName: 'Plank hold',
+          replacementExerciseId: proposals.body.proposals[0].replacementExerciseId
+        })
+      ]
     });
 
     const session = await startSession(user.accessToken, plan.id);
     await request(ctx.app.getHttpServer())
-      .post(`/v1/daily-plans/${plan.id}/training/adjust-for-pre-workout`)
+      .post(`/v1/daily-plans/${plan.id}/training/replacement-proposals`)
       .set(authHeader(user.accessToken))
       .send({
         preWorkoutCheck: {
           readinessStatus: 'PAIN_OR_LIMITATION',
           painAreas: ['QUADRICEPS']
-        }
+        },
+        conflictingExerciseKeys: []
       })
       .expect(400);
-    expect(session.plannedExerciseCount).toBe(1);
+    expect(session.plannedExerciseCount).toBe(2);
   });
 
   it('stores post-workout feedback only after completion', async () => {

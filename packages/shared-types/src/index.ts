@@ -1020,9 +1020,17 @@ export interface DailyPlanJson {
   };
   trainingLoadAgentSnapshot?: TrainingLoadAgentSnapshot;
   trainingAdjustmentSnapshot?: {
-    source: 'PRE_WORKOUT_PAIN_ADJUSTMENT';
+    source: 'PRE_WORKOUT_PAIN_ADJUSTMENT' | 'PRE_WORKOUT_PAIN_REPLACEMENT';
     painAreas: WorkoutPainArea[];
     avoidedMuscleGroups: TargetMuscleGroup[];
+    replacedExercises?: Array<{
+      originalPlanExerciseKey: string;
+      originalExerciseName: string;
+      replacementExerciseId: string;
+      replacementSlug: string;
+      replacementName: string;
+    }>;
+    unresolvedConflicts?: string[];
     adjustedAt: string;
     reasonCodes: string[];
   };
@@ -1262,6 +1270,51 @@ export interface PreWorkoutPreflightResponse {
 
 export interface AdjustWorkoutForPreWorkoutRequest {
   preWorkoutCheck: PreWorkoutCheckRequest;
+}
+
+export type TrainingReplacementProposalStatus =
+  | 'REPLACEMENTS_AVAILABLE'
+  | 'PARTIAL_REPLACEMENTS_AVAILABLE'
+  | 'NO_SAFE_REPLACEMENTS';
+
+export interface TrainingReplacementProposal {
+  originalPlanExerciseKey: string;
+  originalExerciseId: string | null;
+  originalSlug: string | null;
+  originalName: string;
+  replacementExerciseId: string;
+  replacementSlug: string;
+  replacementName: string;
+  reasonCodes: string[];
+  avoidedMuscleGroups: TargetMuscleGroup[];
+  targetMuscles: TargetMuscleGroup[];
+  equipment: ExerciseEquipment[];
+  prescription: {
+    sets: number | null;
+    reps: string | null;
+    durationSeconds: number | null;
+    restSeconds: number | null;
+  };
+}
+
+export interface TrainingReplacementProposalsRequest {
+  preWorkoutCheck: PreWorkoutCheckRequest;
+  conflictingExerciseKeys: string[];
+}
+
+export interface TrainingReplacementProposalsResponse {
+  status: TrainingReplacementProposalStatus;
+  painAreas: WorkoutPainArea[];
+  avoidedMuscleGroups: TargetMuscleGroup[];
+  proposals: TrainingReplacementProposal[];
+  unresolvedConflicts: Array<{
+    planExerciseKey: string;
+    reasonCodes: string[];
+  }>;
+}
+
+export interface ApplyTrainingReplacementsRequest extends TrainingReplacementProposalsRequest {
+  acceptedOriginalPlanExerciseKeys: string[];
 }
 
 export interface PostWorkoutCheckInRequest {

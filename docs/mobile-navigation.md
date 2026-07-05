@@ -33,6 +33,8 @@ Starting a workout from Plan Details Training shows a skippable pre-workout chec
 
 If the pre-workout check reports pain or limitation that overlaps planned exercises, Plan Details stays in the start flow and shows Adjust today, Rest today, and Continue with caution. Adjust today updates only today's DailyPlan training section. Rest today opens the existing today-only rest override path. Continue with caution requires acknowledgement before opening Workout Session.
 
+Adjust today now opens a replacement review before mutating the plan. Users see original exercises, suggested safer replacements, and the reason that the replacement avoids the marked area. If no safe replacements are available, the same card offers Rest today and Continue with caution without changing the plan.
+
 Post-workout check-in appears only after Finish workout on the Workout Session route. It is not shown on Today, Training, or Plan Details before completion.
 
 Health Connections are available from Profile / Connections. The Health data route now supports Apple Health connect/sync on iOS development or production builds, while Expo Go and non-iOS platforms show safe unavailable states. Connected Apple Health shows a focused connected state, friendly last-sync formatting, and Apple Health-specific wearable metrics. Health Connect and WHOOP remain represented as future provider cards. Development mock snapshots remain available in dev builds.

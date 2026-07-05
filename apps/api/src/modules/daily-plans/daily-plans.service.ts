@@ -79,7 +79,17 @@ import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
 import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
+import {
+  ApplyTrainingReplacementsDto,
+  TrainingReplacementProposalsDto
+} from './dto/training-replacement-proposals.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
+import {
+  getExerciseMuscles,
+  getPlanExerciseKey,
+  PainAwareExerciseReplacementService,
+  TrainingReplacementProposalResult
+} from './pain-aware-exercise-replacement.service';
 
 interface DailyPlanValidationResult {
   status: PlanStatus;
@@ -107,6 +117,7 @@ export class DailyPlansService {
     private readonly protocolSelector: ProtocolSelectorService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
+    private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
@@ -583,6 +594,24 @@ export class DailyPlansService {
   }
 
   async adjustTrainingForPreWorkout(userId: string, dailyPlanId: string, dto: AdjustTrainingForPreWorkoutDto) {
+    const proposalResult = await this.buildTrainingReplacementProposalResult(userId, dailyPlanId, {
+      preWorkoutCheck: {
+        ...dto.preWorkoutCheck,
+        painAreas: dto.preWorkoutCheck.painAreas ?? []
+      },
+      conflictingExerciseKeys: []
+    });
+    if (proposalResult.proposals.length > 0) {
+      return this.applyTrainingReplacements(userId, dailyPlanId, {
+        preWorkoutCheck: {
+          ...dto.preWorkoutCheck,
+          painAreas: dto.preWorkoutCheck.painAreas ?? []
+        },
+        conflictingExerciseKeys: proposalResult.proposals.map((proposal) => proposal.originalPlanExerciseKey),
+        acceptedOriginalPlanExerciseKeys: proposalResult.proposals.map((proposal) => proposal.originalPlanExerciseKey)
+      });
+    }
+
     const [plan, existingSession] = await Promise.all([
       this.getOwnedPlanOrThrow(userId, dailyPlanId),
       this.prisma.workoutSession.findUnique({
@@ -661,6 +690,177 @@ export class DailyPlansService {
     );
 
     return this.toResponse(updated);
+  }
+
+  async getTrainingReplacementProposals(
+    userId: string,
+    dailyPlanId: string,
+    dto: TrainingReplacementProposalsDto
+  ) {
+    const proposalResult = await this.buildTrainingReplacementProposalResult(userId, dailyPlanId, dto);
+    return this.toTrainingReplacementProposalResponse(proposalResult);
+  }
+
+  async applyTrainingReplacements(
+    userId: string,
+    dailyPlanId: string,
+    dto: ApplyTrainingReplacementsDto
+  ) {
+    const { plan, currentPlan, proposalResult } = await this.buildTrainingReplacementContext(
+      userId,
+      dailyPlanId,
+      dto
+    );
+    if (proposalResult.proposals.length === 0) {
+      throw new BadRequestException('Could not find safe replacement exercises for today.');
+    }
+    const accepted = new Set(dto.acceptedOriginalPlanExerciseKeys ?? []);
+    if (accepted.size === 0) {
+      throw new BadRequestException('Choose at least one replacement to apply.');
+    }
+    const proposalKeys = new Set(proposalResult.proposals.map((proposal) => proposal.originalPlanExerciseKey));
+    const invalidAccepted = [...accepted].filter((key) => !proposalKeys.has(key));
+    if (invalidAccepted.length > 0) {
+      throw new BadRequestException('One or more replacement selections are no longer available.');
+    }
+
+    const nextPlan = this.painAwareExerciseReplacement.applyProposals({
+      dailyPlanId,
+      planJson: currentPlan,
+      proposalResult,
+      acceptedOriginalPlanExerciseKeys: [...accepted]
+    });
+    const parsed = dailyPlanJsonSchema.safeParse(nextPlan);
+    if (!parsed.success) {
+      throw new BadRequestException('Could not safely apply todayâ€™s workout replacements. Your current plan was kept.');
+    }
+    const updated = await this.prisma.dailyPlan.update({
+      where: { id: plan.id },
+      data: { planJson: parsed.data as Prisma.JsonObject }
+    });
+    this.logger.log(
+      `daily plan training replacements applied; planId=${dailyPlanId}; replacements=${accepted.size}; unresolved=${proposalResult.unresolvedConflicts.length}`
+    );
+    return this.toResponse(updated);
+  }
+
+  private async buildTrainingReplacementProposalResult(
+    userId: string,
+    dailyPlanId: string,
+    dto: TrainingReplacementProposalsDto
+  ): Promise<TrainingReplacementProposalResult> {
+    const { proposalResult } = await this.buildTrainingReplacementContext(userId, dailyPlanId, dto);
+    return proposalResult;
+  }
+
+  private async buildTrainingReplacementContext(
+    userId: string,
+    dailyPlanId: string,
+    dto: TrainingReplacementProposalsDto
+  ) {
+    const [user, plan, existingSession] = await Promise.all([
+      this.getPlanningUser(userId),
+      this.getOwnedPlanOrThrow(userId, dailyPlanId),
+      this.prisma.workoutSession.findUnique({
+        where: {
+          userId_dailyPlanId: {
+            userId,
+            dailyPlanId
+          }
+        },
+        select: { id: true }
+      })
+    ]);
+
+    if (existingSession) {
+      throw new BadRequestException('Workout already started. Todayâ€™s plan was not changed.');
+    }
+
+    const painAreas = normalizePainAreas(dto.preWorkoutCheck.painAreas ?? []);
+    const avoidedMuscleGroups = mapPainAreasToMuscles(painAreas);
+    if (dto.preWorkoutCheck.readinessStatus !== 'PAIN_OR_LIMITATION' || avoidedMuscleGroups.length === 0) {
+      throw new BadRequestException('Choose a pain or limitation area before adjusting todayâ€™s workout.');
+    }
+
+    const currentPlan = normalizeDailyPlanJson({
+      planJson: plan.planJson,
+      planLocalDate: plan.planLocalDate,
+      planTimezone: plan.planTimezone,
+      readinessLevel: plan.readinessLevel
+    });
+    const exercises = currentPlan.training.exercises ?? [];
+    if (exercises.length === 0) {
+      throw new BadRequestException('Workout is unavailable for this plan.');
+    }
+
+    const avoided = new Set<TargetMuscleGroup>(avoidedMuscleGroups);
+    const allKeys = new Set(exercises.map((exercise, index) => getPlanExerciseKey(dailyPlanId, exercise, index)));
+    const requestedKeys = [...new Set(dto.conflictingExerciseKeys ?? [])];
+    const invalidKeys = requestedKeys.filter((key) => !allKeys.has(key));
+    if (invalidKeys.length > 0) {
+      throw new BadRequestException('One or more exercise keys are not part of this plan.');
+    }
+    const derivedConflictKeys = exercises
+      .map((exercise, index) => ({
+        key: getPlanExerciseKey(dailyPlanId, exercise, index),
+        muscles: getExerciseMuscles(exercise)
+      }))
+      .filter((entry) => entry.muscles.some((muscle) => avoided.has(muscle)))
+      .map((entry) => entry.key);
+    const conflictingExerciseKeys = requestedKeys.length > 0 ? requestedKeys : derivedConflictKeys;
+
+    if (conflictingExerciseKeys.length === 0) {
+      throw new BadRequestException('No conflicting planned exercises were found for the selected area.');
+    }
+
+    const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
+    const appMode = this.resolveAppMode(user);
+    const resolvedTrainingDay = currentPlan.trainingScheduleSnapshot
+      ?? await this.trainingScheduleResolver.resolveForUser({
+        userId,
+        planLocalDate: plan.planLocalDate,
+        trainingPreference: user.trainingPreference,
+        legacyScheduleItems: user.schedules,
+        noTrainingPlanned: appMode !== GoalImpactMode.NUTRITION_AND_TRAINING || user.noTrainingPlanned
+      });
+    const personalizationContext = await this.buildPersonalizationContext(
+      user,
+      planQualityMode,
+      plan.planLocalDate,
+      resolvedTrainingDay,
+      appMode
+    );
+    const selectionContext = this.buildExerciseSelectionContext(
+      user,
+      plan.planLocalDate,
+      planQualityMode,
+      personalizationContext,
+      resolvedTrainingDay
+    );
+    const selection = await this.exerciseSelectionService.selectCandidates({
+      ...selectionContext,
+      limitationsPresent: true
+    });
+    const proposalResult = this.painAwareExerciseReplacement.buildProposals({
+      dailyPlanId,
+      exercises,
+      conflictingExerciseKeys,
+      painAreas,
+      avoidedMuscleGroups,
+      selection
+    });
+
+    return { user, plan, currentPlan, proposalResult };
+  }
+
+  private toTrainingReplacementProposalResponse(result: TrainingReplacementProposalResult) {
+    return {
+      status: result.status,
+      painAreas: result.painAreas,
+      avoidedMuscleGroups: result.avoidedMuscleGroups,
+      proposals: result.proposals.map(({ replacementExercise: _replacementExercise, ...proposal }) => proposal),
+      unresolvedConflicts: result.unresolvedConflicts
+    };
   }
 
   async submitFeedback(userId: string, dailyPlanId: string, dto: SubmitDailyPlanFeedbackDto) {

@@ -235,6 +235,16 @@ If overlap exists, the app should recommend Adjust today's workout or Rest today
 
 Adjust today's workout must not mutate Weekly Routine, global Training Setup, or nutrition. It can only update the selected DailyPlan training section after explicit user action.
 
+Pain-aware exercise replacements must:
+
+- come from ExerciseLibrary;
+- avoid mapped pain/conflict muscle groups in target and secondary muscles;
+- respect available equipment and training-level eligibility;
+- avoid duplicate exercises already kept in today's workout;
+- be reviewed by the user before apply.
+
+If safe replacements are unavailable, the app should offer Rest today or Continue with caution. It must not invent exercises, claim treatment, or encourage training through pain.
+
 Rest today should use the one-off daily rest override path and must not change the usual Weekly Routine.
 
 Post-workout feedback is stored after completion only. It can record how the workout felt, optional pain areas, and a note, but it must not diagnose, shame, or mutate the completed workout.

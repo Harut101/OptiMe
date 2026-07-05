@@ -10,6 +10,10 @@ import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
 import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
+import {
+  ApplyTrainingReplacementsDto,
+  TrainingReplacementProposalsDto
+} from './dto/training-replacement-proposals.dto';
 import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -79,5 +83,23 @@ export class DailyPlansController {
     @Body() dto: AdjustTrainingForPreWorkoutDto
   ) {
     return this.dailyPlansService.adjustTrainingForPreWorkout(user.userId, dailyPlanId, dto);
+  }
+
+  @Post(':id/training/replacement-proposals')
+  getTrainingReplacementProposals(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Body() dto: TrainingReplacementProposalsDto
+  ) {
+    return this.dailyPlansService.getTrainingReplacementProposals(user.userId, dailyPlanId, dto);
+  }
+
+  @Post(':id/training/apply-replacements')
+  applyTrainingReplacements(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Body() dto: ApplyTrainingReplacementsDto
+  ) {
+    return this.dailyPlansService.applyTrainingReplacements(user.userId, dailyPlanId, dto);
   }
 }
