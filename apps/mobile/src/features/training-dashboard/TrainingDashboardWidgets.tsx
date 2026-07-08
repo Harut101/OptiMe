@@ -439,10 +439,9 @@ const styles = StyleSheet.create({
   dayTile: {
     borderRadius: 18,
     borderWidth: 1,
-    flex: 1,
     gap: 4,
     minHeight: 94,
-    minWidth: 78,
+    width: '48.8%',
     padding: 12
   },
   dayTileRest: { backgroundColor: colors.infoMuted, borderColor: 'rgba(129, 207, 250, 0.35)' },
