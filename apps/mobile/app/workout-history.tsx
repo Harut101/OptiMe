@@ -1,16 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getWorkoutHistory } from '@/api/workout-sessions';
-import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
-import { Text } from '@/components/Text';
+import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
 import {
   formatWorkoutDate,
   formatWorkoutExerciseCount,
@@ -20,7 +17,6 @@ import {
   getWorkoutAccessibilityLabel
 } from '@/features/workout/workout-summary';
 import { useSettingsStore } from '@/store/settings-store';
-import { colors } from '@/theme/colors';
 import type { WorkoutSessionSummary } from '@/types/api';
 
 export default function WorkoutHistoryScreen() {
@@ -87,39 +83,17 @@ function WorkoutHistoryItem({
   const completedTime = formatWorkoutTime(item.completedAt, locale);
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <WorkoutCardV2
+      label={formatWorkoutDate(item.localDate, locale)}
+      title={formatWorkoutFocus(item, t)}
+      subtitle={`${formatWorkoutSetCount(item, t)} - ${formatWorkoutExerciseCount(item, t)}`}
+      meta={completedTime ? t('workout.completedAt', { time: completedTime }) : undefined}
+      statusLabel={item.isPartial ? t('workout.partial') : t('workout.workoutCompleted')}
+      statusTone={item.isPartial ? 'warning' : 'success'}
       accessibilityLabel={getWorkoutAccessibilityLabel(item, t)}
       onPress={onPress}
     >
-      <Card>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardText}>
-            <Text variant="label">{formatWorkoutDate(item.localDate, locale)}</Text>
-            <Text variant="body">{formatWorkoutFocus(item, t)}</Text>
-            <Text variant="muted">
-              {formatWorkoutSetCount(item, t)} - {formatWorkoutExerciseCount(item, t)}
-            </Text>
-            {completedTime ? (
-              <Text variant="muted">{t('workout.completedAt', { time: completedTime })}</Text>
-            ) : null}
-          </View>
-          <Ionicons name="chevron-forward" size={22} color={colors.muted} accessible={false} />
-        </View>
         {item.isPartial ? <StatusPill label={t('workout.partial')} tone="warning" /> : null}
-      </Card>
-    </Pressable>
+    </WorkoutCardV2>
   );
 }
-
-const styles = StyleSheet.create({
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  cardText: {
-    flex: 1,
-    gap: 4
-  },
-});

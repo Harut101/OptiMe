@@ -33,3 +33,8 @@ Stage 1 onboarding and optional progressive setup use the same translated field 
 Onboarding should stay short and safety-first. It collects only what is needed for a first safe plan: identity/safety context, goal, app mode, activity level, allergy confirmation, and basic nutrition setup.
 
 Detailed meal preferences, target muscles, equipment, weekly routine, workout execution, pain/limitations, and health-provider connection flows belong after activation in Food, Training, Health Data, or progressive prompts. If optional context is missing, the backend uses safe defaults and asks later instead of blocking the first plan.
+# Onboarding Visual Design v2
+
+Onboarding remains short and safety-first. The redesign should improve hierarchy and spacing without adding extra required fields before the first safe plan.
+
+Do not reintroduce detailed training setup during onboarding. Training preferences, target muscles, equipment, and routine details stay progressive after the user reaches Today.

@@ -2,17 +2,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
+import { Sparkles } from 'lucide-react-native';
 import { loginSchema } from '@optime/shared-schemas';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 
 import { loginUser } from '@/api/auth';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuthStore } from '@/store/auth-store';
+import { colors } from '@/theme/colors';
 
 type LoginForm = z.infer<typeof loginSchema>;
 
@@ -38,43 +41,63 @@ export default function LoginScreen() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('auth.welcomeBack')}</Text>
-      <Text variant="muted">{t('auth.loginMessage')}</Text>
+      <View style={styles.hero}>
+        <View style={styles.logo}><Sparkles size={20} color={colors.health} /></View>
+        <Text variant="title">{t('auth.welcomeBack')}</Text>
+        <Text variant="muted">{t('auth.loginMessage')}</Text>
+      </View>
 
-      <Controller
-        control={form.control}
-        name="email"
-        render={({ field, fieldState }) => (
-          <Field
-            label={t('auth.email')}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={field.value}
-            onChangeText={field.onChange}
-            error={fieldState.error ? t('errors.validation') : undefined}
-          />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="password"
-        render={({ field, fieldState }) => (
-          <Field
-            label={t('auth.password')}
-            secureTextEntry
-            value={field.value}
-            onChangeText={field.onChange}
-            error={fieldState.error ? t('errors.validation') : undefined}
-          />
-        )}
-      />
+      <Card variant="elevated">
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <Field
+              label={t('auth.email')}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={field.value}
+              onChangeText={field.onChange}
+              error={fieldState.error ? t('errors.validation') : undefined}
+            />
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <Field
+              label={t('auth.password')}
+              secureTextEntry
+              value={field.value}
+              onChangeText={field.onChange}
+              error={fieldState.error ? t('errors.validation') : undefined}
+            />
+          )}
+        />
 
-      <Button
-        title={mutation.isPending ? t('auth.loggingIn') : t('auth.login')}
-        disabled={mutation.isPending}
-        onPress={form.handleSubmit((values) => mutation.mutate(values))}
-      />
+        <Button
+          title={mutation.isPending ? t('auth.loggingIn') : t('auth.login')}
+          disabled={mutation.isPending}
+          onPress={form.handleSubmit((values) => mutation.mutate(values))}
+        />
+      </Card>
       <Button title={t('auth.createAccount')} variant="ghost" onPress={() => router.push('/(auth)/register')} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  hero: {
+    gap: 10,
+    paddingTop: 30
+  },
+  logo: {
+    alignItems: 'center',
+    backgroundColor: colors.healthMuted,
+    borderRadius: 20,
+    height: 48,
+    justifyContent: 'center',
+    width: 48
+  }
+});

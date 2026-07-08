@@ -154,3 +154,31 @@ track #E4ECFF, accent #B8CCFF -> #8FAEFF
 ```
 
 The active arc uses rounded segmented strokes with a subtle end-cap dot for partial progress. The app should not use heavy glow, noisy shadows, or full-card neon backgrounds.
+
+## Full Redesign v2
+
+The v2 direction moves OptiMe closer to an Apple Health-inspired premium dashboard while preserving OptiMe's own product identity. The app should feel like health data plus practical AI coaching, not a generic gym tracker.
+
+Updated palette direction:
+
+- Light background: `#F2F2F7`
+- Light cards: `#FFFFFF`
+- Dark background: `#000000`
+- Dark cards: `#1C1C1E` and `#2C2C2E`
+- Activity/accent: `#EC6330`
+- Training: `#3A82F7`
+- Nutrition: `#67CE67`
+- Sleep/recovery: `#B25FEA` and `#87E3E1`
+- Health/wearable: `#EB4B62`
+
+Typography should use large iOS-like screen titles, compact section labels, and bold metric values. Avoid heavy uppercase except for tiny scan labels.
+
+The main presentation patterns are:
+
+- compact health widgets instead of pale data boxes;
+- concise AI Coach entry points with bottom sheets for longer guidance;
+- provider cards with icon, status chip, short copy, and action;
+- meal and workout cards that lead to detail screens instead of exposing every action as a large block;
+- settings-list rows in Profile instead of dense form-like cards.
+
+Safety-critical messages remain visible. The redesign reduces clutter but never removes allergy, pain, recovery, under-18, pregnancy/postpartum, or unsafe-training guidance.

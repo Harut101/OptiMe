@@ -11,8 +11,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: lightTheme.colors.card,
     borderWidth: 1,
-    borderColor: lightTheme.colors.border,
-    borderRadius: lightTheme.radius.xl,
+    borderColor: 'rgba(209, 209, 214, 0.65)',
+    borderRadius: 26,
     padding: lightTheme.spacing.lg,
     gap: lightTheme.spacing.md,
     ...lightTheme.shadows.card

@@ -13,6 +13,7 @@ import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { MetricCard } from '@/components/MetricCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -122,6 +123,15 @@ export default function MealDetailsScreen() {
     <Screen>
       <ScreenHeader title={meal.title} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
 
+      <Card variant="elevated">
+        <StatusPill
+          label={getMealStatusLabel(status, t)}
+          tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
+        />
+        <Text variant="heading">{meal.title}</Text>
+        <Text variant="muted">{meal.servingSummary}</Text>
+      </Card>
+
       <Card>
         <SectionHeader title={t('food.mealActions')} />
         <View style={styles.statusWrap}>
@@ -177,14 +187,12 @@ export default function MealDetailsScreen() {
 
       <Card>
         <SectionHeader title={t('food.approximateNutrition')} />
-        <Text variant="body">
-          {t('food.totalMacros', {
-            kcal: String(meal.caloriesKcal),
-            protein: String(Math.round(meal.proteinGrams)),
-            carbs: String(Math.round(meal.carbsGrams)),
-            fat: String(Math.round(meal.fatGrams))
-          })}
-        </Text>
+        <View style={styles.metricGrid}>
+          <MetricCard label="kcal" value={meal.caloriesKcal} tone="nutrition" />
+          <MetricCard label={t('today.protein')} value={Math.round(meal.proteinGrams)} unit="g" tone="recovery" />
+          <MetricCard label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="info" />
+          <MetricCard label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="training" />
+        </View>
         <Text variant="muted">{t('food.serving')}: {meal.servingSummary}</Text>
         {meal.prepTimeMinutes !== null ? (
           <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
@@ -263,5 +271,10 @@ const styles = StyleSheet.create({
   substitution: { gap: 3, paddingVertical: 5 },
   statusWrap: { gap: 8 },
   statusActions: { gap: 8 },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
   warning: { color: colors.accent, fontWeight: '700' }
 });

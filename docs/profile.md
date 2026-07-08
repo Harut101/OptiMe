@@ -23,3 +23,10 @@ Profile shows:
 - wellness safety, health connections, and settings
 
 Weight updates can also be started from Today, but Profile owns history and fuller management.
+# Profile Visual Design v2
+
+Profile is a settings hub. It should route users to account/profile, goals, weight progress, training setup, health connections, subscription/plan, app settings, support, and privacy/account areas.
+
+The current mobile implementation keeps the existing Personal, Health, Connections, and Settings sections for continuity, but content inside those sections should use compact settings-list rows rather than dense dashboard cards.
+
+Profile should not duplicate Today progress, meal details, workout execution, or health dashboards.

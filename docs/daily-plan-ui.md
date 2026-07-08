@@ -70,3 +70,11 @@ Today should not duplicate the full nutrition target summary or Food tab progres
 Plan Details owns the complete generated plan view, including food, training, recovery, reminders, exercises, feedback, and check-ins. It should not show permanent usage-limit status or raw debug/protocol internals.
 
 Limit errors stay contextual to the action that triggered them. Existing plan content should remain visible after a generation or refresh limit is reached.
+
+## Visual Design v2 Notes
+
+Today should show only high-level plan status and the compact AI Coach entry. Longer nutrition, training, recovery, and safety guidance can open from the AI Coach bottom sheet or Plan Details.
+
+Plan Details remains the full plan surface. It can use premium cards and widgets, but it must not expose raw `debug`, selected protocol internals, prompt text, or AI provider metadata.
+
+Food and Training tabs in Plan Details should tolerate older plans without structured food or exercise data.

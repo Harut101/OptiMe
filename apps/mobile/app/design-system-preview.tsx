@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Apple, Dumbbell, HeartPulse, Settings, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -16,8 +18,15 @@ import {
   uiColors
 } from '@/ui';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
+import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
 import { MetricCard } from '@/components/MetricCard';
+import { MealCardV2 } from '@/components/MealCardV2';
+import { MiniBarChart } from '@/components/MiniBarChart';
+import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
+import { SettingsListItem } from '@/components/SettingsListItem';
 import { StatusPill } from '@/components/StatusPill';
+import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
 import { CircularProgressRing } from '@/features/today-dashboard/CircularProgressRing';
 import {
   DashboardProgressCard,
@@ -28,6 +37,7 @@ import type { WearableSnapshotResponse } from '@/types/api';
 
 export default function DesignSystemPreviewScreen() {
   const { t } = useTranslation();
+  const [coachVisible, setCoachVisible] = useState(false);
   const lightColorEntries = Object.entries(uiColors);
   const darkColorEntries = Object.entries(uiDarkColors);
   const previewWearableSnapshot: WearableSnapshotResponse = {
@@ -136,6 +146,7 @@ export default function DesignSystemPreviewScreen() {
           <MetricCard label={t('today.recovery')} value="78" tone="recovery" />
           <MetricCard label={t('health.title')} value="On" tone="health" />
         </View>
+        <MiniBarChart values={[4, 8, 5, 12, 9, 16, 11]} color={lightTheme.colors.health} />
         <View style={styles.ringPreviewRow}>
           <CircularProgressRing
             value={68}
@@ -205,6 +216,61 @@ export default function DesignSystemPreviewScreen() {
           message={t('contextNotes.gentlerRecovery')}
           tone="recovery"
         />
+        <AIRecommendationEntry
+          title="AI Coach"
+          summary="A concise daily coach summary opens in a bottom sheet."
+          badge="Ready"
+          onPress={() => setCoachVisible(true)}
+        />
+        <ProviderConnectionCard
+          icon={<Apple size={22} color={lightTheme.colors.health} />}
+          name="Apple Health"
+          statusLabel={t('health.connected')}
+          statusTone="success"
+          description="Connect health data for smarter daily plans."
+          helper={t('health.todayAt', { time: '08:28' })}
+        />
+        <ProviderConnectionCard
+          icon={<HeartPulse size={22} color={lightTheme.colors.training} />}
+          name={t('health.healthConnect')}
+          statusLabel={t('health.comingSoon')}
+          description="Android health data foundation."
+        />
+        <MealCardV2
+          type={t('food.mealTypes.BREAKFAST')}
+          title="Greek yogurt bowl"
+          meta="520 kcal · 34g protein"
+          prep="10 min"
+          statusLabel={t('foodTracking.statusPlanned')}
+          accessibilityLabel="Preview meal"
+          onPress={() => undefined}
+        />
+        <WorkoutCardV2
+          label={t('training.title')}
+          title="Upper body strength"
+          subtitle="Chest · Back · Shoulders"
+          meta="42 min · controlled intensity"
+          statusLabel={t('schedule.trainingDay')}
+          statusTone="training"
+        >
+          <View style={styles.row}>
+            <Dumbbell size={18} color={lightTheme.colors.training} />
+            <AppText variant="caption">3 exercises · 9 working sets</AppText>
+          </View>
+        </WorkoutCardV2>
+        <UICard>
+          <SettingsListItem
+            icon={<Settings size={18} color={lightTheme.colors.health} />}
+            title={t('settings.application')}
+            subtitle={t('settings.futureControls')}
+            value="v2"
+          />
+          <SettingsListItem
+            icon={<Utensils size={18} color={lightTheme.colors.nutrition} />}
+            title={t('food.title')}
+            subtitle={t('food.intro')}
+          />
+        </UICard>
       </UICard>
 
       <UICard>
@@ -221,6 +287,7 @@ export default function DesignSystemPreviewScreen() {
 
       <EmptyState title={t('designSystem.emptyState')} message={t('designSystem.emptyMessage')} />
       <ErrorState title={t('designSystem.errorState')} message={t('designSystem.errorMessage')} actionTitle={t('common.retry')} onAction={() => undefined} />
+      <AICoachBottomSheet visible={coachVisible} plan={null} onClose={() => setCoachVisible(false)} />
     </ScrollView>
   );
 }

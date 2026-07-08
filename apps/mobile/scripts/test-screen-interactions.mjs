@@ -153,7 +153,7 @@ for (const [name, source] of [
 }
 
 const health = read('app/health-data.tsx');
-assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard'], 'Connections');
+assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard', 'ProviderConnectionCard'], 'Connections');
 assertIncludes(health, [
   "result.messageCode === 'UNAVAILABLE'",
   'getAppleHealthUnavailableMessage',
@@ -287,7 +287,7 @@ assertIncludes(trainingDayEditor, [
   "t('schedule.usualRoutineUpdateHelp')",
   "params: { generateAfterRoutine: '1' }"
 ], 'Weekly Routine return-to-generate flow');
-assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', "profile.sections.connections"], 'Profile polish');
+assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', 'SettingsListItem', "profile.sections.connections"], 'Profile polish');
 const workoutSession = read('app/workout-session.tsx');
 assertIncludes(workoutSession, [
   'trainingLoadAgentSnapshot',
@@ -325,9 +325,16 @@ assertIncludes(designPreview, [
   'StatusPill',
   'MetricCard',
   'ContextNoteCard',
+  'AIRecommendationEntry',
+  'AICoachBottomSheet',
   'CircularProgressRing',
   'DashboardProgressCard',
   'WearableSummaryCard',
+  'ProviderConnectionCard',
+  'MealCardV2',
+  'WorkoutCardV2',
+  'MiniBarChart',
+  'SettingsListItem',
   'dashboardRingGradients',
   'emptyArcValue={18}',
   'tone="nutrition"',

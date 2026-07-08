@@ -290,3 +290,15 @@ Health Data owns connection status, provider actions, and wearable snapshot visi
 Today may show a compact wearable summary and a soft readiness prompt before plan generation, but it should not duplicate the full Health Data screen. Health copy must stay non-medical and should not imply diagnosis, guaranteed recovery scoring, or plan invalidity when health data is missing.
 
 Profile may link to Connections, but it should not show permanent provider warning text unless the user is actively managing health sources.
+# Health Visual Design v2
+
+Health Connections uses compact provider cards with icon, provider name, status chip, short description, last sync when available, and primary action.
+
+Provider wording:
+
+- Apple Health
+- Health Connect
+- WHOOP
+- Garmin
+
+Apple Health should show only currently supported MVP metrics on the main Health screen: steps, sleep, active calories, and workout minutes. Recovery score, strain, HRV, resting heart rate, respiratory rate, and advanced interpretation remain deferred unless a future advanced health screen is approved.

@@ -50,7 +50,9 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 640,
     alignSelf: 'center',
-    padding: 20,
-    gap: 18
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+    paddingTop: 14,
+    gap: 16
   }
 });

@@ -77,3 +77,22 @@ The current ring preview includes:
 - wearable summary card example.
 
 The ring implementation uses segmented SVG strokes to make the gradient visibly stronger in Expo Go while preserving accessibility labels and deterministic progress values.
+
+## Visual Design v2 Components
+
+The Design System Preview now includes the v2 mobile component language:
+
+- `AIRecommendationEntry`
+- `AICoachBottomSheet`
+- `BottomSheet`
+- `ProviderConnectionCard`
+- `MealCardV2`
+- `WorkoutCardV2`
+- `SettingsListItem`
+- `MiniBarChart`
+- tuned `MetricCard`
+- tuned `Card`, `Button`, `Text`, `ScreenHeader`
+
+These are presentation-only primitives. They do not change DailyPlan generation, food tracking, workout execution, Health sync, usage limits, or backend contracts.
+
+Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.

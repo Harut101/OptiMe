@@ -31,11 +31,16 @@ export function Button({ title, variant = 'primary', disabled, style, ...props }
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 50,
-    borderRadius: 14,
+    minHeight: 52,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18
+    paddingHorizontal: 20,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 2
   },
   primary: {
     backgroundColor: colors.health
@@ -46,7 +51,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border
   },
   ghost: {
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0
   },
   danger: {
     backgroundColor: colors.danger
@@ -60,8 +67,9 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.textInverse,
-    fontWeight: '700',
-    textAlign: 'center'
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.1
   },
   darkText: {
     color: colors.textPrimary

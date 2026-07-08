@@ -93,3 +93,17 @@ Each mobile surface should answer one primary user question and avoid repeating 
 | Onboarding | What is required for a first safe plan? | short safety-critical setup and first-plan readiness | detailed routine setup, pain/limitations, deep preferences |
 
 Usage and plan limits should appear only when they help a decision, such as after a generation or refresh limit error. They should not be permanent Today dashboard content.
+
+## Full Redesign v2 Screen Rules
+
+The v2 pass applies the Apple Health-inspired system across the core mobile surfaces:
+
+- Today is a summary dashboard with progress widgets, wearable metrics, weight progress, a compact AI Coach entry, and contextual generate/update actions.
+- Food is a meal dashboard with compact meal cards and status actions.
+- Meal Details opens with a focused meal hero and macro widgets.
+- Training is action-oriented around today's workout/rest state, weekly routine, setup, and workout history.
+- Health uses compact provider cards for Apple Health, Health Connect, WHOOP, and Garmin plus wearable metric widgets.
+- Profile remains sectioned for existing navigation but presents content as settings-hub rows.
+- Auth screens use a brand mark, stronger title hierarchy, and carded inputs.
+
+Do not add permanent usage clutter to Today. Do not show raw debug, protocol, AI, or provider internals in mobile UI.

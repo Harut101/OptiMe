@@ -13,7 +13,7 @@ export function ScreenHeader({ eyebrow, title, subtitle }: ScreenHeaderProps) {
   return (
     <View style={styles.container} accessible accessibilityRole="header">
       {eyebrow ? <Text variant="label">{eyebrow}</Text> : null}
-      <Text variant="title" style={styles.title}>
+      <Text variant="largeTitle" style={styles.title}>
         {title}
       </Text>
       {subtitle ? <Text variant="muted">{subtitle}</Text> : null}
@@ -23,8 +23,9 @@ export function ScreenHeader({ eyebrow, title, subtitle }: ScreenHeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
-    paddingBottom: 2
+    gap: 6,
+    paddingBottom: 4,
+    paddingTop: 6
   },
   title: {
     color: colors.textPrimary

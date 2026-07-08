@@ -22,6 +22,8 @@ import {
 } from '@/api/progressive-profile';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
+import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
@@ -86,6 +88,7 @@ export default function TodayScreen() {
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const [weightModalVisible, setWeightModalVisible] = useState(false);
   const [weightError, setWeightError] = useState<string | null>(null);
+  const [coachVisible, setCoachVisible] = useState(false);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
   const todayLocalDate = getLocalDateString();
@@ -357,6 +360,12 @@ export default function TodayScreen() {
             locale={preferredLocale}
             onOpenHealth={() => router.push('/health-data')}
           />
+          <AIRecommendationEntry
+            title="AI Coach"
+            summary={plan.summary.message}
+            badge={t(`enums.readiness.${today.data.readinessLevel}` as never)}
+            onPress={() => setCoachVisible(true)}
+          />
           <WeightProgressCard
             summary={weightSummary.data}
             locale={preferredLocale}
@@ -433,11 +442,10 @@ export default function TodayScreen() {
         </>
       ) : (
         <>
-          <Card>
+          <Card variant="elevated">
             <StatusPill label={t(`enums.readiness.${today.data.readinessLevel}` as never)} tone="success" />
             {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
             <Text variant="heading">{plan.summary.title}</Text>
-            <Text variant="muted">{plan.summary.message}</Text>
             <Text variant="muted">{t('today.updatedAt', { time: formatTime(today.data.updatedAt, preferredLocale) })}</Text>
           </Card>
 
@@ -526,6 +534,11 @@ export default function TodayScreen() {
           setWeightModalVisible(false);
         }}
         onSave={(value) => saveWeight.mutate(value)}
+      />
+      <AICoachBottomSheet
+        visible={coachVisible}
+        plan={plan}
+        onClose={() => setCoachVisible(false)}
       />
     </Screen>
   );

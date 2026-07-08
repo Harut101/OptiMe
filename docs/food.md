@@ -33,3 +33,10 @@ Meal and menu regeneration now use backend usage limits:
 - `MEAL_REGENERATION` for a single meal replacement.
 
 If a limit is reached, Food and Meal Details show localized contextual upgrade placeholder copy, keep the existing plan visible, and do not mutate `DailyPlan`.
+# Food Visual Design v2
+
+Food is a premium meal dashboard, not a form-heavy preferences page. The main Food surface should prioritize today's structured food plan, meal progress, compact meal cards, and contextual regeneration actions.
+
+Meal cards should show meal type, title, kcal/protein, prep context, status, and a detail affordance. Status actions should stay compact and must not hide the existing tracking behavior.
+
+Food preferences remain editable from Food, but preference editing should feel secondary to today's meal plan.

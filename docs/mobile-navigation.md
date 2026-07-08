@@ -77,3 +77,8 @@ Food, Training, Health Data, Plan Details, and Profile keep their own responsibi
 Profile owns personal details, goals entry points, settings, health/safety context, and weight history. Updating weight from Profile or Today affects future plans only; saved DailyPlans remain unchanged.
 
 Meal and menu regeneration limits are also contextual. Food and Meal Details keep the current plan visible when a limit is reached and show localized “upgrade coming soon” placeholder copy instead of a broken purchase flow.
+# Visual Design v2 Navigation Notes
+
+The tab structure remains Today, Food, Training, and Profile. Health Data and Design System Preview remain routed screens, not primary tabs.
+
+Today is the dashboard entry. Food owns meals and tracking. Training owns routine and workout entry points. Profile owns settings/account/goals/health entry points. This separation prevents screen bloat as the visual design becomes richer.

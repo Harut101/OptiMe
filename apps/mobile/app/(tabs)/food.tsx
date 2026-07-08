@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
@@ -15,6 +15,7 @@ import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { MealCardV2 } from '@/components/MealCardV2';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -423,37 +424,26 @@ function MealCard({
   const progress = getMealProgress(foodLog, meal.id);
   const status = progress?.status ?? 'PLANNED';
   return (
-    <View style={styles.mealCard}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${t('food.mealAccessibility', {
-          type: t(`food.mealTypes.${meal.mealType}`),
-          title: meal.title,
-          kcal: String(meal.caloriesKcal),
-          protein: String(Math.round(meal.proteinGrams))
-        })}. ${getMealAccessibilityLabel(meal, progress, t)}`}
-        onPress={onPress}
-        style={({ pressed }) => [pressed && styles.pressed]}
-      >
-        <Text variant="label">{t(`food.mealTypes.${meal.mealType}`)}</Text>
-        <Text variant="body">{meal.title}</Text>
-        <StatusPill
-          label={getMealStatusLabel(status, t)}
-          tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
-        />
-        <Text variant="muted">
-          {t('food.mealMacros', {
-            kcal: String(meal.caloriesKcal),
-            protein: String(Math.round(meal.proteinGrams))
-          })}
-        </Text>
-        {meal.prepTimeMinutes !== null ? (
-          <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
-        ) : null}
-        <Text style={styles.linkText}>{t('food.viewMealDetails')}</Text>
-      </Pressable>
-      <View style={styles.statusActions}>
-        {FOOD_STATUSES.filter((item) => item !== status).slice(0, 3).map((nextStatus) => (
+    <MealCardV2
+      type={t(`food.mealTypes.${meal.mealType}`)}
+      title={meal.title}
+      meta={t('food.mealMacros', {
+        kcal: String(meal.caloriesKcal),
+        protein: String(Math.round(meal.proteinGrams))
+      })}
+      prep={meal.prepTimeMinutes !== null ? t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) }) : null}
+      statusLabel={getMealStatusLabel(status, t)}
+      statusTone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
+      accessibilityLabel={`${t('food.mealAccessibility', {
+        type: t(`food.mealTypes.${meal.mealType}`),
+        title: meal.title,
+        kcal: String(meal.caloriesKcal),
+        protein: String(Math.round(meal.proteinGrams))
+      })}. ${getMealAccessibilityLabel(meal, progress, t)}`}
+      onPress={onPress}
+      actions={(
+        <>
+          {FOOD_STATUSES.filter((item) => item !== status).slice(0, 3).map((nextStatus) => (
           <Button
             key={nextStatus}
             title={getMealStatusActionLabel(nextStatus, t)}
@@ -466,9 +456,10 @@ function MealCard({
             })}
             onPress={() => onUpdateStatus(nextStatus)}
           />
-        ))}
-      </View>
-    </View>
+          ))}
+        </>
+      )}
+    />
   );
 }
 
@@ -491,13 +482,6 @@ const styles = StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' },
   mealList: { gap: 10, marginTop: 10 },
-  mealCard: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    padding: 12,
-    gap: 4
-  },
   pressed: { opacity: 0.78 },
   linkText: { color: colors.primaryDark, fontWeight: '700' },
   trackingSummary: {

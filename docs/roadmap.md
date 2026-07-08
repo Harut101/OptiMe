@@ -127,3 +127,8 @@ If no safe replacements exist, the app keeps the current plan unchanged and offe
 OptiMe now has a backend-owned Free / Plus / Pro entitlement foundation without real billing. A central entitlement matrix defines `PlanQualityMode`, feature access, and usage limits for daily plan generation, refresh, meal regeneration, menu regeneration, and AI Training Load Agent calls.
 
 Safety remains available for every tier. Nutrition-only users can still receive paid value through nutrition planning, food preferences, meal/menu regeneration, food tracking, and health-aware nutrition context. Mobile shows contextual limit/upgrade placeholders only when an action is blocked; no real App Store, Google Play, Stripe, receipt validation, pricing amounts, or production purchase flow is implemented yet.
+# Visual Design v2 Completion Note
+
+The mobile presentation layer now has an Apple Health-inspired premium direction: stronger light/dark tokens, dashboard widgets, compact AI Coach entry with bottom sheet, provider cards, meal/workout widgets, and settings-list rows.
+
+Future roadmap work should build on this system rather than adding one-off screen styles.

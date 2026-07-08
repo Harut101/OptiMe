@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Activity, Apple, HeartPulse, Watch } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -16,6 +17,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { MetricCard } from '@/components/MetricCard';
+import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -273,7 +275,15 @@ function ConnectionCard({
   const needsAttention = status === 'NEEDS_REAUTH' || status === 'ERROR';
 
   return (
-    <Card>
+    <ProviderConnectionCard
+      icon={getProviderIcon(source)}
+      name={getProviderName(source, t)}
+      statusLabel={getConnectionStatusLabel(status, t)}
+      statusTone={isConnected ? 'success' : needsAttention ? 'danger' : 'neutral'}
+      description={getConnectionBodyCopy(source, isConnected, t)}
+      helper={getConnectionHelperCopy(source, isConnected, t)}
+      lastSync={connection?.lastSyncAt ? t('health.lastSynced', { value: formatHealthTimestamp(connection.lastSyncAt, locale, t) }) : null}
+    >
       <View
         accessible
         accessibilityLabel={t('health.connectionAccessibility', {
@@ -281,21 +291,7 @@ function ConnectionCard({
           status: getConnectionStatusLabel(status, t)
         })}
       >
-      <View style={styles.cardHeader}>
-        <SectionHeader title={getProviderName(source, t)} />
-        <StatusPill
-          label={getConnectionStatusLabel(status, t)}
-          tone={isConnected ? 'success' : needsAttention ? 'danger' : 'neutral'}
-        />
       </View>
-      </View>
-      <Text variant="body">{getConnectionBodyCopy(source, isConnected, t)}</Text>
-      <Text variant="muted">
-        {getConnectionHelperCopy(source, isConnected, t)}
-      </Text>
-      {connection?.lastSyncAt ? (
-        <Text variant="muted">{t('health.lastSynced', { value: formatHealthTimestamp(connection.lastSyncAt, locale, t) })}</Text>
-      ) : null}
       {source === 'APPLE_HEALTH' ? (
         <>
           {!isConnected ? <Text variant="muted">{t('health.appleHealthIosOnly')}</Text> : null}
@@ -328,7 +324,7 @@ function ConnectionCard({
           </View>
         </>
       ) : null}
-    </Card>
+    </ProviderConnectionCard>
   );
 }
 
@@ -428,6 +424,21 @@ function getConnectionHelperCopy(source: HealthProvider, isConnected: boolean, t
 function getProviderName(source: HealthProvider, t: TFunction) {
   if (source === 'HEALTH_CONNECT') return t('health.healthConnect');
   return getHealthProviderLabel(t, source);
+}
+
+function getProviderIcon(source: HealthProvider) {
+  const color = source === 'APPLE_HEALTH'
+    ? colors.health
+    : source === 'HEALTH_CONNECT'
+      ? colors.training
+      : source === 'WHOOP'
+        ? colors.recovery
+        : colors.accent;
+
+  if (source === 'APPLE_HEALTH') return <Apple size={23} color={color} />;
+  if (source === 'HEALTH_CONNECT') return <HeartPulse size={23} color={color} />;
+  if (source === 'WHOOP') return <Activity size={23} color={color} />;
+  return <Watch size={23} color={color} />;
 }
 
 function getSnapshotMetrics(

@@ -31,6 +31,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
+import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
 import {
   formatUsageLimitMessage,
   getUsageLimitError
@@ -280,14 +281,12 @@ function TodaysWorkoutCard({ response }: { response: TrainingScheduleResponse })
   const muscles = formatMuscles(t, resolved?.targetMuscles ?? []);
 
   return (
-    <Card>
-      <View style={styles.dayHeader}>
-        <SectionHeader title={isTrainingDay ? t('training.todaysWorkout') : t('training.restDayToday')} />
-        <StatusPill
-          label={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
-          tone={isTrainingDay ? 'success' : 'neutral'}
-        />
-      </View>
+    <WorkoutCardV2
+      label={t('training.title')}
+      title={isTrainingDay ? t('training.todaysWorkout') : t('training.restDayToday')}
+      statusLabel={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
+      statusTone={isTrainingDay ? 'success' : 'neutral'}
+    >
       {isTrainingDay ? (
         <>
           <Text variant="body">{muscles || t('training.generalWorkoutToday')}</Text>
@@ -296,7 +295,7 @@ function TodaysWorkoutCard({ response }: { response: TrainingScheduleResponse })
       ) : (
         <Text variant="muted">{t('training.restDayTodayMessage')}</Text>
       )}
-    </Card>
+    </WorkoutCardV2>
   );
 }
 
@@ -324,9 +323,12 @@ function WeeklyScheduleSection({
   const trainingDays = effectiveDraft.days.filter((day) => day.isTrainingDay).length;
   return (
     <View style={styles.section}>
-      <Card>
+      <Card variant="elevated">
         <SectionHeader title={t('schedule.weeklySchedule')} subtitle={t('schedule.weeklyScheduleHelp')} />
-        <Text variant="body">{t('schedule.derivedFrequency', { count: response.isActive ? response.derivedWeeklyFrequency : trainingDays })}</Text>
+        <Text variant="metric" style={styles.frequencyValue}>
+          {response.isActive ? response.derivedWeeklyFrequency : trainingDays}
+        </Text>
+        <Text variant="caption">{t('schedule.derivedFrequency', { count: response.isActive ? response.derivedWeeklyFrequency : trainingDays })}</Text>
         {!response.isActive && !dirty ? <Text variant="muted">{t('schedule.inactiveHelp')}</Text> : null}
       </Card>
 
@@ -400,17 +402,14 @@ function DayCard({
       ].filter(Boolean).join(', ')}
       onPress={onPress}
     >
-      <Card>
-        <View style={styles.dayHeader}>
-          <Text variant="label">{getDayOfWeekLabel(t, dayOfWeek)}</Text>
-          <StatusPill
-            label={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
-            tone={isTrainingDay ? 'success' : 'neutral'}
-          />
-        </View>
+      <WorkoutCardV2
+        label={getDayOfWeekLabel(t, dayOfWeek)}
+        title={isTrainingDay ? (muscles || t('common.notSet')) : t('schedule.restDay')}
+        statusLabel={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
+        statusTone={isTrainingDay ? 'success' : 'neutral'}
+      >
         {isTrainingDay ? (
           <>
-            <Text variant="body">{muscles || t('common.notSet')}</Text>
             <Text variant="muted">{resolved?.environment ? getTrainingEnvironmentLabel(t, resolved.environment) : t('common.notSet')}</Text>
             <Text variant="muted">{equipment || t('schedule.noOptionalEquipment')}</Text>
             <Text variant="muted">{resolved?.durationMinutes ?? 30} {t('common.minutesShort')}</Text>
@@ -419,7 +418,7 @@ function DayCard({
         ) : (
           <Text variant="muted">{t('schedule.restDayHelp')}</Text>
         )}
-      </Card>
+      </WorkoutCardV2>
     </Pressable>
   );
 }
@@ -476,4 +475,5 @@ const styles = StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' },
   dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  frequencyValue: { color: colors.training }
 });

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { profileSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
+import { Activity, History, Languages, Ruler, Scale, ShieldCheck, Target, UserRound, Watch } from 'lucide-react-native';
 
 import { getEntitlements } from '@/api/account';
 import { getGoal } from '@/api/goals';
@@ -19,6 +20,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { SelectChips } from '@/components/SelectChips';
+import { SettingsListItem } from '@/components/SettingsListItem';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
@@ -150,25 +152,33 @@ function PersonalSection() {
         <>
           <Card>
             <SectionHeader title={t('profile.personal')} />
-            <Text>{[savedValue.firstName, savedValue.lastName].filter(Boolean).join(' ') || t('profile.nameMissing')}</Text>
-            <Text variant="muted">
-              {t('profile.bornSummary', {
+            <SettingsListItem
+              icon={<UserRound size={18} color={colors.health} />}
+              title={[savedValue.firstName, savedValue.lastName].filter(Boolean).join(' ') || t('profile.nameMissing')}
+              subtitle={savedValue.dateOfBirth ? formatDate(savedValue.dateOfBirth, preferredLocale) : t('common.notSet')}
+              value={getActivityLevelLabel(t, savedValue.activityLevel)}
+            />
+            <SettingsListItem
+              icon={<Ruler size={18} color={colors.training} />}
+              title={t('profile.bornSummary', {
                 date: savedValue.dateOfBirth ? formatDate(savedValue.dateOfBirth, preferredLocale) : t('common.notSet'),
                 height: formatHeight(Number(savedValue.heightCm), preferredLocale, measurementSystem),
                 weight: formatWeight(Number(savedValue.weightKg), preferredLocale, measurementSystem)
               })}
-            </Text>
-            <Text variant="muted">{t('profile.activitySummary', { value: getActivityLevelLabel(t, savedValue.activityLevel) })}</Text>
+              subtitle={t('profile.activitySummary', { value: getActivityLevelLabel(t, savedValue.activityLevel) })}
+            />
           </Card>
           <Card>
             <SectionHeader title={t('profile.goalsAndMode')} />
-            <Text>{goal.data ? getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}</Text>
-            <Text variant="muted">
-              {goal.data
+            <SettingsListItem
+              icon={<Target size={18} color={colors.accent} />}
+              title={goal.data ? getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}
+              subtitle={goal.data
                 ? t('profile.modeSummary', { mode: getGoalImpactLabel(t, goal.data.appMode ?? goal.data.impactMode ?? 'NUTRITION_AND_TRAINING') })
                 : t('profile.goalHelp')}
-            </Text>
-            <Text variant="muted">{t('profile.trainingOptional')}</Text>
+              onPress={() => router.push('/goal-editor')}
+            />
+            <Text variant="caption">{t('profile.trainingOptional')}</Text>
             <Button
               title={goal.data ? t('profile.editGoals') : t('profile.addGoals')}
               variant="secondary"
@@ -178,7 +188,12 @@ function PersonalSection() {
           <WeightSection />
           <Card>
             <SectionHeader title={t('workout.completedWorkouts')} />
-            <Text variant="muted">{t('workout.historyHelp')}</Text>
+            <SettingsListItem
+              icon={<History size={18} color={colors.training} />}
+              title={t('workout.workoutHistory')}
+              subtitle={t('workout.historyHelp')}
+              onPress={() => router.push('/workout-history')}
+            />
             <Button
               title={t('workout.workoutHistory')}
               variant="secondary"
@@ -263,8 +278,12 @@ function HealthSection() {
     <View style={styles.section}>
       <Card>
         <SectionHeader title={t('profile.wellnessSafety')} />
+        <SettingsListItem
+          icon={<ShieldCheck size={18} color={user?.safeMode ? colors.warning : colors.success} />}
+          title={user?.safeMode ? t('profile.safeMode') : t('profile.standardMode')}
+          subtitle={t('profile.ageSafety')}
+        />
         <StatusPill label={user?.safeMode ? t('profile.safeMode') : t('profile.standardMode')} tone={user?.safeMode ? 'warning' : 'success'} />
-        <Text variant="muted">{t('profile.ageSafety')}</Text>
       </Card>
       <ContextNoteCard title={t('profile.healthContextTitle')} message={t('profile.healthContextCopy')} />
       <ContextNoteCard title={t('profile.important')} message={t('safety.disclaimer')} tone="warning" />
@@ -284,9 +303,14 @@ function ConnectionsSection() {
     <View style={styles.section}>
       <Card>
         <SectionHeader title={label} />
-        <Text>{status.isLoading ? t('common.loading') : status.isError ? t('health.unavailable') : formatHealthStatus(connection?.status, t)}</Text>
-        <Text variant="muted">{t('health.lastSync', { value: connection?.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString(preferredLocale) : t('health.notSynced') })}</Text>
-        <Text variant="muted">{t('health.intro')}</Text>
+        <SettingsListItem
+          icon={<Watch size={18} color={colors.health} />}
+          title={status.isLoading ? t('common.loading') : status.isError ? t('health.unavailable') : formatHealthStatus(connection?.status, t)}
+          subtitle={t('health.lastSync', { value: connection?.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString(preferredLocale) : t('health.notSynced') })}
+          value={label}
+          onPress={() => router.push('/health-data')}
+        />
+        <Text variant="caption">{t('health.intro')}</Text>
         <Button title={connection?.status === 'CONNECTED' ? t('health.manage') : t('health.connect')} variant="secondary" onPress={() => router.push('/health-data')} />
       </Card>
     </View>

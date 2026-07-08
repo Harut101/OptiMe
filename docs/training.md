@@ -97,3 +97,10 @@ Rest today routes through the existing one-off rest-day override path and does n
 Continue with caution requires explicit acknowledgement and stores conflict metadata on the session. Copy should remind the user to stop if pain increases.
 
 Post-workout feedback appears only after Finish workout. It stores how the session felt, optional pain areas, and an optional note on the completed `WorkoutSession` for future personalization.
+# Training Visual Design v2
+
+Training should answer: what is my training state and next action?
+
+The Training tab uses action-oriented workout cards for today's workout/rest state and weekly routine days. Weekly Routine remains the owner of recurring schedule editing. Today-only overrides remain separate and must stay explicit.
+
+Safety copy for pain, soreness, exhaustion, dizziness, illness, and recovery remains visible and is never paywalled.
