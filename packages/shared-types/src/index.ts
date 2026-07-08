@@ -435,7 +435,13 @@ export interface NutritionMacroTarget {
   fatKcal: number;
 }
 
-export type HealthDataSource = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+export type HealthDataSource =
+  | 'APPLE_HEALTH'
+  | 'HEALTH_CONNECT'
+  | 'WHOOP'
+  | 'GARMIN'
+  | 'MANUAL'
+  | 'MOCK';
 export type HealthConnectionStatus =
   | 'NOT_CONNECTED'
   | 'CONNECTED'
@@ -736,6 +742,51 @@ export interface CreateMockWearableSnapshotRequest {
   hrvMs?: number;
   respiratoryRate?: number;
   capturedAt?: string;
+}
+
+export type WeightDataSource =
+  | 'MANUAL'
+  | 'APPLE_HEALTH'
+  | 'HEALTH_CONNECT'
+  | 'WHOOP'
+  | 'GARMIN';
+export type WeightDirection = 'LOSS' | 'GAIN' | 'MAINTAIN' | 'UNKNOWN';
+export type WeightSafetyStatus = 'OK' | 'LIMITED' | 'NEEDS_MORE_INFO';
+export type WeightUnit = 'KG' | 'LB';
+
+export interface CreateWeightLogRequest {
+  weight: number;
+  unit: WeightUnit;
+  localDate?: string;
+  measuredAt?: string;
+  note?: string;
+}
+
+export interface WeightLogResponse {
+  id: string;
+  localDate: string;
+  measuredAt: string;
+  weightKg: number;
+  source: WeightDataSource;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeightLogsResponse {
+  items: WeightLogResponse[];
+}
+
+export interface WeightSummary {
+  currentWeightKg: number | null;
+  targetWeightKg: number | null;
+  startingWeightKg: number | null;
+  remainingToGoalKg: number | null;
+  progressPercent: number | null;
+  direction: WeightDirection;
+  lastUpdatedAt: string | null;
+  source: WeightDataSource | null;
+  safetyStatus: WeightSafetyStatus;
 }
 
 export interface UpsertWearableSnapshotRequest {

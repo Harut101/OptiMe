@@ -11,6 +11,7 @@ import { getGoal } from '@/api/goals';
 import { getHealthStatus } from '@/api/health';
 import { getProfile, saveProfile } from '@/api/profile';
 import { getSettings, updateSettings } from '@/api/settings';
+import { createWeightLog, getWeightLogs, getWeightSummary } from '@/api/weight';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
@@ -24,6 +25,8 @@ import { Text } from '@/components/Text';
 import {
   getPlatformHealthProvider
 } from '@/features/health/health-platform';
+import { WeightProgressCard } from '@/features/weight/WeightProgressCard';
+import { WeightUpdateModal } from '@/features/weight/WeightUpdateModal';
 import {
   EMPTY_PERSONAL_PROFILE,
   fromProfileResponse,
@@ -172,6 +175,7 @@ function PersonalSection() {
               onPress={() => router.push('/goal-editor')}
             />
           </Card>
+          <WeightSection />
           <Card>
             <SectionHeader title={t('workout.completedWorkouts')} />
             <Text variant="muted">{t('workout.historyHelp')}</Text>
@@ -187,6 +191,68 @@ function PersonalSection() {
       )}
       {message ? <ContextNoteCard title={t('common.saved')} message={message} tone="success" /> : null}
     </View>
+  );
+}
+
+function WeightSection() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
+  const measurementSystem = useSettingsStore((state) => state.measurementSystem);
+  const summary = useQuery({ queryKey: ['weight-summary'], queryFn: getWeightSummary });
+  const logs = useQuery({ queryKey: ['weight-logs'], queryFn: () => getWeightLogs(5) });
+  const [modalVisible, setModalVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mutation = useMutation({
+    mutationFn: createWeightLog,
+    onSuccess: async () => {
+      setError(null);
+      setModalVisible(false);
+      await queryClient.invalidateQueries({ queryKey: ['weight-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['weight-logs'] });
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+    },
+    onError: () => setError(t('weight.couldNotSave'))
+  });
+
+  return (
+    <>
+      <WeightProgressCard
+        summary={summary.data}
+        locale={preferredLocale}
+        measurementSystem={measurementSystem}
+        isLoading={summary.isLoading}
+        isError={summary.isError}
+        onUpdate={() => setModalVisible(true)}
+      />
+      <Card>
+        <SectionHeader title={t('weight.historyTitle')} />
+        {logs.isLoading ? <Text variant="muted">{t('common.loading')}</Text> : null}
+        {logs.isError ? <Text style={styles.error}>{t('errors.unableLoad')}</Text> : null}
+        {!logs.isLoading && !logs.isError && !logs.data?.items.length ? (
+          <Text variant="muted">{t('weight.noWeightEntries')}</Text>
+        ) : null}
+        {logs.data?.items.map((item) => (
+          <View key={item.id} style={styles.historyRow}>
+            <Text>{formatWeight(item.weightKg, preferredLocale, measurementSystem)}</Text>
+            <Text variant="muted">{formatDate(item.measuredAt, preferredLocale)} · {t('weight.manualEntry')}</Text>
+          </View>
+        ))}
+      </Card>
+      <WeightUpdateModal
+        visible={modalVisible}
+        currentWeightKg={summary.data?.currentWeightKg ?? null}
+        measurementSystem={measurementSystem}
+        isSaving={mutation.isPending}
+        error={error}
+        onClose={() => {
+          setError(null);
+          setModalVisible(false);
+        }}
+        onSave={(value) => mutation.mutate(value)}
+      />
+    </>
   );
 }
 
@@ -340,5 +406,13 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: colors.primaryDark, fontSize: 12, fontWeight: '800' },
   section: { gap: 14 },
   hidden: { display: 'none' },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+    paddingBottom: 10
+  },
   error: { color: colors.danger, fontWeight: '600' }
 });

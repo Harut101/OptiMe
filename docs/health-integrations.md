@@ -106,7 +106,7 @@ Apple Health iOS MVP result:
 - The mobile app requests read-only Apple Health permissions only after explicit user action.
 - Synced daily Apple Health data is normalized into `WearableDailySnapshot`.
 - Recovery and strain scores remain `null`; OptiMe does not invent WHOOP-style scores from Apple Health.
-- Health Connect and WHOOP remain represented but not implemented.
+- Health Connect, WHOOP, and Garmin remain represented but not implemented.
 - See `docs/apple-health-integration.md` and `docs/apple-health-mobile-qa.md`.
 
 ## Batch 3 Mobile Foundation
@@ -197,13 +197,14 @@ Planning does not use weight, heart-rate fields, raw samples, or permission payl
 
 ## Health Integrations Foundation + WearableDailySnapshot
 
-The current foundation adds a provider-neutral `WearableDailySnapshot` path for future Apple Health, Health Connect, WHOOP, manual, and mock sources. It does not add real OAuth, native permission prompts, background sync, provider tokens, or external wearable API calls.
+The current foundation adds a provider-neutral `WearableDailySnapshot` path for future Apple Health, Health Connect, WHOOP, Garmin, manual, and mock sources. It does not add real OAuth, native permission prompts, background sync, provider tokens, or external wearable API calls.
 
 Backend sources:
 
 - `APPLE_HEALTH`
 - `HEALTH_CONNECT`
 - `WHOOP`
+- `GARMIN`
 - `MANUAL`
 - `MOCK`
 
@@ -233,7 +234,7 @@ Safe observability:
 - Logs may include source, status, local date, stale/fresh, and whether wearable context was used.
 - Logs must not include provider tokens, auth tokens, raw provider responses, full profiles, exact HRV/RHR values, or medical interpretations.
 
-The mobile Health Connections screen shows foundation cards for Apple Health, Health Connect, and WHOOP, plus a development-only mock snapshot action. It does not request native permissions or start OAuth.
+The mobile Health Connections screen shows foundation cards for Apple Health, Health Connect, WHOOP, and future Garmin support, plus a development-only mock snapshot action. It does not request native permissions or start OAuth.
 
 ## Official Documentation References
 
@@ -246,7 +247,7 @@ The mobile Health Connections screen shows foundation cards for Apple Health, He
 
 ## Mobile polish
 
-Health Connections now presents Apple Health, Health Connect, and WHOOP as consistent provider cards with readable status pills, localized sync/connect/disconnect actions, and a compact wearable snapshot grid. Health Connect wording remains `Health Connect`; the app does not call it `Google Health`.
+Health Connections now presents Apple Health, Health Connect, WHOOP, and future Garmin support as consistent provider cards with readable status pills, localized sync/connect/disconnect actions, and a compact wearable snapshot grid. Health Connect wording remains `Health Connect`; the app does not call it `Google Health`.
 
 This polish does not add real Health Connect sync, WHOOP OAuth, background sync, provider tokens, or new native permission flows.
 
@@ -279,11 +280,12 @@ Provider scope remains unchanged:
 - Apple Health is the only real provider path in this sprint.
 - Health Connect remains represented for Android but deferred.
 - WHOOP remains represented but deferred.
+- Garmin remains represented as a future source only; OAuth, provider API calls, background sync, and token storage are deferred.
 - No background sync, provider tokens, OAuth, or automatic app-launch sync is added.
 
 ## Health Screen Boundary
 
-Health Data owns connection status, provider actions, and wearable snapshot visibility. Apple Health, Health Connect, WHOOP, manual/mock states, and source-specific availability messages belong here.
+Health Data owns connection status, provider actions, and wearable snapshot visibility. Apple Health, Health Connect, WHOOP, Garmin, manual/mock states, and source-specific availability messages belong here.
 
 Today may show a compact wearable summary and a soft readiness prompt before plan generation, but it should not duplicate the full Health Data screen. Health copy must stay non-medical and should not imply diagnosis, guaranteed recovery scoring, or plan invalidity when health data is missing.
 

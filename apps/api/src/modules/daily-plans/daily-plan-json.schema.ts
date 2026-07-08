@@ -470,7 +470,7 @@ export const dailyPlanJsonSchema = z.object({
         .optional(),
       wearableContext: z
         .object({
-          source: z.enum(['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'MANUAL', 'MOCK']),
+          source: z.enum(['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'GARMIN', 'MANUAL', 'MOCK']),
           hasRecentData: z.boolean(),
           isStale: z.boolean(),
           localDate: z.string().optional()

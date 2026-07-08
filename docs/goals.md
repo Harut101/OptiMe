@@ -9,6 +9,8 @@ There is no multiple-goal array, priority, or primary-goal model. Goal enum iden
 The authenticated domain API is `GET /v1/goals` and `PUT /v1/goals`. A missing goal returns `null` and can be created later without restarting onboarding. The current Stage 1 product contract still requires a goal before first-plan generation.
 
 Saving a goal updates future planning context only. It does not regenerate the current plan, alter historical plans, or delete plan data.
+
+Target weight reuses `Goal.targetWeightKg`. The mobile weight widget can show a neutral target summary when this value is present, and a gentle “set target” state when it is missing. Goal progress copy must not shame the user or imply urgency.
 ## Localization
 
 Onboarding and standalone goal editing reuse `GoalsForm` and centralized `GoalType`/impact labels. Target weight follows the selected measurement system while the saved request remains kilograms. Safety validation displays localized supportive fallback copy without changing backend rules.

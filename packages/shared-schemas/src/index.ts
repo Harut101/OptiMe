@@ -36,6 +36,14 @@ export const profileSchema = z.object({
   privacyConsentAccepted: z.boolean().optional()
 });
 
+export const createWeightLogSchema = z.object({
+  weight: z.coerce.number().finite().positive(),
+  unit: z.enum(['KG', 'LB']),
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  measuredAt: z.string().datetime().optional(),
+  note: z.string().trim().max(240).optional()
+});
+
 export const goalSchema = z.object({
   goalType: z.enum([
     'HEALTHY_LIFESTYLE',

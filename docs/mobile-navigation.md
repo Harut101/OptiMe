@@ -56,6 +56,8 @@ Today remains the primary daily surface. Its top section now includes nutrition 
 
 The dashboard does not add a new route. Health details still open through the existing Health Data route, and detailed food/training interactions remain in Food, Meal Details, Plan Details, and Workout Session.
 
+Today also shows a compact Weight Progress card when profile/weight data is available. Full weight history and manual update controls live in Profile so Today stays focused.
+
 The dashboard ring tuning is visual only. Navigation, Today data loading, pull-to-refresh, plan generation, and detail routes are unchanged.
 
 ## Screen Content Boundaries
@@ -65,5 +67,7 @@ Today is the daily command center, not a full detail screen. It should show high
 Usage limits are contextual: if the user reaches a generation or refresh limit, Today shows the friendly limit message near the action and keeps the existing plan visible. The app should not show always-on quota text on the Today dashboard.
 
 Food, Training, Health Data, Plan Details, and Profile keep their own responsibilities so users can predict where to go next instead of reading the same content in multiple places.
+
+Profile owns personal details, goals entry points, settings, health/safety context, and weight history. Updating weight from Profile or Today affects future plans only; saved DailyPlans remain unchanged.
 
 Meal and menu regeneration limits are also contextual. Food and Meal Details keep the current plan visible when a limit is reached and show localized “upgrade coming soon” placeholder copy instead of a broken purchase flow.

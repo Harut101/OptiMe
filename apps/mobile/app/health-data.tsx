@@ -27,7 +27,7 @@ import { useSettingsStore } from '@/store/settings-store';
 import { colors } from '@/theme/colors';
 import type { HealthConnectionFoundation, HealthProvider, WearableSnapshotResponse } from '@/types/api';
 
-const FOUNDATION_SOURCES: HealthProvider[] = ['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP'];
+const FOUNDATION_SOURCES: HealthProvider[] = ['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'GARMIN'];
 
 export default function HealthDataScreen() {
   const { t } = useTranslation();
@@ -346,6 +346,7 @@ function getConnectionStatusLabel(status: HealthConnectionFoundation['status'], 
 function getProviderDescription(source: HealthProvider, t: TFunction) {
   if (source === 'APPLE_HEALTH') return t('health.appleHealthDescription');
   if (source === 'HEALTH_CONNECT') return t('health.healthConnectDescription');
+  if (source === 'GARMIN') return t('health.garminDescription');
   return t('health.whoopDescription');
 }
 

@@ -1,6 +1,6 @@
 # WearableDailySnapshot
 
-`WearableDailySnapshot` is the provider-neutral daily health-data abstraction for OptiMe. Apple Health now writes real iOS daily summaries into this model. Future Health Connect, WHOOP, manual, and mock sync paths should use the same abstraction before Daily Plan generation reads health context.
+`WearableDailySnapshot` is the provider-neutral daily health-data abstraction for OptiMe. Apple Health now writes real iOS daily summaries into this model. Future Health Connect, WHOOP, Garmin, manual, and mock sync paths should use the same abstraction before Daily Plan generation reads health context.
 
 ## Planning Context
 
@@ -11,7 +11,7 @@ Apple Health snapshots must not invent WHOOP-style `recoveryScore` or `strainSco
 ## Stored Fields
 
 - `userId`
-- `source`: `APPLE_HEALTH`, `HEALTH_CONNECT`, `WHOOP`, `MANUAL`, or `MOCK`
+- `source`: `APPLE_HEALTH`, `HEALTH_CONNECT`, `WHOOP`, `GARMIN`, `MANUAL`, or `MOCK`
 - `localDate`
 - `timezone`
 - `steps`

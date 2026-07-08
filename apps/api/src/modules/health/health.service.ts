@@ -22,6 +22,7 @@ const HEALTH_SOURCES = [
   HealthProvider.APPLE_HEALTH,
   HealthProvider.HEALTH_CONNECT,
   HealthProvider.WHOOP,
+  HealthProvider.GARMIN,
   HealthProvider.MANUAL,
   HealthProvider.MOCK
 ] as const;

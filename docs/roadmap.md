@@ -2,6 +2,8 @@
 
 The detailed roadmap remains in [product-roadmap.md](./product-roadmap.md).
 
+Manual weight tracking is now implemented with `WeightLog`, neutral progress summaries, Today/Profile mobile UI, and future-plan Nutrition Target integration. Garmin is represented as a future health/weight source only; real Garmin OAuth, provider API sync, token storage, and background sync remain deferred.
+
 Recovery-aware planning foundation is now in place: wearable snapshots feed deterministic wearable planning context and training-load context. A future Training Load Agent can build on this, but deterministic safety remains the hard-rule authority.
 
 Sprint 8B Batch 1 establishes the mobile information architecture: Today, Food, Training, and Profile; reusable domain forms; standalone preference editing; Profile sections; and the existing health connection manager exposed through Connections.

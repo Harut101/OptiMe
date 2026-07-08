@@ -131,6 +131,7 @@ OptiMe can now:
 - Generate optional text-based exercise recommendations.
 - Connect optional health providers and store daily health summaries.
 - Use summarized health signals conservatively in daily planning.
+- Track manual weight history, show neutral goal progress, and use the latest manual current weight for future nutrition targets.
 
 Still not implemented:
 
@@ -139,6 +140,7 @@ Still not implemented:
 - iOS native HealthKit implementation.
 - Health background sync.
 - Health charts or dashboard.
+- Garmin OAuth/API sync and provider-driven weight import.
 - WHOOP integration.
 - AI Coach chat.
 - Embeddings-based personalization.

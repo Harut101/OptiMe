@@ -22,6 +22,7 @@ import { TrainingOverridesModule } from './modules/training-overrides/training-o
 import { TrainingScheduleModule } from './modules/training-schedule/training-schedule.module';
 import { UsageModule } from './modules/usage/usage.module';
 import { UsersModule } from './modules/users/users.module';
+import { WeightModule } from './modules/weight/weight.module';
 import { WorkoutSessionsModule } from './modules/workout-sessions/workout-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -49,6 +50,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SafetyAgentModule,
     SettingsModule,
     UsageModule,
+    WeightModule,
     DailyPlanCheckInsModule,
     FoodLogsModule,
     DailyPlansModule,

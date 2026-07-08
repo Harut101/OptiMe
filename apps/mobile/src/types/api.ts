@@ -50,6 +50,10 @@ import type {
   ToggleWorkoutSetRequest,
   UpdateFoodMealStatusRequest,
   UpdateWorkoutExerciseProgressRequest,
+  CreateWeightLogRequest,
+  WeightLogResponse,
+  WeightLogsResponse,
+  WeightSummary,
   WorkoutExerciseProgressResponse,
   WorkoutSessionHistoryResponse,
   WorkoutSessionPreWorkoutCheck,
@@ -108,6 +112,10 @@ export type {
   ToggleWorkoutSetRequest,
   UpdateFoodMealStatusRequest,
   UpdateWorkoutExerciseProgressRequest,
+  CreateWeightLogRequest,
+  WeightLogResponse,
+  WeightLogsResponse,
+  WeightSummary,
   WorkoutExerciseProgressResponse,
   WorkoutSessionHistoryResponse,
   WorkoutSessionPreWorkoutCheck,
@@ -418,7 +426,7 @@ export interface UsageLimitExceededError {
   upgradeSuggestion: 'PLUS' | 'PRO' | null;
 }
 
-export type HealthProvider = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+export type HealthProvider = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'GARMIN' | 'MANUAL' | 'MOCK';
 export type HealthConnectionStatus =
   | 'CONNECTED'
   | 'DISCONNECTED'

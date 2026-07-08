@@ -9,6 +9,8 @@ OptiMe calculates daily calories and macros in the backend before AI generation.
 - `DailyPlansService` calculates the target before calling `AiProvider`.
 - Generated plans store an immutable `plan.nutritionTargetSnapshot` inside `DailyPlan.planJson`.
 - Old plans without `nutritionTargetSnapshot` remain valid.
+- Manual weight updates write a `WeightLog` entry and update `Profile.weightKg`, so future target previews and future generated plans use the latest current weight.
+- Existing saved DailyPlans do not change when weight is updated later.
 
 ## Recent Activity Context
 

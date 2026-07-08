@@ -12,6 +12,7 @@ import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
 import { getTrainingSchedule } from '@/api/training-schedule';
 import { getTrainingOverride, saveTrainingOverride } from '@/api/training-overrides';
+import { createWeightLog, getWeightSummary } from '@/api/weight';
 import { getWorkoutSessionByPlan } from '@/api/workout-sessions';
 import {
   answerProgressivePrompt,
@@ -32,6 +33,8 @@ import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { DashboardProgressCard } from '@/features/today-dashboard/DashboardProgressCard';
 import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
+import { WeightProgressCard } from '@/features/weight/WeightProgressCard';
+import { WeightUpdateModal } from '@/features/weight/WeightUpdateModal';
 import {
   resolveNutritionProgress,
   resolveTrainingProgress
@@ -71,11 +74,14 @@ export default function TodayScreen() {
     generateAfterOverride?: string;
   }>();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
+  const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const queryClient = useQueryClient();
   const setTrainingScheduleDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [healthReadinessMessage, setHealthReadinessMessage] = useState<string | null>(null);
+  const [weightModalVisible, setWeightModalVisible] = useState(false);
+  const [weightError, setWeightError] = useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
   const todayLocalDate = getLocalDateString();
@@ -96,6 +102,10 @@ export default function TodayScreen() {
   const wearableSnapshot = useQuery({
     queryKey: ['wearable-snapshot', 'today'],
     queryFn: getTodayWearableSnapshot
+  });
+  const weightSummary = useQuery({
+    queryKey: ['weight-summary'],
+    queryFn: getWeightSummary
   });
   const healthConnections = useQuery({
     queryKey: ['health-connections'],
@@ -132,6 +142,18 @@ export default function TodayScreen() {
     },
     onError: (error) =>
       Alert.alert(t('today.promptSkipFailed'), `${t('errors.unableSave')}\n\n${t('today.keepUsingToday')}`)
+  });
+  const saveWeight = useMutation({
+    mutationFn: createWeightLog,
+    onSuccess: async () => {
+      setWeightError(null);
+      setWeightModalVisible(false);
+      await queryClient.invalidateQueries({ queryKey: ['weight-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['weight-logs'] });
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+    },
+    onError: () => setWeightError(t('weight.couldNotSave'))
   });
   const generate = useMutation({
     mutationFn: (forceRegenerate: boolean) => generateTodayPlan(forceRegenerate),
@@ -184,6 +206,7 @@ export default function TodayScreen() {
     const refreshes: Array<Promise<unknown>> = [
       today.refetch(),
       wearableSnapshot.refetch(),
+      weightSummary.refetch(),
       healthConnections.refetch(),
       progressivePrompt.refetch(),
       trainingSchedule.refetch(),
@@ -202,6 +225,7 @@ export default function TodayScreen() {
   const refreshing =
     today.isRefetching ||
     wearableSnapshot.isRefetching ||
+    weightSummary.isRefetching ||
     healthConnections.isRefetching ||
     progressivePrompt.isRefetching ||
     trainingSchedule.isRefetching ||
@@ -325,6 +349,15 @@ export default function TodayScreen() {
             connections={healthConnections.data?.connections}
             locale={preferredLocale}
             onOpenHealth={() => router.push('/health-data')}
+          />
+          <WeightProgressCard
+            summary={weightSummary.data}
+            locale={preferredLocale}
+            measurementSystem={measurementSystem}
+            compact
+            isLoading={weightSummary.isLoading}
+            isError={weightSummary.isError}
+            onUpdate={() => setWeightModalVisible(true)}
           />
         </>
       ) : null}
@@ -455,6 +488,18 @@ export default function TodayScreen() {
           />
         </>
       )}
+      <WeightUpdateModal
+        visible={weightModalVisible}
+        currentWeightKg={weightSummary.data?.currentWeightKg ?? null}
+        measurementSystem={measurementSystem}
+        isSaving={saveWeight.isPending}
+        error={weightError}
+        onClose={() => {
+          setWeightError(null);
+          setWeightModalVisible(false);
+        }}
+        onSave={(value) => saveWeight.mutate(value)}
+      />
     </Screen>
   );
 

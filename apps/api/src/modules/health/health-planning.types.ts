@@ -1,6 +1,12 @@
 import { HealthProvider } from '@prisma/client';
 
-export type HealthDataSource = 'APPLE_HEALTH' | 'HEALTH_CONNECT' | 'WHOOP' | 'MANUAL' | 'MOCK';
+export type HealthDataSource =
+  | 'APPLE_HEALTH'
+  | 'HEALTH_CONNECT'
+  | 'WHOOP'
+  | 'GARMIN'
+  | 'MANUAL'
+  | 'MOCK';
 export type WearableActivityLevelHint = 'LOW' | 'MODERATE' | 'HIGH' | 'UNKNOWN';
 export type WearableSleepHint = 'LOW_SLEEP' | 'OK_SLEEP' | 'UNKNOWN';
 export type WearableRecoveryHint =
