@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Dumbbell, Utensils } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -326,7 +327,17 @@ export default function TodayScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={handleRefresh}>
-      <ScreenHeader eyebrow={t('today.title')} title={t('today.tagline')} subtitle={t('today.intro')} />
+      <ScreenHeader
+        eyebrow={t('today.title')}
+        title={t('today.tagline')}
+        subtitle={t('today.intro')}
+        rightAccessory={
+          <AppModeIndicator
+            trainingEnabled={trainingEnabled}
+            label={trainingEnabled ? t('appModes.nutritionTraining') : t('appModes.nutritionOnly')}
+          />
+        }
+      />
 
       {today.data && plan ? (
         <>
@@ -861,6 +872,28 @@ function WearableContextNote({
   );
 }
 
+function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean; label: string }) {
+  const containerStyle = trainingEnabled ? styles.modeIndicatorTraining : styles.modeIndicatorNutrition;
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={label}
+      accessibilityRole="text"
+      style={[styles.modeIndicator, containerStyle]}
+    >
+      <View style={[styles.modeIconBubble, styles.modeIconBubbleNutrition]}>
+        <Utensils size={15} color={colors.nutrition} strokeWidth={2.7} />
+      </View>
+      {trainingEnabled ? (
+        <View style={[styles.modeIconBubble, styles.modeIconBubbleTraining]}>
+          <Dumbbell size={15} color={colors.health} strokeWidth={2.7} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function ProgressivePromptCard({
   prompt,
   isSaving,
@@ -1128,5 +1161,39 @@ const styles = StyleSheet.create({
   multiChipTextActive: {
     color: colors.primaryDark,
     fontWeight: '700'
+  },
+  modeIndicator: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    padding: 5
+  },
+  modeIndicatorNutrition: {
+    backgroundColor: colors.nutritionMuted,
+    borderColor: 'rgba(103, 206, 103, 0.32)'
+  },
+  modeIndicatorTraining: {
+    backgroundColor: colors.accentMuted,
+    borderColor: 'rgba(236, 99, 48, 0.28)'
+  },
+  modeIconBubble: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: 'center',
+    width: 28
+  },
+  modeIconBubbleNutrition: {
+    shadowColor: colors.nutrition,
+    shadowOpacity: 0.12,
+    shadowRadius: 8
+  },
+  modeIconBubbleTraining: {
+    shadowColor: colors.health,
+    shadowOpacity: 0.12,
+    shadowRadius: 8
   }
 });

@@ -274,6 +274,11 @@ export const zhCN = createLocaleResource({
     equipmentRule: '环境不会自动添加或移除器械。请选择实际可用的器械。'
   }
 }, {
+  aiCoach: {
+    title: 'AI 教练',
+    dailyGuidance: '今日指导',
+    createPlanHint: '生成今天的计划后，可查看简洁的教练建议。'
+  },
   planImpact: {
     label: '对当前计划的影响',
     futureOnlySaved: '已保存用于未来计划。',

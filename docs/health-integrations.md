@@ -302,3 +302,7 @@ Provider wording:
 - Garmin
 
 Apple Health should show only currently supported MVP metrics on the main Health screen: steps, sleep, active calories, and workout minutes. Recovery score, strain, HRV, resting heart rate, respiratory rate, and advanced interpretation remain deferred unless a future advanced health screen is approved.
+
+The Health Data screen now renders the latest wearable snapshot with the shared `HealthMetricWidget` system instead of the older `MetricCard` grid. Each metric uses a semantic icon, strong numeric value, source/last-sync context, and lightweight progress or mini-bar visuals. Missing values remain calm and non-error-like; unavailable Apple Health metrics should not be invented.
+
+Today may reuse the same widget language for a compact wearable summary, but it should not become a full health analytics screen. Provider setup, sync, disconnect, and delete actions stay on Health Data.

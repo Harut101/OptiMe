@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, Apple, HeartPulse, Watch } from 'lucide-react-native';
+import { Activity, Apple, Bed, Flame, Footprints, HeartPulse, Timer, Watch } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -16,7 +16,7 @@ import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
-import { MetricCard } from '@/components/MetricCard';
+import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -373,13 +373,20 @@ function WearableSnapshotCard({
         {snapshot.snapshot.isStale ? t('health.wearableDataStale') : t('health.wearableDataConnected')}
       </Text>
       <Text variant="muted">{getHealthProviderLabel(t, snapshot.snapshot.source)} · {snapshot.snapshot.localDate}</Text>
-      <View style={styles.metricGrid}>
+      <View style={styles.healthWidgetGrid}>
         {getSnapshotMetrics(snapshot.snapshot, locale, t).map((metric) => (
-          <MetricCard
+          <HealthMetricWidget
             key={metric.label}
             label={metric.label}
             value={metric.value}
+            unit={metric.unit}
+            context={metric.context}
+            comparisonLabel={metric.comparisonLabel}
+            comparisonValue={metric.comparisonValue}
+            progressPercent={'progressPercent' in metric ? metric.progressPercent : null}
+            miniBars={'miniBars' in metric ? metric.miniBars : null}
             tone={metric.tone}
+            icon={metric.icon}
           />
         ))}
       </View>
@@ -448,23 +455,54 @@ function getSnapshotMetrics(
 ) {
   const baseMetrics = [
     snapshot.steps !== null
-      ? { label: t('health.steps'), value: formatNumber(snapshot.steps, locale), tone: 'health' as const }
+      ? {
+          label: t('health.steps'),
+          value: formatNumber(snapshot.steps, locale),
+          unit: t('health.steps').toLowerCase(),
+          context: t('todayDashboard.today'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'activity' as const,
+          icon: (accent: string) => <Footprints size={20} color={accent} />,
+          miniBars: [0.35, 0.5, 0.42, 0.62, 0.48, 0.68, 0.78]
+        }
       : null,
     snapshot.activeCaloriesKcal !== null
       ? {
           label: t('health.activeCalories'),
-          value: t('todayDashboard.kcalValue', { value: formatNumber(snapshot.activeCaloriesKcal, locale) }),
-          tone: 'nutrition' as const
+          value: formatNumber(snapshot.activeCaloriesKcal, locale),
+          unit: 'kcal',
+          context: t('todayDashboard.today'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'nutrition' as const,
+          icon: (accent: string) => <Flame size={20} color={accent} />,
+          progressPercent: Math.min(100, Math.round((snapshot.activeCaloriesKcal / 600) * 100))
         }
       : null,
     snapshot.sleepMinutes !== null
-      ? { label: t('health.sleepDuration'), value: formatSleep(snapshot.sleepMinutes, t), tone: 'recovery' as const }
+      ? {
+          label: t('health.sleepDuration'),
+          value: formatSleep(snapshot.sleepMinutes, t),
+          context: t('todayDashboard.yesterday'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'sleep' as const,
+          icon: (accent: string) => <Bed size={20} color={accent} />,
+          progressPercent: Math.min(100, Math.round((snapshot.sleepMinutes / 480) * 100))
+        }
       : null,
     snapshot.workoutMinutes !== null
       ? {
           label: t('health.workoutMinutes'),
-          value: t('todayDashboard.minuteValue', { value: String(snapshot.workoutMinutes) }),
-          tone: 'training' as const
+          value: String(snapshot.workoutMinutes),
+          unit: t('common.minutesShort'),
+          context: t('todayDashboard.today'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'training' as const,
+          icon: (accent: string) => <Timer size={20} color={accent} />,
+          progressPercent: Math.min(100, Math.round((snapshot.workoutMinutes / 60) * 100))
         }
       : null
   ].filter((metric): metric is NonNullable<typeof metric> => Boolean(metric));
@@ -476,10 +514,29 @@ function getSnapshotMetrics(
   return [
     ...baseMetrics,
     snapshot.recoveryScore !== null
-      ? { label: t('health.recoveryScore'), value: formatNumber(snapshot.recoveryScore, locale), tone: 'recovery' as const }
+      ? {
+          label: t('health.recoveryScore'),
+          value: formatNumber(snapshot.recoveryScore, locale),
+          unit: '%',
+          context: t('health.recovery'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'recovery' as const,
+          icon: (accent: string) => <HeartPulse size={20} color={accent} />,
+          progressPercent: snapshot.recoveryScore
+        }
       : null,
     snapshot.strainScore !== null
-      ? { label: t('health.strain'), value: formatNumber(snapshot.strainScore, locale), tone: 'training' as const }
+      ? {
+          label: t('health.strain'),
+          value: formatNumber(snapshot.strainScore, locale),
+          context: t('health.activity'),
+          comparisonLabel: t('health.lastSynced', { value: formatHealthTimestamp(snapshot.capturedAt, locale, t) }),
+          comparisonValue: getHealthProviderLabel(t, snapshot.source),
+          tone: 'training' as const,
+          icon: (accent: string) => <Activity size={20} color={accent} />,
+          progressPercent: Math.min(100, Math.round((snapshot.strainScore / 21) * 100))
+        }
       : null
   ].filter((metric): metric is NonNullable<typeof metric> => Boolean(metric));
 }
@@ -585,6 +642,11 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  healthWidgetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10

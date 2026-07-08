@@ -20,6 +20,7 @@ import {
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
+import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { MetricCard } from '@/components/MetricCard';
 import { MealCardV2 } from '@/components/MealCardV2';
 import { MiniBarChart } from '@/components/MiniBarChart';
@@ -159,6 +160,48 @@ export default function DesignSystemPreviewScreen() {
           <MetricCard label={t('today.training')} value="35 min" tone="training" />
           <MetricCard label={t('today.recovery')} value="78" tone="recovery" />
           <MetricCard label={t('health.title')} value="On" tone="health" />
+        </View>
+        <View style={styles.metricPreviewGrid}>
+          <HealthMetricWidget
+            label="Heart Rate"
+            context="Today 08:23"
+            value="60"
+            unit="BPM"
+            comparisonLabel="Average this week"
+            comparisonValue="67 BPM"
+            tone="health"
+          />
+          <HealthMetricWidget
+            label={t('todayDashboard.steps')}
+            context="Today 08:28"
+            value="3,697"
+            unit={t('health.steps').toLowerCase()}
+            comparisonLabel="Average this week"
+            comparisonValue="10,411 steps"
+            tone="activity"
+          />
+        </View>
+        <View style={[styles.metricPreviewGrid, styles.darkMetricPreviewGrid]}>
+          <HealthMetricWidget
+            label="Sleep"
+            context="Today 05:15"
+            value="6 hr 4"
+            unit="min"
+            comparisonLabel="Average this week"
+            comparisonValue="7 hr 29 min"
+            tone="sleep"
+            appearance="dark"
+          />
+          <HealthMetricWidget
+            label="Stand Minutes"
+            context="Today 08:28"
+            value="97"
+            unit="min"
+            comparisonLabel="Average this week"
+            comparisonValue="186 min"
+            tone="activity"
+            appearance="dark"
+          />
         </View>
         <MiniBarChart values={[4, 8, 5, 12, 9, 16, 11]} color={lightTheme.colors.health} />
         <View style={styles.ringPreviewRow}>
@@ -348,6 +391,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: lightTheme.spacing.sm
+  },
+  darkMetricPreviewGrid: {
+    backgroundColor: darkTheme.colors.backgroundMuted,
+    borderRadius: lightTheme.radius.xl,
+    padding: lightTheme.spacing.sm
   },
   ringPreviewRow: {
     alignItems: 'center',

@@ -274,6 +274,11 @@ export const ruRU = createLocaleResource({
     equipmentRule: 'Среда не добавляет и не убирает оборудование. Выберите то, что действительно доступно.'
   }
 }, {
+  aiCoach: {
+    title: 'AI Coach',
+    dailyGuidance: 'Советы на день',
+    createPlanHint: 'Создайте план на сегодня, чтобы увидеть краткие рекомендации коуча.'
+  },
   planImpact: {
     label: 'Влияние на текущий план',
     futureOnlySaved: 'Сохранено для будущих планов.',

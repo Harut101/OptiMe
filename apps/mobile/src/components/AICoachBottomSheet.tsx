@@ -19,8 +19,8 @@ export function AICoachBottomSheet({ visible, plan, onClose }: AICoachBottomShee
   return (
     <BottomSheet
       visible={visible}
-      title="AI Coach"
-      subtitle={plan?.summary.title ?? 'Daily guidance'}
+      title={t('aiCoach.title')}
+      subtitle={plan?.summary.title ?? t('aiCoach.dailyGuidance')}
       onClose={onClose}
     >
       {plan ? (
@@ -37,7 +37,7 @@ export function AICoachBottomSheet({ visible, plan, onClose }: AICoachBottomShee
           ) : null}
         </>
       ) : (
-        <Text variant="muted">Create today's plan to see concise coach guidance.</Text>
+        <Text variant="muted">{t('aiCoach.createPlanHint')}</Text>
       )}
     </BottomSheet>
   );

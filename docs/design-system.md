@@ -86,6 +86,7 @@ The Design System Preview now includes the v2 mobile component language:
 - `AICoachBottomSheet`
 - `BottomSheet`
 - `ProviderConnectionCard`
+- `HealthMetricWidget`
 - `MealCardV2`
 - `WorkoutCardV2`
 - `SettingsListItem`
@@ -94,6 +95,10 @@ The Design System Preview now includes the v2 mobile component language:
 - tuned `Card`, `Button`, `Text`, `ScreenHeader`
 
 These are presentation-only primitives. They do not change DailyPlan generation, food tracking, workout execution, Health sync, usage limits, or backend contracts.
+
+`HealthMetricWidget` is the Apple Health-inspired metric style for wearable/health summaries: theme-aware compact card, semantic title/icon, small context line, large value, unit, and optional comparison/footer text. It adapts its surface, text, border, shadow, and accent colors from light/dark theme tokens instead of staying permanently black. It is intended for steps, sleep, active calories, workout minutes, heart-rate-style future metrics, and similar dashboard widgets.
+
+The widget also supports optional mini bars, progress fill, press handling, and explicit accessibility labels. Use these lightweight visuals instead of adding a chart library for dashboard summaries. The main value should remain large and readable; color belongs on icons, labels, progress, and chart accents rather than filling the entire card.
 
 Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.
 

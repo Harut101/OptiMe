@@ -78,3 +78,5 @@ Today should show only high-level plan status and the compact AI Coach entry. Lo
 Plan Details remains the full plan surface. It can use premium cards and widgets, but it must not expose raw `debug`, selected protocol internals, prompt text, or AI provider metadata.
 
 Food and Training tabs in Plan Details should tolerate older plans without structured food or exercise data.
+
+Today's dashboard uses compact progress and health widgets rather than long explanation blocks. The AI Coach entry should stay small on Today and open the localized bottom sheet for nutrition, training, recovery, and safety guidance. App mode is indicated with a compact top-right icon badge in the Today header instead of a large hero treatment.

@@ -153,7 +153,7 @@ for (const [name, source] of [
 }
 
 const health = read('app/health-data.tsx');
-assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'MetricCard', 'ProviderConnectionCard'], 'Connections');
+assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'HealthMetricWidget', 'ProviderConnectionCard'], 'Connections');
 assertIncludes(health, [
   "result.messageCode === 'UNAVAILABLE'",
   'getAppleHealthUnavailableMessage',
@@ -324,6 +324,7 @@ assertIncludes(designPreview, [
   'semanticEntries',
   'StatusPill',
   'MetricCard',
+  'HealthMetricWidget',
   'ContextNoteCard',
   'AIRecommendationEntry',
   'AICoachBottomSheet',

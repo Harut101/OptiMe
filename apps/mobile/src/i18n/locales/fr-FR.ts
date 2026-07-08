@@ -274,6 +274,11 @@ export const frFR = createLocaleResource({
     equipmentRule: "L'environnement n'ajoute ni ne retire d'équipement. Choisissez exactement ce qui est disponible."
   }
 }, {
+  aiCoach: {
+    title: 'Coach IA',
+    dailyGuidance: 'Conseils du jour',
+    createPlanHint: "Créez le plan du jour pour voir des conseils concis."
+  },
   planImpact: {
     label: 'Impact sur le plan actuel',
     futureOnlySaved: 'Enregistré pour les prochains plans.',

@@ -1,10 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { Bed, Flame, Footprints, Timer } from 'lucide-react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { MetricCard } from '@/components/MetricCard';
+import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Text } from '@/components/Text';
 import { formatNumber } from '@/i18n/formatters';
@@ -56,25 +57,44 @@ export function WearableSummaryCard({
         />
       </View>
       <View style={styles.metricGrid}>
-        <MetricCard
+        <HealthMetricWidget
           label={t('todayDashboard.steps')}
           value={formatNullableNumber(snapshot.steps, locale)}
-          tone="health"
+          unit={t('health.steps').toLowerCase()}
+          context={formatLastSynced(snapshot.capturedAt, locale, t)}
+          comparisonLabel={t('todayDashboard.wearableSummary')}
+          comparisonValue={formatSourceIncluded(source, t)}
+          tone="activity"
+          icon={(accent) => <Footprints size={20} color={accent} />}
         />
-        <MetricCard
+        <HealthMetricWidget
           label={t('todayDashboard.sleep')}
           value={formatSleep(snapshot.sleepMinutes, t)}
-          tone="recovery"
+          context={formatLastSynced(snapshot.capturedAt, locale, t)}
+          comparisonLabel={t('todayDashboard.wearableSummary')}
+          comparisonValue={formatSourceIncluded(source, t)}
+          tone="sleep"
+          icon={(accent) => <Bed size={20} color={accent} />}
         />
-        <MetricCard
+        <HealthMetricWidget
           label={t('todayDashboard.activeCalories')}
-          value={formatNullableKcal(snapshot.activeCaloriesKcal, locale, t)}
+          value={formatNullableNumber(snapshot.activeCaloriesKcal, locale)}
+          unit="kcal"
+          context={formatLastSynced(snapshot.capturedAt, locale, t)}
+          comparisonLabel={t('todayDashboard.wearableSummary')}
+          comparisonValue={formatSourceIncluded(source, t)}
           tone="nutrition"
+          icon={(accent) => <Flame size={20} color={accent} />}
         />
-        <MetricCard
+        <HealthMetricWidget
           label={t('todayDashboard.workoutMinutes')}
-          value={formatNullableMinutes(snapshot.workoutMinutes, t)}
+          value={snapshot.workoutMinutes === null ? '-' : String(snapshot.workoutMinutes)}
+          unit={t('common.minutesShort')}
+          context={formatLastSynced(snapshot.capturedAt, locale, t)}
+          comparisonLabel={t('todayDashboard.wearableSummary')}
+          comparisonValue={formatSourceIncluded(source, t)}
           tone="training"
+          icon={(accent) => <Timer size={20} color={accent} />}
         />
       </View>
       <Text variant="muted">{t('todayDashboard.lastSynced', { value: formatLastSynced(snapshot.capturedAt, locale, t) })}</Text>
@@ -94,14 +114,6 @@ function formatSourceIncluded(
 
 function formatNullableNumber(value: number | null, locale: string) {
   return value === null ? '-' : formatNumber(value, locale);
-}
-
-function formatNullableKcal(value: number | null, locale: string, t: TFunction) {
-  return value === null ? '-' : t('todayDashboard.kcalValue', { value: formatNumber(value, locale) });
-}
-
-function formatNullableMinutes(value: number | null, t: TFunction) {
-  return value === null ? '-' : t('todayDashboard.minuteValue', { value: String(value) });
 }
 
 function formatSleep(value: number | null, t: TFunction) {
