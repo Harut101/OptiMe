@@ -1,5 +1,20 @@
 # API Notes
 
+## Plan Impact
+
+`POST /v1/plan-impact/evaluate`
+
+Evaluates whether a saved change can affect today's current daily plan. This endpoint is authenticated, read-only, and does not consume usage.
+
+Request fields:
+
+- `changeTypes`: one or more stable change codes, for example `PROFILE_WEIGHT_CHANGED`, `PRIMARY_GOAL_CHANGED`, `FOOD_PREFERENCES_CHANGED`, `TRAINING_ROUTINE_CHANGED`, or `APPLE_HEALTH_SYNCED`.
+- `localDate`: optional `YYYY-MM-DD`; defaults to the user's current local date.
+- `changedFields`: optional field-name hints.
+- `newValues`: optional safe values needed for deterministic conflict checks, such as newly excluded foods.
+
+The response includes affected plan sections, severity, safety flags, optional usage metadata for a possible refresh, and localized prompt codes for mobile.
+
 ## Workout Sessions
 
 Workout Session endpoints are authenticated and scoped to the current user.

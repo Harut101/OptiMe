@@ -273,4 +273,40 @@ export const zhCN = createLocaleResource({
     location: '环境',
     equipmentRule: '环境不会自动添加或移除器械。请选择实际可用的器械。'
   }
+}, {
+  planImpact: {
+    label: '对当前计划的影响',
+    futureOnlySaved: '已保存用于未来计划。',
+    unavailable: '暂时无法检查对计划的影响。',
+    safetyTitle: '安全优先更新',
+    safetyMessage: '此更改可能影响安全相关建议。高强度训练前请先查看今天的计划。',
+    usesGeneration: '更新今天的计划可能会使用 {{count}} 次刷新。',
+    mayUseGeneration: '更新今天的计划可能会使用一次刷新。',
+    noGenerationNeeded: '你可以安全查看，不需要刷新计划。',
+    titles: {
+      UPDATE_TODAY_PLAN: '更新今天的计划？',
+      UPDATE_TODAY_NUTRITION: '更新今天的营养？',
+      UPDATE_TODAY_MEALS: '更新今天的餐食？',
+      UPDATE_TODAY_WORKOUT: '更新今天的训练？',
+      REVIEW_TODAY_PLAN: '查看今天的计划？',
+      SAFETY_REVIEW_RECOMMENDED: '今天需要安全查看吗？'
+    },
+    messages: {
+      CHANGE_CAN_AFFECT_TODAY_PLAN: '此更改可能影响你今天已有的计划。',
+      WEIGHT_CAN_AFFECT_NUTRITION: '更新后的体重可能会改变今天的营养目标和餐食建议。',
+      GOAL_CHANGED: '目标或应用模式已更改，今天的饮食和训练建议可能不再匹配。',
+      FOOD_MAY_APPEAR: '今天的餐食可能包含你刚刚更改的食物。',
+      TRAINING_ROUTINE_CHANGED: '训练设置已更改，今天的训练和营养支持可能需要刷新。',
+      USE_LATEST_HEALTH_DATA: '新的健康数据可帮助今天的计划反映最新活动、睡眠或恢复情况。',
+      PAIN_LIMITATION_REVIEW: '疼痛或限制应始终降低强度。继续高强度训练前请查看计划。'
+    },
+    actions: {
+      UPDATE_TODAY_PLAN: '更新今天的计划',
+      UPDATE_TODAY_MEALS: '更新今天的餐食',
+      UPDATE_TODAY_TRAINING: '更新今天的训练',
+      REVIEW_SAFETY: '安全查看',
+      APPLY_TO_FUTURE_ONLY: '仅应用到未来计划',
+      KEEP_CURRENT_PLAN: '保留当前计划'
+    }
+  }
 });

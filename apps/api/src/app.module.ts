@@ -12,6 +12,7 @@ import { HealthModule } from './modules/health/health.module';
 import { NutritionPreferencesModule } from './modules/nutrition-preferences/nutrition-preferences.module';
 import { NutritionTargetsModule } from './modules/nutrition-targets/nutrition-targets.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { PlanImpactModule } from './modules/plan-impact/plan-impact.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ProgressiveProfileModule } from './modules/progressive-profile/progressive-profile.module';
 import { ProtocolModule } from './modules/protocol/protocol.module';
@@ -41,6 +42,7 @@ import { PrismaModule } from './prisma/prisma.module';
     HealthModule,
     NutritionPreferencesModule,
     NutritionTargetsModule,
+    PlanImpactModule,
     TrainingScheduleModule,
     TrainingOverridesModule,
     TrainingPreferencesModule,

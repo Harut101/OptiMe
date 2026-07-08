@@ -86,6 +86,8 @@ Apple Health iOS MVP strings also live under `health`, including Connect Apple H
 
 The Health Data Readiness prompt before Generate Plan also lives under `health` in all four supported locales. Required concepts include Update health data, Connect health data, Sync now, Continue without latest data, Continue without health data, Not now, no Apple Health data for today, permission denied, and Expo Go/native-module unavailable. Use complete translated sentences; do not concatenate provider/action fragments manually.
 
+Plan Impact prompt strings live under `planImpact` in all four supported mobile locales. The backend returns stable prompt codes such as `UPDATE_TODAY_NUTRITION`, `FOOD_MAY_APPEAR`, and `APPLY_TO_FUTURE_ONLY`; mobile maps those codes to localized copy. Do not persist translated prompt text.
+
 ## UI polish strings
 
 The UI polish pass reused existing localized strings for headers, status labels, empty states, errors, and health connection actions. New visual primitives receive already-localized text from their calling screens. Avoid adding English-only props or manually concatenated English fragments when extending these primitives.

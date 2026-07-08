@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { goalSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 
+import { generateTodayPlan } from '@/api/daily-plans';
 import { getGoal, saveGoal } from '@/api/goals';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
@@ -21,10 +23,16 @@ import {
   toGoalRequest
 } from '@/features/goals/GoalsForm';
 import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { colors } from '@/theme/colors';
 import { formatWeight } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
+import type { EvaluatePlanImpactResponse, PlanImpactChangeType } from '@/types/api';
 
 export default function GoalEditorScreen() {
   const { t } = useTranslation();
@@ -37,6 +45,9 @@ export default function GoalEditorScreen() {
   const [persistedValue, setPersistedValue] = useState<GoalsFormValue>(EMPTY_GOALS_FORM);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+  const pendingChangeTypes = useRef<PlanImpactChangeType[]>(['PRIMARY_GOAL_CHANGED']);
 
   useEffect(() => {
     if (goal.data) {
@@ -51,7 +62,7 @@ export default function GoalEditorScreen() {
 
   const mutation = useMutation({
     mutationFn: saveGoal,
-    onSuccess: (savedGoal) => {
+    onSuccess: async (savedGoal) => {
       const next = fromGoalResponse(savedGoal);
       queryClient.setQueryData(['goal'], savedGoal);
       setValue(next);
@@ -59,6 +70,27 @@ export default function GoalEditorScreen() {
       setEditing(false);
       setValidationError(null);
       setSuccessMessage(t('goals.savedMessage'));
+      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+      await evaluateGoalPlanImpact(pendingChangeTypes.current);
+    }
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['today-plan'], data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setSuccessMessage(t('today.refreshed'));
+      await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
     }
   });
 
@@ -79,6 +111,13 @@ export default function GoalEditorScreen() {
     setValidationError(null);
     const modeChanged = value.impactMode !== persistedValue.impactMode;
     const goalChanged = value.primaryGoal !== persistedValue.primaryGoal;
+    pendingChangeTypes.current = [
+      ...(goalChanged ? ['PRIMARY_GOAL_CHANGED' as const] : []),
+      ...(modeChanged ? ['APP_MODE_CHANGED' as const] : [])
+    ];
+    if (pendingChangeTypes.current.length === 0) {
+      pendingChangeTypes.current = ['PRIMARY_GOAL_CHANGED'];
+    }
 
     if (modeChanged || goalChanged) {
       Alert.alert(
@@ -148,8 +187,29 @@ export default function GoalEditorScreen() {
       ) : null}
 
       {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={regenerateTodayPlan.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setSuccessMessage(t('planImpact.futureOnlySaved'));
+        }}
+      />
     </Screen>
   );
+
+  async function evaluateGoalPlanImpact(changeTypes: PlanImpactChangeType[]) {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
 }
 
 const styles = StyleSheet.create({

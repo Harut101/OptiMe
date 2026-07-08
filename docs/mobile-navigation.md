@@ -1,5 +1,11 @@
 # Mobile Navigation
 
+## Plan Impact Prompts
+
+Plan Impact prompts are inline cards, not separate routes. They may appear after successful saves in Today, Goals, Food, Training, and Health data. The primary action reuses the existing Today plan refresh flow; the secondary action dismisses the prompt and applies the change to future plans only.
+
+Existing screens should keep their current navigation responsibilities. Do not route users away automatically after a preference save just because today's plan may be affected.
+
 OptiMe uses Expo Router.
 
 Primary tabs remain:

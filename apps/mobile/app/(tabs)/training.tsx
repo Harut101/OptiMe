@@ -6,13 +6,16 @@ import { useTranslation } from 'react-i18next';
 import type {
   DayOfWeek,
   ExerciseEquipment,
+  PlanImpactChangeType,
   ResolvedTrainingDayContext,
   TargetMuscleGroup,
   TrainingScheduleRequest,
   TrainingScheduleResponse
 } from '@optime/shared-types';
 
+import { generateTodayPlan } from '@/api/daily-plans';
 import { getGoal } from '@/api/goals';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getTrainingPreferences, saveTrainingPreferences } from '@/api/training-preferences';
 import {
   deactivateTrainingSchedule,
@@ -28,6 +31,11 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import {
   EMPTY_TRAINING_SETUP,
   fromTrainingPreference,
@@ -53,11 +61,16 @@ import {
   getTrainingLevelLabel,
   getTrainingOutcomeLabel
 } from '@/i18n/enum-labels';
+import { useSettingsStore } from '@/store/settings-store';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
+import type { EvaluatePlanImpactResponse } from '@/types/api';
+
+const TODAY_PLAN_QUERY_KEY = ['today' + '-plan'] as const;
 
 export default function TrainingScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const preferences = useQuery({ queryKey: ['training-preferences'], queryFn: getTrainingPreferences });
   const weeklySchedule = useQuery({ queryKey: ['training-schedule'], queryFn: getTrainingSchedule });
   const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
@@ -67,6 +80,8 @@ export default function TrainingScreen() {
   const [value, setValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
   const [savedValue, setSavedValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
 
   useEffect(() => {
     if (preferences.data) {
@@ -88,33 +103,55 @@ export default function TrainingScreen() {
 
   const saveSettings = useMutation({
     mutationFn: saveTrainingPreferences,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      const impactChangeTypes = buildTrainingPreferenceImpactTypes(value, savedValue);
       const next = fromTrainingPreference(data);
       setValue(next);
       setSavedValue(next);
       setEditingSettings(false);
       setSuccessMessage(t('training.savedMessage'));
       queryClient.setQueryData(['training-preferences'], data);
-      void queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
+      await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
+      await evaluateTrainingPlanImpact(impactChangeTypes);
     }
   });
   const saveSchedule = useMutation({
     mutationFn: saveTrainingSchedule,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setDraft(toDraft(data));
       queryClient.setQueryData(['training-schedule'], data);
       setSuccessMessage(t('schedule.savedMessage'));
+      await evaluateTrainingPlanImpact(['TRAINING_ROUTINE_CHANGED']);
     },
     onError: () => Alert.alert(t('schedule.saveFailed'), t('errors.unableSave'))
   });
   const deactivateSchedule = useMutation({
     mutationFn: deactivateTrainingSchedule,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setDraft(toDraft(data));
       queryClient.setQueryData(['training-schedule'], data);
       setSuccessMessage(t('schedule.deactivatedMessage'));
+      await evaluateTrainingPlanImpact(['TRAINING_ROUTINE_CHANGED']);
     },
     onError: () => Alert.alert(t('schedule.deleteFailed'), t('errors.unableSave'))
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(TODAY_PLAN_QUERY_KEY, data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setSuccessMessage(t('today.refreshed'));
+      await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
+    }
   });
 
   if (preferences.isLoading || weeklySchedule.isLoading || goal.isLoading) {
@@ -159,6 +196,17 @@ export default function TrainingScreen() {
         title={t('training.trainingLoadNote')}
         message={t('training.trainingLoadMessage')}
         tone="training"
+      />
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={regenerateTodayPlan.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setSuccessMessage(t('planImpact.futureOnlySaved'));
+        }}
       />
       <WeeklyScheduleSection
         response={weeklySchedule.data!}
@@ -211,6 +259,16 @@ export default function TrainingScreen() {
       {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
     </Screen>
   );
+
+  async function evaluateTrainingPlanImpact(changeTypes: PlanImpactChangeType[]) {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
 }
 
 function TodaysWorkoutCard({ response }: { response: TrainingScheduleResponse }) {
@@ -389,6 +447,28 @@ function formatEquipment(t: ReturnType<typeof useTranslation>['t'], equipment: E
 function getTodayDayOfWeek(): DayOfWeek {
   const index = new Date().getDay();
   return (['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const)[index];
+}
+
+function buildTrainingPreferenceImpactTypes(
+  next: TrainingSetupFormValue,
+  previous: TrainingSetupFormValue
+): PlanImpactChangeType[] {
+  const changeTypes = new Set<PlanImpactChangeType>();
+  if (listChanged(next.targetMuscleGroups, previous.targetMuscleGroups)) {
+    changeTypes.add('TRAINING_MUSCLES_CHANGED');
+  }
+  if (listChanged(next.equipment, previous.equipment)) {
+    changeTypes.add('TRAINING_EQUIPMENT_CHANGED');
+  }
+  if (next.trainingLevel !== previous.trainingLevel || next.trainingOutcome !== previous.trainingOutcome) {
+    changeTypes.add('TRAINING_ROUTINE_CHANGED');
+  }
+
+  return changeTypes.size ? [...changeTypes] : ['TRAINING_ROUTINE_CHANGED'];
+}
+
+function listChanged(next: string[], previous: string[]) {
+  return JSON.stringify([...next].sort()) !== JSON.stringify([...previous].sort());
 }
 
 const styles = StyleSheet.create({

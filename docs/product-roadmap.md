@@ -112,6 +112,10 @@ Added consent-based health summary foundations:
 - `debug.healthSignals` booleans only.
 - Weight and heart-rate fields excluded from planning context.
 
+### Plan Impact Foundation
+
+Added a read-only impact evaluation layer so OptiMe can explain when profile, goal, food, training, or health changes may affect today's already-generated plan. Mobile now offers a contextual choice to update today's plan or apply the change to future plans only. Evaluation itself does not consume usage; actual regeneration still goes through existing usage-guarded daily plan refresh.
+
 ## Current Product State
 
 OptiMe can now:

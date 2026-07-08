@@ -10,6 +10,7 @@ import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
 import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getTrainingSchedule } from '@/api/training-schedule';
 import { getTrainingOverride, saveTrainingOverride } from '@/api/training-overrides';
 import { createWeightLog, getWeightSummary } from '@/api/weight';
@@ -45,6 +46,7 @@ import {
   formatUsageLimitMessage,
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import { colors } from '@/theme/colors';
 import { formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
@@ -65,7 +67,7 @@ import {
   formatWorkoutSetCount,
   getWorkoutAccessibilityLabel
 } from '@/features/workout/workout-summary';
-import type { ProgressivePrompt, DailyPlanJson } from '@/types/api';
+import type { ProgressivePrompt, DailyPlanJson, EvaluatePlanImpactResponse } from '@/types/api';
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -80,6 +82,8 @@ export default function TodayScreen() {
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [healthReadinessMessage, setHealthReadinessMessage] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const [weightModalVisible, setWeightModalVisible] = useState(false);
   const [weightError, setWeightError] = useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
@@ -152,6 +156,7 @@ export default function TodayScreen() {
       await queryClient.invalidateQueries({ queryKey: ['weight-logs'] });
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+      await evaluateCurrentPlanImpact(['PROFILE_WEIGHT_CHANGED']);
     },
     onError: () => setWeightError(t('weight.couldNotSave'))
   });
@@ -163,6 +168,8 @@ export default function TodayScreen() {
       await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
       setLimitMessage(null);
+      setPlanImpact(null);
+      setPlanImpactError(null);
       setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
     },
     onError: (error) => {
@@ -378,6 +385,26 @@ export default function TodayScreen() {
         />
       ) : null}
 
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={generate.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => {
+          if (planImpact?.prompt?.requiresAiGeneration) {
+            void continueThroughHealthReadiness(true);
+            return;
+          }
+
+          setPlanImpact(null);
+          router.push('/plan-details');
+        }}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setRefreshMessage(t('planImpact.futureOnlySaved'));
+        }}
+      />
+
       {progressivePrompt.data ? (
         <ProgressivePromptCard
           prompt={progressivePrompt.data}
@@ -564,6 +591,20 @@ export default function TodayScreen() {
       );
     } catch {
       Alert.alert(t('schedule.unavailable'), t('errors.unableLoad'));
+    }
+  }
+
+  async function evaluateCurrentPlanImpact(
+    changeTypes: Parameters<typeof evaluatePlanImpact>[0]['changeTypes'],
+    newValues?: Record<string, unknown>
+  ) {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes, newValues });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+      setPlanImpactError(t('planImpact.unavailable'));
     }
   }
 

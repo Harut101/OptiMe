@@ -99,6 +99,7 @@ Reason: the user attempted an expensive product action, and backend work/provide
 These actions do not consume usage:
 
 - `GET /v1/daily-plans/today`.
+- `POST /v1/plan-impact/evaluate`.
 - Returning an existing Today plan when `forceRegenerate=false`.
 - Auth failures.
 - Incomplete onboarding when generation does not start.
@@ -107,6 +108,8 @@ These actions do not consume usage:
 - Fetching history or usage summary.
 - Internal schema validation or safety checks.
 - Free deterministic training-load fallback guidance.
+
+Plan Impact may report `entitlementFeatureKey=DAILY_PLAN_REFRESH` and `usageCost=1` when updating today's plan is recommended. That is informational only. Usage is consumed only if the user chooses to refresh/regenerate the plan through the existing daily plan endpoint.
 
 ## Friendly Limit Error
 

@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
+import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import {
   getNutritionPreferences,
   saveNutritionPreferences
 } from '@/api/nutrition-preferences';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -38,6 +39,7 @@ import {
   formatUsageLimitMessage,
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import {
   FOOD_STATUSES,
   formatFoodProgress,
@@ -47,7 +49,15 @@ import {
   getMealStatusActionLabel,
   getMealStatusLabel
 } from '@/features/food-tracking/food-tracking-summary';
-import type { DailyFoodPlan, FoodDayLogResponse, FoodMeal, FoodMealProgressStatus } from '@/types/api';
+import type {
+  DailyFoodPlan,
+  EvaluatePlanImpactResponse,
+  FoodDayLogResponse,
+  FoodMeal,
+  FoodMealProgressStatus,
+  NutritionPreferencesRequest,
+  PlanImpactChangeType
+} from '@/types/api';
 
 const TODAY_PLAN_QUERY_KEY = ['today' + '-plan'] as const;
 
@@ -78,6 +88,8 @@ export default function FoodScreen() {
   const [savedValue, setSavedValue] = useState<FoodPreferencesFormValue>(EMPTY_FOOD_PREFERENCES);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
 
   useEffect(() => {
     if (preferences.data) {
@@ -93,6 +105,7 @@ export default function FoodScreen() {
   const mutation = useMutation({
     mutationFn: saveNutritionPreferences,
     onSuccess: async (data) => {
+      const impactRequest = buildFoodPlanImpactRequest(toNutritionPreferencesRequest(value), savedValue);
       const next = fromNutritionPreferencesResponse(data);
       setValue(next);
       setSavedValue(next);
@@ -100,6 +113,27 @@ export default function FoodScreen() {
       setValidationError(null);
       setSuccessMessage(t('food.savedMessage'));
       queryClient.setQueryData(['nutrition-preferences'], data);
+      await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+      await evaluateFoodPlanImpact(impactRequest.changeTypes, impactRequest.newValues);
+    }
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(TODAY_PLAN_QUERY_KEY, data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setSuccessMessage(t('today.refreshed'));
+      await queryClient.invalidateQueries({ queryKey: TODAY_PLAN_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
     }
   });
   const regenerateMenu = useMutation({
@@ -169,6 +203,19 @@ export default function FoodScreen() {
     mutation.mutate(toNutritionPreferencesRequest(value));
   };
 
+  async function evaluateFoodPlanImpact(
+    changeTypes: PlanImpactChangeType[],
+    newValues: Record<string, unknown>
+  ) {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes, newValues });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
+
   return (
     <Screen>
       <ScreenHeader title={t('food.title')} subtitle={t('food.intro')} />
@@ -176,6 +223,18 @@ export default function FoodScreen() {
       <NutritionTargetSummaryCard
         target={nutritionTarget.data}
         isUnavailable={!nutritionTarget.data && nutritionTarget.isError}
+      />
+
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={regenerateTodayPlan.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setSuccessMessage(t('planImpact.futureOnlySaved'));
+        }}
       />
 
       {todayPlan.data?.plan.nutrition.foodPlan ? (
@@ -458,3 +517,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   }
 });
+
+function buildFoodPlanImpactRequest(
+  next: NutritionPreferencesRequest,
+  previous: FoodPreferencesFormValue
+): {
+  changeTypes: PlanImpactChangeType[];
+  newValues: Record<string, unknown>;
+} {
+  const changeTypes = new Set<PlanImpactChangeType>();
+  const previousAllergies = splitFoodList(previous.allergies);
+  const previousExcluded = splitFoodList(previous.excludedFoods);
+  const previousDisliked = splitFoodList(previous.dislikedFoods);
+
+  if (listChanged(next.allergies ?? [], previousAllergies)) changeTypes.add('ALLERGY_CHANGED');
+  if (listChanged(next.excludedFoods ?? [], previousExcluded)) changeTypes.add('EXCLUDED_FOOD_CHANGED');
+  if (listChanged(next.dislikedFoods ?? [], previousDisliked)) changeTypes.add('DISLIKED_FOOD_CHANGED');
+  if (next.mealsPerDay !== Number(previous.mealsPerDay)) changeTypes.add('MEAL_COUNT_CHANGED');
+
+  if (changeTypes.size === 0) changeTypes.add('FOOD_PREFERENCES_CHANGED');
+
+  return {
+    changeTypes: [...changeTypes],
+    newValues: {
+      allergies: next.allergies ?? [],
+      excludedFoods: next.excludedFoods ?? [],
+      dislikedFoods: next.dislikedFoods ?? []
+    }
+  };
+}
+
+function splitFoodList(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function listChanged(next: string[], previous: string[]) {
+  const normalize = (items: string[]) => items.map((item) => item.toLowerCase().trim()).sort();
+  return JSON.stringify(normalize(next)) !== JSON.stringify(normalize(previous));
+}

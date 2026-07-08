@@ -789,6 +789,113 @@ export interface WeightSummary {
   safetyStatus: WeightSafetyStatus;
 }
 
+export type UsageFeature =
+  | 'DAILY_PLAN_GENERATION'
+  | 'DAILY_PLAN_REFRESH'
+  | 'AI_DAILY_PLAN_GENERATION'
+  | 'AI_SAFETY_AGENT_REVIEW'
+  | 'MEAL_REGENERATION'
+  | 'MENU_REGENERATION'
+  | 'AI_TRAINING_LOAD_AGENT'
+  | 'FUTURE_AI_COACH_MESSAGE';
+
+export type PlanImpactSection =
+  | 'NUTRITION_TARGET'
+  | 'FOOD_PLAN'
+  | 'TRAINING_PLAN'
+  | 'RECOVERY'
+  | 'REMINDERS'
+  | 'SAFETY'
+  | 'WEARABLE_CONTEXT';
+
+export type PlanImpactSeverity =
+  | 'NONE'
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH'
+  | 'SAFETY_CRITICAL';
+
+export type PlanImpactChangeType =
+  | 'PROFILE_WEIGHT_CHANGED'
+  | 'PROFILE_HEIGHT_CHANGED'
+  | 'ACTIVITY_LEVEL_CHANGED'
+  | 'PRIMARY_GOAL_CHANGED'
+  | 'APP_MODE_CHANGED'
+  | 'FOOD_PREFERENCES_CHANGED'
+  | 'ALLERGY_CHANGED'
+  | 'EXCLUDED_FOOD_CHANGED'
+  | 'DISLIKED_FOOD_CHANGED'
+  | 'MEAL_COUNT_CHANGED'
+  | 'TRAINING_ROUTINE_CHANGED'
+  | 'DAILY_TRAINING_OVERRIDE_CHANGED'
+  | 'TRAINING_DURATION_CHANGED'
+  | 'TRAINING_EQUIPMENT_CHANGED'
+  | 'TRAINING_MUSCLES_CHANGED'
+  | 'APPLE_HEALTH_SYNCED'
+  | 'WEARABLE_SNAPSHOT_CHANGED'
+  | 'PRE_WORKOUT_PAIN_LIMITATION'
+  | 'PAIN_AWARE_REPLACEMENT_APPLIED';
+
+export type PlanRegenerationPrimaryAction =
+  | 'UPDATE_TODAY_PLAN'
+  | 'UPDATE_TODAY_MEALS'
+  | 'UPDATE_TODAY_TRAINING'
+  | 'REVIEW_SAFETY';
+
+export type PlanRegenerationSecondaryAction =
+  | 'APPLY_TO_FUTURE_ONLY'
+  | 'KEEP_CURRENT_PLAN';
+
+export interface PlanRegenerationPrompt {
+  titleCode:
+    | 'UPDATE_TODAY_PLAN'
+    | 'UPDATE_TODAY_NUTRITION'
+    | 'UPDATE_TODAY_MEALS'
+    | 'UPDATE_TODAY_WORKOUT'
+    | 'REVIEW_TODAY_PLAN'
+    | 'SAFETY_REVIEW_RECOMMENDED';
+  messageCode:
+    | 'CHANGE_CAN_AFFECT_TODAY_PLAN'
+    | 'WEIGHT_CAN_AFFECT_NUTRITION'
+    | 'GOAL_CHANGED'
+    | 'FOOD_MAY_APPEAR'
+    | 'TRAINING_ROUTINE_CHANGED'
+    | 'USE_LATEST_HEALTH_DATA'
+    | 'PAIN_LIMITATION_REVIEW';
+  primaryAction: PlanRegenerationPrimaryAction;
+  secondaryAction: PlanRegenerationSecondaryAction;
+  requiresAiGeneration: boolean;
+  usageCost: number | null;
+  safetyCritical: boolean;
+}
+
+export interface PlanImpactResult {
+  affectsCurrentPlan: boolean;
+  affectedSections: PlanImpactSection[];
+  severity: PlanImpactSeverity;
+  changeTypes: PlanImpactChangeType[];
+  currentDailyPlanId: string | null;
+  currentPlanLocalDate: string | null;
+  deterministicUpdateAvailable: boolean;
+  aiRegenerationRecommended: boolean;
+  aiRegenerationRequiredForFullUpdate: boolean;
+  safetyCritical: boolean;
+  safetyActionsRequired: string[];
+  entitlementFeatureKey: UsageFeature | null;
+  usageCost: number | null;
+  reasonCodes: string[];
+  prompt: PlanRegenerationPrompt | null;
+}
+
+export interface EvaluatePlanImpactRequest {
+  changeTypes: PlanImpactChangeType[];
+  localDate?: string;
+  changedFields?: string[];
+  newValues?: Record<string, unknown>;
+}
+
+export interface EvaluatePlanImpactResponse extends PlanImpactResult {}
+
 export interface UpsertWearableSnapshotRequest {
   localDate: string;
   timezone: string;

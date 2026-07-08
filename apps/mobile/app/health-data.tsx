@@ -4,12 +4,14 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
+import { generateTodayPlan } from '@/api/daily-plans';
 import {
   createMockWearableSnapshot,
   getHealthConnections,
   getTodayWearableSnapshot,
   updateHealthConnectionStatus
 } from '@/api/health';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
@@ -21,11 +23,21 @@ import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { nativeHealthService, NativeHealthServiceError } from '@/features/health/native-health.service';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import { getHealthProviderLabel } from '@/i18n/enum-labels';
 import { formatNumber, formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
 import { colors } from '@/theme/colors';
-import type { HealthConnectionFoundation, HealthProvider, WearableSnapshotResponse } from '@/types/api';
+import type {
+  EvaluatePlanImpactResponse,
+  HealthConnectionFoundation,
+  HealthProvider,
+  WearableSnapshotResponse
+} from '@/types/api';
 
 const FOUNDATION_SOURCES: HealthProvider[] = ['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'GARMIN'];
 
@@ -34,6 +46,8 @@ export default function HealthDataScreen() {
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const connections = useQuery({
     queryKey: ['health-connections'],
     queryFn: getHealthConnections
@@ -58,6 +72,7 @@ export default function HealthDataScreen() {
       await queryClient.invalidateQueries({ queryKey: ['health-connections'] });
       await queryClient.invalidateQueries({ queryKey: ['wearable-snapshot', 'today'] });
       await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await evaluateHealthPlanImpact('WEARABLE_SNAPSHOT_CHANGED');
     }
   });
   const appleHealthSync = useMutation({
@@ -65,6 +80,9 @@ export default function HealthDataScreen() {
     onSuccess: async (result) => {
       await refreshHealthQueries(queryClient);
       setActionMessage(getAppleHealthResultMessage(t, result));
+      if (result.messageCode === 'SYNCED') {
+        await evaluateHealthPlanImpact('APPLE_HEALTH_SYNCED');
+      }
     },
     onError: (error) => {
       setActionMessage(getAppleHealthErrorMessage(t, error));
@@ -82,6 +100,25 @@ export default function HealthDataScreen() {
     },
     onError: () => {
       setActionMessage(t('health.syncError'));
+    }
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['today-plan'], data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setActionMessage(t('today.refreshed'));
+      await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
     }
   });
   const connectedSources = connections.data?.connections.filter((item) => item.status === 'CONNECTED') ?? [];
@@ -137,6 +174,18 @@ export default function HealthDataScreen() {
         locale={preferredLocale}
       />
 
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={regenerateTodayPlan.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setActionMessage(t('planImpact.futureOnlySaved'));
+        }}
+      />
+
       <Card>
         <Text variant="label">{t('health.manage')}</Text>
         <Text variant="muted">{t('health.syncHelp')}</Text>
@@ -189,6 +238,16 @@ export default function HealthDataScreen() {
       ) : null}
     </Screen>
   );
+
+  async function evaluateHealthPlanImpact(changeType: 'APPLE_HEALTH_SYNCED' | 'WEARABLE_SNAPSHOT_CHANGED') {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes: [changeType] });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
 }
 
 function ConnectionCard({

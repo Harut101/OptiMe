@@ -273,4 +273,40 @@ export const frFR = createLocaleResource({
     location: 'Environnement',
     equipmentRule: "L'environnement n'ajoute ni ne retire d'équipement. Choisissez exactement ce qui est disponible."
   }
+}, {
+  planImpact: {
+    label: 'Impact sur le plan actuel',
+    futureOnlySaved: 'Enregistré pour les prochains plans.',
+    unavailable: "Impossible de vérifier l'impact sur le plan pour le moment.",
+    safetyTitle: 'Mise à jour axée sécurité',
+    safetyMessage: "Ce changement peut toucher des conseils sensibles. Revoyez le plan d'aujourd'hui avant de pousser l'entraînement.",
+    usesGeneration: "Mettre à jour aujourd'hui peut utiliser {{count}} actualisation de plan.",
+    mayUseGeneration: "Mettre à jour aujourd'hui peut utiliser une actualisation de plan.",
+    noGenerationNeeded: 'Vous pouvez revoir cela sans actualiser le plan.',
+    titles: {
+      UPDATE_TODAY_PLAN: "Mettre à jour le plan d'aujourd'hui ?",
+      UPDATE_TODAY_NUTRITION: "Mettre à jour la nutrition d'aujourd'hui ?",
+      UPDATE_TODAY_MEALS: "Mettre à jour les repas d'aujourd'hui ?",
+      UPDATE_TODAY_WORKOUT: "Mettre à jour l'entraînement d'aujourd'hui ?",
+      REVIEW_TODAY_PLAN: "Revoir le plan d'aujourd'hui ?",
+      SAFETY_REVIEW_RECOMMENDED: "Revoir la sécurité aujourd'hui ?"
+    },
+    messages: {
+      CHANGE_CAN_AFFECT_TODAY_PLAN: "Ce changement peut affecter le plan déjà créé pour aujourd'hui.",
+      WEIGHT_CAN_AFFECT_NUTRITION: "Votre poids mis à jour peut modifier la cible nutritionnelle et les repas d'aujourd'hui.",
+      GOAL_CHANGED: "Votre objectif ou mode a changé, donc les conseils d'aujourd'hui peuvent ne plus correspondre.",
+      FOOD_MAY_APPEAR: "Les repas d'aujourd'hui peuvent contenir des aliments que vous venez de modifier.",
+      TRAINING_ROUTINE_CHANGED: "Votre entraînement a changé, donc la séance et le soutien nutritionnel d'aujourd'hui peuvent nécessiter une actualisation.",
+      USE_LATEST_HEALTH_DATA: "Les nouvelles données de santé peuvent aider le plan d'aujourd'hui à refléter votre activité, sommeil ou récupération.",
+      PAIN_LIMITATION_REVIEW: "La douleur ou les limites doivent toujours réduire l'intensité. Revoyez le plan avant de pousser."
+    },
+    actions: {
+      UPDATE_TODAY_PLAN: "Mettre à jour aujourd'hui",
+      UPDATE_TODAY_MEALS: 'Mettre à jour les repas',
+      UPDATE_TODAY_TRAINING: "Mettre à jour l'entraînement",
+      REVIEW_SAFETY: 'Revoir prudemment',
+      APPLY_TO_FUTURE_ONLY: 'Appliquer seulement aux prochains plans',
+      KEEP_CURRENT_PLAN: 'Garder le plan actuel'
+    }
+  }
 });

@@ -26,6 +26,41 @@
       aiTrainingLoadAgent: 'AI training-load guidance'
     }
   },
+  planImpact: {
+    label: 'Current plan impact',
+    futureOnlySaved: 'Saved for future plans.',
+    unavailable: 'Plan impact could not be checked right now.',
+    safetyTitle: 'Safety-first update',
+    safetyMessage: 'This change may affect safety-sensitive guidance. Review today before continuing hard training.',
+    usesGeneration: 'Updating today may use {{count}} plan refresh.',
+    mayUseGeneration: 'Updating today may use a plan refresh.',
+    noGenerationNeeded: 'You can review this safely without using a plan refresh.',
+    titles: {
+      UPDATE_TODAY_PLAN: 'Update today’s plan?',
+      UPDATE_TODAY_NUTRITION: 'Update today’s nutrition?',
+      UPDATE_TODAY_MEALS: 'Update today’s meals?',
+      UPDATE_TODAY_WORKOUT: 'Update today’s workout?',
+      REVIEW_TODAY_PLAN: 'Review today’s plan?',
+      SAFETY_REVIEW_RECOMMENDED: 'Review today for safety?'
+    },
+    messages: {
+      CHANGE_CAN_AFFECT_TODAY_PLAN: 'This change can affect the plan you already have for today.',
+      WEIGHT_CAN_AFFECT_NUTRITION: 'Your updated weight can change today’s nutrition target and meal guidance.',
+      GOAL_CHANGED: 'Your goal or app mode changed, so today’s nutrition and training guidance may no longer match.',
+      FOOD_MAY_APPEAR: 'Today’s meals may include foods you just changed. You can update today or keep this for future plans.',
+      TRAINING_ROUTINE_CHANGED: 'Your training setup changed, so today’s workout and nutrition support may need a refresh.',
+      USE_LATEST_HEALTH_DATA: 'New health data can help today’s plan reflect your latest activity, sleep, or recovery context.',
+      PAIN_LIMITATION_REVIEW: 'Pain or limitations should always reduce intensity. Review today before pushing.'
+    },
+    actions: {
+      UPDATE_TODAY_PLAN: 'Update today’s plan',
+      UPDATE_TODAY_MEALS: 'Update today’s meals',
+      UPDATE_TODAY_TRAINING: 'Update today’s workout',
+      REVIEW_SAFETY: 'Review safely',
+      APPLY_TO_FUTURE_ONLY: 'Apply to future plans only',
+      KEEP_CURRENT_PLAN: 'Keep current plan'
+    }
+  },
   todayDashboard: {
     nutritionProgress: 'Nutrition progress',
     trainingProgress: 'Training progress',

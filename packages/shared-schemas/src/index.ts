@@ -44,6 +44,35 @@ export const createWeightLogSchema = z.object({
   note: z.string().trim().max(240).optional()
 });
 
+export const planImpactChangeTypeSchema = z.enum([
+  'PROFILE_WEIGHT_CHANGED',
+  'PROFILE_HEIGHT_CHANGED',
+  'ACTIVITY_LEVEL_CHANGED',
+  'PRIMARY_GOAL_CHANGED',
+  'APP_MODE_CHANGED',
+  'FOOD_PREFERENCES_CHANGED',
+  'ALLERGY_CHANGED',
+  'EXCLUDED_FOOD_CHANGED',
+  'DISLIKED_FOOD_CHANGED',
+  'MEAL_COUNT_CHANGED',
+  'TRAINING_ROUTINE_CHANGED',
+  'DAILY_TRAINING_OVERRIDE_CHANGED',
+  'TRAINING_DURATION_CHANGED',
+  'TRAINING_EQUIPMENT_CHANGED',
+  'TRAINING_MUSCLES_CHANGED',
+  'APPLE_HEALTH_SYNCED',
+  'WEARABLE_SNAPSHOT_CHANGED',
+  'PRE_WORKOUT_PAIN_LIMITATION',
+  'PAIN_AWARE_REPLACEMENT_APPLIED'
+]);
+
+export const evaluatePlanImpactSchema = z.object({
+  changeTypes: z.array(planImpactChangeTypeSchema).min(1).max(12),
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  changedFields: z.array(z.string().trim().min(1).max(80)).max(40).optional(),
+  newValues: z.record(z.unknown()).optional()
+});
+
 export const goalSchema = z.object({
   goalType: z.enum([
     'HEALTHY_LIFESTYLE',
