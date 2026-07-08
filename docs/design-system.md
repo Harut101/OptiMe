@@ -96,3 +96,14 @@ The Design System Preview now includes the v2 mobile component language:
 These are presentation-only primitives. They do not change DailyPlan generation, food tracking, workout execution, Health sync, usage limits, or backend contracts.
 
 Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.
+
+## System Element Refinement
+
+The v2 system also standardizes small native-feeling controls:
+
+- Bottom tabs use a compact iOS-style bar with strong active tint, muted inactive labels, safe-area padding, and no duplicate tab-stack header.
+- `SelectChips` behaves like a lightweight segmented picker for single-choice controls.
+- `MultiSelectChips` remains pill-based for multi-choice controls, with clearer active contrast and accessible checked state.
+- `Field` inputs use rounded elevated surfaces, subtle borders, and comfortable 52pt minimum height.
+
+These refinements are presentation-only and preserve existing form payloads, validation, routing, and API behavior.

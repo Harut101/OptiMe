@@ -20,8 +20,10 @@ export function SelectChips<T extends string>({ label, value, options, onChange 
           return (
             <Pressable
               key={option.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               onPress={() => onChange(option.value)}
-              style={[styles.chip, active ? styles.activeChip : null]}
+              style={({ pressed }) => [styles.chip, active ? styles.activeChip : null, pressed ? styles.pressed : null]}
             >
               <Text style={[styles.chipText, active ? styles.activeText : null]}>{option.label}</Text>
             </Pressable>
@@ -39,26 +41,38 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8
+    gap: 6,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 18,
+    padding: 4
   },
   chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: 14,
+    justifyContent: 'center',
+    minHeight: 38,
+    paddingHorizontal: 14,
+    paddingVertical: 8
   },
   activeChip: {
-    borderColor: colors.nutrition,
-    backgroundColor: colors.nutritionMuted
+    backgroundColor: colors.surfaceElevated,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2
+  },
+  pressed: {
+    opacity: 0.82
   },
   chipText: {
-    fontSize: 14,
-    color: colors.textPrimary
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '700'
   },
   activeText: {
-    color: colors.primaryDark,
-    fontWeight: '700'
+    color: colors.textPrimary,
+    fontWeight: '800'
   }
 });

@@ -24,6 +24,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { MealCardV2 } from '@/components/MealCardV2';
 import { MiniBarChart } from '@/components/MiniBarChart';
 import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
+import { SelectChips } from '@/components/SelectChips';
 import { SettingsListItem } from '@/components/SettingsListItem';
 import { StatusPill } from '@/components/StatusPill';
 import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
@@ -38,6 +39,7 @@ import type { WearableSnapshotResponse } from '@/types/api';
 export default function DesignSystemPreviewScreen() {
   const { t } = useTranslation();
   const [coachVisible, setCoachVisible] = useState(false);
+  const [segmentPreview, setSegmentPreview] = useState<'D' | 'W' | 'M' | '6M' | 'Y'>('W');
   const lightColorEntries = Object.entries(uiColors);
   const darkColorEntries = Object.entries(uiDarkColors);
   const previewWearableSnapshot: WearableSnapshotResponse = {
@@ -133,6 +135,18 @@ export default function DesignSystemPreviewScreen() {
           <Chip label={t('appModes.nutritionOnly')} selected />
           <Chip label={t('appModes.nutritionTraining')} />
         </View>
+        <SelectChips
+          label="Segmented_Picker_Component"
+          value={segmentPreview}
+          onChange={setSegmentPreview}
+          options={[
+            { label: 'D', value: 'D' },
+            { label: 'W', value: 'W' },
+            { label: 'M', value: 'M' },
+            { label: '6M', value: '6M' },
+            { label: 'Y', value: 'Y' }
+          ]}
+        />
         <ProgressBar value={0.62} />
         <View style={styles.row}>
           <StatusPill label={t('today.nutrition')} tone="nutrition" />
@@ -239,7 +253,7 @@ export default function DesignSystemPreviewScreen() {
         <MealCardV2
           type={t('food.mealTypes.BREAKFAST')}
           title="Greek yogurt bowl"
-          meta="520 kcal · 34g protein"
+          meta="520 kcal - 34g protein"
           prep="10 min"
           statusLabel={t('foodTracking.statusPlanned')}
           accessibilityLabel="Preview meal"
@@ -248,14 +262,14 @@ export default function DesignSystemPreviewScreen() {
         <WorkoutCardV2
           label={t('training.title')}
           title="Upper body strength"
-          subtitle="Chest · Back · Shoulders"
-          meta="42 min · controlled intensity"
+          subtitle="Chest - Back - Shoulders"
+          meta="42 min - controlled intensity"
           statusLabel={t('schedule.trainingDay')}
           statusTone="training"
         >
           <View style={styles.row}>
             <Dumbbell size={18} color={lightTheme.colors.training} />
-            <AppText variant="caption">3 exercises · 9 working sets</AppText>
+            <AppText variant="caption">3 exercises - 9 working sets</AppText>
           </View>
         </WorkoutCardV2>
         <UICard>

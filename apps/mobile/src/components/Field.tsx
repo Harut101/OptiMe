@@ -27,14 +27,20 @@ const styles = StyleSheet.create({
     gap: 6
   },
   input: {
-    minHeight: 50,
+    minHeight: 52,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderColor: colors.divider,
+    borderRadius: 18,
+    paddingHorizontal: 16,
     backgroundColor: colors.surfaceElevated,
     color: colors.textPrimary,
-    fontSize: 16
+    fontSize: 16,
+    fontWeight: '500',
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 1
   },
   inputError: {
     borderColor: colors.danger

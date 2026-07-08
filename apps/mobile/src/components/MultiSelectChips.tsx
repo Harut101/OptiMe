@@ -34,7 +34,7 @@ export function MultiSelectChips<T extends string | number>({
                     : [...value, option.value]
                 )
               }
-              style={[styles.chip, active ? styles.activeChip : null]}
+              style={({ pressed }) => [styles.chip, active ? styles.activeChip : null, pressed ? styles.pressed : null]}
             >
               <Text style={[styles.chipText, active ? styles.activeText : null]}>
                 {option.label}
@@ -52,13 +52,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.divider,
     backgroundColor: colors.surfaceElevated,
     borderRadius: 999,
-    paddingHorizontal: 12,
+    minHeight: 40,
+    paddingHorizontal: 14,
     paddingVertical: 10
   },
-  activeChip: { borderColor: colors.nutrition, backgroundColor: colors.nutritionMuted },
-  chipText: { fontSize: 14, color: colors.textPrimary },
-  activeText: { color: colors.primaryDark, fontWeight: '700' }
+  activeChip: {
+    borderColor: colors.training,
+    backgroundColor: colors.trainingMuted
+  },
+  pressed: { opacity: 0.82 },
+  chipText: { fontSize: 14, color: colors.textSecondary, fontWeight: '700' },
+  activeText: { color: colors.training, fontWeight: '800' }
 });

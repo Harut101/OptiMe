@@ -82,3 +82,5 @@ Meal and menu regeneration limits are also contextual. Food and Meal Details kee
 The tab structure remains Today, Food, Training, and Profile. Health Data and Design System Preview remain routed screens, not primary tabs.
 
 Today is the dashboard entry. Food owns meals and tracking. Training owns routine and workout entry points. Profile owns settings/account/goals/health entry points. This separation prevents screen bloat as the visual design becomes richer.
+
+The tab bar follows the v2 system element direction: active health tint, muted inactive icons, compact labels, safe-area-aware height, and hidden native stack headers for tab screens because each screen owns its `ScreenHeader`.
