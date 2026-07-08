@@ -51,6 +51,8 @@ Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission
 
 The core mobile flows now share a calmer presentation layer for screen headers, section headers, status pills, context notes, and compact health metrics. Today, Food, Meal Details, Training, Workout Session, Workout History, Health Connections, Plan Details, and Profile were polished without changing backend models, nutrition formulas, exercise selection, Apple Health behavior, or payment scope.
 
+Food and Meal Details now use premium nutrition dashboard widgets, compact meal status controls, app-level toasts/sheets, and Plan Impact prompts for current-plan-affecting changes.
+
 ## Visual Design Direction
 
 OptiMe now has typed light/dark visual tokens, semantic health colors, a softer premium card system, and an updated Design System Preview. Runtime theme switching remains deferred; this batch establishes the visual foundation without changing product behavior.

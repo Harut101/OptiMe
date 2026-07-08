@@ -18,11 +18,11 @@ import {
   uiColors
 } from '@/ui';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { AppToast } from '@/components/AppToast';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
 import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { MetricCard } from '@/components/MetricCard';
-import { MealCardV2 } from '@/components/MealCardV2';
 import { MiniBarChart } from '@/components/MiniBarChart';
 import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { SelectChips } from '@/components/SelectChips';
@@ -35,7 +35,12 @@ import {
   dashboardRingGradients
 } from '@/features/today-dashboard/DashboardProgressCard';
 import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
-import type { WearableSnapshotResponse } from '@/types/api';
+import {
+  MacroMetricWidget,
+  MealProgressWidget,
+  PremiumMealCard
+} from '@/features/food-dashboard/FoodDashboardWidgets';
+import type { FoodDayLogResponse, FoodMeal, WearableSnapshotResponse } from '@/types/api';
 
 export default function DesignSystemPreviewScreen() {
   const { t } = useTranslation();
@@ -76,6 +81,45 @@ export default function DesignSystemPreviewScreen() {
     ['danger', uiColors.danger, uiColors.dangerMuted],
     ['info', uiColors.info, uiColors.infoMuted]
   ] as const;
+  const previewMeal: FoodMeal = {
+    id: 'preview-breakfast',
+    mealType: 'BREAKFAST',
+    title: 'Greek yogurt bowl',
+    shortDescription: 'Creamy, simple, protein-forward.',
+    caloriesKcal: 520,
+    proteinGrams: 34,
+    carbsGrams: 58,
+    fatGrams: 14,
+    prepTimeMinutes: 10,
+    servingSummary: '1 bowl',
+    ingredients: [],
+    preparationSteps: [],
+    substitutions: [],
+    explanation: { reasonCodes: ['TARGET_ALIGNED', 'SIMPLE_PREP'] }
+  };
+  const previewFoodLog: FoodDayLogResponse = {
+    id: 'preview-food-log',
+    dailyPlanId: 'preview-plan',
+    localDate: '2026-07-02',
+    supported: true,
+    plannedMealCount: 4,
+    completedMealCount: 2,
+    partialMealCount: 1,
+    skippedMealCount: 0,
+    markedMealCount: 3,
+    mealProgress: [
+      {
+        id: 'preview-progress',
+        mealId: 'preview-breakfast',
+        mealOrder: 0,
+        mealType: 'BREAKFAST',
+        mealTitleSnapshot: 'Greek yogurt bowl',
+        status: 'EATEN',
+        updatedAt: new Date().toISOString()
+      }
+    ],
+    updatedAt: new Date().toISOString()
+  };
   const iconNames = ['today', 'food', 'training', 'profile', 'schedule', 'goal', 'health', 'safety', 'settings'] as const;
 
   return (
@@ -293,15 +337,21 @@ export default function DesignSystemPreviewScreen() {
           statusLabel={t('health.comingSoon')}
           description="Android health data foundation."
         />
-        <MealCardV2
-          type={t('food.mealTypes.BREAKFAST')}
-          title="Greek yogurt bowl"
-          meta="520 kcal - 34g protein"
-          prep="10 min"
-          statusLabel={t('foodTracking.statusPlanned')}
-          accessibilityLabel="Preview meal"
+        <View style={styles.metricPreviewGrid}>
+          <MacroMetricWidget label={t('food.calories')} value={520} unit="kcal" tone="nutrition" />
+          <MacroMetricWidget label={t('today.protein')} value={34} unit="g" tone="protein" />
+          <MacroMetricWidget label={t('today.carbs')} value={58} unit="g" tone="carbs" />
+          <MacroMetricWidget label={t('today.fat')} value={14} unit="g" tone="fat" />
+        </View>
+        <MealProgressWidget foodLog={previewFoodLog} trackingUnavailable={false} />
+        <PremiumMealCard
+          meal={previewMeal}
+          foodLog={previewFoodLog}
           onPress={() => undefined}
+          onUpdateStatus={() => undefined}
+          onOpenActions={() => undefined}
         />
+        <AppToast title={t('feedback.savedSuccessfully')} message={t('food.mealRegenerated')} tone="success" />
         <WorkoutCardV2
           label={t('training.title')}
           title="Upper body strength"

@@ -269,7 +269,29 @@ assertIncludes(today, [
   "t('health.notNow')",
   "t('health.appleHealthNativeUnavailable')"
 ], 'Generate Plan health readiness prompt');
-assertIncludes(food, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('food.emptyTitle')"], 'Food polish');
+assertIncludes(food, [
+  'ScreenHeader',
+  'NutritionTargetSummaryCard',
+  'MealProgressWidget',
+  'PremiumMealCard',
+  'AppFeedbackSheet',
+  'AppToast',
+  "t('food.emptyTitle')",
+  "t('food.regenerateMenu')"
+], 'Food polish');
+assert(!food.includes('Alert.alert'), 'Food screen must use unified feedback components instead of raw alerts.');
+assert(!food.includes('MealCardV2'), 'Food screen must use premium meal cards.');
+const mealDetails = read('app/meal-details.tsx');
+assertIncludes(mealDetails, [
+  'ScreenHeader',
+  'MealStatusControl',
+  'MacroMetricWidget',
+  'AppFeedbackSheet',
+  'AppToast',
+  "t('food.regenerateMeal')",
+  "t('food.excludeIngredient')"
+], 'Meal Details food redesign');
+assert(!mealDetails.includes('Alert.alert'), 'Meal Details must use unified feedback sheets instead of raw alerts.');
 assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
 const trainingOverrideEditor = read('app/training-overrides/day.tsx');
 assertIncludes(trainingOverrideEditor, [
@@ -325,6 +347,10 @@ assertIncludes(designPreview, [
   'StatusPill',
   'MetricCard',
   'HealthMetricWidget',
+  'MacroMetricWidget',
+  'MealProgressWidget',
+  'PremiumMealCard',
+  'AppToast',
   'ContextNoteCard',
   'AIRecommendationEntry',
   'AICoachBottomSheet',
@@ -332,7 +358,6 @@ assertIncludes(designPreview, [
   'DashboardProgressCard',
   'WearableSummaryCard',
   'ProviderConnectionCard',
-  'MealCardV2',
   'WorkoutCardV2',
   'MiniBarChart',
   'SettingsListItem',

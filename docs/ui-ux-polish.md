@@ -107,3 +107,14 @@ The v2 pass applies the Apple Health-inspired system across the core mobile surf
 - Auth screens use a brand mark, stronger title hierarchy, and carded inputs.
 
 Do not add permanent usage clutter to Today. Do not show raw debug, protocol, AI, or provider internals in mobile UI.
+
+## Unified Feedback Pattern
+
+Food and Meal Details now use a shared feedback pattern:
+
+- `AppToast` for compact success/info feedback such as saved preferences, meal status updates, and regenerated meals.
+- `AppFeedbackSheet` for confirmations such as replacing a meal/menu or excluding an ingredient.
+- `PlanImpactPromptCard` for changes that may affect the current Daily Plan.
+- Inline text or contextual cards for validation and recoverable errors.
+
+Avoid new raw `Alert.alert` calls for food flows unless there is no existing app-level pattern that fits. Limit/usage messages should appear near the action that caused them and should not become permanent dashboard clutter.

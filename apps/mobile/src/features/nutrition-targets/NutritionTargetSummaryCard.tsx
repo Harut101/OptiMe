@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Flame, Info } from 'lucide-react-native';
 import type {
   NutritionTarget,
   NutritionTargetReason,
@@ -8,6 +9,7 @@ import type {
 } from '@optime/shared-types';
 
 import { Card } from '@/components/Card';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
 
@@ -40,49 +42,64 @@ export function NutritionTargetSummaryCard({
   const explanation = localizeExplanation(summary.explanation, translate);
 
   return (
-    <Card>
-      <View style={styles.header}>
+    <>
+      <Card style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.iconWrap}>
+            <Flame size={20} color={colors.nutrition} strokeWidth={2.6} />
+          </View>
+          <View style={styles.headerCopy}>
+            <Text variant="label">{t('nutritionTargets.title')}</Text>
+            <Text variant="muted">{t(`nutritionTargets.dayType.${summary.dayType}` as never)}</Text>
+          </View>
+          <View style={[styles.badge, needsMoreInfo ? styles.badgeLimited : null]}>
+            <Text style={styles.badgeText}>{t(`nutritionTargets.status.${summary.safetyStatus}` as never)}</Text>
+          </View>
+        </View>
+
         <View>
           <Text variant="label">{t('nutritionTargets.title')}</Text>
-          <Text variant="heading">
+          <View style={styles.kcalRow}>
+            <Text variant="metric" style={styles.kcalValue}>
             {needsMoreInfo
               ? t('nutritionTargets.needsMoreInfo')
-              : t('nutritionTargets.kcal', { count: summary.targetKcal })}
-          </Text>
+              : String(summary.targetKcal)}
+            </Text>
+            {!needsMoreInfo ? <Text variant="body" style={styles.kcalUnit}>kcal</Text> : null}
+          </View>
         </View>
-        <View style={[styles.badge, needsMoreInfo ? styles.badgeLimited : null]}>
-          <Text style={styles.badgeText}>{t(`nutritionTargets.status.${summary.safetyStatus}` as never)}</Text>
-        </View>
-      </View>
 
-      <Text variant="muted">{t(`nutritionTargets.dayType.${summary.dayType}` as never)}</Text>
+        {!needsMoreInfo ? (
+          <View style={styles.macroRow}>
+            <Macro label={t('today.protein')} value={`${summary.proteinGrams}g`} tone="protein" />
+            <Macro label={t('today.carbs')} value={`${summary.carbsGrams}g`} tone="carbs" />
+            <Macro label={t('today.fat')} value={`${summary.fatGrams}g`} tone="fat" />
+          </View>
+        ) : null}
 
-      {!needsMoreInfo ? (
-        <View style={styles.macroRow}>
-          <Macro label={t('today.protein')} value={`${summary.proteinGrams}g`} />
-          <Macro label={t('today.carbs')} value={`${summary.carbsGrams}g`} />
-          <Macro label={t('today.fat')} value={`${summary.fatGrams}g`} />
-        </View>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('nutritionTargets.why')}
-        onPress={() => setExpanded((value) => !value)}
-        style={styles.whyButton}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('nutritionTargets.why')}
+          onPress={() => setExpanded(true)}
+          style={styles.whyButton}
+        >
+          <Info size={16} color={colors.primaryDark} />
+          <Text variant="label" style={styles.whyText}>{t('nutritionTargets.why')}</Text>
+        </Pressable>
+      </Card>
+      <BottomSheet
+        visible={expanded}
+        title={t('nutritionTargets.why')}
+        subtitle={explanation.title}
+        onClose={() => setExpanded(false)}
       >
-        <Text variant="label">{expanded ? t('nutritionTargets.hideWhy') : t('nutritionTargets.why')}</Text>
-      </Pressable>
-
-      {expanded ? (
         <View style={styles.explanation}>
-          <Text variant="body">{explanation.title}</Text>
           {explanation.bullets.map((bullet) => (
-            <Text key={bullet} variant="muted">- {bullet}</Text>
+            <Text key={bullet} variant="body">- {bullet}</Text>
           ))}
         </View>
-      ) : null}
-    </Card>
+      </BottomSheet>
+    </>
   );
 }
 
@@ -133,11 +150,14 @@ interface LegacyNutritionTargetExplanation {
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-function Macro({ label, value }: { label: string; value: string }) {
+function Macro({ label, value, tone }: { label: string; value: string; tone: 'protein' | 'carbs' | 'fat' }) {
+  const toneColor = tone === 'protein' ? colors.training : tone === 'carbs' ? colors.warning : colors.recovery;
+
   return (
-    <View style={styles.macro}>
+    <View style={styles.macro} accessible accessibilityLabel={`${label}. ${value}`}>
+      <View style={[styles.macroDot, { backgroundColor: toneColor }]} />
       <Text variant="label">{label}</Text>
-      <Text>{value}</Text>
+      <Text style={styles.macroValue}>{value}</Text>
     </View>
   );
 }
@@ -169,11 +189,26 @@ function toTargetSummary(target: TargetLike) {
 }
 
 const styles = StyleSheet.create({
+  card: {
+    borderColor: 'rgba(103, 206, 103, 0.28)'
+  },
   header: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between'
+  },
+  iconWrap: {
+    alignItems: 'center',
+    backgroundColor: colors.nutritionMuted,
+    borderRadius: 18,
+    height: 42,
+    justifyContent: 'center',
+    width: 42
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 2
   },
   badge: {
     backgroundColor: colors.nutritionMuted,
@@ -189,23 +224,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700'
   },
+  kcalRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 6
+  },
+  kcalValue: {
+    fontSize: 42,
+    lineHeight: 46
+  },
+  kcalUnit: {
+    color: colors.textSecondary,
+    fontWeight: '800',
+    paddingBottom: 6
+  },
   macroRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 12
+    marginTop: 4
   },
   macro: {
     backgroundColor: colors.cardMuted,
-    borderRadius: 14,
+    borderRadius: 18,
     flex: 1,
+    gap: 3,
     padding: 10
   },
+  macroDot: {
+    borderRadius: 999,
+    height: 8,
+    width: 8
+  },
+  macroValue: {
+    fontWeight: '900'
+  },
   whyButton: {
-    marginTop: 12
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 5,
+    minHeight: 44
+  },
+  whyText: {
+    color: colors.primaryDark
   },
   explanation: {
-    gap: 6,
-    marginTop: 8
+    gap: 10
   },
   safetyText: {
     color: colors.warning

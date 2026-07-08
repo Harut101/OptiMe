@@ -100,6 +100,17 @@ These are presentation-only primitives. They do not change DailyPlan generation,
 
 The widget also supports optional mini bars, progress fill, press handling, and explicit accessibility labels. Use these lightweight visuals instead of adding a chart library for dashboard summaries. The main value should remain large and readable; color belongs on icons, labels, progress, and chart accents rather than filling the entire card.
 
+Food dashboard primitives:
+
+- `MacroMetricWidget` for protein, carbs, fat, and kcal values.
+- `MealProgressWidget` for meal completion progress.
+- `PremiumMealCard` for compact meal list items.
+- `MealStatusControl` for compact planned/eaten/partial/skipped status changes.
+- `AppToast` for non-blocking success/info feedback.
+- `AppFeedbackSheet` for confirmation, limit, and important contextual feedback.
+
+Use these primitives before adding one-off cards or raw React Native alerts. Status must remain text-based, not color-only.
+
 Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.
 
 ## System Element Refinement

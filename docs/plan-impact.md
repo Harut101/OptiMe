@@ -115,6 +115,8 @@ Mobile renders a reusable `PlanImpactPromptCard` after successful saves/syncs in
 
 The card is intentionally non-blocking. Existing plans remain visible, and failed impact evaluation does not undo the saved change.
 
+Food-specific rule: preference changes, allergy changes, excluded foods, disliked foods, and meal-count changes should use `PlanImpactPromptCard` when the backend reports that today's plan may be affected. Meal/menu regeneration success can use compact feedback, but safety-critical food changes should never be reduced to a generic toast.
+
 ## Deferred
 
 - Automatic deterministic partial updates to an existing `DailyPlan`.

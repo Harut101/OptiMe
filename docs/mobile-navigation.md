@@ -56,6 +56,8 @@ Active tabs use the stronger health accent for clarity on device. This is a visu
 - Food tab is the primary place for quick meal completion.
 - Meal Details supports meal-specific completion changes, regeneration, ingredient exclusion, and preparation details.
 
+Food and Meal Details now share the redesigned food dashboard pattern. Food owns at-a-glance target/progress/cards; Meal Details owns focused per-meal actions and details. Confirmations use app feedback sheets instead of native alerts.
+
 ## Today Dashboard
 
 Today remains the primary daily surface. Its top section now includes nutrition progress, training progress, and wearable summary cards before the existing plan overview and actions.

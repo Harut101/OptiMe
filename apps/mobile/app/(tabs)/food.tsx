@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
@@ -14,8 +14,9 @@ import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
-import { MealCardV2 } from '@/components/MealCardV2';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -42,13 +43,12 @@ import {
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import {
+  MealProgressWidget,
+  PremiumMealCard
+} from '@/features/food-dashboard/FoodDashboardWidgets';
+import {
   FOOD_STATUSES,
-  formatFoodProgress,
-  formatFoodProgressDetail,
-  getMealAccessibilityLabel,
-  getMealProgress,
-  getMealStatusActionLabel,
-  getMealStatusLabel
+  getMealStatusActionLabel
 } from '@/features/food-tracking/food-tracking-summary';
 import type {
   DailyFoodPlan,
@@ -91,6 +91,7 @@ export default function FoodScreen() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+  const [menuConfirmVisible, setMenuConfirmVisible] = useState(false);
 
   useEffect(() => {
     if (preferences.data) {
@@ -246,19 +247,7 @@ export default function FoodScreen() {
           trackingUnavailable={foodLog.isError}
           isRegenerating={regenerateMenu.isPending}
           isUpdatingStatus={updateMealStatus.isPending}
-          onRegenerateMenu={() =>
-            Alert.alert(
-              t('food.replaceMenuTitle'),
-              t('food.replaceMenuMessage'),
-              [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                  text: t('food.regenerateMenu'),
-                  onPress: () => regenerateMenu.mutate(todayPlan.data!.id)
-                }
-              ]
-            )
-          }
+          onRegenerateMenu={() => setMenuConfirmVisible(true)}
           onOpenMeal={(mealId) =>
             router.push({
               pathname: '/meal-details' as never,
@@ -272,6 +261,30 @@ export default function FoodScreen() {
       ) : todayPlan.isError ? (
         <ContextNoteCard title={t('food.mealPlan')} message={t('food.mealPlanUnavailable')} tone="warning" />
       ) : null}
+
+      <AppFeedbackSheet
+        visible={menuConfirmVisible}
+        title={t('food.replaceMenuTitle')}
+        message={t('food.replaceMenuMessage')}
+        tone="warning"
+        onClose={() => setMenuConfirmVisible(false)}
+        actions={[
+          {
+            label: regenerateMenu.isPending ? t('food.regeneratingMenu') : t('food.regenerateMenu'),
+            disabled: regenerateMenu.isPending || !todayPlan.data,
+            onPress: () => {
+              if (!todayPlan.data) return;
+              setMenuConfirmVisible(false);
+              regenerateMenu.mutate(todayPlan.data.id);
+            }
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            onPress: () => setMenuConfirmVisible(false)
+          }
+        ]}
+      />
 
       {validationError && !editing ? <Text style={styles.error}>{validationError}</Text> : null}
 
@@ -308,7 +321,9 @@ export default function FoodScreen() {
         </>
       )}
 
-      {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
+      {successMessage ? (
+        <AppToast title={t('feedback.savedSuccessfully')} message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
+      ) : null}
     </Screen>
   );
 }
@@ -336,129 +351,90 @@ function DailyFoodPlanCard({
 }) {
   const { t } = useTranslation();
   const fallback = foodPlan.source === 'DETERMINISTIC_FALLBACK' || foodPlan.validation.status === 'FALLBACK';
+  const [selectedMeal, setSelectedMeal] = useState<FoodMeal | null>(null);
 
   return (
-    <Card>
-      <SectionHeader
-        title={t('food.mealPlan')}
-        subtitle={t(`nutritionTargets.dayType.${foodPlan.nutritionTargetSnapshot.dayType}`)}
-      />
-      <Text variant="muted">
-        {t('food.totalMacros', {
-          kcal: String(foodPlan.totals.caloriesKcal),
-          protein: String(Math.round(foodPlan.totals.proteinGrams)),
-          carbs: String(Math.round(foodPlan.totals.carbsGrams)),
-          fat: String(Math.round(foodPlan.totals.fatGrams))
-        })}
-      </Text>
+    <>
+      <MealProgressWidget foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
+
+      <Card>
+      <SectionHeader title={t('food.mealPlan')} subtitle={t('food.whatToEatToday')} />
       {fallback ? <StatusPill label={t('food.fallbackMealPlan')} tone="warning" /> : null}
-      <Text variant="muted">{t('food.whyMenu')}</Text>
-      <FoodProgressCard foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
-      <Button
-        title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
-        variant="secondary"
-        disabled={isRegenerating}
-        accessibilityLabel={t('food.regenerateMenu')}
-        onPress={onRegenerateMenu}
-      />
+      <View style={styles.compactActions}>
+        <Button
+          title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
+          variant="secondary"
+          disabled={isRegenerating}
+          accessibilityLabel={t('food.regenerateMenu')}
+          onPress={onRegenerateMenu}
+          style={styles.compactActionButton}
+        />
+      </View>
       <View style={styles.mealList}>
         {foodPlan.meals.map((meal) => (
-          <MealCard
+          <PremiumMealCard
             key={meal.id}
             meal={meal}
             foodLog={foodLog}
-            isUpdatingStatus={isUpdatingStatus}
+            disabled={isUpdatingStatus}
             onPress={() => onOpenMeal(meal.id)}
             onUpdateStatus={(status) => onUpdateMealStatus(meal.id, status)}
+            onOpenActions={() => setSelectedMeal(meal)}
           />
         ))}
       </View>
     </Card>
+      <MealActionSheet
+        meal={selectedMeal}
+        foodLog={foodLog}
+        disabled={isUpdatingStatus}
+        onClose={() => setSelectedMeal(null)}
+        onUpdateStatus={(status) => {
+          if (!selectedMeal) return;
+          onUpdateMealStatus(selectedMeal.id, status);
+          setSelectedMeal(null);
+        }}
+      />
+    </>
   );
 }
 
-function FoodProgressCard({
-  foodLog,
-  trackingUnavailable
-}: {
-  foodLog?: FoodDayLogResponse;
-  trackingUnavailable: boolean;
-}) {
-  const { t } = useTranslation();
-
-  if (trackingUnavailable || foodLog?.supported === false) {
-    return (
-      <View style={styles.trackingSummary}>
-        <SectionHeader title={t('foodTracking.foodProgress')} />
-        <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.trackingSummary} accessible accessibilityLabel={t('foodTracking.progressAccessibility', {
-      progress: formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet'),
-      detail: formatFoodProgressDetail(foodLog, t)
-    })}>
-      <SectionHeader title={t('foodTracking.foodProgress')} />
-      <Text variant="body">{formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet')}</Text>
-      <Text variant="muted">{formatFoodProgressDetail(foodLog, t)}</Text>
-    </View>
-  );
-}
-
-function MealCard({
+function MealActionSheet({
   meal,
   foodLog,
-  isUpdatingStatus,
-  onPress,
+  disabled,
+  onClose,
   onUpdateStatus
 }: {
-  meal: FoodMeal;
+  meal: FoodMeal | null;
   foodLog?: FoodDayLogResponse;
-  isUpdatingStatus: boolean;
-  onPress: () => void;
+  disabled: boolean;
+  onClose: () => void;
   onUpdateStatus: (status: FoodMealProgressStatus) => void;
 }) {
   const { t } = useTranslation();
-  const progress = getMealProgress(foodLog, meal.id);
-  const status = progress?.status ?? 'PLANNED';
+  const currentStatus = meal ? (foodLog?.mealProgress.find((item) => item.mealId === meal.id)?.status ?? 'PLANNED') : 'PLANNED';
+
   return (
-    <MealCardV2
-      type={t(`food.mealTypes.${meal.mealType}`)}
-      title={meal.title}
-      meta={t('food.mealMacros', {
-        kcal: String(meal.caloriesKcal),
-        protein: String(Math.round(meal.proteinGrams))
-      })}
-      prep={meal.prepTimeMinutes !== null ? t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) }) : null}
-      statusLabel={getMealStatusLabel(status, t)}
-      statusTone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
-      accessibilityLabel={`${t('food.mealAccessibility', {
-        type: t(`food.mealTypes.${meal.mealType}`),
-        title: meal.title,
-        kcal: String(meal.caloriesKcal),
-        protein: String(Math.round(meal.proteinGrams))
-      })}. ${getMealAccessibilityLabel(meal, progress, t)}`}
-      onPress={onPress}
-      actions={(
-        <>
-          {FOOD_STATUSES.filter((item) => item !== status).slice(0, 3).map((nextStatus) => (
-          <Button
-            key={nextStatus}
-            title={getMealStatusActionLabel(nextStatus, t)}
-            variant="secondary"
-            style={styles.statusButton}
-            disabled={isUpdatingStatus}
-            accessibilityLabel={t('foodTracking.updateMealStatusTo', {
-              meal: meal.title,
-              status: getMealStatusLabel(nextStatus, t)
-            })}
-            onPress={() => onUpdateStatus(nextStatus)}
-          />
-          ))}
-        </>
-      )}
+    <AppFeedbackSheet
+      visible={Boolean(meal)}
+      title={meal ? meal.title : t('food.mealActions')}
+      message={t('food.mealActionsHelp')}
+      tone="info"
+      onClose={onClose}
+      actions={[
+        ...FOOD_STATUSES.filter((status) => status !== currentStatus).map((status) => ({
+          label: getMealStatusActionLabel(status, t),
+          disabled,
+          variant: 'secondary' as const,
+          onPress: () => onUpdateStatus(status)
+        })),
+        {
+          label: t('common.cancel'),
+          variant: 'ghost' as const,
+          onPress: onClose
+        }
+      ]}
     />
   );
 }
@@ -484,21 +460,12 @@ const styles = StyleSheet.create({
   mealList: { gap: 10, marginTop: 10 },
   pressed: { opacity: 0.78 },
   linkText: { color: colors.primaryDark, fontWeight: '700' },
-  trackingSummary: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    padding: 12,
-    gap: 4
-  },
-  statusActions: {
+  compactActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
+    gap: 10
   },
-  statusButton: {
-    minHeight: 40,
-    paddingHorizontal: 10
+  compactActionButton: {
+    flex: 1
   }
 });
 

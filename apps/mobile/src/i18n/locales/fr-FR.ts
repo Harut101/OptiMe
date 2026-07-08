@@ -279,6 +279,18 @@ export const frFR = createLocaleResource({
     dailyGuidance: 'Conseils du jour',
     createPlanHint: "Créez le plan du jour pour voir des conseils concis."
   },
+  feedback: {
+    savedSuccessfully: 'Enregistré',
+    changesSaved: 'Modifications enregistrées',
+    limitReached: 'Limite atteinte'
+  },
+  food: {
+    whatToEatToday: "Quoi manger aujourd'hui",
+    calories: 'Calories',
+    mealActionsHelp: 'Mettez à jour le statut du repas ou choisissez une action ciblée.',
+    menuRegenerated: 'Menu mis à jour.',
+    mealRegenerated: 'Repas mis à jour.'
+  },
   planImpact: {
     label: 'Impact sur le plan actuel',
     futureOnlySaved: 'Enregistré pour les prochains plans.',

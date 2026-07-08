@@ -279,6 +279,18 @@ export const zhCN = createLocaleResource({
     dailyGuidance: '今日指导',
     createPlanHint: '生成今天的计划后，可查看简洁的教练建议。'
   },
+  feedback: {
+    savedSuccessfully: '已保存',
+    changesSaved: '更改已保存',
+    limitReached: '已达到限制'
+  },
+  food: {
+    whatToEatToday: '今天吃什么',
+    calories: '热量',
+    mealActionsHelp: '更新这餐的状态，或选择一个具体操作。',
+    menuRegenerated: '菜单已更新。',
+    mealRegenerated: '餐食已更新。'
+  },
   planImpact: {
     label: '对当前计划的影响',
     futureOnlySaved: '已保存用于未来计划。',

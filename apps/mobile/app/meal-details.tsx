@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -10,16 +10,18 @@ import {
   regenerateDailyFoodMeal
 } from '@/api/daily-plans';
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
-import { MetricCard } from '@/components/MetricCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
+import { MacroMetricWidget, MealStatusControl } from '@/features/food-dashboard/FoodDashboardWidgets';
 import {
   FOOD_STATUSES,
   getMealProgress,
@@ -42,6 +44,8 @@ export default function MealDetailsScreen() {
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [regenerateSheetVisible, setRegenerateSheetVisible] = useState(false);
+  const [ingredientToExclude, setIngredientToExclude] = useState<string | null>(null);
   const params = useLocalSearchParams<{ dailyPlanId?: string; mealId?: string }>();
   const today = useQuery({
     queryKey: ['today-plan'],
@@ -123,41 +127,36 @@ export default function MealDetailsScreen() {
     <Screen>
       <ScreenHeader title={meal.title} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
 
-      <Card variant="elevated">
-        <StatusPill
-          label={getMealStatusLabel(status, t)}
-          tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
-        />
+      <Card variant="elevated" style={styles.heroCard}>
+        <View style={styles.heroTop}>
+          <StatusPill
+            label={getMealStatusLabel(status, t)}
+            tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
+          />
+          {meal.prepTimeMinutes !== null ? (
+            <Text variant="caption" style={styles.prepBadge}>{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
+          ) : null}
+        </View>
         <Text variant="heading">{meal.title}</Text>
         <Text variant="muted">{meal.servingSummary}</Text>
+        <View style={styles.heroMetricRow}>
+          <Text variant="metric">{meal.caloriesKcal}</Text>
+          <Text variant="body" style={styles.kcalUnit}>kcal</Text>
+        </View>
       </Card>
 
       <Card>
         <SectionHeader title={t('food.mealActions')} />
         <View style={styles.statusWrap}>
           <Text variant="label">{t('foodTracking.mealStatus')}</Text>
-          <StatusPill
-            label={getMealStatusLabel(status, t)}
-            tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'}
-          />
           {foodLog.isError || foodLog.data?.supported === false ? (
             <Text variant="muted">{t('foodTracking.trackingStructuredOnly')}</Text>
           ) : (
-            <View style={styles.statusActions}>
-              {FOOD_STATUSES.filter((item) => item !== status).map((nextStatus) => (
-                <Button
-                  key={nextStatus}
-                  title={getMealStatusActionLabel(nextStatus, t)}
-                  variant="secondary"
-                  disabled={updateMealStatus.isPending}
-                  accessibilityLabel={t('foodTracking.updateMealStatusTo', {
-                    meal: meal.title,
-                    status: getMealStatusLabel(nextStatus, t)
-                  })}
-                  onPress={() => updateMealStatus.mutate(nextStatus)}
-                />
-              ))}
-            </View>
+            <MealStatusControl
+              currentStatus={status}
+              disabled={updateMealStatus.isPending}
+              onChange={(nextStatus) => updateMealStatus.mutate(nextStatus)}
+            />
           )}
           {progress?.updatedAt ? (
             <Text variant="muted">{t('today.updatedAt', { time: formatTime(progress.updatedAt, preferredLocale) })}</Text>
@@ -167,31 +166,19 @@ export default function MealDetailsScreen() {
           title={regenerateMeal.isPending ? t('food.regeneratingMeal') : t('food.regenerateMeal')}
           disabled={regenerateMeal.isPending}
           accessibilityLabel={t('food.regenerateMeal')}
-          onPress={() =>
-            Alert.alert(
-              t('food.replaceMealTitle'),
-              t('food.replaceMealMessage'),
-              [
-                { text: t('food.keepCurrentMeal'), style: 'cancel' },
-                {
-                  text: t('food.regenerateMeal'),
-                  onPress: () => regenerateMeal.mutate()
-                }
-              ]
-            )
-          }
+          onPress={() => setRegenerateSheetVisible(true)}
         />
-        {message ? <ContextNoteCard title={t('common.saved')} message={message} tone="success" /> : null}
+        {message ? <AppToast title={t('feedback.savedSuccessfully')} message={message} tone="success" onDismiss={() => setMessage(null)} /> : null}
         {errorMessage ? <ContextNoteCard title={t('food.mealUnavailable')} message={errorMessage} tone="warning" /> : null}
       </Card>
 
       <Card>
         <SectionHeader title={t('food.approximateNutrition')} />
-        <View style={styles.metricGrid}>
-          <MetricCard label="kcal" value={meal.caloriesKcal} tone="nutrition" />
-          <MetricCard label={t('today.protein')} value={Math.round(meal.proteinGrams)} unit="g" tone="recovery" />
-          <MetricCard label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="info" />
-          <MetricCard label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="training" />
+        <View style={styles.macroGrid}>
+          <MacroMetricWidget label={t('food.calories')} value={meal.caloriesKcal} unit="kcal" tone="nutrition" />
+          <MacroMetricWidget label={t('today.protein')} value={Math.round(meal.proteinGrams)} unit="g" tone="protein" />
+          <MacroMetricWidget label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="carbs" />
+          <MacroMetricWidget label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="fat" />
         </View>
         <Text variant="muted">{t('food.serving')}: {meal.servingSummary}</Text>
         {meal.prepTimeMinutes !== null ? (
@@ -211,20 +198,7 @@ export default function MealDetailsScreen() {
               variant="secondary"
               disabled={excludeIngredient.isPending}
               accessibilityLabel={t('food.excludeIngredientAccessibility', { ingredient: ingredient.name })}
-              onPress={() =>
-                Alert.alert(
-                  t('food.excludeIngredientTitle'),
-                  t('food.excludeIngredientMessage', { ingredient: ingredient.name }),
-                  [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    {
-                      text: t('food.excludeIngredient'),
-                      style: 'destructive',
-                      onPress: () => excludeIngredient.mutate(ingredient.name)
-                    }
-                  ]
-                )
-              }
+              onPress={() => setIngredientToExclude(ingredient.name)}
             />
           </View>
         ))}
@@ -262,16 +236,87 @@ export default function MealDetailsScreen() {
           <Text style={styles.warning}>{t('food.fallbackMealPlan')}</Text>
         ) : null}
       </Card>
+
+      <AppFeedbackSheet
+        visible={regenerateSheetVisible}
+        title={t('food.replaceMealTitle')}
+        message={t('food.replaceMealMessage')}
+        tone="warning"
+        onClose={() => setRegenerateSheetVisible(false)}
+        actions={[
+          {
+            label: regenerateMeal.isPending ? t('food.regeneratingMeal') : t('food.regenerateMeal'),
+            disabled: regenerateMeal.isPending,
+            onPress: () => {
+              setRegenerateSheetVisible(false);
+              regenerateMeal.mutate();
+            }
+          },
+          {
+            label: t('food.keepCurrentMeal'),
+            variant: 'secondary',
+            onPress: () => setRegenerateSheetVisible(false)
+          }
+        ]}
+      />
+
+      <AppFeedbackSheet
+        visible={Boolean(ingredientToExclude)}
+        title={t('food.excludeIngredientTitle', { ingredient: ingredientToExclude ?? '' })}
+        message={t('food.excludeIngredientMessage', { ingredient: ingredientToExclude ?? '' })}
+        tone="warning"
+        onClose={() => setIngredientToExclude(null)}
+        actions={[
+          {
+            label: t('food.excludeIngredient'),
+            variant: 'danger',
+            disabled: excludeIngredient.isPending || !ingredientToExclude,
+            onPress: () => {
+              if (!ingredientToExclude) return;
+              const ingredient = ingredientToExclude;
+              setIngredientToExclude(null);
+              excludeIngredient.mutate(ingredient);
+            }
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            onPress: () => setIngredientToExclude(null)
+          }
+        ]}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  heroCard: {
+    borderColor: 'rgba(103, 206, 103, 0.32)'
+  },
+  heroTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  prepBadge: {
+    color: colors.primaryDark,
+    fontWeight: '800'
+  },
+  heroMetricRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 6
+  },
+  kcalUnit: {
+    color: colors.textSecondary,
+    fontWeight: '800',
+    paddingBottom: 6
+  },
   ingredient: { gap: 8, paddingVertical: 8 },
   substitution: { gap: 3, paddingVertical: 5 },
   statusWrap: { gap: 8 },
-  statusActions: { gap: 8 },
-  metricGrid: {
+  macroGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10

@@ -279,6 +279,18 @@ export const ruRU = createLocaleResource({
     dailyGuidance: 'Советы на день',
     createPlanHint: 'Создайте план на сегодня, чтобы увидеть краткие рекомендации коуча.'
   },
+  feedback: {
+    savedSuccessfully: 'Сохранено',
+    changesSaved: 'Изменения сохранены',
+    limitReached: 'Лимит достигнут'
+  },
+  food: {
+    whatToEatToday: 'Что есть сегодня',
+    calories: 'Калории',
+    mealActionsHelp: 'Обновите статус приёма пищи или выберите нужное действие.',
+    menuRegenerated: 'Меню обновлено.',
+    mealRegenerated: 'Приём пищи обновлён.'
+  },
   planImpact: {
     label: 'Влияние на текущий план',
     futureOnlySaved: 'Сохранено для будущих планов.',

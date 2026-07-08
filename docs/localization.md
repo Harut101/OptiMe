@@ -46,6 +46,8 @@ Food preference, ingredient exclusion, meal regeneration, and menu regeneration 
 
 Use complete translation keys for confirmation dialogs and loading/error states. Do not assemble confirmation text from English fragments, especially for nutrition-target preservation copy.
 
+Food redesign strings include unified feedback labels under `feedback`, food dashboard labels under `food`, and tracking/status copy under `foodTracking`. `AppToast`, `AppFeedbackSheet`, `PremiumMealCard`, `MealProgressWidget`, and `MealStatusControl` must receive localized labels from the owning screen.
+
 Pricing and limit placeholder copy lives under `limits`, `today`, and `settings`. Required concepts include current plan labels, daily plan generation, refresh, AI plan generation, meal regeneration, menu regeneration, AI training-load guidance, reset timing, and upgrade-coming-soon copy. Do not concatenate English fragments manually.
 
 ## Workout Execution Strings

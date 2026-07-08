@@ -40,3 +40,22 @@ Food is a premium meal dashboard, not a form-heavy preferences page. The main Fo
 Meal cards should show meal type, title, kcal/protein, prep context, status, and a detail affordance. Status actions should stay compact and must not hide the existing tracking behavior.
 
 Food preferences remain editable from Food, but preference editing should feel secondary to today's meal plan.
+
+## Food + Meal Cards Redesign
+
+The Food screen now uses the same Apple Health-inspired dashboard language as Today:
+
+- `NutritionTargetSummaryCard` shows a large calorie target, compact macro metrics, status, and a bottom-sheet explanation for why the target was chosen.
+- `MealProgressWidget` summarizes meal completion without shame-based wording.
+- `PremiumMealCard` keeps each meal compact with meal type, title, kcal/protein, prep time, status, and a detail affordance.
+- Meal status changes use compact chips. Additional meal actions open a focused sheet instead of large button rows.
+
+Meal Details now opens with a focused hero summary, large kcal value, compact macro widgets, status controls, ingredients, preparation, substitutions, and meal rationale. Regenerate and ingredient-exclusion confirmations use the shared feedback sheet rather than raw alerts.
+
+Unified feedback rules for Food:
+
+- Small success states use `AppToast`.
+- Regenerate meal/menu confirmations use `AppFeedbackSheet`.
+- Current-plan impact from preference changes uses `PlanImpactPromptCard`.
+- Limit/usage failures stay contextual and keep the current meal plan visible.
+- Safety-sensitive food changes must not be hidden behind a generic toast.
