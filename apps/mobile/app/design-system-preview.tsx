@@ -40,6 +40,16 @@ import {
   MealProgressWidget,
   PremiumMealCard
 } from '@/features/food-dashboard/FoodDashboardWidgets';
+import {
+  ReplacementProposalCard,
+  SafetyDecisionCard,
+  TrainingLoadInsightCard,
+  TrainingStatusCard,
+  WeeklyRoutinePreviewCard,
+  WorkoutExerciseCardSurface,
+  WorkoutHistoryCard,
+  WorkoutProgressHeader
+} from '@/features/training-dashboard/TrainingDashboardWidgets';
 import type { FoodDayLogResponse, FoodMeal, WearableSnapshotResponse } from '@/types/api';
 
 export default function DesignSystemPreviewScreen() {
@@ -365,6 +375,68 @@ export default function DesignSystemPreviewScreen() {
             <AppText variant="caption">3 exercises - 9 working sets</AppText>
           </View>
         </WorkoutCardV2>
+        <TrainingStatusCard
+          label={t('training.title')}
+          title={t('training.todaysWorkout')}
+          subtitle="Upper body strength"
+          meta="42 min · 3 exercises"
+          statusLabel={t('schedule.trainingDay')}
+          statusTone="training"
+        />
+        <TrainingLoadInsightCard
+          title={t('trainingLoad.title')}
+          status={t('trainingLoad.controlled')}
+          message={t('trainingLoad.takeLongerRests')}
+          bullets={[t('trainingLoad.savedRoutine'), t('workout.safetyMessage')]}
+          tone="training"
+        />
+        <WeeklyRoutinePreviewCard
+          title={t('schedule.weeklySchedule')}
+          subtitle={t('schedule.weeklyScheduleHelp')}
+          onDayPress={() => undefined}
+          days={[
+            { key: 'MONDAY', dayLabel: 'Mon', title: 'Upper', meta: '40 min', isTrainingDay: true, accessibilityLabel: 'Monday, training day' },
+            { key: 'TUESDAY', dayLabel: 'Tue', title: t('schedule.restDay'), isTrainingDay: false, accessibilityLabel: 'Tuesday, rest day' },
+            { key: 'WEDNESDAY', dayLabel: 'Wed', title: 'Legs', meta: '45 min', isTrainingDay: true, accessibilityLabel: 'Wednesday, training day' }
+          ]}
+        />
+        <WorkoutProgressHeader
+          title={t('workout.title')}
+          subtitle="Today · 08:20"
+          progressPercent={42}
+          completedExercises={1}
+          totalExercises={3}
+          completedSets={4}
+          totalSets={9}
+          exercisesLabel={t('workout.exercisesLabel')}
+          setsLabel={t('workout.setsLabel')}
+          completedLabel={t('workout.workoutCompleted')}
+          isCompleted={false}
+          isPartial={false}
+        />
+        <WorkoutExerciseCardSurface
+          title="Bodyweight squat"
+          subtitle="3 sets · Reps: 10 · Rest: 60 sec"
+          completed={false}
+        >
+          <AppText variant="caption">{t('workout.keepWorkoutControlled')}</AppText>
+        </WorkoutExerciseCardSurface>
+        <WorkoutHistoryCard
+          label="Jul 8"
+          title="Lower body"
+          subtitle="9 sets · 3 exercises"
+          statusLabel={t('workout.workoutCompleted')}
+          isPartial={false}
+          accessibilityLabel="Completed lower body workout"
+          onPress={() => undefined}
+        />
+        <SafetyDecisionCard title={t('workout.painConflictTitle')} message={t('workout.painConflictMessage')} />
+        <ReplacementProposalCard
+          original={`${t('workout.originalExercise')}: Jump squat`}
+          replacement="Box squat"
+          reason={t('workout.replacementReason')}
+          accessibilityLabel="Jump squat replaced with Box squat"
+        />
         <UICard>
           <SettingsListItem
             icon={<Settings size={18} color={lightTheme.colors.health} />}

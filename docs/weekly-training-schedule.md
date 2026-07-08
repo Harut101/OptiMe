@@ -42,6 +42,10 @@ The recurring weekday editor remains available through the explicit Edit Weekly 
 
 If a Daily Plan already exists for today after a routine edit, the app does not silently overwrite it. The user must explicitly refresh the plan.
 
+## Mobile Preview
+
+The Training tab shows Weekly Routine as compact weekday tiles. Each tile displays the day, training/rest state, primary focus, and duration when available. Tapping a tile still opens the existing weekday editor; the preview does not change schedule resolution or save behavior.
+
 ## Duration and Volume
 
 Routine-day duration now feeds the deterministic workout volume planner. The planner estimates exercise count, set count, rest interval, and total session timing before exercise selection and AI generation. Longer routine days can therefore produce fuller library-backed workouts while still allowing safety reductions when needed.

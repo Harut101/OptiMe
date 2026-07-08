@@ -74,8 +74,9 @@ If retry fails, the backend stores a deterministic fallback snapshot. Daily Plan
 ## Mobile
 
 - Today shows only a compact training-load note.
-- Plan Details Training tab shows detailed guidance and exercise cautions.
-- Workout Session shows session-level guidance.
+- Training, Plan Details, and Workout Session render training-load output through compact insight cards.
+- Plan Details Training tab shows detailed guidance and exercise cautions without turning the tab into a long agent transcript.
+- Workout Session shows session-level guidance close to execution progress.
 
 Mobile never renders debug metadata and never calls OpenAI.
 ## Pricing And Entitlements

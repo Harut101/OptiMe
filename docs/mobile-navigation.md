@@ -27,11 +27,13 @@ Plan Details Training can open the standalone `workout-session` route. This rout
 
 Workout history is a standalone route opened from Training and Profile. Completed workout details reuse `workout-session` in read-only mode.
 
-The Training tab shows Today's workout or rest day, a training-load note, Weekly Routine, Workout History, and a small Edit Training Setup action. The old visible Weekly Schedule wording is replaced by Weekly Routine. Training Setup is no longer a tab switch and no longer collects global pain/limitations or preferred training days.
+The Training tab shows Today's workout or rest day, a compact training-load insight, Weekly Routine preview, Workout History entry, and a small Edit Training Setup action. The old visible Weekly Schedule wording is replaced by Weekly Routine. Training Setup is no longer a tab switch and no longer collects global pain/limitations or preferred training days.
 
 Today's Generate Plan action can open the Today-only training override editor when training mode is enabled and the resolved routine day is a rest day. The return path saves `/training-overrides/:localDate`, then returns to Today with a generation continuation flag. If a plan already exists, Today asks the user to refresh instead of silently replacing it.
 
 The recurring Weekly Routine editor is still reachable from the prompt through an explicit Edit Weekly Routine action. This keeps one-off training changes separate from the usual weekly template.
+
+Workout execution remains in `/workout-session`, and completed sessions remain in `/workout-history`. Plan Details can start or resume a workout, but execution controls live in Workout Session.
 
 After plan replacement and training-day prompts, Today runs a soft Health Data Readiness prompt. It can ask connected Apple Health users to sync stale data, ask iOS users to connect Apple Health, or continue without data. This prompt never blocks plan generation, and Health Connect/WHOOP actions remain deferred.
 

@@ -15,7 +15,14 @@ OptiMe must not cancel training solely from wearable data, diagnose a condition,
 
 ## Mobile polish
 
-The Training tab now uses shared headers, section headers, and status pills for the disabled-state card, weekly schedule overview, day cards, and saved-preference summary. Workout Session and Workout History share the same visual hierarchy for progress, safety notes, completed/read-only states, and partial-completion badges.
+The Training tab now uses premium dashboard cards instead of long form-like blocks:
+
+- `TrainingStatusCard` summarizes today’s workout or rest-day state.
+- `TrainingLoadInsightCard` keeps AI Training Load guidance compact and scannable.
+- `WeeklyRoutinePreviewCard` renders the week as tappable day tiles instead of stacked admin cards.
+- Simple success/error feedback uses `AppToast`; plan-affecting changes still use `PlanImpactPromptCard`.
+
+Workout Session and Workout History share the same visual hierarchy for progress, safety notes, completed/read-only states, and partial-completion badges.
 
 The polish pass does not change exercise selection, weekly schedule resolution, workout execution, or workout history behavior.
 

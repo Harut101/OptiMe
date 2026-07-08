@@ -45,7 +45,7 @@ assertIncludes(training, [
   "router.push('/goal-editor')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
   "t('training.savedMessage')", 'useUnsavedChangesGuard',
   'setValue(savedValue)', 'saveTrainingPreferences', 'saveSettings.isPending || !settingsDirty',
-  'TodaysWorkoutCard', "t('training.trainingLoadNote')", "t('workout.openWorkoutHistory')",
+  'TodaysWorkoutCard', "t('trainingLoad.title')", 'TrainingLoadInsightCard', "t('workout.openWorkoutHistory')",
   "t('training.editSetup')", "t('schedule.weeklySchedule')"
 ], 'Training');
 assert(!training.includes("t('training.section')"), 'Training tab must not use the old weekly/settings section toggle.');
@@ -292,7 +292,15 @@ assertIncludes(mealDetails, [
   "t('food.excludeIngredient')"
 ], 'Meal Details food redesign');
 assert(!mealDetails.includes('Alert.alert'), 'Meal Details must use unified feedback sheets instead of raw alerts.');
-assertIncludes(training, ['ScreenHeader', 'SectionHeader', 'StatusPill', "t('schedule.weeklySchedule')"], 'Training polish');
+assertIncludes(training, [
+  'ScreenHeader',
+  'TrainingStatusCard',
+  'TrainingLoadInsightCard',
+  'WeeklyRoutinePreviewCard',
+  'AppToast',
+  "t('schedule.weeklySchedule')"
+], 'Training polish');
+assert(!training.includes('Alert.alert'), 'Training tab must use unified feedback components instead of raw alerts.');
 const trainingOverrideEditor = read('app/training-overrides/day.tsx');
 assertIncludes(trainingOverrideEditor, [
   "t('trainingOverrides.todayOnly')",
@@ -315,8 +323,21 @@ assertIncludes(workoutSession, [
   'trainingLoadAgentSnapshot',
   "t('trainingLoad.workoutGuidance')",
   'formatTrainingLoadSessionMessage',
-  "t('trainingLoad.takeLongerRests')"
+  "t('trainingLoad.takeLongerRests')",
+  'WorkoutProgressHeader',
+  'WorkoutExerciseCardSurface',
+  'AppFeedbackSheet',
+  'AppToast'
 ], 'Workout Session Training Load Agent guidance');
+assert(!workoutSession.includes('Alert.alert'), 'Workout Session must use unified feedback sheets instead of raw alerts.');
+const workoutHistory = read('app/workout-history.tsx');
+assertIncludes(workoutHistory, ['WorkoutHistoryCard', "t('workout.workoutHistory')"], 'Workout History redesign');
+assertIncludes(planContent, [
+  'TrainingLoadInsightCard',
+  'SafetyDecisionCard',
+  'ReplacementProposalCard',
+  'WorkoutActionCard'
+], 'Plan Details training redesign');
 
 for (const component of [
   'src/components/ScreenHeader.tsx',
@@ -358,6 +379,14 @@ assertIncludes(designPreview, [
   'DashboardProgressCard',
   'WearableSummaryCard',
   'ProviderConnectionCard',
+  'TrainingStatusCard',
+  'TrainingLoadInsightCard',
+  'WeeklyRoutinePreviewCard',
+  'WorkoutProgressHeader',
+  'WorkoutExerciseCardSurface',
+  'WorkoutHistoryCard',
+  'SafetyDecisionCard',
+  'ReplacementProposalCard',
   'WorkoutCardV2',
   'MiniBarChart',
   'SettingsListItem',

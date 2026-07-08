@@ -53,6 +53,8 @@ The core mobile flows now share a calmer presentation layer for screen headers, 
 
 Food and Meal Details now use premium nutrition dashboard widgets, compact meal status controls, app-level toasts/sheets, and Plan Impact prompts for current-plan-affecting changes.
 
+Training and Workout screens now use the same premium card language: compact training status, training-load insight, Weekly Routine tiles, workout progress header, redesigned exercise cards, workout history cards, and unified toast/sheet feedback. This remains presentation-only and does not change workout generation, pain-aware replacement logic, safety rules, nutrition logic, health sync, or billing.
+
 ## Visual Design Direction
 
 OptiMe now has typed light/dark visual tokens, semantic health colors, a softer premium card system, and an updated Design System Preview. Runtime theme switching remains deferred; this batch establishes the visual foundation without changing product behavior.

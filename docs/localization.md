@@ -58,6 +58,8 @@ Workout history and summary strings also live in `workout`. History list labels,
 
 The pre-workout check also lives in `workout` and must be localized in all four supported locales. Weekly Routine copy lives under `schedule`, while Training Setup copy lives under `training`. Do not concatenate old "Weekly Schedule" wording manually.
 
+Training/workout redesign strings also live under `workout`, `training`, `trainingLoad`, and `schedule`. Component labels such as exercise/set metrics, feedback saved, replacement suggestions, and safety decisions must be passed in from localized screen strings rather than hard-coded inside shared card components.
+
 Pain-aware workout adaptation strings also live under `workout` in all supported mobile locales. Required concepts include pain/body-area labels, conflict warning, Adjust today's workout, Rest today, Continue with caution, Stop if pain increases, Post-workout check-in, workout feeling options, Skip check-in, Save feedback, and completed feedback. These strings should be complete localized sentences, not English fragments assembled in UI code.
 
 Pain-aware replacement suggestion strings also live under `workout`: Replacement suggestions, safer options for today, partial replacements, no safe replacements, Apply replacements, Original exercise, Suggested replacement, replacement reason, and unresolved-conflict copy. Keep these as complete strings in `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.

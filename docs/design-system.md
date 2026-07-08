@@ -78,6 +78,22 @@ The current ring preview includes:
 
 The ring implementation uses segmented SVG strokes to make the gradient visibly stronger in Expo Go while preserving accessibility labels and deterministic progress values.
 
+## Training And Workout Components
+
+The preview includes the Training/Workout redesign primitives:
+
+- `TrainingStatusCard`
+- `TrainingLoadInsightCard`
+- `WeeklyRoutinePreviewCard`
+- `WorkoutActionCard`
+- `WorkoutProgressHeader`
+- `WorkoutExerciseCardSurface`
+- `WorkoutHistoryCard`
+- `SafetyDecisionCard`
+- `ReplacementProposalCard`
+
+These components use semantic training, recovery, success, and warning colors for accents only. They should not make entire cards bright. Use them for presentation and feedback hierarchy; do not move workout generation, replacement, or safety decisions into UI components.
+
 ## Visual Design v2 Components
 
 The Design System Preview now includes the v2 mobile component language:

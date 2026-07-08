@@ -1,13 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type {
   DayOfWeek,
-  ExerciseEquipment,
   PlanImpactChangeType,
-  ResolvedTrainingDayContext,
   TargetMuscleGroup,
   TrainingScheduleRequest,
   TrainingScheduleResponse
@@ -25,13 +23,12 @@ import {
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
-import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
-import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
 import {
   formatUsageLimitMessage,
   getUsageLimitError
@@ -56,12 +53,15 @@ import { isDraftDirty } from '@/features/editor/draft-state';
 import {
   getDayOfWeekLabel,
   getEquipmentLabel,
-  getExerciseEquipmentLabel,
   getMuscleGroupLabel,
-  getTrainingEnvironmentLabel,
   getTrainingLevelLabel,
   getTrainingOutcomeLabel
 } from '@/i18n/enum-labels';
+import {
+  TrainingLoadInsightCard,
+  TrainingStatusCard,
+  WeeklyRoutinePreviewCard
+} from '@/features/training-dashboard/TrainingDashboardWidgets';
 import { useSettingsStore } from '@/store/settings-store';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
 import type { EvaluatePlanImpactResponse } from '@/types/api';
@@ -83,6 +83,7 @@ export default function TrainingScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (preferences.data) {
@@ -111,6 +112,7 @@ export default function TrainingScreen() {
       setSavedValue(next);
       setEditingSettings(false);
       setSuccessMessage(t('training.savedMessage'));
+      setFeedbackMessage(t('training.savedMessage'));
       queryClient.setQueryData(['training-preferences'], data);
       await queryClient.invalidateQueries({ queryKey: ['training-schedule'] });
       await evaluateTrainingPlanImpact(impactChangeTypes);
@@ -122,9 +124,10 @@ export default function TrainingScreen() {
       setDraft(toDraft(data));
       queryClient.setQueryData(['training-schedule'], data);
       setSuccessMessage(t('schedule.savedMessage'));
+      setFeedbackMessage(t('schedule.savedMessage'));
       await evaluateTrainingPlanImpact(['TRAINING_ROUTINE_CHANGED']);
     },
-    onError: () => Alert.alert(t('schedule.saveFailed'), t('errors.unableSave'))
+    onError: () => setPlanImpactError(`${t('schedule.saveFailed')}. ${t('errors.unableSave')}`)
   });
   const deactivateSchedule = useMutation({
     mutationFn: deactivateTrainingSchedule,
@@ -132,9 +135,10 @@ export default function TrainingScreen() {
       setDraft(toDraft(data));
       queryClient.setQueryData(['training-schedule'], data);
       setSuccessMessage(t('schedule.deactivatedMessage'));
+      setFeedbackMessage(t('schedule.deactivatedMessage'));
       await evaluateTrainingPlanImpact(['TRAINING_ROUTINE_CHANGED']);
     },
-    onError: () => Alert.alert(t('schedule.deleteFailed'), t('errors.unableSave'))
+    onError: () => setPlanImpactError(`${t('schedule.deleteFailed')}. ${t('errors.unableSave')}`)
   });
   const regenerateTodayPlan = useMutation({
     mutationFn: () => generateTodayPlan(true),
@@ -143,6 +147,7 @@ export default function TrainingScreen() {
       setPlanImpact(null);
       setPlanImpactError(null);
       setSuccessMessage(t('today.refreshed'));
+      setFeedbackMessage(t('today.refreshed'));
       await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
     },
     onError: (error) => {
@@ -179,7 +184,7 @@ export default function TrainingScreen() {
   if (appMode === 'NUTRITION_ONLY') {
     return (
       <Screen>
-        <ScreenHeader title={t('training.title')} />
+      <ScreenHeader title={t('training.title')} />
         <Card>
           <SectionHeader title={t('training.disabledTitle')} />
           <Text variant="body">{t('training.disabledMessage')}</Text>
@@ -193,9 +198,11 @@ export default function TrainingScreen() {
     <Screen>
       <ScreenHeader title={t('training.title')} subtitle={t('training.intro')} />
       <TodaysWorkoutCard response={weeklySchedule.data!} />
-      <ContextNoteCard
-        title={t('training.trainingLoadNote')}
+      <TrainingLoadInsightCard
+        title={t('trainingLoad.title')}
+        status={t('trainingLoad.keepControlled')}
         message={t('training.trainingLoadMessage')}
+        bullets={[t('trainingLoad.takeLongerRests'), t('workout.safetyMessage')]}
         tone="training"
       />
       <PlanImpactPromptCard
@@ -258,6 +265,14 @@ export default function TrainingScreen() {
       )}
 
       {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
+      {feedbackMessage ? (
+        <AppToast
+          title={t('feedback.savedSuccessfully')}
+          message={feedbackMessage}
+          tone="success"
+          onDismiss={() => setFeedbackMessage(null)}
+        />
+      ) : null}
     </Screen>
   );
 
@@ -281,21 +296,15 @@ function TodaysWorkoutCard({ response }: { response: TrainingScheduleResponse })
   const muscles = formatMuscles(t, resolved?.targetMuscles ?? []);
 
   return (
-    <WorkoutCardV2
+    <TrainingStatusCard
       label={t('training.title')}
       title={isTrainingDay ? t('training.todaysWorkout') : t('training.restDayToday')}
+      subtitle={isTrainingDay ? (muscles || t('training.generalWorkoutToday')) : t('training.restDayTodayMessage')}
+      meta={isTrainingDay ? `${resolved?.durationMinutes ?? 30} ${t('common.minutesShort')}` : undefined}
       statusLabel={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
-      statusTone={isTrainingDay ? 'success' : 'neutral'}
-    >
-      {isTrainingDay ? (
-        <>
-          <Text variant="body">{muscles || t('training.generalWorkoutToday')}</Text>
-          <Text variant="muted">{resolved?.durationMinutes ?? 30} {t('common.minutesShort')}</Text>
-        </>
-      ) : (
-        <Text variant="muted">{t('training.restDayTodayMessage')}</Text>
-      )}
-    </WorkoutCardV2>
+      statusTone={isTrainingDay ? 'training' : 'recovery'}
+      accessibilityLabel={`${isTrainingDay ? t('training.todaysWorkout') : t('training.restDayToday')}. ${isTrainingDay ? muscles : t('training.restDayTodayMessage')}`}
+    />
   );
 }
 
@@ -321,6 +330,24 @@ function WeeklyScheduleSection({
   const { t } = useTranslation();
   const effectiveDraft = draft ?? createEmptyDraft();
   const trainingDays = effectiveDraft.days.filter((day) => day.isTrainingDay).length;
+  const previewDays = effectiveDraft.days.map((day) => {
+    const responseDay = response.days.find((item) => item.dayOfWeek === day.dayOfWeek);
+    const resolved = responseDay?.resolved;
+    const muscles = formatMuscles(t, resolved?.targetMuscles ?? []);
+    return {
+      key: day.dayOfWeek,
+      dayLabel: getDayOfWeekLabel(t, day.dayOfWeek).slice(0, 3),
+      title: day.isTrainingDay ? (muscles || t('training.generalWorkoutToday')) : t('schedule.restDay'),
+      meta: day.isTrainingDay ? `${resolved?.durationMinutes ?? 30} ${t('common.minutesShort')}` : undefined,
+      isTrainingDay: day.isTrainingDay,
+      accessibilityLabel: [
+        getDayOfWeekLabel(t, day.dayOfWeek),
+        day.isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay'),
+        muscles,
+        resolved?.durationMinutes ? `${resolved.durationMinutes} ${t('common.minutesShort')}` : ''
+      ].filter(Boolean).join(', ')
+    };
+  });
   return (
     <View style={styles.section}>
       <Card variant="elevated">
@@ -341,19 +368,12 @@ function WeeklyScheduleSection({
         />
       ) : (
         <>
-          {effectiveDraft.days.map((day) => {
-            const responseDay = response.days.find((item) => item.dayOfWeek === day.dayOfWeek);
-            const resolved = responseDay?.resolved;
-            return (
-              <DayCard
-                key={day.dayOfWeek}
-                dayOfWeek={day.dayOfWeek}
-                isTrainingDay={day.isTrainingDay}
-                resolved={resolved}
-                onPress={() => router.push({ pathname: '/training-schedule/day', params: { dayOfWeek: day.dayOfWeek } })}
-              />
-            );
-          })}
+          <WeeklyRoutinePreviewCard
+            title={t('schedule.weeklySchedule')}
+            subtitle={t('schedule.weeklyScheduleHelp')}
+            days={previewDays}
+            onDayPress={(dayOfWeek) => router.push({ pathname: '/training-schedule/day', params: { dayOfWeek } })}
+          />
           <View style={styles.actions}>
             <Button
               title={saving ? t('common.saving') : t('schedule.saveSchedule')}
@@ -375,54 +395,6 @@ function WeeklyScheduleSection({
   );
 }
 
-function DayCard({
-  dayOfWeek,
-  isTrainingDay,
-  resolved,
-  onPress
-}: {
-  dayOfWeek: DayOfWeek;
-  isTrainingDay: boolean;
-  resolved?: ResolvedTrainingDayContext;
-  onPress: () => void;
-}) {
-  const { t } = useTranslation();
-  const muscles = formatMuscles(t, resolved?.targetMuscles ?? []);
-  const equipment = formatEquipment(t, resolved?.availableEquipment ?? []);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={[
-        getDayOfWeekLabel(t, dayOfWeek),
-        isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay'),
-        muscles,
-        resolved?.environment ? getTrainingEnvironmentLabel(t, resolved.environment) : '',
-        equipment,
-        resolved?.durationMinutes ? `${resolved.durationMinutes} ${t('common.minutesShort')}` : ''
-      ].filter(Boolean).join(', ')}
-      onPress={onPress}
-    >
-      <WorkoutCardV2
-        label={getDayOfWeekLabel(t, dayOfWeek)}
-        title={isTrainingDay ? (muscles || t('common.notSet')) : t('schedule.restDay')}
-        statusLabel={isTrainingDay ? t('schedule.trainingDay') : t('schedule.restDay')}
-        statusTone={isTrainingDay ? 'success' : 'neutral'}
-      >
-        {isTrainingDay ? (
-          <>
-            <Text variant="muted">{resolved?.environment ? getTrainingEnvironmentLabel(t, resolved.environment) : t('common.notSet')}</Text>
-            <Text variant="muted">{equipment || t('schedule.noOptionalEquipment')}</Text>
-            <Text variant="muted">{resolved?.durationMinutes ?? 30} {t('common.minutesShort')}</Text>
-            {resolved?.inheritedFields.length ? <Text variant="muted">{t('schedule.usingDefaults')}</Text> : <Text variant="muted">{t('schedule.custom')}</Text>}
-          </>
-        ) : (
-          <Text variant="muted">{t('schedule.restDayHelp')}</Text>
-        )}
-      </WorkoutCardV2>
-    </Pressable>
-  );
-}
-
 function TrainingSummary({ value }: { value: TrainingSetupFormValue }) {
   const { t } = useTranslation();
   return (
@@ -437,10 +409,6 @@ function TrainingSummary({ value }: { value: TrainingSetupFormValue }) {
 
 function formatMuscles(t: ReturnType<typeof useTranslation>['t'], muscles: TargetMuscleGroup[]) {
   return muscles.map((item) => getMuscleGroupLabel(t, item)).join(' · ');
-}
-
-function formatEquipment(t: ReturnType<typeof useTranslation>['t'], equipment: ExerciseEquipment[]) {
-  return equipment.map((item) => getExerciseEquipmentLabel(t, item)).join(' · ');
 }
 
 function getTodayDayOfWeek(): DayOfWeek {

@@ -6,8 +6,7 @@ import { getWorkoutHistory } from '@/api/workout-sessions';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StateBlock } from '@/components/StateBlock';
-import { StatusPill } from '@/components/StatusPill';
-import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
+import { WorkoutHistoryCard } from '@/features/training-dashboard/TrainingDashboardWidgets';
 import {
   formatWorkoutDate,
   formatWorkoutExerciseCount,
@@ -83,17 +82,15 @@ function WorkoutHistoryItem({
   const completedTime = formatWorkoutTime(item.completedAt, locale);
 
   return (
-    <WorkoutCardV2
+    <WorkoutHistoryCard
       label={formatWorkoutDate(item.localDate, locale)}
       title={formatWorkoutFocus(item, t)}
       subtitle={`${formatWorkoutSetCount(item, t)} - ${formatWorkoutExerciseCount(item, t)}`}
       meta={completedTime ? t('workout.completedAt', { time: completedTime }) : undefined}
       statusLabel={item.isPartial ? t('workout.partial') : t('workout.workoutCompleted')}
-      statusTone={item.isPartial ? 'warning' : 'success'}
+      isPartial={item.isPartial}
       accessibilityLabel={getWorkoutAccessibilityLabel(item, t)}
       onPress={onPress}
-    >
-        {item.isPartial ? <StatusPill label={t('workout.partial')} tone="warning" /> : null}
-    </WorkoutCardV2>
+    />
   );
 }

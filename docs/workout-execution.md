@@ -78,6 +78,17 @@ Snapshots are intentionally immutable. Later edits to DailyPlan JSON or Exercise
 9. User taps Finish workout.
 10. If partial, mobile asks for confirmation before completing.
 11. Mobile offers an optional post-workout check-in.
+
+## Mobile Presentation
+
+Workout execution uses the shared training dashboard presentation layer:
+
+- `WorkoutProgressHeader` leads with progress, completed exercises, and completed sets.
+- `WorkoutExerciseCardSurface` renders each executable exercise with thumbnail, prescription, and accessible set controls.
+- Partial completion confirmation uses `AppFeedbackSheet`, not a raw native alert.
+- Save failures and post-workout feedback confirmation use `AppToast`.
+
+This is presentation-only. The set toggles, completion mutation, post-workout check-in payload, and workout history invalidation remain unchanged.
 12. Completed sessions become read-only.
 
 REST plans and plans without exercises cannot start a workout session.

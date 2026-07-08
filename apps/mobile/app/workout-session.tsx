@@ -1,9 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
 import { useMemo, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { resolveSupportedLocale } from '@optime/shared-types';
 
@@ -18,13 +17,18 @@ import { getExerciseSummaries } from '@/api/exercises';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { SectionHeader } from '@/components/SectionHeader';
 import { StateBlock } from '@/components/StateBlock';
-import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { getExerciseMediaDisplayUrl } from '@/features/daily-plan/exercise-media-url';
+import {
+  TrainingLoadInsightCard,
+  WorkoutExerciseCardSurface,
+  WorkoutProgressHeader
+} from '@/features/training-dashboard/TrainingDashboardWidgets';
 import {
   formatWorkoutDate,
   formatWorkoutExerciseCount,
@@ -45,6 +49,8 @@ export default function WorkoutSessionScreen() {
   const queryClient = useQueryClient();
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const locale = resolveSupportedLocale(i18n.resolvedLanguage);
+  const [toast, setToast] = useState<{ title: string; message?: string; tone?: 'success' | 'info' | 'warning' | 'danger' } | null>(null);
+  const [partialFinishVisible, setPartialFinishVisible] = useState(false);
   const session = useQuery({
     queryKey: ['workout-session', sessionId],
     queryFn: () => getWorkoutSession(sessionId!),
@@ -88,7 +94,7 @@ export default function WorkoutSessionScreen() {
     onSuccess: updateSessionCache,
     onError: (_error, _variables, context) => {
       if (context?.previous) updateSessionCache(context.previous);
-      Alert.alert(t('workout.saveFailed'), t('workout.progressKept'));
+      setToast({ title: t('workout.saveFailed'), message: t('workout.progressKept'), tone: 'warning' });
     }
   });
   const exerciseMutation = useMutation({
@@ -100,22 +106,27 @@ export default function WorkoutSessionScreen() {
       isExerciseCompleted: boolean;
     }) => updateWorkoutExerciseProgress(sessionId!, progressId, { isExerciseCompleted }),
     onSuccess: updateSessionCache,
-    onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
+    onError: () => setToast({ title: t('workout.saveFailed'), message: t('workout.progressKept'), tone: 'warning' })
   });
   const completeMutation = useMutation({
     mutationFn: (confirmPartialCompletion: boolean) =>
       completeWorkoutSession(sessionId!, { confirmPartialCompletion }),
     onSuccess: (next) => {
       updateSessionCache(next);
+      setPartialFinishVisible(false);
+      setToast({ title: t('workout.workoutCompleted'), message: t('workout.fullWorkoutCompleted'), tone: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['workout-history'] });
     },
-    onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
+    onError: () => setToast({ title: t('workout.saveFailed'), message: t('workout.progressKept'), tone: 'warning' })
   });
   const postWorkoutMutation = useMutation({
     mutationFn: (body: { feeling: PostWorkoutFeeling; painAreas: WorkoutPainArea[]; note?: string | null }) =>
       submitPostWorkoutCheckIn(sessionId!, body),
-    onSuccess: updateSessionCache,
-    onError: () => Alert.alert(t('workout.saveFailed'), t('workout.progressKept'))
+    onSuccess: (next) => {
+      updateSessionCache(next);
+      setToast({ title: t('workout.feedbackSaved'), message: t('workout.postWorkoutHelp'), tone: 'success' });
+    },
+    onError: () => setToast({ title: t('workout.saveFailed'), message: t('workout.progressKept'), tone: 'warning' })
   });
 
   if (!sessionId) {
@@ -150,33 +161,40 @@ export default function WorkoutSessionScreen() {
         subtitle={formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}
       />
 
-      <Card>
-        <SectionHeader title={completed ? t('workout.workoutSummary') : t('workout.progress')} />
-        <StatusPill
-          label={t('workout.progressSummary', {
-            completedSets: String(data.completedSetCount),
-            totalSets: String(data.plannedSetCount),
-            completedExercises: String(data.completedExerciseCount),
-            totalExercises: String(data.plannedExerciseCount)
-          })}
+      <WorkoutProgressHeader
+        title={formatWorkoutFocus(data.summary, t)}
+        subtitle={[
+          formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage),
+          t('workout.startedAt', { time: formatWorkoutTime(data.startedAt, i18n.resolvedLanguage) })
+        ].join(' · ')}
+        progressPercent={data.progressPercent}
+        completedExercises={data.completedExerciseCount}
+        totalExercises={data.plannedExerciseCount}
+        completedSets={data.completedSetCount}
+        totalSets={data.plannedSetCount}
+        exercisesLabel={t('workout.exercisesLabel')}
+        setsLabel={t('workout.setsLabel')}
+        completedLabel={t('workout.workoutCompleted')}
+        isCompleted={completed}
+        isPartial={data.summary.isPartial}
+      />
+
+      {data.completedAt ? (
+        <ContextNoteCard
+          title={t('workout.workoutSummary')}
+          message={t('workout.completedAt', { time: formatWorkoutTime(data.completedAt, i18n.resolvedLanguage) })}
           tone={completed ? 'success' : 'neutral'}
         />
-        <Text variant="body">{formatWorkoutFocus(data.summary, t)}</Text>
-        <Text variant="muted">{formatWorkoutSetCount(data.summary, t)}</Text>
-        <Text variant="muted">{formatWorkoutExerciseCount(data.summary, t)}</Text>
-        {data.summary.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
-        <Text variant="muted">{t('workout.startedAt', { time: formatWorkoutTime(data.startedAt, i18n.resolvedLanguage) })}</Text>
-        {data.completedAt ? (
-          <Text variant="muted">{t('workout.completedAt', { time: formatWorkoutTime(data.completedAt, i18n.resolvedLanguage) })}</Text>
-        ) : null}
-      </Card>
+      ) : null}
 
       <ContextNoteCard title={t('workout.safetyNote')} message={t('workout.safetyMessage')} tone="warning" />
 
       {data.trainingLoadAgentSnapshot ? (
-        <ContextNoteCard
+        <TrainingLoadInsightCard
           title={t('trainingLoad.workoutGuidance')}
           message={formatTrainingLoadSessionMessage(data.trainingLoadAgentSnapshot, t)}
+          status={data.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? t('trainingLoad.recoveryFocused') : t('trainingLoad.keepControlled')}
+          bullets={data.trainingLoadAgentSnapshot.trainingGuidanceBullets}
           tone={data.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
         />
       ) : null}
@@ -228,23 +246,25 @@ export default function WorkoutSessionScreen() {
           disabled={completeMutation.isPending}
           onPress={() => {
             if (isPartial) {
-              Alert.alert(
-                t('workout.partialTitle'),
-                t('workout.partialMessage'),
-                [
-                  { text: t('common.cancel'), style: 'cancel' },
-                  {
-                    text: t('workout.finishEarly'),
-                    onPress: () => completeMutation.mutate(true)
-                  }
-                ]
-              );
+              setPartialFinishVisible(true);
               return;
             }
             completeMutation.mutate(false);
           }}
         />
       ) : null}
+      {toast ? <AppToast title={toast.title} message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} /> : null}
+      <AppFeedbackSheet
+        visible={partialFinishVisible}
+        title={t('workout.partialTitle')}
+        message={t('workout.partialMessage')}
+        tone="warning"
+        onClose={() => setPartialFinishVisible(false)}
+        actions={[
+          { label: t('workout.finishEarly'), onPress: () => completeMutation.mutate(true), variant: 'primary', disabled: completeMutation.isPending },
+          { label: t('common.cancel'), onPress: () => setPartialFinishVisible(false), variant: 'secondary', disabled: completeMutation.isPending }
+        ]}
+      />
     </Screen>
   );
 }
@@ -277,20 +297,13 @@ function WorkoutExerciseCard({
   });
 
   return (
-    <Card>
-      <View style={styles.exerciseHeader}>
-        <View style={styles.thumbnail}>
-          {imageUrl ? (
-            <Image source={{ uri: imageUrl }} resizeMode="contain" style={styles.image} accessible={false} />
-          ) : (
-          <Ionicons name="barbell-outline" size={28} color={colors.primary} accessible={false} />
-        )}
-        </View>
-        <View style={styles.exerciseTitle}>
-          <SectionHeader title={progress.exerciseNameSnapshot} />
-          <Text variant="muted">{prescription}</Text>
-        </View>
-      </View>
+    <WorkoutExerciseCardSurface
+      title={progress.exerciseNameSnapshot}
+      subtitle={prescription}
+      thumbnailUrl={imageUrl}
+      completed={progress.isExerciseCompleted}
+      onOpen={onOpenExercise}
+    >
 
       {hasSets ? (
         <View style={styles.setGrid}>
@@ -333,10 +346,7 @@ function WorkoutExerciseCard({
         />
       )}
 
-      {onOpenExercise ? (
-        <Button title={t('plan.openExerciseDetails')} variant="secondary" onPress={onOpenExercise} />
-      ) : null}
-    </Card>
+    </WorkoutExerciseCardSurface>
   );
 }
 
@@ -549,18 +559,6 @@ function formatTrainingLoadSessionMessage(
 }
 
 const styles = StyleSheet.create({
-  exerciseHeader: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  exerciseTitle: { flex: 1, gap: 4 },
-  thumbnail: {
-    width: 64,
-    height: 80,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden'
-  },
-  image: { width: '100%', height: '100%' },
   postWorkoutActions: { gap: 8 },
   setGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   setButton: {

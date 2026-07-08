@@ -247,6 +247,8 @@ If safe replacements are unavailable, the app should offer Rest today or Continu
 
 Rest today should use the one-off daily rest override path and must not change the usual Weekly Routine.
 
+Mobile presents pain conflicts with a safety decision card and replacement proposal cards. The UI can make Adjust today, Rest today, and Continue with caution easier to understand, but it must not bypass deterministic conflict detection or silently remove exercises.
+
 Post-workout feedback is stored after completion only. It can record how the workout felt, optional pain areas, and a note, but it must not diagnose, shame, or mutate the completed workout.
 
 ## Fallback Plan Behavior

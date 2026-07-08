@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   DailyPlanCheckInResponse,
   DailyPlanJson,
@@ -27,15 +27,19 @@ import {
 import { getWorkoutSessionByPlan, preflightWorkoutSession, startWorkoutSession } from '@/api/workout-sessions';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
 import { MultiSelectChips } from '@/components/MultiSelectChips';
-import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
 import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
 import { formatWorkoutSetCount } from '@/features/workout/workout-summary';
+import {
+  ReplacementProposalCard,
+  SafetyDecisionCard,
+  TrainingLoadInsightCard,
+  WorkoutActionCard
+} from '@/features/training-dashboard/TrainingDashboardWidgets';
 import { colors } from '@/theme/colors';
 
 interface PlanTabbedContentProps {
@@ -259,17 +263,13 @@ function TrainingContent(props: PlanTabbedContentProps & {
       <Card>
         <Text variant="label">{t('plan.trainingRecommendation')}</Text>
         {plan.trainingLoadAgentSnapshot ? (
-          <View style={styles.loadBlock}>
-            <Text variant="label">{t('trainingLoad.title')}</Text>
-            <StatusPill
-              label={getTrainingLoadReadinessLabel(plan.trainingLoadAgentSnapshot.readiness, t)}
-              tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
-            />
-            <Text variant="body">{plan.trainingLoadAgentSnapshot.userFacingSummary}</Text>
-            {plan.trainingLoadAgentSnapshot.trainingGuidanceBullets.map((bullet) => (
-              <Text key={bullet} variant="muted">- {bullet}</Text>
-            ))}
-          </View>
+          <TrainingLoadInsightCard
+            title={t('trainingLoad.title')}
+            status={getTrainingLoadReadinessLabel(plan.trainingLoadAgentSnapshot.readiness, t)}
+            message={plan.trainingLoadAgentSnapshot.userFacingSummary}
+            bullets={plan.trainingLoadAgentSnapshot.trainingGuidanceBullets}
+            tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'training'}
+          />
         ) : null}
         <Text variant="body">{plan.training.recommendation}</Text>
         <Text variant="muted">{plan.training.notes}</Text>
@@ -380,14 +380,14 @@ function PreWorkoutCheckCard({
       <Text variant="muted">{t('workout.preWorkoutHelp')}</Text>
       {conflict ? (
         <>
-          <ContextNoteCard
+          <SafetyDecisionCard
             title={t('workout.painConflictTitle')}
             message={t('workout.painConflictMessage')}
-            tone="warning"
-          />
-          {conflict.conflictingExercises.map((exercise) => (
-            <Text key={exercise.planExerciseKey} variant="muted">- {exercise.name}</Text>
-          ))}
+          >
+            {conflict.conflictingExercises.map((exercise) => (
+              <Text key={exercise.planExerciseKey} variant="muted">â€¢ {exercise.name}</Text>
+            ))}
+          </SafetyDecisionCard>
           {replacementProposals ? (
             <ReplacementProposalReview
               t={t}
@@ -512,13 +512,13 @@ function ReplacementProposalReview({
             : t('workout.saferOptionsFound')}
       </Text>
       {proposals.proposals.map((proposal) => (
-        <View key={proposal.originalPlanExerciseKey} style={styles.replacementRow}>
-          <Text variant="muted">{t('workout.originalExercise')}</Text>
-          <Text variant="body">{proposal.originalName}</Text>
-          <Text variant="muted">→ {t('workout.suggestedReplacement')}</Text>
-          <Text variant="body">{proposal.replacementName}</Text>
-          <Text variant="muted">{t('workout.replacementReason')}</Text>
-        </View>
+        <ReplacementProposalCard
+          key={proposal.originalPlanExerciseKey}
+          original={`${t('workout.originalExercise')}: ${proposal.originalName}`}
+          replacement={proposal.replacementName}
+          reason={t('workout.replacementReason')}
+          accessibilityLabel={`${t('workout.originalExercise')}: ${proposal.originalName}. ${t('workout.suggestedReplacement')}: ${proposal.replacementName}.`}
+        />
       ))}
       {proposals.unresolvedConflicts.length > 0 ? (
         <Text variant="muted">{t('workout.someExercisesStillConflict')}</Text>
@@ -571,30 +571,19 @@ function WorkoutSessionCard({
   const progress = session ? formatWorkoutSetCount(session.summary, t) : null;
 
   return (
-    <Card>
-      <Text variant="label">{completed ? t('workout.workoutCompleted') : t('workout.progress')}</Text>
-      {loading ? <Text variant="muted">{t('common.loading')}</Text> : null}
-      {unavailable ? <Text variant="muted">{t('workout.statusUnavailable')}</Text> : null}
-      {session ? <Text variant="body">{progress}</Text> : <Text variant="muted">{t('workout.readyToStart')}</Text>}
-      {session?.summary.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
-      {startFailed ? <Text style={styles.errorText}>{t('workout.saveFailed')}</Text> : null}
-      {session ? (
-        <Button
-          title={completed ? t('workout.viewWorkout') : t('workout.continueWorkout')}
-          variant={completed ? 'secondary' : 'primary'}
-          accessibilityLabel={completed ? t('workout.workoutCompleted') : t('workout.continueWorkout')}
-          onPress={() => onOpen(session.id)}
-        />
-      ) : (
-        <Button
-          title={startPending ? t('workout.saving') : t('workout.startWorkout')}
-          disabled={startPending || loading || unavailable}
-          accessibilityLabel={t('workout.startWorkout')}
-          onPress={onStart}
-        />
-      )}
-      {completed ? <Text variant="muted">{t('workout.workoutCompleted')}</Text> : null}
-    </Card>
+    <WorkoutActionCard
+      title={completed ? t('workout.workoutCompleted') : t('workout.progress')}
+      message={session ? progress ?? t('workout.readyToStart') : t('workout.readyToStart')}
+      statusLabel={completed ? t('workout.workoutCompleted') : session ? t('workout.progress') : t('workout.readyToStart')}
+      actionLabel={session ? (completed ? t('workout.viewWorkout') : t('workout.continueWorkout')) : (startPending ? t('workout.saving') : t('workout.startWorkout'))}
+      disabled={!session && (startPending || loading || unavailable)}
+      errorMessage={startFailed ? t('workout.saveFailed') : unavailable ? t('workout.statusUnavailable') : session?.summary.isPartial ? t('workout.partialWorkoutSaved') : null}
+      tone={completed ? 'success' : 'training'}
+      onAction={() => {
+        if (session) onOpen(session.id);
+        else onStart();
+      }}
+    />
   );
 }
 
@@ -659,12 +648,10 @@ const getTrainingLoadReadinessLabel = (
 
 const styles = StyleSheet.create({
   block: { gap: 8, paddingTop: 6 },
-  loadBlock: { gap: 8 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   checkInButton: { minHeight: 40, paddingHorizontal: 10 },
   preWorkoutActions: { gap: 8 },
   replacementReview: { gap: 10, paddingTop: 8 },
-  replacementRow: { gap: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   mediaError: { gap: 8 },
   errorText: { color: colors.danger, fontWeight: '700' }
 });
