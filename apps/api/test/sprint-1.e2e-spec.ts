@@ -1142,6 +1142,7 @@ describe('Sprint 1 backend vertical slice', () => {
       HealthProvider.APPLE_HEALTH,
       HealthProvider.HEALTH_CONNECT,
       HealthProvider.WHOOP,
+      HealthProvider.GARMIN,
       HealthProvider.MANUAL,
       HealthProvider.MOCK
     ]);

@@ -183,7 +183,7 @@ describe('Weight tracking', () => {
     primaryGoal?: PrimaryGoal;
   }) {
     const user = await registerTestUser(ctx.app);
-    const primaryGoal = input.primaryGoal ?? PrimaryGoal.WEIGHT_LOSS;
+    const primaryGoal = input.primaryGoal ?? (input.targetWeightKg ? PrimaryGoal.WEIGHT_LOSS : PrimaryGoal.HEALTHY_EATING);
 
     await request(ctx.app.getHttpServer())
       .put('/v1/profile')
