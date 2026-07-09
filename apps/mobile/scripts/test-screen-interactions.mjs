@@ -61,9 +61,19 @@ assert(!trainingForm.includes('path.id'), 'Training preference payload must neve
 
 const profile = read('app/(tabs)/profile.tsx');
 assertIncludes(profile, [
-  "'Personal'", "'Health'", "'Connections'", "'Settings'", 'PersonalProfileForm',
-  "t('common.edit')", "router.push('/goal-editor')", "router.push('/health-data')",
-  'useUnsavedChangesGuard', 'setValue(savedValue)'
+  'PersonalProfileForm',
+  "t('profile.hubIntro')",
+  "t('profile.editProfile')",
+  'GoalNutritionSection',
+  'TrainingHubSection',
+  'SettingsListItem',
+  'AppToast',
+  'AppFeedbackSheet',
+  'PlanImpactPromptCard',
+  "router.push('/goal-editor')",
+  "router.push('/health-data')",
+  'useUnsavedChangesGuard',
+  'setValue(savedValue)'
 ], 'Profile');
 
 const personalForm = read('src/features/profile/PersonalProfileForm.tsx');
@@ -317,7 +327,23 @@ assertIncludes(trainingDayEditor, [
   "t('schedule.usualRoutineUpdateHelp')",
   "params: { generateAfterRoutine: '1' }"
 ], 'Weekly Routine return-to-generate flow');
-assertIncludes(profile, ['ScreenHeader', 'SectionHeader', 'ContextNoteCard', 'SettingsListItem', "profile.sections.connections"], 'Profile polish');
+assertIncludes(profile, [
+  "t('profile.hubIntro')",
+  'GoalNutritionSection',
+  'TrainingHubSection',
+  'SettingsListItem',
+  'AppToast',
+  'AppFeedbackSheet',
+  'PlanImpactPromptCard',
+  "router.push('/goal-editor')",
+  "router.push('/health-data')",
+  "router.push('/(tabs)/food')",
+  "router.push('/(tabs)/training')",
+  "router.push('/workout-history')",
+  'useUnsavedChangesGuard',
+  'setValue(savedValue)'
+], 'Profile settings hub');
+assert(!profile.includes('Alert.alert'), 'Profile must use unified feedback components instead of raw alerts.');
 const workoutSession = read('app/workout-session.tsx');
 assertIncludes(workoutSession, [
   'trainingLoadAgentSnapshot',

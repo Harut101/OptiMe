@@ -1,21 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { profileSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
-import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
-import { Activity, History, Languages, Ruler, Scale, ShieldCheck, Target, UserRound, Watch } from 'lucide-react-native';
+import type { MeasurementSystem, PlanImpactChangeType, SupportedLocale } from '@optime/shared-types';
+import {
+  CalendarDays,
+  Crown,
+  Dumbbell,
+  History,
+  Languages,
+  LifeBuoy,
+  LogOut,
+  Ruler,
+  Scale,
+  Settings,
+  ShieldCheck,
+  Target,
+  UserRound,
+  Utensils,
+  Watch
+} from 'lucide-react-native';
 
 import { getEntitlements } from '@/api/account';
+import { generateTodayPlan } from '@/api/daily-plans';
 import { getGoal } from '@/api/goals';
 import { getHealthStatus } from '@/api/health';
+import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getProfile, saveProfile } from '@/api/profile';
 import { getSettings, updateSettings } from '@/api/settings';
-import { createWeightLog, getWeightLogs, getWeightSummary } from '@/api/weight';
+import { createWeightLog, getWeightSummary } from '@/api/weight';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -27,7 +47,11 @@ import { Text } from '@/components/Text';
 import {
   getPlatformHealthProvider
 } from '@/features/health/health-platform';
-import { WeightProgressCard } from '@/features/weight/WeightProgressCard';
+import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
+import {
+  formatUsageLimitMessage,
+  getUsageLimitError
+} from '@/features/entitlements/usage-limit-message';
 import { WeightUpdateModal } from '@/features/weight/WeightUpdateModal';
 import {
   EMPTY_PERSONAL_PROFILE,
@@ -52,40 +76,20 @@ import {
 } from '@/i18n/enum-labels';
 import { LANGUAGE_OPTIONS } from '@/i18n/language-options';
 import { useSettingsStore } from '@/store/settings-store';
-
-type ProfileSection = 'Personal' | 'Health' | 'Connections' | 'Settings';
-const SECTIONS: ProfileSection[] = ['Personal', 'Health', 'Connections', 'Settings'];
-const SECTION_KEYS = {
-  Personal: 'profile.sections.personal',
-  Health: 'profile.sections.health',
-  Connections: 'profile.sections.connections',
-  Settings: 'profile.sections.settings'
-} as const;
+import type { EvaluatePlanImpactResponse } from '@/types/api';
 
 export default function ProfileScreen() {
-  const [section, setSection] = useState<ProfileSection>('Personal');
   const { t } = useTranslation();
 
   return (
     <Screen>
-      <ScreenHeader title={t('profile.title')} />
-      <View style={styles.segmented}>
-        {SECTIONS.map((item) => (
-          <Pressable
-            key={item}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: section === item }}
-            onPress={() => setSection(item)}
-            style={[styles.segment, section === item ? styles.segmentActive : null]}
-          >
-            <Text style={section === item ? styles.segmentTextActive : styles.segmentText}>{t(SECTION_KEYS[item])}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={section === 'Personal' ? undefined : styles.hidden}><PersonalSection /></View>
-      <View style={section === 'Health' ? undefined : styles.hidden}><HealthSection /></View>
-      <View style={section === 'Connections' ? undefined : styles.hidden}><ConnectionsSection /></View>
-      <View style={section === 'Settings' ? undefined : styles.hidden}><SettingsSection /></View>
+      <ScreenHeader title={t('profile.title')} subtitle={t('profile.hubIntro')} />
+      <PersonalSection />
+      <GoalNutritionSection />
+      <TrainingHubSection />
+      <ConnectionsSection />
+      <SettingsSection />
+      <HealthSection />
     </Screen>
   );
 }
@@ -95,11 +99,13 @@ function PersonalSection() {
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
   const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile });
-  const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<PersonalProfileFormValue>(EMPTY_PERSONAL_PROFILE);
   const [savedValue, setSavedValue] = useState<PersonalProfileFormValue>(EMPTY_PERSONAL_PROFILE);
-  const [message, setMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [errorSheetVisible, setErrorSheetVisible] = useState(false);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
 
@@ -122,8 +128,28 @@ function PersonalSection() {
       setValue(next);
       setSavedValue(next);
       setEditing(false);
-      setMessage(t('profile.savedMessage'));
+      setToastMessage(t('profile.savedMessage'));
       queryClient.setQueryData(['profile'], data);
+      const impactTypes = buildProfileImpactTypes(value, savedValue);
+      if (impactTypes.length > 0) void evaluateProfilePlanImpact(impactTypes);
+    },
+    onError: () => setErrorSheetVisible(true)
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['today-plan'], data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setToastMessage(t('today.refreshed'));
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
     }
   });
 
@@ -133,7 +159,7 @@ function PersonalSection() {
   const save = () => {
     const result = profileSchema.safeParse(toProfileRequest(value));
     if (!result.success) {
-      setMessage(t('errors.validation'));
+      setToastMessage(t('errors.validation'));
       return;
     }
     mutation.mutate(result.data);
@@ -146,20 +172,34 @@ function PersonalSection() {
           <PersonalProfileForm value={value} onChange={setValue} />
           {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
           <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
-          <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={() => { setValue(savedValue); setEditing(false); setMessage(null); }} />
+          <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={() => { setValue(savedValue); setEditing(false); setToastMessage(null); }} />
         </>
       ) : (
         <>
-          <Card>
-            <SectionHeader title={t('profile.personal')} />
+          <Card variant="elevated">
+            <View style={styles.accountHeader}>
+              <View style={styles.avatar}>
+                <UserRound size={24} color={colors.health} />
+              </View>
+              <View style={styles.accountCopy}>
+                <Text variant="caption" style={styles.eyebrow}>{t('profile.account')}</Text>
+                <Text variant="heading" style={styles.accountName}>
+                  {[savedValue.firstName, savedValue.lastName].filter(Boolean).join(' ') || t('profile.nameMissing')}
+                </Text>
+                <Text variant="muted">{profile.data?.user.email ?? t('settings.signedIn')}</Text>
+              </View>
+            </View>
             <SettingsListItem
               icon={<UserRound size={18} color={colors.health} />}
-              title={[savedValue.firstName, savedValue.lastName].filter(Boolean).join(' ') || t('profile.nameMissing')}
+              tone="profile"
+              title={t('profile.editProfile')}
               subtitle={savedValue.dateOfBirth ? formatDate(savedValue.dateOfBirth, preferredLocale) : t('common.notSet')}
               value={getActivityLevelLabel(t, savedValue.activityLevel)}
+              onPress={() => { setToastMessage(null); setEditing(true); }}
             />
             <SettingsListItem
               icon={<Ruler size={18} color={colors.training} />}
+              tone="settings"
               title={t('profile.bornSummary', {
                 date: savedValue.dateOfBirth ? formatDate(savedValue.dateOfBirth, preferredLocale) : t('common.notSet'),
                 height: formatHeight(Number(savedValue.heightCm), preferredLocale, measurementSystem),
@@ -168,44 +208,117 @@ function PersonalSection() {
               subtitle={t('profile.activitySummary', { value: getActivityLevelLabel(t, savedValue.activityLevel) })}
             />
           </Card>
-          <Card>
-            <SectionHeader title={t('profile.goalsAndMode')} />
-            <SettingsListItem
-              icon={<Target size={18} color={colors.accent} />}
-              title={goal.data ? getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t) : goal.isLoading ? t('common.loading') : t('profile.noGoal')}
-              subtitle={goal.data
-                ? t('profile.modeSummary', { mode: getGoalImpactLabel(t, goal.data.appMode ?? goal.data.impactMode ?? 'NUTRITION_AND_TRAINING') })
-                : t('profile.goalHelp')}
-              onPress={() => router.push('/goal-editor')}
-            />
-            <Text variant="caption">{t('profile.trainingOptional')}</Text>
-            <Button
-              title={goal.data ? t('profile.editGoals') : t('profile.addGoals')}
-              variant="secondary"
-              onPress={() => router.push('/goal-editor')}
-            />
-          </Card>
-          <WeightSection />
-          <Card>
-            <SectionHeader title={t('workout.completedWorkouts')} />
-            <SettingsListItem
-              icon={<History size={18} color={colors.training} />}
-              title={t('workout.workoutHistory')}
-              subtitle={t('workout.historyHelp')}
-              onPress={() => router.push('/workout-history')}
-            />
-            <Button
-              title={t('workout.workoutHistory')}
-              variant="secondary"
-              accessibilityLabel={t('workout.openWorkoutHistory')}
-              onPress={() => router.push('/workout-history')}
-            />
-          </Card>
-          <Button title={t('common.edit')} variant="secondary" onPress={() => { setMessage(null); setEditing(true); }} />
         </>
       )}
-      {message ? <ContextNoteCard title={t('common.saved')} message={message} tone="success" /> : null}
+      <PlanImpactPromptCard
+        impact={planImpact}
+        isUpdating={regenerateTodayPlan.isPending}
+        errorMessage={planImpactError}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+          setToastMessage(t('planImpact.futureOnlySaved'));
+        }}
+      />
+      {toastMessage ? <AppToast title={t('feedback.savedSuccessfully')} message={toastMessage} tone="success" onDismiss={() => setToastMessage(null)} /> : null}
+      <AppFeedbackSheet
+        visible={errorSheetVisible}
+        title={t('profile.saveFailed')}
+        message={t('errors.unableSave')}
+        tone="warning"
+        onClose={() => setErrorSheetVisible(false)}
+        actions={[{ label: t('common.close'), onPress: () => setErrorSheetVisible(false), variant: 'secondary' }]}
+      />
     </View>
+  );
+
+  async function evaluateProfilePlanImpact(changeTypes: PlanImpactChangeType[]) {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
+}
+
+function buildProfileImpactTypes(
+  next: PersonalProfileFormValue,
+  previous: PersonalProfileFormValue
+): PlanImpactChangeType[] {
+  const changeTypes = new Set<PlanImpactChangeType>();
+
+  if (next.weightKg !== previous.weightKg) changeTypes.add('PROFILE_WEIGHT_CHANGED');
+  if (next.heightCm !== previous.heightCm) changeTypes.add('PROFILE_HEIGHT_CHANGED');
+  if (next.activityLevel !== previous.activityLevel) changeTypes.add('ACTIVITY_LEVEL_CHANGED');
+
+  return [...changeTypes];
+}
+
+function GoalNutritionSection() {
+  const { t } = useTranslation();
+  const goal = useQuery({ queryKey: ['goal'], queryFn: getGoal });
+
+  return (
+    <View style={styles.section}>
+      <Card>
+        <SectionHeader title={t('profile.healthGoalSection')} subtitle={t('profile.healthGoalHelp')} />
+        <SettingsListItem
+          icon={<Target size={18} color={colors.accent} />}
+          tone="goal"
+          title={t('profile.goalsAndMode')}
+          subtitle={goal.data
+            ? t('profile.goalModeValue', {
+              goal: getPrimaryGoalDisplayLabel(goal.data.primaryGoal, goal.data.goalType, t),
+              mode: getGoalImpactLabel(t, goal.data.appMode ?? goal.data.impactMode ?? 'NUTRITION_AND_TRAINING')
+            })
+            : goal.isLoading ? t('common.loading') : t('profile.goalHelp')}
+          statusLabel={goal.data ? t('common.saved') : undefined}
+          statusTone="success"
+          onPress={() => router.push('/goal-editor')}
+        />
+        <SettingsListItem
+          icon={<Utensils size={18} color={colors.nutrition} />}
+          tone="nutrition"
+          title={t('food.title')}
+          subtitle={t('profile.nutritionPreferencesSummary')}
+          onPress={() => router.push('/(tabs)/food')}
+        />
+      </Card>
+      <WeightSection />
+    </View>
+  );
+}
+
+function TrainingHubSection() {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <SectionHeader title={t('tabs.training')} subtitle={t('profile.trainingHubHelp')} />
+      <SettingsListItem
+        icon={<Dumbbell size={18} color={colors.training} />}
+        tone="training"
+        title={t('training.current')}
+        subtitle={t('training.setupSummaryHelp')}
+        onPress={() => router.push('/(tabs)/training')}
+      />
+      <SettingsListItem
+        icon={<CalendarDays size={18} color={colors.training} />}
+        tone="training"
+        title={t('schedule.weeklySchedule')}
+        subtitle={t('schedule.weeklyScheduleHelp')}
+        onPress={() => router.push('/(tabs)/training')}
+      />
+      <SettingsListItem
+        icon={<History size={18} color={colors.training} />}
+        tone="training"
+        title={t('workout.workoutHistory')}
+        subtitle={t('workout.historyHelp')}
+        onPress={() => router.push('/workout-history')}
+      />
+    </Card>
   );
 }
 
@@ -215,9 +328,11 @@ function WeightSection() {
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const summary = useQuery({ queryKey: ['weight-summary'], queryFn: getWeightSummary });
-  const logs = useQuery({ queryKey: ['weight-logs'], queryFn: () => getWeightLogs(5) });
   const [modalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: createWeightLog,
     onSuccess: async () => {
@@ -227,34 +342,65 @@ function WeightSection() {
       await queryClient.invalidateQueries({ queryKey: ['weight-logs'] });
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       await queryClient.invalidateQueries({ queryKey: ['nutrition-target-preview'] });
+      setToastMessage(t('weight.updatedMessage'));
+      await evaluateWeightPlanImpact();
     },
     onError: () => setError(t('weight.couldNotSave'))
   });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['today-plan'], data);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setToastMessage(t('today.refreshed'));
+    },
+    onError: (error) => {
+      const usageLimit = getUsageLimitError(error);
+      setPlanImpactError(
+        usageLimit
+          ? `${formatUsageLimitMessage(usageLimit, t, preferredLocale)} ${t('settings.upgradeSoon')}`
+          : t('today.updateFailed')
+      );
+    }
+  });
+  const currentWeight = summary.data?.currentWeightKg !== null && summary.data?.currentWeightKg !== undefined
+    ? formatWeight(summary.data.currentWeightKg, preferredLocale, measurementSystem)
+    : t('weight.noCurrentWeight');
+  const targetWeight = summary.data?.targetWeightKg !== null && summary.data?.targetWeightKg !== undefined
+    ? formatWeight(summary.data.targetWeightKg, preferredLocale, measurementSystem)
+    : t('weight.noTargetWeight');
+  const lastUpdated = summary.data?.lastUpdatedAt
+    ? t('weight.lastUpdatedValue', { value: formatDate(summary.data.lastUpdatedAt, preferredLocale) })
+    : t('weight.noWeightEntries');
 
   return (
     <>
-      <WeightProgressCard
-        summary={summary.data}
-        locale={preferredLocale}
-        measurementSystem={measurementSystem}
-        isLoading={summary.isLoading}
-        isError={summary.isError}
-        onUpdate={() => setModalVisible(true)}
-      />
       <Card>
-        <SectionHeader title={t('weight.historyTitle')} />
-        {logs.isLoading ? <Text variant="muted">{t('common.loading')}</Text> : null}
-        {logs.isError ? <Text style={styles.error}>{t('errors.unableLoad')}</Text> : null}
-        {!logs.isLoading && !logs.isError && !logs.data?.items.length ? (
-          <Text variant="muted">{t('weight.noWeightEntries')}</Text>
-        ) : null}
-        {logs.data?.items.map((item) => (
-          <View key={item.id} style={styles.historyRow}>
-            <Text>{formatWeight(item.weightKg, preferredLocale, measurementSystem)}</Text>
-            <Text variant="muted">{formatDate(item.measuredAt, preferredLocale)} · {t('weight.manualEntry')}</Text>
-          </View>
-        ))}
+        <SectionHeader title={t('weight.progressTitle')} subtitle={t('profile.weightHubHelp')} />
+        <SettingsListItem
+          icon={<Scale size={18} color={colors.success} />}
+          tone="weight"
+          title={summary.isLoading ? t('common.loading') : currentWeight}
+          subtitle={`${targetWeight} · ${lastUpdated}`}
+          statusLabel={summary.data?.safetyStatus === 'LIMITED' ? t('weight.safetyLimited') : undefined}
+          statusTone="warning"
+          onPress={() => setModalVisible(true)}
+        />
+        {summary.isError ? <Text style={styles.error}>{t('weight.unavailable')}</Text> : null}
+        <Button title={t('weight.updateWeight')} variant="secondary" onPress={() => setModalVisible(true)} />
       </Card>
+      <PlanImpactPromptCard
+        impact={planImpact}
+        errorMessage={planImpactError}
+        isUpdating={regenerateTodayPlan.isPending}
+        onUpdateToday={() => regenerateTodayPlan.mutate()}
+        onFutureOnly={() => {
+          setPlanImpact(null);
+          setPlanImpactError(null);
+        }}
+      />
+      {toastMessage ? <AppToast title={t('feedback.savedSuccessfully')} message={toastMessage} tone="success" onDismiss={() => setToastMessage(null)} /> : null}
       <WeightUpdateModal
         visible={modalVisible}
         currentWeightKg={summary.data?.currentWeightKg ?? null}
@@ -269,6 +415,16 @@ function WeightSection() {
       />
     </>
   );
+
+  async function evaluateWeightPlanImpact() {
+    try {
+      const impact = await evaluatePlanImpact({ changeTypes: ['PROFILE_WEIGHT_CHANGED'] });
+      setPlanImpactError(null);
+      setPlanImpact(impact.prompt ? impact : null);
+    } catch {
+      setPlanImpact(null);
+    }
+  }
 }
 
 function HealthSection() {
@@ -330,6 +486,7 @@ function SettingsSection() {
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [measurementSystem, setMeasurementSystem] = useState<MeasurementSystem>(currentMeasurementSystem);
   const [savedMessage, setSavedMessage] = useState(false);
+  const [errorSheetVisible, setErrorSheetVisible] = useState(false);
 
   useEffect(() => {
     if (!settings.data) return;
@@ -345,7 +502,8 @@ function SettingsSection() {
       applySettings(saved.preferredLocale, saved.measurementSystem, true);
       queryClient.setQueryData(['settings'], saved);
       setSavedMessage(true);
-    }
+    },
+    onError: () => setErrorSheetVisible(true)
   });
 
   const measurementOptions = (['METRIC', 'IMPERIAL'] as const).map((value) => ({
@@ -355,11 +513,22 @@ function SettingsSection() {
 
   return (
     <View style={styles.section}>
-      <Card><SectionHeader title={t('settings.account')} /><Text>{user?.email ?? t('settings.signedIn')}</Text></Card>
       <Card>
-        <SectionHeader title={t('settings.subscription')} />
-        <Text>{entitlements.isError ? t('settings.planUnavailable') : `${getSubscriptionPlanLabel(t, entitlements.data?.currentPlan ?? 'FREE')} · ${getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}`}</Text>
-        <Text variant="muted">{t('settings.upgradeSoon')}</Text>
+        <SectionHeader title={t('settings.account')} subtitle={t('settings.accountHelp')} />
+        <SettingsListItem
+          icon={<UserRound size={18} color={colors.health} />}
+          tone="profile"
+          title={user?.email ?? t('settings.signedIn')}
+          subtitle={t('settings.signedIn')}
+        />
+        <SettingsListItem
+          icon={<Crown size={18} color={colors.recovery} />}
+          tone="plan"
+          title={entitlements.isError ? t('settings.planUnavailable') : getSubscriptionPlanLabel(t, entitlements.data?.currentPlan ?? 'FREE')}
+          subtitle={entitlements.isError ? t('settings.upgradeSoon') : getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}
+          statusLabel={t('settings.upgradeSoon')}
+          statusTone="info"
+        />
       </Card>
       <Card>
         <SectionHeader title={t('settings.application')} />
@@ -391,17 +560,48 @@ function SettingsSection() {
               disabled={mutation.isPending || !dirty}
               onPress={() => mutation.mutate({ preferredLocale, measurementSystem })}
             />
-            {mutation.isError ? <Text style={styles.error}>{t('settings.saveError')}</Text> : null}
-            {savedMessage ? <Text variant="muted">{t('settings.saved')}</Text> : null}
           </>
         ) : null}
         <Text variant="muted">{t('settings.futureControls')}</Text>
         {__DEV__ ? (
-          <Button title={t('designSystem.title')} variant="secondary" onPress={() => router.push('/design-system-preview' as never)} />
+          <SettingsListItem
+            icon={<Settings size={18} color={colors.info} />}
+            tone="settings"
+            title={t('designSystem.title')}
+            subtitle={t('designSystem.intro')}
+            onPress={() => router.push('/design-system-preview' as never)}
+          />
         ) : null}
       </Card>
-      <ContextNoteCard title={t('settings.privacyAccount')} message={t('settings.privacyCopy')} />
-      <Button title={t('settings.logout')} variant="secondary" onPress={async () => { await clearSession(); queryClient.clear(); router.replace('/(auth)/welcome'); }} />
+      <Card>
+        <SectionHeader title={t('settings.support')} />
+        <SettingsListItem
+          icon={<LifeBuoy size={18} color={colors.textSecondary} />}
+          tone="support"
+          title={t('settings.privacyAccount')}
+          subtitle={t('settings.privacyCopy')}
+        />
+        <SettingsListItem
+          icon={<LogOut size={18} color={colors.danger} />}
+          tone="danger"
+          title={t('settings.logout')}
+          subtitle={t('settings.logoutHelp')}
+          onPress={async () => {
+            await clearSession();
+            queryClient.clear();
+            router.replace('/(auth)/welcome');
+          }}
+        />
+      </Card>
+      {savedMessage ? <AppToast title={t('feedback.savedSuccessfully')} message={t('settings.saved')} tone="success" onDismiss={() => setSavedMessage(false)} /> : null}
+      <AppFeedbackSheet
+        visible={errorSheetVisible}
+        title={t('settings.saveError')}
+        message={t('settings.saveErrorHelp')}
+        tone="danger"
+        onClose={() => setErrorSheetVisible(false)}
+        actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setErrorSheetVisible(false) }]}
+      />
     </View>
   );
 }
@@ -423,20 +623,31 @@ function formatHealthStatus(
 }
 
 const styles = StyleSheet.create({
-  segmented: { flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: colors.surfaceMuted },
-  segment: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, paddingHorizontal: 4 },
-  segmentActive: { backgroundColor: colors.card },
-  segmentText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  segmentTextActive: { color: colors.primaryDark, fontSize: 12, fontWeight: '800' },
   section: { gap: 14 },
-  hidden: { display: 'none' },
-  historyRow: {
+  accountHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-    paddingBottom: 10
+    gap: 14
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: colors.healthMuted,
+    borderRadius: 22,
+    height: 52,
+    justifyContent: 'center',
+    width: 52
+  },
+  accountCopy: {
+    flex: 1,
+    gap: 3
+  },
+  eyebrow: {
+    color: colors.textSecondary,
+    fontWeight: '800',
+    textTransform: 'uppercase'
+  },
+  accountName: {
+    color: colors.textPrimary
   },
   error: { color: colors.danger, fontWeight: '600' }
 });

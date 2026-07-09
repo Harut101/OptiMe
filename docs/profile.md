@@ -14,19 +14,28 @@ The backend owns `safeMode` and derives age-aware safety from date of birth. Pre
 
 ## Mobile Profile
 
-Profile shows:
+Profile is now a settings hub rather than a dashboard duplicate. It shows compact settings-list rows for:
 
-- personal profile details
-- goal and mode entry point
-- Weight Progress and recent weight history
-- completed workout history entry point
-- wellness safety, health connections, and settings
+- account and personal profile editing
+- goal and app-mode entry point
+- food/nutrition entry point
+- current weight update and plan-impact prompt
+- training dashboard, Weekly Routine, and workout history entry points
+- health connection entry point
+- plan tier, language/unit settings, support/privacy, and logout
 
-Weight updates can also be started from Today, but Profile owns history and fuller management.
-# Profile Visual Design v2
+Profile should not duplicate Today progress, meal details, workout execution, nutrition dashboards, or health dashboards. It routes to the owning screen instead.
+
+Profile uses the unified feedback pattern:
+
+- `AppToast` for saved profile, settings, and weight updates.
+- `AppFeedbackSheet` for profile/settings save failures.
+- `PlanImpactPromptCard` when profile or weight changes may affect today's plan.
+
+Weight updates can also be started from Today, but Profile owns the account/settings context and future-plan impact messaging.
+
+## Profile Visual Design v2
 
 Profile is a settings hub. It should route users to account/profile, goals, weight progress, training setup, health connections, subscription/plan, app settings, support, and privacy/account areas.
 
-The current mobile implementation keeps the existing Personal, Health, Connections, and Settings sections for continuity, but content inside those sections should use compact settings-list rows rather than dense dashboard cards.
-
-Profile should not duplicate Today progress, meal details, workout execution, or health dashboards.
+The mobile implementation uses stacked hub cards instead of section tabs. Content inside the cards uses compact settings-list rows rather than dense dashboard cards.

@@ -56,9 +56,13 @@ for (const [name, source] of [['Food', foodStandalone], ['Training', trainingSta
 }
 
 const profile = read('app/(tabs)/profile.tsx');
-for (const section of ['Personal', 'Health', 'Connections', 'Settings']) {
-  assert(profile.includes(`'${section}'`), `Profile is missing ${section}.`);
+for (const section of ['PersonalSection', 'GoalNutritionSection', 'TrainingHubSection', 'ConnectionsSection', 'SettingsSection', 'HealthSection']) {
+  assert(profile.includes(section), `Profile is missing ${section}.`);
 }
+assert(profile.includes("t('profile.hubIntro')"), 'Profile must use the settings hub header.');
+assert(profile.includes("router.push('/(tabs)/food')"), 'Profile must route nutrition ownership to Food.');
+assert(profile.includes("router.push('/(tabs)/training')"), 'Profile must route training ownership to Training.');
+assert(profile.includes('PlanImpactPromptCard'), 'Profile must expose plan-impact prompts for planning-sensitive changes.');
 
 const goalsForm = read('src/features/goals/GoalsForm.tsx');
 const goalsOnboarding = read('app/(onboarding)/goal.tsx');

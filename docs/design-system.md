@@ -127,6 +127,12 @@ Food dashboard primitives:
 
 Use these primitives before adding one-off cards or raw React Native alerts. Status must remain text-based, not color-only.
 
+Profile hub primitives:
+
+- `SettingsListItem` supports semantic tones, value text, status pills, trailing content, and accessibility labels.
+- Profile rows should use tones for profile, goal, nutrition, training, health, weight, plan, settings, support, and danger actions.
+- Save confirmation belongs in `AppToast`; save failures belong in `AppFeedbackSheet`; plan-affecting profile/weight changes use `PlanImpactPromptCard`.
+
 Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.
 
 ## System Element Refinement

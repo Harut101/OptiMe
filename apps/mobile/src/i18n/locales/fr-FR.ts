@@ -36,7 +36,26 @@ export const frFR = createLocaleResource({
   errors: { network: 'Un problème est survenu. Réessayez.', validation: 'Vérifiez les informations saisies.', required: 'Ce champ est obligatoire.', unableLoad: 'Impossible de charger ces informations.', unableSave: "Impossible d'enregistrer vos modifications.", session: 'Votre session a expiré. Reconnectez-vous.', nativeHealthUnsupported: "Les données de santé natives ne sont pas disponibles sur cet appareil.", invalidSettings: "Choisissez une langue et un système d'unités pris en charge." }
 }, {
   health: { connectionEnabled: 'La connexion {{provider}} est activée.', disconnectedMessage: '{{provider}} est déconnecté. Les résumés synchronisés restent disponibles jusqu’à leur suppression.', deletedCount: '{{count}} résumés de santé supprimés.', synced: 'Résumés de santé synchronisés.', syncedEmpty: 'Synchronisation terminée. Aucun résumé quotidien n’était disponible.', nativeBuildHelp: 'La synchronisation native nécessite une version de développement compatible. Expo Go affiche un message d’indisponibilité sûr.', syncHelp: 'OptiMe peut demander l’accès aux pas, au sommeil, aux entraînements et à l’activité, puis synchroniser les 7 derniers jours.', syncScope: 'Le poids et les données de fréquence cardiaque ne sont pas inclus à ce stade.', beforeConnect: 'Avant la connexion', manageHelp: 'La déconnexion arrête toute utilisation future sans supprimer les résumés enregistrés.' },
-  settings: { signedIn: 'Connecté' },
+  weight: { updatedMessage: 'Poids mis à jour. Les futurs plans utiliseront cette valeur.' },
+  profile: {
+    hubIntro: 'Gérez votre compte, vos objectifs, vos réglages et votre contexte de sécurité au même endroit.',
+    saveFailed: "Le profil n'a pas été enregistré",
+    account: 'Compte',
+    editProfile: 'Modifier les informations personnelles',
+    healthGoalSection: 'Objectif et nutrition',
+    healthGoalHelp: 'Les changements d’objectif, d’alimentation et de poids influencent les futurs plans.',
+    goalModeValue: '{{goal}} · {{mode}}',
+    nutritionPreferencesSummary: 'Les préférences alimentaires et les repas se trouvent dans Alimentation.',
+    trainingHubHelp: 'La routine, les séances et l’historique se trouvent dans Entraînement.',
+    weightHubHelp: 'Votre poids actuel aide les futures cibles nutritionnelles. Les anciens plans ne changent pas.'
+  },
+  settings: {
+    signedIn: 'Connecté',
+    accountHelp: 'Forfait, langue, unités et confidentialité.',
+    saveErrorHelp: 'Vos réglages précédents restent actifs. Réessayez avec une connexion stable.',
+    support: 'Support et confidentialité',
+    logoutHelp: 'Se déconnecter sur cet appareil.'
+  },
   enums: { readiness: { PUSH: 'Intensifier', MAINTAIN: 'Maintenir', RECOVER: 'Récupérer' } }
 }, {
   plan: { foodTab: 'Alimentation', trainingTab: 'Entraînement', trainingRecommendation: 'Entraînement du jour', openExerciseDetails: "Ouvrir les détails de l'exercice", mediaUnavailableCards: 'Les images sont indisponibles. Votre programme reste accessible.', limitedDetails: 'Certains anciens exercices ont des détails limités.', noExercises: "Aucun exercice n'est prévu aujourd'hui.", exerciseDetailsTitle: "Détails de l'exercice", exerciseUnavailable: 'Détails indisponibles', exerciseUnavailableMessage: "Cet exercice n'est pas disponible dans le plan actuel.", imageLoading: "Chargement de l'image", imageUnavailable: "Image de l'exercice indisponible", mediaPage: 'Image {{current}} sur {{total}}', planPrescription: 'Votre programme', prescriptionUnavailable: "Suivez la recommandation générale d'entraînement.", targetMuscles: 'Muscles ciblés', secondaryMuscles: 'Muscles secondaires', equipmentLabel: 'Équipement', noEquipment: 'Sans équipement', aboutExercise: "À propos de l'exercice", instructions: 'Instructions', coachingCues: 'Conseils techniques', safetyNotes: 'Conseils de sécurité', setCount_one: '{{count}} série', setCount_other: '{{count}} séries' },

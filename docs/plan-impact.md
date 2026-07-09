@@ -99,6 +99,10 @@ When `aiRegenerationRecommended=true`, the response includes:
 - `entitlementFeatureKey: DAILY_PLAN_REFRESH`
 - `usageCost: 1`
 
+## Mobile Use
+
+Profile uses `PlanImpactPromptCard` after saved profile fields that can affect planning, currently weight, height, and activity level. Manual weight updates also evaluate plan impact. The prompt lets the user refresh today's plan or apply the change to future plans only; it does not auto-regenerate.
+
 The actual usage guard remains in the existing DailyPlan refresh endpoint. If the user chooses `Update today's plan`, mobile calls the existing regenerate path and handles `USAGE_LIMIT_REACHED` with existing friendly UX.
 
 `Apply to future plans only` is always available and never consumes usage.

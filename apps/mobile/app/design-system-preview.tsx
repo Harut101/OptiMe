@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Apple, Dumbbell, HeartPulse, Settings, Utensils } from 'lucide-react-native';
+import { Apple, Crown, Dumbbell, HeartPulse, Settings, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -440,14 +440,24 @@ export default function DesignSystemPreviewScreen() {
         <UICard>
           <SettingsListItem
             icon={<Settings size={18} color={lightTheme.colors.health} />}
+            tone="settings"
             title={t('settings.application')}
             subtitle={t('settings.futureControls')}
             value="v2"
           />
           <SettingsListItem
             icon={<Utensils size={18} color={lightTheme.colors.nutrition} />}
+            tone="nutrition"
             title={t('food.title')}
             subtitle={t('food.intro')}
+            statusLabel={t('settings.upgradeSoon')}
+            statusTone="info"
+          />
+          <SettingsListItem
+            icon={<Crown size={18} color={lightTheme.colors.recovery} />}
+            tone="plan"
+            title={t('settings.subscription')}
+            subtitle={t('settings.accountHelp')}
           />
         </UICard>
       </UICard>

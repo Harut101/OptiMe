@@ -67,6 +67,8 @@ Pain-aware replacement suggestion strings also live under `workout`: Replacement
 The Generate Plan training-day prompt lives under `today`, recurring routine helper copy lives under `schedule`, and one-off override copy lives under `trainingOverrides`. Required concepts include training today, train today only, rest today only, skip today's workout, move workout, today only, usual Weekly Routine, return to Generate Plan, and save failure. Add complete strings for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`; do not concatenate English fragments.
 
 Simplified onboarding copy lives under `onboarding` in all four supported locales. The optional training bridge uses complete localized strings for training enabled, training optional, Set up weekly routine, Skip for now, and configure training anytime. Do not concatenate these labels manually.
+
+Profile hub copy lives under `profile` and `settings`. New hub rows, settings save feedback, plan tier placeholders, and profile/weight plan-impact messages must use localized keys and enum-label helpers rather than hard-coded English fragments.
 ## Food Tracking Localization
 
 Food tracking strings live under `foodTracking` in all supported mobile locales:

@@ -53,9 +53,10 @@ Safety is never paywalled.
 ## Mobile
 
 - Today shows a compact Weight Progress card.
-- Profile shows Weight Progress plus recent manual entries.
+- Profile shows a compact Weight Progress hub row and update action. Full historical analysis remains deferred; the backend history endpoint still exists.
 - Update Weight explains: “This updates your current weight for future plans. Previous plans will not change.”
 - Display units follow user settings; stored values remain kg.
+- After a manual update, Profile shows a toast and may show `PlanImpactPromptCard` so the user can refresh today's plan or keep the update for future plans only.
 
 ## Garmin Foundation
 

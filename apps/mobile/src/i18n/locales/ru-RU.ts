@@ -36,7 +36,26 @@ export const ruRU = createLocaleResource({
   errors: { network: 'Что-то пошло не так. Повторите попытку.', validation: 'Проверьте введённые данные.', required: 'Заполните это поле.', unableLoad: 'Не удалось загрузить данные.', unableSave: 'Не удалось сохранить изменения.', session: 'Сеанс истёк. Войдите снова.', nativeHealthUnsupported: 'Данные здоровья недоступны на этом устройстве или в этой сборке.', invalidSettings: 'Выберите поддерживаемый язык и систему измерений.' }
 }, {
   health: { connectionEnabled: 'Подключение {{provider}} включено.', disconnectedMessage: '{{provider}} отключён. Синхронизированные сводки сохранятся, пока вы их не удалите.', deletedCount: 'Удалено сводок о здоровье: {{count}}.', synced: 'Сводки о здоровье синхронизированы.', syncedEmpty: 'Синхронизация завершена. Доступных ежедневных сводок нет.', nativeBuildHelp: 'Для нативной синхронизации нужна development-сборка с поддержкой данных о здоровье. Expo Go покажет безопасное сообщение о недоступности.', syncHelp: 'OptiMe может запросить доступ к шагам, сну, тренировкам и активности и синхронизировать сводки за последние 7 дней.', syncScope: 'Вес и данные о пульсе пока не включены.', beforeConnect: 'Перед подключением', manageHelp: 'Отключение остановит дальнейшее использование данных, но не удалит сохранённые сводки.' },
-  settings: { signedIn: 'Выполнен вход' },
+  weight: { updatedMessage: 'Weight updated. Future plans will use this value.' },
+  profile: {
+    hubIntro: 'Manage your account, goals, settings, and safety context in one calm place.',
+    saveFailed: 'Profile was not saved',
+    account: 'Account',
+    editProfile: 'Edit personal details',
+    healthGoalSection: 'Goal and nutrition',
+    healthGoalHelp: 'Goal, food, and weight changes affect future plans.',
+    goalModeValue: '{{goal}} · {{mode}}',
+    nutritionPreferencesSummary: 'Food preferences and meal planning live in Food.',
+    trainingHubHelp: 'Routine, workouts, and history live in Training.',
+    weightHubHelp: 'Your current weight helps future nutrition targets. Past plans stay unchanged.'
+  },
+  settings: {
+    signedIn: 'Выполнен вход',
+    accountHelp: 'Plan, language, units, and privacy controls.',
+    saveErrorHelp: 'Your previous settings are still active. Please try again when the connection is steady.',
+    support: 'Support and privacy',
+    logoutHelp: 'Sign out on this device.'
+  },
   enums: { readiness: { PUSH: 'Активнее', MAINTAIN: 'Поддерживать', RECOVER: 'Восстановиться' } }
 }, {
   plan: { foodTab: 'Питание', trainingTab: 'Тренировка', trainingRecommendation: 'Тренировка на сегодня', openExerciseDetails: 'Открыть подробности упражнения', mediaUnavailableCards: 'Изображения недоступны. План упражнений по-прежнему доступен.', limitedDetails: 'Для некоторых старых упражнений доступны не все подробности.', noExercises: 'На сегодня упражнения не запланированы.', exerciseDetailsTitle: 'Упражнение', exerciseUnavailable: 'Подробности недоступны', exerciseUnavailableMessage: 'Это упражнение отсутствует в текущем плане.', imageLoading: 'Загружаем изображение упражнения', imageUnavailable: 'Изображение упражнения недоступно', mediaPage: 'Изображение {{current}} из {{total}}', planPrescription: 'Ваш план', prescriptionUnavailable: 'Следуйте общей рекомендации по тренировке.', targetMuscles: 'Целевые мышцы', secondaryMuscles: 'Дополнительные мышцы', equipmentLabel: 'Оборудование', noEquipment: 'Без оборудования', aboutExercise: 'Об упражнении', instructions: 'Инструкции', coachingCues: 'Подсказки по технике', safetyNotes: 'Безопасность', setCount_one: '{{count}} подход', setCount_other: '{{count}} подходов' },

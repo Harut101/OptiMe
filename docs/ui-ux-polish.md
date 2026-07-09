@@ -103,14 +103,14 @@ The v2 pass applies the Apple Health-inspired system across the core mobile surf
 - Meal Details opens with a focused meal hero and macro widgets.
 - Training is action-oriented around today's workout/rest state, weekly routine, setup, and workout history.
 - Health uses compact provider cards for Apple Health, Health Connect, WHOOP, and Garmin plus wearable metric widgets.
-- Profile remains sectioned for existing navigation but presents content as settings-hub rows.
+- Profile is a stacked settings hub with account/profile, goal/nutrition, weight, training, connections, plan/settings, support, and safety cards. It routes to domain screens instead of duplicating dashboard content.
 - Auth screens use a brand mark, stronger title hierarchy, and carded inputs.
 
 Do not add permanent usage clutter to Today. Do not show raw debug, protocol, AI, or provider internals in mobile UI.
 
 ## Unified Feedback Pattern
 
-Food and Meal Details now use a shared feedback pattern:
+Food, Meal Details, Training, and Profile now use a shared feedback pattern:
 
 - `AppToast` for compact success/info feedback such as saved preferences, meal status updates, and regenerated meals.
 - `AppFeedbackSheet` for confirmations such as replacing a meal/menu or excluding an ingredient.

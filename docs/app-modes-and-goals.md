@@ -36,3 +36,5 @@ During onboarding, `NUTRITION_AND_TRAINING` enables training guidance but does n
 Safety is not paywalled or mode-gated. Pain, illness, dizziness, exhaustion, under-18 rules, allergy rules, pregnancy/postpartum context, and dangerous-goal validation still apply in every mode.
 
 Pricing is also mode-independent. `NUTRITION_ONLY` users can be Free, Plus, or Pro and still benefit from nutrition planning, food preferences, meal/menu regeneration, food tracking, and health-aware context. Training-specific paid depth applies only when Training is enabled, but safety behavior stays available in all modes.
+
+Mobile Profile shows goal and app-mode context as an entry point to the standalone goal editor. It does not save goal fields through the profile payload and does not regenerate existing plans automatically.
