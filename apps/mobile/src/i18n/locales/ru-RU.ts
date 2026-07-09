@@ -35,6 +35,33 @@ export const ruRU = createLocaleResource({
   unsaved: { title: 'Отменить несохранённые изменения?', message: 'Ваши изменения ещё не сохранены.' },
   errors: { network: 'Что-то пошло не так. Повторите попытку.', validation: 'Проверьте введённые данные.', required: 'Заполните это поле.', unableLoad: 'Не удалось загрузить данные.', unableSave: 'Не удалось сохранить изменения.', session: 'Сеанс истёк. Войдите снова.', nativeHealthUnsupported: 'Данные здоровья недоступны на этом устройстве или в этой сборке.', invalidSettings: 'Выберите поддерживаемый язык и систему измерений.' }
 }, {
+  common: { back: 'Back' },
+  auth: {
+    valueNutrition: 'Nutrition adapted to your day',
+    valueTraining: 'Training when you want it',
+    valueHealth: 'Health data-aware planning',
+    trustNote: 'Supportive guidance. No shame, no extreme advice.',
+    signInSecurely: 'Sign in securely',
+    createSecurely: 'Create your account securely',
+    checkDetails: 'Check your details and try again.'
+  },
+  onboarding: {
+    stepProfile: 'Profile basics',
+    stepGoal: 'Your goal',
+    stepFood: 'Nutrition preferences',
+    progress: 'Step {{current}} of {{total}}',
+    progressProfile: 'Step 1 of 3',
+    progressGoal: 'Step 2 of 3',
+    progressFood: 'Step 3 of 3',
+    progressComplete: 'Onboarding complete',
+    goalHealthyEatingHelp: 'Balanced meals and steady energy without strict rules.',
+    goalMaintenanceHelp: 'Support consistency, strength, and energy while staying steady.',
+    goalWeightGainHelp: 'Support muscle and strength with practical nutrition.',
+    goalWeightLossHelp: 'Use safe, gradual guidance without pressure language.',
+    appModeNutritionOnlyHelp: 'Food planning, meal tracking, and health-aware targets.',
+    appModeTrainingHelp: 'Food planning, workout guidance, and training load support.',
+    changeLater: 'You can change this later from Profile.'
+  },
   health: { connectionEnabled: 'Подключение {{provider}} включено.', disconnectedMessage: '{{provider}} отключён. Синхронизированные сводки сохранятся, пока вы их не удалите.', deletedCount: 'Удалено сводок о здоровье: {{count}}.', synced: 'Сводки о здоровье синхронизированы.', syncedEmpty: 'Синхронизация завершена. Доступных ежедневных сводок нет.', nativeBuildHelp: 'Для нативной синхронизации нужна development-сборка с поддержкой данных о здоровье. Expo Go покажет безопасное сообщение о недоступности.', syncHelp: 'OptiMe может запросить доступ к шагам, сну, тренировкам и активности и синхронизировать сводки за последние 7 дней.', syncScope: 'Вес и данные о пульсе пока не включены.', beforeConnect: 'Перед подключением', manageHelp: 'Отключение остановит дальнейшее использование данных, но не удалит сохранённые сводки.' },
   weight: { updatedMessage: 'Weight updated. Future plans will use this value.' },
   profile: {

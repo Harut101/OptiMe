@@ -35,6 +35,33 @@ export const frFR = createLocaleResource({
   unsaved: { title: 'Abandonner les modifications ?', message: "Vos changements n'ont pas encore été enregistrés." },
   errors: { network: 'Un problème est survenu. Réessayez.', validation: 'Vérifiez les informations saisies.', required: 'Ce champ est obligatoire.', unableLoad: 'Impossible de charger ces informations.', unableSave: "Impossible d'enregistrer vos modifications.", session: 'Votre session a expiré. Reconnectez-vous.', nativeHealthUnsupported: "Les données de santé natives ne sont pas disponibles sur cet appareil.", invalidSettings: "Choisissez une langue et un système d'unités pris en charge." }
 }, {
+  common: { back: 'Retour' },
+  auth: {
+    valueNutrition: 'Nutrition adapted to your day',
+    valueTraining: 'Training when you want it',
+    valueHealth: 'Health data-aware planning',
+    trustNote: 'Supportive guidance. No shame, no extreme advice.',
+    signInSecurely: 'Sign in securely',
+    createSecurely: 'Create your account securely',
+    checkDetails: 'Check your details and try again.'
+  },
+  onboarding: {
+    stepProfile: 'Profile basics',
+    stepGoal: 'Your goal',
+    stepFood: 'Nutrition preferences',
+    progress: 'Step {{current}} of {{total}}',
+    progressProfile: 'Step 1 of 3',
+    progressGoal: 'Step 2 of 3',
+    progressFood: 'Step 3 of 3',
+    progressComplete: 'Onboarding complete',
+    goalHealthyEatingHelp: 'Balanced meals and steady energy without strict rules.',
+    goalMaintenanceHelp: 'Support consistency, strength, and energy while staying steady.',
+    goalWeightGainHelp: 'Support muscle and strength with practical nutrition.',
+    goalWeightLossHelp: 'Use safe, gradual guidance without pressure language.',
+    appModeNutritionOnlyHelp: 'Food planning, meal tracking, and health-aware targets.',
+    appModeTrainingHelp: 'Food planning, workout guidance, and training load support.',
+    changeLater: 'You can change this later from Profile.'
+  },
   health: { connectionEnabled: 'La connexion {{provider}} est activée.', disconnectedMessage: '{{provider}} est déconnecté. Les résumés synchronisés restent disponibles jusqu’à leur suppression.', deletedCount: '{{count}} résumés de santé supprimés.', synced: 'Résumés de santé synchronisés.', syncedEmpty: 'Synchronisation terminée. Aucun résumé quotidien n’était disponible.', nativeBuildHelp: 'La synchronisation native nécessite une version de développement compatible. Expo Go affiche un message d’indisponibilité sûr.', syncHelp: 'OptiMe peut demander l’accès aux pas, au sommeil, aux entraînements et à l’activité, puis synchroniser les 7 derniers jours.', syncScope: 'Le poids et les données de fréquence cardiaque ne sont pas inclus à ce stade.', beforeConnect: 'Avant la connexion', manageHelp: 'La déconnexion arrête toute utilisation future sans supprimer les résumés enregistrés.' },
   weight: { updatedMessage: 'Poids mis à jour. Les futurs plans utiliseront cette valeur.' },
   profile: {

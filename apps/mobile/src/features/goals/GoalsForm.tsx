@@ -1,12 +1,16 @@
 import { StyleSheet, View } from 'react-native';
 import type { GoalImpactMode, GoalType, PrimaryGoal } from '@optime/shared-types';
 import { useTranslation } from 'react-i18next';
+import { Dumbbell, HeartPulse, Leaf, Scale, Utensils } from 'lucide-react-native';
 
 import { Field } from '@/components/Field';
+import { SelectableCard } from '@/components/SelectableCard';
 import { SelectChips } from '@/components/SelectChips';
+import { Text } from '@/components/Text';
 import type { GoalRequest, GoalResponse } from '@/types/api';
 import { enumOptions, getGoalImpactLabel, getGoalTypeLabel, getPrimaryGoalLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
+import { colors } from '@/theme/colors';
 
 export interface GoalsFormValue {
   goalType: GoalType;
@@ -32,9 +36,15 @@ export const EMPTY_GOALS_FORM: GoalsFormValue = {
 
 export const PRIMARY_GOAL_VALUES: PrimaryGoal[] = ['WEIGHT_LOSS', 'WEIGHT_MAINTENANCE', 'WEIGHT_GAIN', 'HEALTHY_EATING'];
 
-export function GoalsForm({ value, onChange }: GoalsFormProps) {
+export function GoalsForm({ value, onChange, validationMode = 'standalone' }: GoalsFormProps) {
   const { t } = useTranslation();
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
+  const primaryGoalSubtitles: Record<PrimaryGoal, string> = {
+    HEALTHY_EATING: t('onboarding.goalHealthyEatingHelp'),
+    WEIGHT_MAINTENANCE: t('onboarding.goalMaintenanceHelp'),
+    WEIGHT_GAIN: t('onboarding.goalWeightGainHelp'),
+    WEIGHT_LOSS: t('onboarding.goalWeightLossHelp')
+  };
   const updatePrimaryGoal = (primaryGoal: PrimaryGoal) => {
     const goalType = goalTypeFromPrimaryGoal(primaryGoal);
     onChange(
@@ -46,18 +56,50 @@ export function GoalsForm({ value, onChange }: GoalsFormProps) {
 
   return (
     <View style={styles.form}>
-      <SelectChips
-        label={t('goals.primaryGoal')}
-        value={value.primaryGoal}
-        onChange={updatePrimaryGoal}
-        options={enumOptions(PRIMARY_GOAL_VALUES, (item) => getPrimaryGoalLabel(t, item))}
-      />
-      <SelectChips
-        label={t('goals.appMode')}
-        value={value.impactMode}
-        onChange={(impactMode) => onChange({ ...value, impactMode })}
-        options={enumOptions(IMPACT_VALUES, (item) => getGoalImpactLabel(t, item))}
-      />
+      {validationMode === 'onboarding' ? (
+        <>
+          <Text variant="label">{t('goals.primaryGoal')}</Text>
+          {PRIMARY_GOAL_VALUES.map((item) => (
+            <SelectableCard
+              key={item}
+              icon={getPrimaryGoalIcon(item)}
+              title={getPrimaryGoalLabel(t, item)}
+              subtitle={primaryGoalSubtitles[item]}
+              selected={value.primaryGoal === item}
+              onPress={() => updatePrimaryGoal(item)}
+            />
+          ))}
+          <Text variant="label">{t('goals.appMode')}</Text>
+          {IMPACT_VALUES.map((item) => (
+            <SelectableCard
+              key={item}
+              icon={item === 'NUTRITION_ONLY'
+                ? <Utensils size={19} color={value.impactMode === item ? colors.textInverse : colors.nutrition} />
+                : <Dumbbell size={19} color={value.impactMode === item ? colors.textInverse : colors.training} />}
+              title={getGoalImpactLabel(t, item)}
+              subtitle={item === 'NUTRITION_ONLY' ? t('onboarding.appModeNutritionOnlyHelp') : t('onboarding.appModeTrainingHelp')}
+              selected={value.impactMode === item}
+              onPress={() => onChange({ ...value, impactMode: item })}
+            />
+          ))}
+          <Text variant="caption">{t('onboarding.changeLater')}</Text>
+        </>
+      ) : (
+        <>
+          <SelectChips
+            label={t('goals.primaryGoal')}
+            value={value.primaryGoal}
+            onChange={updatePrimaryGoal}
+            options={enumOptions(PRIMARY_GOAL_VALUES, (item) => getPrimaryGoalLabel(t, item))}
+          />
+          <SelectChips
+            label={t('goals.appMode')}
+            value={value.impactMode}
+            onChange={(impactMode) => onChange({ ...value, impactMode })}
+            options={enumOptions(IMPACT_VALUES, (item) => getGoalImpactLabel(t, item))}
+          />
+        </>
+      )}
       {value.primaryGoal === 'WEIGHT_LOSS' ? (
         <>
           <Field
@@ -79,6 +121,13 @@ export function GoalsForm({ value, onChange }: GoalsFormProps) {
 }
 
 const IMPACT_VALUES: GoalImpactMode[] = ['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING'];
+
+function getPrimaryGoalIcon(primaryGoal: PrimaryGoal) {
+  if (primaryGoal === 'WEIGHT_LOSS') return <Scale size={19} color={colors.textInverse} />;
+  if (primaryGoal === 'WEIGHT_GAIN') return <Dumbbell size={19} color={colors.textInverse} />;
+  if (primaryGoal === 'WEIGHT_MAINTENANCE') return <HeartPulse size={19} color={colors.textInverse} />;
+  return <Leaf size={19} color={colors.textInverse} />;
+}
 
 export function fromGoalResponse(goal: GoalResponse): GoalsFormValue {
   return {

@@ -1,34 +1,43 @@
 import { router } from 'expo-router';
+import { Dumbbell, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
+import { SelectableCard } from '@/components/SelectableCard';
+import { OnboardingStepShell } from '@/features/onboarding/OnboardingStepShell';
+import { colors } from '@/theme/colors';
 
 export default function TrainingNextStepScreen() {
   const { t } = useTranslation();
 
   return (
     <Screen>
-      <Text variant="heading">{t('onboarding.trainingEnabledTitle')}</Text>
-      <Text variant="muted">{t('onboarding.trainingEnabledMessage')}</Text>
-      <Card>
-        <Text variant="label">{t('onboarding.trainingOptionalTitle')}</Text>
-        <Text variant="body">{t('onboarding.trainingOptionalMessage')}</Text>
-        <Button
+      <OnboardingStepShell
+        eyebrow={t('onboarding.trainingOptionalTitle')}
+        title={t('onboarding.trainingEnabledTitle')}
+        subtitle={t('onboarding.trainingEnabledMessage')}
+        progressLabel={t('onboarding.progressComplete')}
+        progressValue={1}
+        primaryLabel={t('onboarding.setUpWeeklyRoutine')}
+        onPrimary={() => router.replace('/(tabs)/training')}
+        secondaryLabel={t('onboarding.skipTrainingSetup')}
+        onSecondary={() => router.replace('/(tabs)/today')}
+      >
+        <SelectableCard
+          icon={<Dumbbell size={19} color={colors.textInverse} />}
+          selected
           title={t('onboarding.setUpWeeklyRoutine')}
-          accessibilityLabel={t('onboarding.setUpWeeklyRoutine')}
+          subtitle={t('onboarding.trainingOptionalMessage')}
           onPress={() => router.replace('/(tabs)/training')}
         />
-        <Button
+        <SelectableCard
+          icon={<Utensils size={19} color={colors.nutrition} />}
+          selected={false}
           title={t('onboarding.skipTrainingSetup')}
-          variant="secondary"
-          accessibilityLabel={t('onboarding.skipTrainingSetup')}
+          subtitle={t('onboarding.configureTrainingAnytime')}
           onPress={() => router.replace('/(tabs)/today')}
         />
-      </Card>
-      <Text variant="muted">{t('onboarding.configureTrainingAnytime')}</Text>
+      </OnboardingStepShell>
     </Screen>
   );
 }

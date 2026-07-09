@@ -56,14 +56,14 @@ export const lightThemeColors = {
   trainingMuted: '#EAF2FF',
   recovery: '#B25FEA',
   recoveryMuted: '#F5E9FF',
-  health: '#EB4B62',
-  healthMuted: '#FFE9EE',
+  health: '#A82C3D',
+  healthMuted: '#F6E2E6',
   success: '#34C759',
   successMuted: '#E8FBE8',
   warning: '#F1A33B',
   warningMuted: '#FFF3DE',
-  danger: '#EB4B62',
-  dangerMuted: '#FFE9EE',
+  danger: '#A82C3D',
+  dangerMuted: '#F6E2E6',
   info: '#81CFFA',
   infoMuted: '#E9F8FF'
 } satisfies ThemeColors;
@@ -91,14 +91,14 @@ export const darkThemeColors = {
   trainingMuted: '#172D52',
   recovery: '#C77DFF',
   recoveryMuted: '#341B4F',
-  health: '#FF5C73',
-  healthMuted: '#441923',
+  health: '#D94A5E',
+  healthMuted: '#351219',
   success: '#67CE67',
   successMuted: '#173A1A',
   warning: '#F1A33B',
   warningMuted: '#3E2A10',
-  danger: '#FF5C73',
-  dangerMuted: '#441923',
+  danger: '#D94A5E',
+  dangerMuted: '#351219',
   info: '#87E3E1',
   infoMuted: '#123839'
 } satisfies ThemeColors;
@@ -116,6 +116,6 @@ export const colors = {
   ink: lightThemeColors.textPrimary,
   muted: lightThemeColors.textSecondary,
   line: lightThemeColors.border,
-  primary: lightThemeColors.nutrition,
-  primaryDark: '#08745C'
+  primary: lightThemeColors.health,
+  primaryDark: lightThemeColors.danger
 } as const;

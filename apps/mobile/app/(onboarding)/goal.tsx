@@ -1,25 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { goalSchema } from '@optime/shared-schemas';
 
 import { saveGoal } from '@/api/goals';
-import { Button } from '@/components/Button';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { Screen } from '@/components/Screen';
-import { Text } from '@/components/Text';
 import {
   EMPTY_GOALS_FORM,
   GoalsForm,
   toGoalRequest
 } from '@/features/goals/GoalsForm';
+import { OnboardingStepShell } from '@/features/onboarding/OnboardingStepShell';
 import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
 
 export default function GoalsOnboardingStep() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [value, setValue] = useState(EMPTY_GOALS_FORM);
+  const [errorSheet, setErrorSheet] = useState<{ title: string; message: string } | null>(null);
   const mutation = useMutation({
     mutationFn: saveGoal,
     onSuccess: async (goal) => {
@@ -28,13 +28,13 @@ export default function GoalsOnboardingStep() {
       router.push('/(onboarding)/nutrition-preferences');
     },
     onError: (error) =>
-      Alert.alert(t('onboarding.safeGoalTitle'), getFriendlyGoalErrorMessage(error, t))
+      setErrorSheet({ title: t('onboarding.safeGoalTitle'), message: getFriendlyGoalErrorMessage(error, t) })
   });
 
   const continueOnboarding = () => {
     const result = goalSchema.safeParse(toGoalRequest(value));
     if (!result.success) {
-      Alert.alert(t('onboarding.checkGoal'), t('goals.checkGoal'));
+      setErrorSheet({ title: t('onboarding.checkGoal'), message: t('goals.checkGoal') });
       return;
     }
     mutation.mutate(result.data);
@@ -42,13 +42,27 @@ export default function GoalsOnboardingStep() {
 
   return (
     <Screen>
-      <Text variant="heading">{t('onboarding.directionTitle')}</Text>
-      <Text variant="muted">{t('onboarding.directionMessage')}</Text>
-      <GoalsForm value={value} onChange={setValue} validationMode="onboarding" />
-      <Button
-        title={mutation.isPending ? t('common.saving') : t('common.continue')}
-        disabled={mutation.isPending}
-        onPress={continueOnboarding}
+      <OnboardingStepShell
+        eyebrow={t('onboarding.stepGoal')}
+        title={t('onboarding.directionTitle')}
+        subtitle={t('onboarding.directionMessage')}
+        progressLabel={t('onboarding.progressGoal')}
+        progressValue={2 / 3}
+        primaryLabel={mutation.isPending ? t('common.saving') : t('common.continue')}
+        primaryLoading={mutation.isPending}
+        onPrimary={continueOnboarding}
+        secondaryLabel={t('common.back')}
+        onSecondary={() => router.back()}
+      >
+        <GoalsForm value={value} onChange={setValue} validationMode="onboarding" />
+      </OnboardingStepShell>
+      <AppFeedbackSheet
+        visible={errorSheet !== null}
+        title={errorSheet?.title ?? t('onboarding.checkGoal')}
+        message={errorSheet?.message ?? t('goals.checkGoal')}
+        tone="warning"
+        onClose={() => setErrorSheet(null)}
+        actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setErrorSheet(null) }]}
       />
     </Screen>
   );

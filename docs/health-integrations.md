@@ -118,6 +118,8 @@ Batch 3 adds mobile UI only:
 - backend connect/disconnect/delete synced data actions
 - platform provider label, Apple Health on iOS and Health Connect on Android
 
+Onboarding does not force health-provider connection. Auth/onboarding visual polish may mention health-aware planning as a benefit, but Apple Health connection remains optional from Health Data/Profile surfaces and readiness prompts.
+
 Batch 3 does not:
 
 - request native Apple Health permissions

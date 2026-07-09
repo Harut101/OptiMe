@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: lightTheme.colors.surface
   },
-  selected: { borderColor: lightTheme.colors.brand, backgroundColor: lightTheme.colors.brandSoft },
+  selected: { borderColor: lightTheme.colors.primaryAction, backgroundColor: lightTheme.colors.brandSoft },
   text: { fontWeight: '700' },
   selectedText: { color: lightTheme.colors.primaryAction }
 });

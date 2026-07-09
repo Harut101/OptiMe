@@ -35,6 +35,33 @@ export const zhCN = createLocaleResource({
   unsaved: { title: '放弃未保存的更改？', message: '你的更改尚未保存。' },
   errors: { network: '出现问题，请重试。', validation: '请检查输入的信息。', required: '此项为必填项。', unableLoad: '无法加载此信息。', unableSave: '无法保存更改。', session: '登录已过期，请重新登录。', nativeHealthUnsupported: '此设备或版本不支持原生健康数据。', invalidSettings: '请选择受支持的语言和计量单位。' }
 }, {
+  common: { back: 'Back' },
+  auth: {
+    valueNutrition: 'Nutrition adapted to your day',
+    valueTraining: 'Training when you want it',
+    valueHealth: 'Health data-aware planning',
+    trustNote: 'Supportive guidance. No shame, no extreme advice.',
+    signInSecurely: 'Sign in securely',
+    createSecurely: 'Create your account securely',
+    checkDetails: 'Check your details and try again.'
+  },
+  onboarding: {
+    stepProfile: 'Profile basics',
+    stepGoal: 'Your goal',
+    stepFood: 'Nutrition preferences',
+    progress: 'Step {{current}} of {{total}}',
+    progressProfile: 'Step 1 of 3',
+    progressGoal: 'Step 2 of 3',
+    progressFood: 'Step 3 of 3',
+    progressComplete: 'Onboarding complete',
+    goalHealthyEatingHelp: 'Balanced meals and steady energy without strict rules.',
+    goalMaintenanceHelp: 'Support consistency, strength, and energy while staying steady.',
+    goalWeightGainHelp: 'Support muscle and strength with practical nutrition.',
+    goalWeightLossHelp: 'Use safe, gradual guidance without pressure language.',
+    appModeNutritionOnlyHelp: 'Food planning, meal tracking, and health-aware targets.',
+    appModeTrainingHelp: 'Food planning, workout guidance, and training load support.',
+    changeLater: 'You can change this later from Profile.'
+  },
   health: { connectionEnabled: '已启用 {{provider}} 连接。', disconnectedMessage: '已断开 {{provider}}。同步摘要会保留，直到你将其删除。', deletedCount: '已删除 {{count}} 条健康摘要。', synced: '健康摘要已同步。', syncedEmpty: '健康同步已完成，暂无可用的每日摘要。', nativeBuildHelp: '原生同步需要支持健康数据的开发版本。Expo Go 会显示安全的不可用提示。', syncHelp: 'OptiMe 可请求步数、睡眠、训练和活动权限，并同步最近 7 天的每日摘要。', syncScope: '当前基础版本不包含体重和心率数据。', beforeConnect: '连接前', manageHelp: '断开连接会停止后续使用，但不会删除已保存的摘要。' },
   weight: { updatedMessage: 'Weight updated. Future plans will use this value.' },
   profile: {

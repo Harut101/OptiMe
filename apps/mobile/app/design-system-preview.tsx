@@ -21,11 +21,13 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { AppToast } from '@/components/AppToast';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
+import { Button } from '@/components/Button';
 import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { MetricCard } from '@/components/MetricCard';
 import { MiniBarChart } from '@/components/MiniBarChart';
 import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { SelectChips } from '@/components/SelectChips';
+import { SelectableCard } from '@/components/SelectableCard';
 import { SettingsListItem } from '@/components/SettingsListItem';
 import { StatusPill } from '@/components/StatusPill';
 import { WorkoutCardV2 } from '@/components/WorkoutCardV2';
@@ -186,6 +188,9 @@ export default function DesignSystemPreviewScreen() {
         <AppText variant="heading">{t('designSystem.components')}</AppText>
         <UIButton title={t('common.save')} icon="completed" />
         <UIButton title={t('common.edit')} icon="edit" variant="secondary" />
+        <Button title={t('today.generate')} />
+        <Button title={t('today.generating')} loading />
+        <Button title={t('today.generate')} disabled />
         <View style={styles.row}>
           <Chip label={t('appModes.nutritionOnly')} selected />
           <Chip label={t('appModes.nutritionTraining')} />
@@ -203,6 +208,20 @@ export default function DesignSystemPreviewScreen() {
           ]}
         />
         <ProgressBar value={0.62} />
+        <SelectableCard
+          icon={<Utensils size={19} color={lightTheme.colors.textInverse} />}
+          title={t('appModes.nutritionOnly')}
+          subtitle={t('onboarding.appModeNutritionOnlyHelp')}
+          selected
+          onPress={() => undefined}
+        />
+        <SelectableCard
+          icon={<Dumbbell size={19} color={lightTheme.colors.training} />}
+          title={t('appModes.nutritionTraining')}
+          subtitle={t('onboarding.appModeTrainingHelp')}
+          selected={false}
+          onPress={() => undefined}
+        />
         <View style={styles.row}>
           <StatusPill label={t('today.nutrition')} tone="nutrition" />
           <StatusPill label={t('today.training')} tone="training" />

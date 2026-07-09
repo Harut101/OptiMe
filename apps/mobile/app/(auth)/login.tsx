@@ -1,14 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, StyleSheet, View } from 'react-native';
-import { Sparkles } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
+import { HeartPulse, Sparkles } from 'lucide-react-native';
 import { loginSchema } from '@optime/shared-schemas';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 
 import { loginUser } from '@/api/auth';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
@@ -22,6 +24,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginScreen() {
   const { t } = useTranslation();
   const setSession = useAuthStore((state) => state.setSession);
+  const [errorSheetVisible, setErrorSheetVisible] = useState(false);
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,18 +39,23 @@ export default function LoginScreen() {
       await setSession(data.accessToken, data.user);
       router.replace('/');
     },
-    onError: () => Alert.alert(t('auth.loginFailed'), t('errors.network'))
+    onError: () => setErrorSheetVisible(true)
   });
 
   return (
     <Screen>
       <View style={styles.hero}>
-        <View style={styles.logo}><Sparkles size={20} color={colors.health} /></View>
+        <View style={styles.logo}><Sparkles size={22} color={colors.textInverse} /></View>
+        <Text variant="label" style={styles.brand}>OptiMe</Text>
         <Text variant="title">{t('auth.welcomeBack')}</Text>
         <Text variant="muted">{t('auth.loginMessage')}</Text>
       </View>
 
       <Card variant="elevated">
+        <View style={styles.formHeader}>
+          <View style={styles.formIcon}><HeartPulse size={18} color={colors.health} /></View>
+          <Text variant="label">{t('auth.signInSecurely')}</Text>
+        </View>
         <Controller
           control={form.control}
           name="email"
@@ -79,10 +87,19 @@ export default function LoginScreen() {
         <Button
           title={mutation.isPending ? t('auth.loggingIn') : t('auth.login')}
           disabled={mutation.isPending}
+          loading={mutation.isPending}
           onPress={form.handleSubmit((values) => mutation.mutate(values))}
         />
       </Card>
       <Button title={t('auth.createAccount')} variant="ghost" onPress={() => router.push('/(auth)/register')} />
+      <AppFeedbackSheet
+        visible={errorSheetVisible}
+        title={t('auth.loginFailed')}
+        message={t('auth.checkDetails')}
+        tone="warning"
+        onClose={() => setErrorSheetVisible(false)}
+        actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setErrorSheetVisible(false) }]}
+      />
     </Screen>
   );
 }
@@ -94,10 +111,31 @@ const styles = StyleSheet.create({
   },
   logo: {
     alignItems: 'center',
-    backgroundColor: colors.healthMuted,
-    borderRadius: 20,
-    height: 48,
+    backgroundColor: colors.primary,
+    borderRadius: 22,
+    height: 52,
     justifyContent: 'center',
-    width: 48
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    width: 52
+  },
+  brand: {
+    color: colors.primaryDark,
+    fontWeight: '900'
+  },
+  formHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10
+  },
+  formIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.healthMuted,
+    borderRadius: 13,
+    height: 32,
+    justifyContent: 'center',
+    width: 32
   }
 });

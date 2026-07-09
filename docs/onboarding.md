@@ -1,5 +1,7 @@
 # Onboarding
 
+Auth and onboarding now use the v2 premium mobile shell: branded hero cards, stronger primary CTAs, elevated form surfaces, compact progress, and unified feedback. The redesign is presentation-only and does not change auth APIs, onboarding persistence, app-mode semantics, or first-plan readiness.
+
 Stage 1 remains a short path to the first safe plan: personal safety context, goal, app mode, activity level, and allergy confirmation. Food details and training details can be refined later in their standalone tabs.
 
 Onboarding and standalone pages share controlled domain forms:
@@ -36,5 +38,14 @@ Detailed meal preferences, target muscles, equipment, weekly routine, workout ex
 # Onboarding Visual Design v2
 
 Onboarding remains short and safety-first. The redesign should improve hierarchy and spacing without adding extra required fields before the first safe plan.
+
+The mobile shell uses:
+
+- `OnboardingStepShell` for title, subtitle, accessible progress, carded content, and bottom-safe actions.
+- `SelectableCard` for goal and app-mode choices with icon, title, subtitle, and selected state.
+- `AppFeedbackSheet` for blocking save/auth errors instead of raw native alerts.
+- Inline validation for fields and allergy confirmation.
+
+Goal selection uses premium cards. App mode selection clearly distinguishes Nutrition only from Nutrition + Training and reminds users that they can change this later.
 
 Do not reintroduce detailed training setup during onboarding. Training preferences, target muscles, equipment, and routine details stay progressive after the user reaches Today.

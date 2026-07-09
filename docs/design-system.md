@@ -112,6 +112,10 @@ The Design System Preview now includes the v2 mobile component language:
 
 These are presentation-only primitives. They do not change DailyPlan generation, food tracking, workout execution, Health sync, usage limits, or backend contracts.
 
+## Primary Accent And CTA Rule
+
+The existing `colors.primary` alias is the OptiMe deep rose `#A82C3D` in light mode, with a brighter related tone for dark mode readability. Primary buttons, Generate Plan, selected chips, selected onboarding cards, and preview CTA samples should use this existing alias rather than one-off screen colors.
+
 `HealthMetricWidget` is the Apple Health-inspired metric style for wearable/health summaries: theme-aware compact card, semantic title/icon, small context line, large value, unit, and optional comparison/footer text. It adapts its surface, text, border, shadow, and accent colors from light/dark theme tokens instead of staying permanently black. It is intended for steps, sleep, active calories, workout minutes, heart-rate-style future metrics, and similar dashboard widgets.
 
 The widget also supports optional mini bars, progress fill, press handling, and explicit accessibility labels. Use these lightweight visuals instead of adding a chart library for dashboard summaries. The main value should remain large and readable; color belongs on icons, labels, progress, and chart accents rather than filling the entire card.
@@ -132,6 +136,12 @@ Profile hub primitives:
 - `SettingsListItem` supports semantic tones, value text, status pills, trailing content, and accessibility labels.
 - Profile rows should use tones for profile, goal, nutrition, training, health, weight, plan, settings, support, and danger actions.
 - Save confirmation belongs in `AppToast`; save failures belong in `AppFeedbackSheet`; plan-affecting profile/weight changes use `PlanImpactPromptCard`.
+
+Auth and onboarding primitives:
+
+- `OnboardingStepShell` provides the mobile-first onboarding title/progress/card/action structure.
+- `SelectableCard` provides non-color-only selected states for goal and app-mode choices.
+- Auth screens use a branded hero, compact value propositions, and `AppFeedbackSheet` for blocking auth errors.
 
 Bottom sheets are used for concise detail expansion, especially AI Coach guidance. Main screens should avoid long explanatory blocks when a short entry point plus detail sheet is enough.
 

@@ -92,18 +92,31 @@ assert(goalEditor.includes('mutation.isPending || !dirty'), 'Goals must prevent 
 
 const goalsForm = read('src/features/goals/GoalsForm.tsx');
 const onboardingGoal = read('app/(onboarding)/goal.tsx');
+const onboardingProfile = read('app/(onboarding)/profile.tsx');
 const onboardingNutrition = read('app/(onboarding)/nutrition-preferences.tsx');
 const onboardingLayout = read('app/(onboarding)/_layout.tsx');
 const onboardingTrainingNextStep = read('app/(onboarding)/training-next-step.tsx');
-assert(goalsForm.includes('GOAL_VALUES') && goalsForm.includes('getGoalTypeLabel'), 'Goal labels must be centralized.');
+const authWelcome = read('app/(auth)/welcome.tsx');
+const authLogin = read('app/(auth)/login.tsx');
+const authRegister = read('app/(auth)/register.tsx');
+assert(goalsForm.includes('PRIMARY_GOAL_VALUES') && goalsForm.includes('getPrimaryGoalLabel'), 'Goal labels must be centralized.');
 assert(!goalsForm.includes('expo-router'), 'GoalsForm must not navigate.');
 assert(!goalsForm.includes('@/api/'), 'GoalsForm must not persist data.');
 assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.');
+assertIncludes(authWelcome, ["t('auth.valueNutrition')", "t('auth.valueTraining')", "t('auth.valueHealth')", "t('auth.trustNote')"], 'Auth welcome redesign');
+assertIncludes(authLogin, ['AppFeedbackSheet', "t('auth.signInSecurely')", "t('auth.checkDetails')"], 'Auth login redesign');
+assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t('auth.checkDetails')"], 'Auth register redesign');
+assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
+assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
+assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');
+assertIncludes(goalsForm, ['SelectableCard', "t('onboarding.appModeNutritionOnlyHelp')", "t('onboarding.appModeTrainingHelp')"], 'Goal onboarding cards');
 assert(!existsSync(resolve(root, 'app/(onboarding)/training-preferences.tsx')), 'Onboarding must not include Training Setup.');
 assert(!existsSync(resolve(root, 'app/(onboarding)/training-schedule/index.tsx')), 'Onboarding must not include Weekly Routine.');
 assert(!onboardingLayout.includes('training-schedule'), 'Onboarding stack must not expose routine editor screens.');
-assertIncludes(onboardingNutrition, ['ensureQueryData', "'/(onboarding)/training-next-step' as Href", "'/(tabs)/today' as Href", 'router.replace(nextRoute)'], 'Nutrition onboarding routing');
+assertIncludes(onboardingNutrition, ['OnboardingStepShell', 'AppFeedbackSheet', 'ensureQueryData', "'/(onboarding)/training-next-step' as Href", "'/(tabs)/today' as Href", 'router.replace(nextRoute)'], 'Nutrition onboarding routing');
 assertIncludes(onboardingTrainingNextStep, [
+  'OnboardingStepShell',
+  'SelectableCard',
   "t('onboarding.trainingEnabledTitle')",
   "t('onboarding.trainingOptionalMessage')",
   "t('onboarding.setUpWeeklyRoutine')",
@@ -111,6 +124,7 @@ assertIncludes(onboardingTrainingNextStep, [
   "router.replace('/(tabs)/training')",
   "router.replace('/(tabs)/today')"
 ], 'Optional training setup');
+assert(!onboardingProfile.includes('Alert.alert') && !onboardingGoal.includes('Alert.alert') && !onboardingNutrition.includes('Alert.alert'), 'Onboarding must use unified feedback instead of raw alerts.');
 
 const planDetails = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
@@ -384,6 +398,7 @@ assertIncludes(themeColors, [
   'trainingMuted',
   'recoveryMuted',
   'healthMuted',
+  'primary: lightThemeColors.health',
   'themeColorsByMode'
 ], 'Theme colors');
 
@@ -416,6 +431,9 @@ assertIncludes(designPreview, [
   'WorkoutCardV2',
   'MiniBarChart',
   'SettingsListItem',
+  'SelectableCard',
+  "<Button title={t('today.generate')} />",
+  'loading />',
   'dashboardRingGradients',
   'emptyArcValue={18}',
   'tone="nutrition"',

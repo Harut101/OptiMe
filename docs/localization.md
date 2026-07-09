@@ -69,6 +69,8 @@ The Generate Plan training-day prompt lives under `today`, recurring routine hel
 Simplified onboarding copy lives under `onboarding` in all four supported locales. The optional training bridge uses complete localized strings for training enabled, training optional, Set up weekly routine, Skip for now, and configure training anytime. Do not concatenate these labels manually.
 
 Profile hub copy lives under `profile` and `settings`. New hub rows, settings save feedback, plan tier placeholders, and profile/weight plan-impact messages must use localized keys and enum-label helpers rather than hard-coded English fragments.
+
+Auth and redesigned onboarding copy lives under `auth` and `onboarding`. Required concepts include OptiMe brand/value propositions, secure sign-in/create copy, blocking auth error messaging, onboarding step labels, explicit progress labels, goal-card descriptions, app-mode-card descriptions, and optional Weekly Routine bridge copy. Do not concatenate English fragments manually.
 ## Food Tracking Localization
 
 Food tracking strings live under `foodTracking` in all supported mobile locales:

@@ -4,6 +4,8 @@
 
 Mobile information architecture now separates Today, Food, Training, and Profile. Food and Training preferences can be updated after onboarding through reusable domain forms, while Profile acts as a settings hub for account/profile, goals, current weight, plan tier, health connections, language/units, privacy, and safety context. Preference saves affect future plans without regenerating the current plan.
 
+The first-run experience now uses the same premium v2 mobile presentation as the rest of the app: stronger primary CTAs, branded auth screens, a compact onboarding shell, selectable goal/app-mode cards, and unified feedback. This improves activation without adding new required onboarding fields.
+
 OptiMe is a mobile-first AI wellness coach. It helps users answer four daily questions:
 
 - How ready am I to train today?

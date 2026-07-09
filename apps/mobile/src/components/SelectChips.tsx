@@ -56,7 +56,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   activeChip: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.primary,
     shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -72,7 +74,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   activeText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontWeight: '800'
   }
 });
