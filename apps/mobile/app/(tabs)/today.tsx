@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
+import { BottomSheet } from '@/components/BottomSheet';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
@@ -44,14 +45,12 @@ import {
   resolveTrainingProgress
 } from '@/features/today-dashboard/today-progress';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
-import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
 import {
   formatUsageLimitMessage,
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import { colors } from '@/theme/colors';
-import { formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
 import { getPlatformHealthProvider } from '@/features/health/health-platform';
@@ -90,6 +89,7 @@ export default function TodayScreen() {
   const [weightModalVisible, setWeightModalVisible] = useState(false);
   const [weightError, setWeightError] = useState<string | null>(null);
   const [coachVisible, setCoachVisible] = useState(false);
+  const [progressivePromptVisible, setProgressivePromptVisible] = useState(false);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
   const todayLocalDate = getLocalDateString();
@@ -289,7 +289,7 @@ export default function TodayScreen() {
   }, [generateAfterOverride, generate, handledOverrideReturn, t, today.data, today.isLoading]);
 
   if (today.isLoading) {
-    return <StateBlock title={t('today.loading')} message={t('today.loadingMessage')} />;
+    return <TodaySkeleton />;
   }
 
   if (today.isError) {
@@ -351,6 +351,7 @@ export default function TodayScreen() {
                 hint={nutritionProgress.hint}
                 tone="nutrition"
                 accessibilityLabel={nutritionProgress.accessibilityLabel}
+                style={styles.dashboardProgressCard}
               />
             </View>
             <View style={styles.dashboardCard}>
@@ -362,29 +363,15 @@ export default function TodayScreen() {
                 hint={trainingProgress.hint}
                 tone="training"
                 accessibilityLabel={trainingProgress.accessibilityLabel}
+                style={styles.dashboardProgressCard}
               />
             </View>
           </View>
-          <WearableSummaryCard
-            wearable={wearableSnapshot.data}
-            connections={healthConnections.data?.connections}
-            locale={preferredLocale}
-            onOpenHealth={() => router.push('/health-data')}
-          />
           <AIRecommendationEntry
             title="AI Coach"
             summary={plan.summary.message}
             badge={t(`enums.readiness.${today.data.readinessLevel}` as never)}
             onPress={() => setCoachVisible(true)}
-          />
-          <WeightProgressCard
-            summary={weightSummary.data}
-            locale={preferredLocale}
-            measurementSystem={measurementSystem}
-            compact
-            isLoading={weightSummary.isLoading}
-            isError={weightSummary.isError}
-            onUpdate={() => setWeightModalVisible(true)}
           />
         </>
       ) : null}
@@ -425,23 +412,6 @@ export default function TodayScreen() {
         }}
       />
 
-      {progressivePrompt.data ? (
-        <ProgressivePromptCard
-          prompt={progressivePrompt.data}
-          isSaving={answerPrompt.isPending || skipPrompt.isPending}
-          onAnswer={(value) => answerPrompt.mutate({ key: progressivePrompt.data!.key, value })}
-          onSkip={() => skipPrompt.mutate(progressivePrompt.data!.key)}
-        />
-      ) : null}
-
-      <WearableContextNote
-        contextNotes={plan?.contextNotes}
-        hasPlan={Boolean(today.data?.plan)}
-        hasSnapshot={Boolean(wearableSnapshot.data?.snapshot)}
-        hasRecentData={Boolean(wearableSnapshot.data?.hasRecentData)}
-        isUnavailable={wearableSnapshot.isError}
-      />
-
       {!today.data || !plan ? (
         <>
           <StateBlock
@@ -453,16 +423,25 @@ export default function TodayScreen() {
         </>
       ) : (
         <>
-          <Card variant="elevated">
-            <StatusPill label={t(`enums.readiness.${today.data.readinessLevel}` as never)} tone="success" />
-            {refreshMessage ? <Text style={styles.successText}>{refreshMessage}</Text> : null}
-            <Text variant="heading">{plan.summary.title}</Text>
-            <Text variant="muted">{t('today.updatedAt', { time: formatTime(today.data.updatedAt, preferredLocale) })}</Text>
-          </Card>
+          {refreshMessage ? (
+            <View style={styles.compactStatusRow}>
+              <StatusPill label={refreshMessage} tone="success" />
+            </View>
+          ) : null}
 
           {safetyMessage ? (
-            <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
+            <View style={styles.compactStatusRow}>
+              <StatusPill label={t('today.safetyNote')} tone="warning" />
+            </View>
           ) : null}
+
+          <Button title={t('today.details')} onPress={() => router.push('/plan-details')} />
+          <Button
+            title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
+            variant="secondary"
+            disabled={generate.isPending}
+            onPress={() => handleGeneratePlan(true)}
+          />
 
           <Card>
             <SectionHeader title={t('today.nutrition')} />
@@ -525,13 +504,30 @@ export default function TodayScreen() {
             <Text variant="muted">{plan.nutrition.hydration.guidance}</Text>
           </Card>
 
-          <Button title={t('today.details')} onPress={() => router.push('/plan-details')} />
-          <Button
-            title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
-            variant="secondary"
-            disabled={generate.isPending}
-            onPress={() => handleGeneratePlan(true)}
+          <WeightProgressCard
+            summary={weightSummary.data}
+            locale={preferredLocale}
+            measurementSystem={measurementSystem}
+            compact
+            isLoading={weightSummary.isLoading}
+            isError={weightSummary.isError}
+            onUpdate={() => setWeightModalVisible(true)}
           />
+
+          <WearableSummaryCard
+            wearable={wearableSnapshot.data}
+            connections={healthConnections.data?.connections}
+            locale={preferredLocale}
+            onOpenHealth={() => router.push('/health-data')}
+          />
+
+          {progressivePrompt.data ? (
+            <ProgressivePromptTrigger
+              title={t('today.improvePlans')}
+              prompt={progressivePrompt.data}
+              onPress={() => setProgressivePromptVisible(true)}
+            />
+          ) : null}
         </>
       )}
       <WeightUpdateModal
@@ -551,6 +547,28 @@ export default function TodayScreen() {
         plan={plan}
         onClose={() => setCoachVisible(false)}
       />
+      <BottomSheet
+        visible={progressivePromptVisible}
+        title={t('today.improvePlans')}
+        subtitle={progressivePrompt.data ? getProgressivePromptCopy(t, progressivePrompt.data).title : undefined}
+        onClose={() => setProgressivePromptVisible(false)}
+      >
+        {progressivePrompt.data ? (
+          <ProgressivePromptCard
+            prompt={progressivePrompt.data}
+            isSaving={answerPrompt.isPending || skipPrompt.isPending}
+            onAnswer={(value) => {
+              answerPrompt.mutate({ key: progressivePrompt.data!.key, value });
+              setProgressivePromptVisible(false);
+            }}
+            onSkip={() => {
+              skipPrompt.mutate(progressivePrompt.data!.key);
+              setProgressivePromptVisible(false);
+            }}
+            embedded
+          />
+        ) : null}
+      </BottomSheet>
     </Screen>
   );
 
@@ -836,42 +854,6 @@ function getTrainingLoadReadinessLabel(
   return t('trainingLoad.unknown');
 }
 
-function WearableContextNote({
-  contextNotes,
-  hasPlan,
-  hasSnapshot,
-  hasRecentData,
-  isUnavailable
-}: {
-  contextNotes?: DailyPlanJson['contextNotes'];
-  hasPlan: boolean;
-  hasSnapshot: boolean;
-  hasRecentData: boolean;
-  isUnavailable: boolean;
-}) {
-  const { t } = useTranslation();
-
-  if (!hasPlan || isUnavailable) {
-    return null;
-  }
-
-  const wearableNote = contextNotes?.trainingLoad ?? contextNotes?.wearable;
-  const title = wearableNote
-    ? getContextNoteTitle(t, wearableNote.titleCode)
-    : t('health.wearableSnapshot');
-  const message = wearableNote
-    ? getContextNoteMessage(t, wearableNote.messageCode)
-    : hasSnapshot && hasRecentData
-      ? t('health.wearableDataConnected')
-      : hasSnapshot
-        ? t('health.wearableDataStale')
-        : t('health.noRecentWearableData');
-
-  return (
-    <ContextNoteCard title={title} message={message} />
-  );
-}
-
 function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean; label: string }) {
   const containerStyle = trainingEnabled ? styles.modeIndicatorTraining : styles.modeIndicatorNutrition;
 
@@ -894,16 +876,54 @@ function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean
   );
 }
 
+function TodaySkeleton() {
+  return (
+    <Screen>
+      <View style={styles.todaySkeletonHeader}>
+        <View style={[styles.skeletonLine, styles.todaySkeletonEyebrow]} />
+        <View style={[styles.skeletonLine, styles.todaySkeletonTitle]} />
+        <View style={[styles.skeletonLine, styles.todaySkeletonTitleShort]} />
+        <View style={[styles.skeletonLine, styles.todaySkeletonSubtitle]} />
+      </View>
+
+      <View style={styles.dashboardGrid}>
+        {[0, 1].map((item) => (
+          <Card key={item} style={styles.todaySkeletonProgressCard}>
+            <View style={styles.todaySkeletonRing} />
+            <View style={[styles.skeletonLine, styles.todaySkeletonProgressTitle]} />
+            <View style={[styles.skeletonLine, styles.todaySkeletonProgressText]} />
+            <View style={[styles.skeletonLine, styles.todaySkeletonProgressHint]} />
+          </Card>
+        ))}
+      </View>
+
+      <Card>
+        <View style={[styles.skeletonLine, styles.todaySkeletonSectionTitle]} />
+        <View style={styles.todaySkeletonMetricGrid}>
+          {[0, 1, 2, 3].map((item) => (
+            <View key={item} style={styles.todaySkeletonMetric}>
+              <View style={[styles.skeletonLine, styles.todaySkeletonMetricLabel]} />
+              <View style={[styles.skeletonLine, styles.todaySkeletonMetricValue]} />
+            </View>
+          ))}
+        </View>
+      </Card>
+    </Screen>
+  );
+}
+
 function ProgressivePromptCard({
   prompt,
   isSaving,
   onAnswer,
-  onSkip
+  onSkip,
+  embedded = false
 }: {
   prompt: ProgressivePrompt;
   isSaving: boolean;
   onAnswer: (value: string | string[] | number | boolean) => void;
   onSkip: () => void;
+  embedded?: boolean;
 }) {
   const { t } = useTranslation();
   const [textValue, setTextValue] = useState('');
@@ -958,10 +978,10 @@ function ProgressivePromptCard({
     onAnswer(textValue);
   };
 
-  return (
-    <Card>
+  const content = (
+    <>
       <View style={styles.promptHeader}>
-        <Text variant="label">{t('today.improvePlans')}</Text>
+        {!embedded ? <Text variant="label">{t('today.improvePlans')}</Text> : null}
         <Text variant="heading">{promptCopy.title}</Text>
         <Text variant="muted">{promptCopy.description}</Text>
       </View>
@@ -1043,7 +1063,37 @@ function ProgressivePromptCard({
           style={styles.promptButton}
         />
       </View>
-    </Card>
+    </>
+  );
+
+  return embedded ? <View style={styles.embeddedPrompt}>{content}</View> : <Card>{content}</Card>;
+}
+
+function ProgressivePromptTrigger({
+  title,
+  prompt,
+  onPress
+}: {
+  title: string;
+  prompt: ProgressivePrompt;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const promptCopy = getProgressivePromptCopy(t, prompt);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${promptCopy.title}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.promptTrigger, pressed ? styles.promptTriggerPressed : null]}
+    >
+      <View style={styles.promptTriggerText}>
+        <Text variant="label">{title}</Text>
+        <Text variant="body">{promptCopy.title}</Text>
+      </View>
+      <Text style={styles.promptTriggerAction}>{t('today.answer')}</Text>
+    </Pressable>
   );
 }
 
@@ -1112,6 +1162,7 @@ function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
 
 const styles = StyleSheet.create({
   dashboardGrid: {
+    alignItems: 'stretch',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12
@@ -1120,9 +1171,44 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 150
   },
-  successText: {
-    color: colors.success,
-    fontWeight: '700'
+  dashboardProgressCard: {
+    minHeight: 284
+  },
+  compactStatusRow: {
+    alignItems: 'flex-start'
+  },
+  promptTrigger: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderColor: 'rgba(209, 209, 214, 0.65)',
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 2
+  },
+  promptTriggerPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.99 }]
+  },
+  promptTriggerText: {
+    flex: 1,
+    gap: 3
+  },
+  promptTriggerAction: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  embeddedPrompt: {
+    gap: 14
   },
   promptHeader: {
     gap: 6
@@ -1195,5 +1281,80 @@ const styles = StyleSheet.create({
     shadowColor: colors.health,
     shadowOpacity: 0.12,
     shadowRadius: 8
+  },
+  todaySkeletonHeader: {
+    gap: 12,
+    paddingTop: 8
+  },
+  skeletonLine: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 999
+  },
+  todaySkeletonEyebrow: {
+    height: 16,
+    width: 72
+  },
+  todaySkeletonTitle: {
+    height: 38,
+    width: '84%'
+  },
+  todaySkeletonTitleShort: {
+    height: 38,
+    width: '54%'
+  },
+  todaySkeletonSubtitle: {
+    height: 16,
+    width: '90%'
+  },
+  todaySkeletonProgressCard: {
+    alignItems: 'center',
+    flex: 1,
+    minHeight: 260,
+    minWidth: 150
+  },
+  todaySkeletonRing: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 62,
+    height: 124,
+    width: 124
+  },
+  todaySkeletonProgressTitle: {
+    height: 18,
+    width: '78%'
+  },
+  todaySkeletonProgressText: {
+    height: 18,
+    width: '62%'
+  },
+  todaySkeletonProgressHint: {
+    height: 14,
+    width: '48%'
+  },
+  todaySkeletonSectionTitle: {
+    height: 18,
+    width: '46%'
+  },
+  todaySkeletonMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  todaySkeletonMetric: {
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    flex: 1,
+    gap: 10,
+    minWidth: 130,
+    padding: 16
+  },
+  todaySkeletonMetricLabel: {
+    height: 12,
+    width: '58%'
+  },
+  todaySkeletonMetricValue: {
+    height: 28,
+    width: '74%'
   }
 });

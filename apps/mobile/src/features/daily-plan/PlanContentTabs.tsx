@@ -53,8 +53,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12
   },
-  selectedTab: { backgroundColor: colors.card },
+  selectedTab: {
+    backgroundColor: colors.card,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 1
+  },
   pressed: { opacity: 0.78 },
   label: { color: colors.muted, fontWeight: '700' },
-  selectedLabel: { color: colors.primaryDark }
+  selectedLabel: { color: colors.textPrimary }
 });

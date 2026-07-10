@@ -98,7 +98,7 @@ export const zhCN = createLocaleResource({
     optional: '可选。即使不连接健康数据，应用也可以正常使用。',
     loadingConnections: '正在加载健康连接。',
     appleHealthDescription: 'Apple 健康可共享 iPhone 的活动、睡眠和训练信号，用于更安全的个性化。',
-    appleHealthIosOnly: '仅 iPhone 的开发版或正式版可用。Expo Go 会显示安全的不可用状态。',
+    appleHealthIosOnly: '在 iPhone 上连接后，可将活动、睡眠和训练信号用于未来计划。',
     connectAppleHealth: '连接 Apple 健康',
     syncAppleHealth: '同步 Apple 健康',
     disconnectAppleHealth: '断开 Apple 健康',

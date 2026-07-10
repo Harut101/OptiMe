@@ -114,7 +114,7 @@ These are presentation-only primitives. They do not change DailyPlan generation,
 
 ## Primary Accent And CTA Rule
 
-The existing `colors.primary` alias is the OptiMe deep rose `#A82C3D` in light mode, with a brighter related tone for dark mode readability. Primary buttons, Generate Plan, selected chips, selected onboarding cards, and preview CTA samples should use this existing alias rather than one-off screen colors.
+The existing `colors.primary` alias is the OptiMe rose `#EB4B62`. Primary buttons, Generate Plan, selected chips, selected onboarding cards, and preview CTA samples should use this existing alias rather than one-off screen colors.
 
 `HealthMetricWidget` is the Apple Health-inspired metric style for wearable/health summaries: theme-aware compact card, semantic title/icon, small context line, large value, unit, and optional comparison/footer text. It adapts its surface, text, border, shadow, and accent colors from light/dark theme tokens instead of staying permanently black. It is intended for steps, sleep, active calories, workout minutes, heart-rate-style future metrics, and similar dashboard widgets.
 

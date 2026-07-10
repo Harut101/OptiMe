@@ -27,7 +27,7 @@ export function AIRecommendationEntry({ title, summary, badge, onPress }: AIReco
           <Text variant="body" style={styles.title}>{title}</Text>
           {badge ? <Text variant="caption" style={styles.badge}>{badge}</Text> : null}
         </View>
-        <Text variant="caption" numberOfLines={2}>{summary}</Text>
+        <Text variant="caption">{summary}</Text>
       </View>
     </Pressable>
   );

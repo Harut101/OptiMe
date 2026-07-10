@@ -15,12 +15,14 @@ import {
 } from '@/api/workout-sessions';
 import { getExerciseSummaries } from '@/api/exercises';
 import { Button } from '@/components/Button';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getExerciseMediaDisplayUrl } from '@/features/daily-plan/exercise-media-url';
@@ -134,7 +136,7 @@ export default function WorkoutSessionScreen() {
   }
 
   if (session.isLoading) {
-    return <StateBlock title={t('workout.loading')} message={t('workout.loadingMessage')} />;
+    return <ScreenSkeleton variant="list" cardCount={5} />;
   }
 
   if (session.isError || !session.data) {
@@ -361,6 +363,7 @@ function PostWorkoutCheckInCard({
   onSubmit: (body: { feeling: PostWorkoutFeeling; painAreas: WorkoutPainArea[]; note?: string | null }) => void;
   t: TFunction;
 }) {
+  const [visible, setVisible] = useState(false);
   const [feeling, setFeeling] = useState<PostWorkoutFeeling>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
   const [note, setNote] = useState('');
@@ -376,50 +379,67 @@ function PostWorkoutCheckInCard({
   }
 
   return (
-    <Card>
-      <Text variant="label">{t('workout.postWorkoutCheckIn')}</Text>
-      <Text variant="muted">{t('workout.postWorkoutHelp')}</Text>
-      <SelectChips
-        label={t('workout.howWorkoutFelt')}
-        value={feeling}
-        onChange={(next) => {
-          setFeeling(next);
-          if (next !== 'PAIN_DURING_WORKOUT') setPainAreas([]);
-        }}
-        options={postWorkoutOptions(t)}
-      />
-      {feeling === 'PAIN_DURING_WORKOUT' ? (
-        <MultiSelectChips
-          label={t('workout.painAreas')}
-          value={painAreas}
-          onChange={setPainAreas}
-          options={WORKOUT_PAIN_AREAS.map((area) => ({
-            value: area,
-            label: getPainAreaLabel(area, t)
-          }))}
-        />
-      ) : null}
-      <Field
-        label={t('workout.preWorkoutNote')}
-        placeholder={t('workout.postWorkoutNotePlaceholder')}
-        multiline
-        value={note}
-        onChangeText={setNote}
-      />
-      <View style={styles.postWorkoutActions}>
+    <>
+      <Card style={styles.postWorkoutPrompt}>
+        <Text variant="label">{t('workout.postWorkoutCheckIn')}</Text>
+        <Text variant="muted">{t('workout.postWorkoutHelp')}</Text>
         <Button
-          title={saving ? t('workout.saving') : t('workout.saveFeedback')}
-          disabled={saving || (feeling === 'PAIN_DURING_WORKOUT' && painAreas.length === 0)}
-          onPress={() => onSubmit({ feeling, painAreas, note: note.trim() || null })}
-        />
-        <Button
-          title={t('workout.skipCheckIn')}
-          variant="secondary"
+          title={t('workout.saveFeedback')}
           disabled={saving}
-          onPress={() => onSubmit({ feeling: 'SKIPPED', painAreas: [], note: null })}
+          onPress={() => setVisible(true)}
+          accessibilityLabel={t('workout.postWorkoutCheckIn')}
         />
-      </View>
-    </Card>
+      </Card>
+      <BottomSheet
+        visible={visible}
+        title={t('workout.postWorkoutCheckIn')}
+        subtitle={t('workout.postWorkoutHelp')}
+        onClose={() => setVisible(false)}
+      >
+        <View style={styles.postWorkoutSheetContent}>
+          <SelectChips
+            label={t('workout.howWorkoutFelt')}
+            value={feeling}
+            onChange={(next) => {
+              setFeeling(next);
+              if (next !== 'PAIN_DURING_WORKOUT') setPainAreas([]);
+            }}
+            options={postWorkoutOptions(t)}
+          />
+          {feeling === 'PAIN_DURING_WORKOUT' ? (
+            <MultiSelectChips
+              label={t('workout.painAreas')}
+              value={painAreas}
+              onChange={setPainAreas}
+              options={WORKOUT_PAIN_AREAS.map((area) => ({
+                value: area,
+                label: getPainAreaLabel(area, t)
+              }))}
+            />
+          ) : null}
+          <Field
+            label={t('workout.preWorkoutNote')}
+            placeholder={t('workout.postWorkoutNotePlaceholder')}
+            multiline
+            value={note}
+            onChangeText={setNote}
+          />
+          <View style={styles.postWorkoutActions}>
+            <Button
+              title={saving ? t('workout.saving') : t('workout.saveFeedback')}
+              disabled={saving || (feeling === 'PAIN_DURING_WORKOUT' && painAreas.length === 0)}
+              onPress={() => onSubmit({ feeling, painAreas, note: note.trim() || null })}
+            />
+            <Button
+              title={t('workout.skipCheckIn')}
+              variant="secondary"
+              disabled={saving}
+              onPress={() => onSubmit({ feeling: 'SKIPPED', painAreas: [], note: null })}
+            />
+          </View>
+        </View>
+      </BottomSheet>
+    </>
   );
 }
 
@@ -560,6 +580,8 @@ function formatTrainingLoadSessionMessage(
 
 const styles = StyleSheet.create({
   postWorkoutActions: { gap: 8 },
+  postWorkoutPrompt: { gap: 12 },
+  postWorkoutSheetContent: { gap: 14 },
   setGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   setButton: {
     minHeight: 44,

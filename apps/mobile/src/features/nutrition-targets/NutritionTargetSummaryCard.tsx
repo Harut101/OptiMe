@@ -52,21 +52,20 @@ export function NutritionTargetSummaryCard({
             <Text variant="label">{t('nutritionTargets.title')}</Text>
             <Text variant="muted">{t(`nutritionTargets.dayType.${summary.dayType}` as never)}</Text>
           </View>
-          <View style={[styles.badge, needsMoreInfo ? styles.badgeLimited : null]}>
-            <Text style={styles.badgeText}>{t(`nutritionTargets.status.${summary.safetyStatus}` as never)}</Text>
-          </View>
+          {summary.safetyStatus !== 'OK' ? (
+            <View style={[styles.badge, needsMoreInfo ? styles.badgeLimited : null]}>
+              <Text style={styles.badgeText}>{t(`nutritionTargets.status.${summary.safetyStatus}` as never)}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <View>
-          <Text variant="label">{t('nutritionTargets.title')}</Text>
-          <View style={styles.kcalRow}>
-            <Text variant="metric" style={styles.kcalValue}>
+        <View style={styles.kcalRow}>
+          <Text variant="metric" style={styles.kcalValue}>
             {needsMoreInfo
               ? t('nutritionTargets.needsMoreInfo')
               : String(summary.targetKcal)}
-            </Text>
-            {!needsMoreInfo ? <Text variant="body" style={styles.kcalUnit}>kcal</Text> : null}
-          </View>
+          </Text>
+          {!needsMoreInfo ? <Text variant="body" style={styles.kcalUnit}>kcal</Text> : null}
         </View>
 
         {!needsMoreInfo ? (
@@ -227,7 +226,8 @@ const styles = StyleSheet.create({
   kcalRow: {
     alignItems: 'flex-end',
     flexDirection: 'row',
-    gap: 6
+    gap: 6,
+    marginTop: -2
   },
   kcalValue: {
     fontSize: 42,

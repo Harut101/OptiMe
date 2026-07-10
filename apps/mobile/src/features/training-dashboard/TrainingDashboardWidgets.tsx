@@ -36,6 +36,24 @@ const toneMutedColor = (tone: Tone) => {
   return colors.trainingMuted;
 };
 
+function TrainingHeaderBadge({ label, tone }: { label: string; tone: Tone }) {
+  return (
+    <Text
+      accessibilityLabel={label}
+      style={[
+        styles.trainingHeaderBadge,
+        {
+          backgroundColor: toneMutedColor(tone),
+          borderColor: toneColor(tone),
+          color: toneColor(tone)
+        }
+      ]}
+    >
+      {label}
+    </Text>
+  );
+}
+
 export function TrainingMetricWidget({
   label,
   value,
@@ -199,8 +217,8 @@ export function WeeklyRoutinePreviewCard({
             ]}
           >
             <Text variant="caption" style={styles.dayLabel}>{day.dayLabel}</Text>
-            <Text variant="body" numberOfLines={2} style={styles.dayTitle}>{day.title}</Text>
-            {day.meta ? <Text variant="caption" numberOfLines={1}>{day.meta}</Text> : null}
+            <Text variant="body" style={styles.dayTitle}>{day.title}</Text>
+            {day.meta ? <Text variant="caption">{day.meta}</Text> : null}
           </Pressable>
         ))}
       </View>
@@ -220,7 +238,7 @@ export function WorkoutActionCard({
 }: {
   title: string;
   message: string;
-  statusLabel: string;
+  statusLabel?: string;
   actionLabel: string;
   onAction: () => void;
   tone?: Tone;
@@ -229,16 +247,18 @@ export function WorkoutActionCard({
 }) {
   return (
     <Card style={styles.compactCard}>
-      <View style={styles.compactHeader}>
-        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(tone) }]}>
+      <View style={styles.workoutActionHeader}>
+        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(tone), borderColor: toneColor(tone) }]}>
           <Activity size={18} color={toneColor(tone)} strokeWidth={2.7} />
         </View>
         <View style={styles.flex}>
           <Text variant="label">{title}</Text>
-          <Text variant="muted">{message}</Text>
         </View>
-        <StatusPill label={statusLabel} tone={tone === 'success' ? 'success' : tone === 'warning' ? 'warning' : 'training'} />
+        {statusLabel ? (
+          <TrainingHeaderBadge label={statusLabel} tone={tone === 'success' ? 'success' : tone === 'warning' ? 'warning' : 'training'} />
+        ) : null}
       </View>
+      <Text variant="muted" style={styles.workoutActionMessage}>{message}</Text>
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
       <Button title={actionLabel} onPress={onAction} disabled={disabled} accessibilityLabel={actionLabel} />
     </Card>
@@ -276,10 +296,10 @@ export function WorkoutProgressHeader({
   return (
     <Card style={styles.progressHero}>
       <View style={styles.compactHeader}>
-        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(tone) }]}>
+        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(tone), borderColor: toneColor(tone) }]}>
           <Dumbbell size={22} color={toneColor(tone)} strokeWidth={2.8} />
         </View>
-        <StatusPill label={isCompleted ? completedLabel : `${progressPercent}%`} tone={isCompleted ? 'success' : 'training'} />
+        <TrainingHeaderBadge label={isCompleted ? completedLabel : `${progressPercent}%`} tone={isCompleted ? 'success' : 'training'} />
       </View>
       <Text variant="heading" style={styles.bigTitle}>{title}</Text>
       <Text variant="muted">{subtitle}</Text>
@@ -495,18 +515,20 @@ const styles = StyleSheet.create({
   safetyCard: { borderColor: 'rgba(241, 163, 59, 0.45)' },
   smallIcon: {
     alignItems: 'center',
-    borderRadius: 14,
-    height: 36,
+    borderRadius: 15,
+    borderWidth: 1,
+    height: 38,
     justifyContent: 'center',
-    width: 36
+    width: 38
   },
   statusCard: { gap: 12 },
   statusIcon: {
     alignItems: 'center',
-    borderRadius: 18,
-    height: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 42,
     justifyContent: 'center',
-    width: 46
+    width: 42
   },
   statusSubtitle: { fontWeight: '700' },
   statusTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
@@ -519,5 +541,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 76
   },
-  weekGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }
+  trainingHeaderBadge: {
+    borderRadius: 16,
+    borderWidth: 1,
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 18,
+    minHeight: 42,
+    overflow: 'hidden',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    textAlign: 'center'
+  },
+  weekGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  workoutActionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%'
+  },
+  workoutActionMessage: {
+    flexShrink: 1
+  }
 });

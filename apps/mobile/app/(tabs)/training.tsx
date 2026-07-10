@@ -21,12 +21,13 @@ import {
   saveTrainingSchedule
 } from '@/api/training-schedule';
 import { Button } from '@/components/Button';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
-import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import {
@@ -161,7 +162,7 @@ export default function TrainingScreen() {
   });
 
   if (preferences.isLoading || weeklySchedule.isLoading || goal.isLoading) {
-    return <Screen><StateBlock title={t('common.loading')} message={t('training.loadingMessage')} /></Screen>;
+    return <ScreenSkeleton variant="list" cardCount={4} />;
   }
 
   if (preferences.isError || weeklySchedule.isError || goal.isError) {
@@ -239,32 +240,47 @@ export default function TrainingScreen() {
         />
       </Card>
 
-      {editingSettings ? (
-        <>
-          <TrainingSetupForm value={value} onChange={setValue} />
-          {saveSettings.isError ? <Text style={styles.error}>{saveSettings.error.message}</Text> : null}
-          <View style={styles.actions}>
-            <Button
-              title={saveSettings.isPending ? t('common.saving') : t('common.save')}
-              disabled={saveSettings.isPending || !settingsDirty}
-              onPress={() => saveSettings.mutate(toTrainingPreferenceRequest(value))}
-            />
-            <Button
-              title={t('common.cancel')}
-              variant="secondary"
-              disabled={saveSettings.isPending}
-              onPress={() => { setValue(savedValue); setEditingSettings(false); }}
-            />
-          </View>
-        </>
-      ) : (
+      {hasPreferences ? (
         <>
           <TrainingSummary value={savedValue} />
           <Button title={t('training.editSetup')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditingSettings(true); }} />
         </>
+      ) : (
+        <StateBlock
+          title={t('training.emptyTitle')}
+          message={t('training.emptyMessage')}
+          actionTitle={t('training.setup')}
+          onAction={() => { setSuccessMessage(null); setEditingSettings(true); }}
+        />
       )}
 
-      {successMessage ? <ContextNoteCard title={t('common.saved')} message={successMessage} tone="success" /> : null}
+      <BottomSheet
+        visible={editingSettings}
+        title={hasPreferences ? t('training.editSetup') : t('training.setup')}
+        subtitle={t('training.setupSummaryHelp')}
+        onClose={() => {
+          if (saveSettings.isPending) return;
+          setValue(savedValue);
+          setEditingSettings(false);
+        }}
+      >
+        <TrainingSetupForm value={value} onChange={setValue} />
+        {saveSettings.isError ? <Text style={styles.error}>{saveSettings.error.message}</Text> : null}
+        <View style={styles.actions}>
+          <Button
+            title={saveSettings.isPending ? t('common.saving') : t('common.save')}
+            disabled={saveSettings.isPending || !settingsDirty}
+            onPress={() => saveSettings.mutate(toTrainingPreferenceRequest(value))}
+          />
+          <Button
+            title={t('common.cancel')}
+            variant="secondary"
+            disabled={saveSettings.isPending}
+            onPress={() => { setValue(savedValue); setEditingSettings(false); }}
+          />
+        </View>
+      </BottomSheet>
+
       {feedbackMessage ? (
         <AppToast
           title={t('feedback.savedSuccessfully')}

@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2, Info, TriangleAlert } from 'lucide-react-native';
 
 import { colors } from '@/theme/colors';
@@ -12,24 +14,35 @@ interface AppToastProps {
 }
 
 export function AppToast({ title, message, tone = 'info', onDismiss }: AppToastProps) {
+  const insets = useSafeAreaInsets();
   const Icon = tone === 'success' ? CheckCircle2 : tone === 'warning' || tone === 'danger' ? TriangleAlert : Info;
   const toneStyle = toneStyles[tone];
 
+  useEffect(() => {
+    if (!onDismiss) return;
+    const timeout = setTimeout(onDismiss, 3200);
+    return () => clearTimeout(timeout);
+  }, [onDismiss, title, message]);
+
   return (
-    <Pressable
-      accessibilityRole={onDismiss ? 'button' : 'text'}
-      accessibilityLabel={[title, message].filter(Boolean).join('. ')}
-      onPress={onDismiss}
-      style={[styles.toast, toneStyle.container]}
-    >
-      <View style={[styles.iconWrap, toneStyle.iconWrap]}>
-        <Icon size={17} color={toneStyle.iconColor} strokeWidth={2.6} />
+    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+      <View pointerEvents="box-none" style={[styles.root, { paddingTop: Math.max(insets.top + 10, 18) }]}>
+        <Pressable
+          accessibilityRole={onDismiss ? 'button' : 'text'}
+          accessibilityLabel={[title, message].filter(Boolean).join('. ')}
+          onPress={onDismiss}
+          style={[styles.toast, toneStyle.container]}
+        >
+          <View style={[styles.iconWrap, toneStyle.iconWrap]}>
+            <Icon size={17} color={toneStyle.iconColor} strokeWidth={2.6} />
+          </View>
+          <View style={styles.copy}>
+            <Text variant="body" style={styles.title}>{title}</Text>
+            {message ? <Text variant="caption">{message}</Text> : null}
+          </View>
+        </Pressable>
       </View>
-      <View style={styles.copy}>
-        <Text variant="body" style={styles.title}>{title}</Text>
-        {message ? <Text variant="caption">{message}</Text> : null}
-      </View>
-    </Pressable>
+    </Modal>
   );
 }
 
@@ -57,6 +70,11 @@ const toneStyles = {
 } as const;
 
 const styles = StyleSheet.create({
+  root: {
+    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject,
+    paddingHorizontal: 18
+  },
   toast: {
     alignItems: 'center',
     backgroundColor: colors.card,
@@ -69,7 +87,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 20,
-    elevation: 3
+    elevation: 8,
+    maxWidth: 640,
+    width: '100%'
   },
   iconWrap: {
     alignItems: 'center',

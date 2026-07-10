@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ChevronRight, CircleCheck, Flame, MoreHorizontal, Utensils } from 'lucide-react-native';
+import { ChevronRight, CircleCheck, Flame, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
@@ -118,7 +118,9 @@ export function MealProgressWidget({
     >
       <View style={styles.progressCopy}>
         <Text variant="label">{t('foodTracking.todaysFoodProgress')}</Text>
-        <Text variant="heading">{progress}</Text>
+        <Text style={styles.progressTitle}>
+          {progress}
+        </Text>
         <Text variant="muted">{detail}</Text>
       </View>
       <View style={styles.progressVisual}>
@@ -136,19 +138,19 @@ export function PremiumMealCard({
   foodLog,
   disabled,
   onPress,
-  onUpdateStatus,
-  onOpenActions
+  onUpdateStatus
 }: {
   meal: FoodMeal;
   foodLog?: FoodDayLogResponse;
   disabled?: boolean;
   onPress: () => void;
   onUpdateStatus: (status: FoodMealProgressStatus) => void;
-  onOpenActions: () => void;
 }) {
   const { t } = useTranslation();
   const progress = getMealProgress(foodLog, meal.id);
   const status = progress?.status ?? 'PLANNED';
+  const mealTypeLabel = t(`food.mealTypes.${meal.mealType}`);
+  const displayTitle = getMealCardTitle(meal, mealTypeLabel);
 
   return (
     <View style={styles.mealCard}>
@@ -167,12 +169,11 @@ export function PremiumMealCard({
           <Utensils size={18} color={colors.nutrition} strokeWidth={2.5} />
         </View>
         <View style={styles.mealCopy}>
-          <View style={styles.mealTopLine}>
-            <Text variant="label" style={styles.mealType}>{t(`food.mealTypes.${meal.mealType}`)}</Text>
-            <StatusPill label={getMealStatusLabel(status, t)} tone={status === 'EATEN' ? 'success' : status === 'SKIPPED' ? 'warning' : 'neutral'} />
-          </View>
-          <Text variant="body" style={styles.mealTitle}>{meal.title}</Text>
-          <Text variant="caption">
+          <Text variant="label" style={styles.mealType}>{mealTypeLabel}</Text>
+          {displayTitle ? (
+            <Text variant="body" style={styles.mealTitle}>{displayTitle}</Text>
+          ) : null}
+          <Text variant="caption" style={styles.mealMeta}>
             {t('food.mealMacros', {
               kcal: String(meal.caloriesKcal),
               protein: String(Math.round(meal.proteinGrams))
@@ -180,23 +181,15 @@ export function PremiumMealCard({
             {meal.prepTimeMinutes !== null ? ` · ${t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}` : ''}
           </Text>
         </View>
-        <ChevronRight size={18} color={colors.textMuted} />
+        <View style={styles.mealTrailing}>
+          <ChevronRight size={18} color={colors.textMuted} />
+        </View>
       </Pressable>
       <MealStatusControl
         currentStatus={status}
         disabled={disabled}
         compact
         onChange={onUpdateStatus}
-        trailing={(
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('food.mealActions')}
-            onPress={onOpenActions}
-            style={styles.moreButton}
-          >
-            <MoreHorizontal size={20} color={colors.textSecondary} />
-          </Pressable>
-        )}
       />
     </View>
   );
@@ -247,6 +240,22 @@ function getProgressPercent(foodLog?: FoodDayLogResponse) {
   if (!foodLog?.mealProgress?.length) return 0;
   const marked = foodLog.mealProgress.filter((meal) => meal.status !== 'PLANNED').length;
   return Math.round((marked / foodLog.mealProgress.length) * 100);
+}
+
+function getMealCardTitle(meal: FoodMeal, mealTypeLabel: string) {
+  const title = meal.title.trim();
+  const normalizedTitle = normalizeMealTitle(title);
+  const normalizedType = normalizeMealTitle(mealTypeLabel);
+
+  if (!title || normalizedTitle === normalizedType) {
+    return meal.servingSummary || meal.shortDescription || null;
+  }
+
+  return title;
+}
+
+function normalizeMealTitle(value: string) {
+  return value.trim().toLocaleLowerCase();
 }
 
 const styles = StyleSheet.create({
@@ -336,7 +345,16 @@ const styles = StyleSheet.create({
   },
   progressCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 4
+  },
+  progressTitle: {
+    color: colors.textPrimary,
+    flexShrink: 1,
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+    lineHeight: 27
   },
   progressVisual: {
     alignItems: 'flex-end',
@@ -375,7 +393,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
-    padding: 14
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    paddingTop: 14
   },
   pressed: {
     backgroundColor: colors.cardPressed
@@ -390,20 +410,29 @@ const styles = StyleSheet.create({
   },
   mealCopy: {
     flex: 1,
-    gap: 4
-  },
-  mealTopLine: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between'
+    flexShrink: 1,
+    gap: 3,
+    minWidth: 0
   },
   mealType: {
     color: colors.nutrition,
-    fontWeight: '900'
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.1
   },
   mealTitle: {
-    fontWeight: '900'
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 24
+  },
+  mealMeta: {
+    flexShrink: 1,
+    lineHeight: 18
+  },
+  mealTrailing: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 22
   },
   statusControl: {
     alignItems: 'center',
@@ -412,7 +441,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 7,
-    padding: 10
+    paddingBottom: 12,
+    paddingLeft: 14,
+    paddingRight: 12,
+    paddingTop: 10
   },
   statusControlCompact: {
     paddingTop: 9
@@ -438,14 +470,5 @@ const styles = StyleSheet.create({
   },
   statusChipTextSelected: {
     color: colors.textInverse
-  },
-  moreButton: {
-    alignItems: 'center',
-    backgroundColor: colors.cardMuted,
-    borderRadius: 999,
-    height: 38,
-    justifyContent: 'center',
-    marginLeft: 'auto',
-    width: 44
   }
 });

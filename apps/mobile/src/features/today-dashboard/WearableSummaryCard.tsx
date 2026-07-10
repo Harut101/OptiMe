@@ -46,15 +46,16 @@ export function WearableSummaryCard({
   }
 
   return (
-    <Card>
+    <View style={styles.section}>
       <View
         accessible
         accessibilityLabel={`${t('todayDashboard.wearableSummary')}. ${formatSourceIncluded(source, t)}. ${formatLastSynced(snapshot.capturedAt, locale, t)}`}
+        style={styles.sectionHeader}
       >
-        <SectionHeader
-          title={t('todayDashboard.wearableSummary')}
-          subtitle={formatSourceIncluded(source, t)}
-        />
+        <Text variant="heading" style={styles.sectionTitle}>
+          {t('todayDashboard.wearableSummary')}
+        </Text>
+        <Text variant="muted">{formatSourceIncluded(source, t)}</Text>
       </View>
       <View style={styles.metricGrid}>
         <HealthMetricWidget
@@ -97,9 +98,11 @@ export function WearableSummaryCard({
           icon={(accent) => <Timer size={20} color={accent} />}
         />
       </View>
-      <Text variant="muted">{t('todayDashboard.lastSynced', { value: formatLastSynced(snapshot.capturedAt, locale, t) })}</Text>
+      <Text variant="muted" style={styles.metaText}>
+        {t('todayDashboard.lastSynced', { value: formatLastSynced(snapshot.capturedAt, locale, t) })}
+      </Text>
       {snapshot.isStale ? <Text style={styles.stale}>{t('health.wearableDataStale')}</Text> : null}
-    </Card>
+    </View>
   );
 }
 
@@ -145,13 +148,29 @@ function isSameLocalDay(left: Date, right: Date) {
 }
 
 const styles = StyleSheet.create({
+  section: {
+    gap: 10
+  },
+  sectionHeader: {
+    gap: 3,
+    paddingHorizontal: 2
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 27
+  },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10
   },
+  metaText: {
+    paddingHorizontal: 2
+  },
   stale: {
     color: colors.warning,
-    fontWeight: '700'
+    fontWeight: '700',
+    paddingHorizontal: 2
   }
 });

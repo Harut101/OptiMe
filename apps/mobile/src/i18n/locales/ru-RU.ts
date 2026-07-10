@@ -98,7 +98,7 @@ export const ruRU = createLocaleResource({
     optional: 'Необязательно. Приложение полностью работает без подключения данных здоровья.',
     loadingConnections: 'Загружаем подключения здоровья.',
     appleHealthDescription: 'Apple Health может передавать активность, сон и тренировки с iPhone для более безопасной персонализации.',
-    appleHealthIosOnly: 'Доступно на iPhone в development- или production-сборке. Expo Go покажет безопасное состояние недоступности.',
+    appleHealthIosOnly: 'Подключите на iPhone, чтобы учитывать активность, сон и тренировки в будущих планах.',
     connectAppleHealth: 'Подключить Apple Health',
     syncAppleHealth: 'Синхронизировать Apple Health',
     disconnectAppleHealth: 'Отключить Apple Health',

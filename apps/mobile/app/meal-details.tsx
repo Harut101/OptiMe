@@ -18,6 +18,7 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
@@ -106,7 +107,7 @@ export default function MealDetailsScreen() {
   });
 
   if (today.isLoading) {
-    return <StateBlock title={t('common.loading')} message={t('food.mealDetailsLoading')} />;
+    return <ScreenSkeleton variant="detail" cardCount={3} />;
   }
 
   const todayPlan = today.data ?? null;

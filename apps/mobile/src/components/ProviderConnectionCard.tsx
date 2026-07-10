@@ -34,7 +34,7 @@ export function ProviderConnectionCard({
           <View style={styles.iconWrap}>{icon}</View>
           <View style={styles.copy}>
             <Text variant="body" style={styles.name}>{name}</Text>
-            <Text variant="caption" numberOfLines={2}>{description}</Text>
+            <Text variant="caption">{description}</Text>
           </View>
         </View>
         <StatusPill label={statusLabel} tone={statusTone} />
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   identity: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
     flexDirection: 'row',
     gap: 12

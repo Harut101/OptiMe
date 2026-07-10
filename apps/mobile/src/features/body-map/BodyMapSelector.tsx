@@ -162,13 +162,31 @@ function getSideLabel(
 const styles = StyleSheet.create({
   root: { gap: 10 },
   viewToggle: {
-    flexDirection: 'row', alignSelf: 'center', borderRadius: 10, padding: 3,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line
+    alignSelf: 'center',
+    backgroundColor: colors.line,
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4
   },
-  viewButton: { minWidth: 84, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 7 },
-  viewButtonActive: { backgroundColor: colors.primary },
+  viewButton: {
+    alignItems: 'center',
+    borderRadius: 9,
+    justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 92,
+    paddingHorizontal: 16
+  },
+  viewButtonActive: {
+    backgroundColor: colors.card,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 1
+  },
   viewText: { color: colors.muted, fontWeight: '700' },
-  viewTextActive: { color: '#ffffff', fontWeight: '800' },
+  viewTextActive: { color: colors.textPrimary, fontWeight: '800' },
   mapCard: {
     maxWidth: BODY_MAP_CARD_MAX_WIDTH,
     alignSelf: 'center',

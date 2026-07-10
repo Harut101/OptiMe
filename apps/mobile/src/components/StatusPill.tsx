@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 12,
     fontWeight: '800',
+    maxWidth: '100%',
     overflow: 'hidden',
     paddingHorizontal: 10,
     paddingVertical: 6

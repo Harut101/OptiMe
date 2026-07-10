@@ -45,10 +45,12 @@ export function SettingsListItem({
         <Text variant="body" style={styles.title}>{title}</Text>
         {subtitle ? <Text variant="caption">{subtitle}</Text> : null}
       </View>
-      {statusLabel ? <StatusPill label={statusLabel} tone={statusTone} /> : null}
-      {value ? <Text variant="caption" style={[styles.value, { color: toneStyle.color }]}>{value}</Text> : null}
-      {trailing}
-      {onPress ? <ChevronRight size={18} color={colors.textMuted} /> : null}
+      <View style={styles.trailingGroup}>
+        {statusLabel ? <StatusPill label={statusLabel} tone={statusTone} /> : null}
+        {value ? <Text variant="caption" style={[styles.value, { color: toneStyle.color }]}>{value}</Text> : null}
+        {trailing}
+        {onPress ? <ChevronRight size={18} color={colors.textMuted} /> : null}
+      </View>
     </Pressable>
   );
 }
@@ -95,5 +97,12 @@ const styles = StyleSheet.create({
   value: {
     color: colors.textPrimary,
     fontWeight: '700'
+  },
+  trailingGroup: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: 8,
+    justifyContent: 'flex-end'
   }
 });

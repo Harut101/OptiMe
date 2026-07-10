@@ -10,6 +10,7 @@ import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { isDraftDirty } from '@/features/editor/draft-state';
@@ -95,7 +96,7 @@ export default function GoalEditorScreen() {
   });
 
   if (goal.isLoading) {
-    return <Screen><StateBlock title={t('common.loading')} message={t('goals.loadingMessage')} /></Screen>;
+    return <ScreenSkeleton variant="detail" cardCount={3} />;
   }
 
   if (goal.isError) {

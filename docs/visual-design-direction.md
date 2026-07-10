@@ -169,7 +169,7 @@ Updated palette direction:
 - Training: `#3A82F7`
 - Nutrition: `#67CE67`
 - Sleep/recovery: `#B25FEA` and `#87E3E1`
-- Health/wearable: `#A82C3D` in light mode, with a brighter deep rose in dark mode for readability
+- Health/wearable: `#EB4B62`
 
 Typography should use large iOS-like screen titles, compact section labels, and bold metric values. Avoid heavy uppercase except for tiny scan labels.
 

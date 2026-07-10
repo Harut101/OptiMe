@@ -1,5 +1,5 @@
-import { PropsWithChildren } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { PropsWithChildren, useEffect, useRef } from 'react';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -17,9 +17,24 @@ interface BottomSheetProps extends PropsWithChildren {
 export function BottomSheet({ visible, title, subtitle, onClose, children }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const slide = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      slide.setValue(1);
+      return;
+    }
+
+    Animated.timing(slide, {
+      toValue: 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }).start();
+  }, [slide, visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable
           accessibilityRole="button"
@@ -27,7 +42,22 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
           style={styles.backdrop}
           onPress={onClose}
         />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Animated.View
+          style={[
+            styles.sheet,
+            {
+              paddingBottom: Math.max(insets.bottom, 16),
+              transform: [
+                {
+                  translateY: slide.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 360]
+                  })
+                }
+              ]
+            }
+          ]}
+        >
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.titleWrap}>
@@ -41,7 +71,7 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getWorkoutHistory } from '@/api/workout-sessions';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { WorkoutHistoryCard } from '@/features/training-dashboard/TrainingDashboardWidgets';
 import {
@@ -28,7 +29,7 @@ export default function WorkoutHistoryScreen() {
   });
 
   if (history.isLoading) {
-    return <StateBlock title={t('workout.historyLoading')} message={t('workout.historyLoadingMessage')} />;
+    return <ScreenSkeleton variant="list" cardCount={5} />;
   }
 
   if (history.isError) {

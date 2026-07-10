@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from './Button';
 import { BottomSheet } from './BottomSheet';
 import { ContextNoteCard } from './ContextNoteCard';
-import { Text } from './Text';
 
 interface FeedbackAction {
   label: string;
@@ -32,7 +31,6 @@ export function AppFeedbackSheet({
   return (
     <BottomSheet visible={visible} title={title} onClose={onClose}>
       <ContextNoteCard title={title} message={message} tone={tone === 'danger' ? 'warning' : tone} />
-      <Text variant="muted">{message}</Text>
       <View style={styles.actions}>
         {actions.map((action) => (
           <Button

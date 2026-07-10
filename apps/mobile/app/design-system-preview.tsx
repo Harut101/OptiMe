@@ -378,7 +378,6 @@ export default function DesignSystemPreviewScreen() {
           foodLog={previewFoodLog}
           onPress={() => undefined}
           onUpdateStatus={() => undefined}
-          onOpenActions={() => undefined}
         />
         <AppToast title={t('feedback.savedSuccessfully')} message={t('food.mealRegenerated')} tone="success" />
         <WorkoutCardV2

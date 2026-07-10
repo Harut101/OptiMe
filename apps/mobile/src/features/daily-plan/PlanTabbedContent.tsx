@@ -17,7 +17,7 @@ import type { WorkoutSessionResponse } from '@optime/shared-types';
 import { useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
 import {
@@ -25,6 +25,7 @@ import {
   getDailyPlanTrainingReplacementProposals
 } from '@/api/daily-plans';
 import { getWorkoutSessionByPlan, preflightWorkoutSession, startWorkoutSession } from '@/api/workout-sessions';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
@@ -201,29 +202,86 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
 
 function FoodContent(props: PlanTabbedContentProps) {
   const { plan, checkIns, checkInPending, t, onMealCheckIn } = props;
+  const router = useRouter();
+  const structuredMeals = plan.nutrition.foodPlan?.meals ?? [];
+
   return (
     <>
-      <Card>
-        <Text variant="label">{t('plan.meals')}</Text>
-        <Text variant="muted">{t('plan.mealsHelp')}</Text>
+      <View style={styles.mealsSection}>
+        <View style={styles.mealsSectionHeader}>
+          <Text variant="heading" style={styles.mealsSectionTitle}>{t('plan.meals')}</Text>
+          <Text variant="muted">{t('plan.mealsHelp')}</Text>
+        </View>
         {plan.nutrition.meals.map((meal, index) => (
-          <View key={`${meal.name}-${index}`} style={styles.block}>
-            <Text variant="body">{meal.name}: {meal.foods.map((food) => `${food.portion} ${food.name}`).join(', ')}</Text>
-            <View style={styles.tagRow}>
+          <View key={`${meal.name}-${index}`} style={styles.mealSection}>
+            <View style={styles.mealHeader}>
+              <Text variant="heading" style={styles.mealName}>{meal.name}</Text>
+              {getMealStatus(checkIns, index) ? (
+                <Text variant="caption" style={styles.mealStatusText}>
+                  {mealStatuses(t).find((status) => status.value === getMealStatus(checkIns, index))?.label}
+                </Text>
+              ) : null}
+            </View>
+            {meal.purpose ? <Text variant="caption" style={styles.mealPurpose}>{meal.purpose}</Text> : null}
+            <View style={styles.mealPreviewList}>
+              {meal.foods.slice(0, 3).map((food, foodIndex) => (
+                <View key={`${food.name}-${foodIndex}`} style={styles.mealPreviewRow}>
+                  <View style={styles.mealPreviewDot} />
+                  <Text style={styles.mealPreviewText}>
+                    {food.portion ? <Text style={styles.mealPreviewPortion}>{food.portion} </Text> : null}
+                    {food.name}
+                  </Text>
+                </View>
+              ))}
+              {meal.foods.length > 3 ? (
+                <Text style={styles.mealPreviewMore}>+{meal.foods.length - 3}</Text>
+              ) : null}
+            </View>
+            <View style={styles.mealActionRow}>
               {mealStatuses(t).map((status) => (
-                <Button
+                <Pressable
                   key={status.value}
-                  title={status.label}
-                  variant={getMealStatus(checkIns, index) === status.value ? 'primary' : 'secondary'}
-                  style={styles.checkInButton}
                   disabled={checkInPending}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: getMealStatus(checkIns, index) === status.value,
+                    disabled: checkInPending
+                  }}
+                  style={({ pressed }) => [
+                    styles.mealAction,
+                    getMealStatus(checkIns, index) === status.value ? styles.mealActionSelected : null,
+                    pressed && !checkInPending ? styles.mealActionPressed : null,
+                    checkInPending ? styles.mealActionDisabled : null
+                  ]}
                   onPress={() => onMealCheckIn(index, meal.name, status.value)}
-                />
+                >
+                  <Text
+                    variant="caption"
+                    style={[
+                      styles.mealActionText,
+                      getMealStatus(checkIns, index) === status.value ? styles.mealActionTextSelected : null
+                    ]}
+                  >
+                    {status.label}
+                  </Text>
+                </Pressable>
               ))}
             </View>
+            {structuredMeals[index] ? (
+              <Button
+                title={t('food.viewMealDetails')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({
+                    pathname: '/meal-details' as never,
+                    params: { dailyPlanId: props.planId, mealId: structuredMeals[index].id }
+                  })
+                }
+              />
+            ) : null}
           </View>
         ))}
-      </Card>
+      </View>
       <Card>
         <Text variant="label">{t('plan.hydration')}</Text>
         <Text variant="body">{plan.nutrition.hydration.guidance}</Text>
@@ -260,8 +318,10 @@ function TrainingContent(props: PlanTabbedContentProps & {
   const { plan, exercises = [], checkIns, checkInPending, locale, t, summaryById } = props;
   return (
     <>
-      <Card>
-        <Text variant="label">{t('plan.trainingRecommendation')}</Text>
+      <View style={styles.trainingSection}>
+        <View style={styles.trainingSectionHeader}>
+          <Text variant="heading" style={styles.trainingSectionTitle}>{t('plan.trainingRecommendation')}</Text>
+        </View>
         {plan.trainingLoadAgentSnapshot ? (
           <TrainingLoadInsightCard
             title={t('trainingLoad.title')}
@@ -271,9 +331,11 @@ function TrainingContent(props: PlanTabbedContentProps & {
             tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'training'}
           />
         ) : null}
-        <Text variant="body">{plan.training.recommendation}</Text>
-        <Text variant="muted">{plan.training.notes}</Text>
-      </Card>
+        <Card>
+          <Text variant="body">{plan.training.recommendation}</Text>
+          <Text variant="muted">{plan.training.notes}</Text>
+        </Card>
+      </View>
       {plan.trainingLoadAgentSnapshot?.exerciseCautions.length ? (
         <Card>
           <Text variant="label">{t('trainingLoad.exerciseCaution')}</Text>
@@ -296,7 +358,12 @@ function TrainingContent(props: PlanTabbedContentProps & {
           onOpen={props.onOpenWorkout}
         />
       ) : null}
-      {exercises.length && props.preWorkoutOpen && !props.workoutSession ? (
+      <BottomSheet
+        visible={exercises.length > 0 && props.preWorkoutOpen && !props.workoutSession}
+        title={t('workout.preWorkoutCheck')}
+        subtitle={t('workout.preWorkoutHelp')}
+        onClose={props.onCancelPreWorkout}
+      >
         <PreWorkoutCheckCard
           t={t}
           saving={props.preWorkoutSaving}
@@ -308,8 +375,9 @@ function TrainingContent(props: PlanTabbedContentProps & {
           onApplyReplacements={props.onApplyReplacements}
           onRestToday={props.onRestToday}
           onContinueWithCaution={props.onContinueWithCaution}
+          embedded
         />
-      ) : null}
+      </BottomSheet>
       {exercises.length ? (
         <Card>
           <Text variant="label">{t('plan.exercises')}</Text>
@@ -348,7 +416,8 @@ function PreWorkoutCheckCard({
   onAdjustWorkout,
   onApplyReplacements,
   onRestToday,
-  onContinueWithCaution
+  onContinueWithCaution,
+  embedded = false
 }: {
   t: TFunction;
   saving: boolean;
@@ -360,6 +429,7 @@ function PreWorkoutCheckCard({
   onApplyReplacements: () => void;
   onRestToday: () => void;
   onContinueWithCaution: () => void;
+  embedded?: boolean;
 }) {
   const [readinessStatus, setReadinessStatus] = useState<PreWorkoutReadinessStatus>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
@@ -374,10 +444,14 @@ function PreWorkoutCheckCard({
     });
   };
 
-  return (
-    <Card>
-      <Text variant="label">{t('workout.preWorkoutCheck')}</Text>
-      <Text variant="muted">{t('workout.preWorkoutHelp')}</Text>
+  const content = (
+    <>
+      {!embedded ? (
+        <>
+          <Text variant="label">{t('workout.preWorkoutCheck')}</Text>
+          <Text variant="muted">{t('workout.preWorkoutHelp')}</Text>
+        </>
+      ) : null}
       {conflict ? (
         <>
           <SafetyDecisionCard
@@ -478,8 +552,10 @@ function PreWorkoutCheckCard({
           </View>
         </>
       )}
-    </Card>
+    </>
   );
+
+  return embedded ? <View style={styles.preWorkoutEmbedded}>{content}</View> : <Card>{content}</Card>;
 }
 
 function ReplacementProposalReview({
@@ -574,7 +650,7 @@ function WorkoutSessionCard({
     <WorkoutActionCard
       title={completed ? t('workout.workoutCompleted') : t('workout.progress')}
       message={session ? progress ?? t('workout.readyToStart') : t('workout.readyToStart')}
-      statusLabel={completed ? t('workout.workoutCompleted') : session ? t('workout.progress') : t('workout.readyToStart')}
+      statusLabel={completed ? t('workout.workoutCompleted') : session ? t('workout.progress') : undefined}
       actionLabel={session ? (completed ? t('workout.viewWorkout') : t('workout.continueWorkout')) : (startPending ? t('workout.saving') : t('workout.startWorkout'))}
       disabled={!session && (startPending || loading || unavailable)}
       errorMessage={startFailed ? t('workout.saveFailed') : unavailable ? t('workout.statusUnavailable') : session?.summary.isPartial ? t('workout.partialWorkoutSaved') : null}
@@ -647,9 +723,165 @@ const getTrainingLoadReadinessLabel = (
 };
 
 const styles = StyleSheet.create({
-  block: { gap: 8, paddingTop: 6 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  checkInButton: { minHeight: 40, paddingHorizontal: 10 },
+  mealsSection: {
+    gap: 10
+  },
+  mealsSectionHeader: {
+    gap: 3,
+    paddingHorizontal: 2
+  },
+  mealsSectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 27
+  },
+  mealSection: {
+    backgroundColor: colors.card,
+    borderColor: 'rgba(209, 209, 214, 0.72)',
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 2
+  },
+  mealHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between'
+  },
+  mealName: {
+    flex: 1,
+    fontSize: 21,
+    lineHeight: 26,
+    letterSpacing: -0.25
+  },
+  mealStatusText: {
+    color: colors.primaryDark,
+    fontWeight: '900',
+    paddingTop: 4
+  },
+  mealPurpose: {
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginTop: -4
+  },
+  mealPreviewList: {
+    gap: 7
+  },
+  mealPreviewRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9
+  },
+  mealPreviewDot: {
+    backgroundColor: colors.nutrition,
+    borderRadius: 999,
+    height: 7,
+    width: 7
+  },
+  mealPreviewText: {
+    color: colors.textPrimary,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 21
+  },
+  mealPreviewPortion: {
+    color: colors.textSecondary,
+    fontWeight: '800'
+  },
+  mealPreviewMore: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    paddingLeft: 16
+  },
+  trainingSection: {
+    gap: 10
+  },
+  trainingSectionHeader: {
+    gap: 3,
+    paddingHorizontal: 2
+  },
+  trainingSectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 27
+  },
+  preWorkoutEmbedded: {
+    gap: 12
+  },
+  foodList: {
+    gap: 9
+  },
+  foodRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 9
+  },
+  foodDot: {
+    backgroundColor: colors.nutrition,
+    borderRadius: 999,
+    height: 7,
+    marginTop: 8,
+    width: 7
+  },
+  foodCopy: {
+    flex: 1,
+    gap: 2
+  },
+  foodText: {
+    lineHeight: 22
+  },
+  foodPortion: {
+    color: colors.textSecondary,
+    fontWeight: '700'
+  },
+  foodName: {
+    color: colors.textPrimary,
+    fontWeight: '900'
+  },
+  foodNotes: {
+    color: colors.textSecondary
+  },
+  mealActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 2
+  },
+  mealAction: {
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 34,
+    paddingHorizontal: 13
+  },
+  mealActionSelected: {
+    borderColor: colors.primary
+  },
+  mealActionPressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.98 }]
+  },
+  mealActionDisabled: {
+    opacity: 0.45
+  },
+  mealActionText: {
+    color: colors.textSecondary,
+    fontWeight: '800'
+  },
+  mealActionTextSelected: {
+    color: colors.primaryDark
+  },
   preWorkoutActions: { gap: 8 },
   replacementReview: { gap: 10, paddingTop: 8 },
   mediaError: { gap: 8 },

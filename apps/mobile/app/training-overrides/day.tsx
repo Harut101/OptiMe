@@ -18,6 +18,7 @@ import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { MultiSelectChips } from '@/components/MultiSelectChips';
 import { Screen } from '@/components/Screen';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
@@ -125,7 +126,7 @@ export default function DailyTrainingOverrideDayScreen() {
   }, [initialValue, override.isLoading, schedule.isLoading]);
 
   if (schedule.isLoading || override.isLoading || !value) {
-    return <StateBlock title={t('schedule.loading')} message={t('schedule.loadingMessage')} />;
+    return <ScreenSkeleton variant="detail" cardCount={4} />;
   }
 
   if (schedule.isError || override.isError) {

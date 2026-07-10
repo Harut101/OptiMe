@@ -1,6 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
+import { deletePersistedItem, getPersistedItem, setPersistedItem } from './persistent-storage';
 import type { UserDto } from '@/types/api';
 
 const ACCESS_TOKEN_KEY = 'optime.accessToken';
@@ -20,16 +20,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   hydrated: false,
   hydrate: async () => {
-    const accessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    const accessToken = await getPersistedItem(ACCESS_TOKEN_KEY);
     set({ accessToken, hydrated: true });
   },
   setSession: async (accessToken, user) => {
-    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+    await setPersistedItem(ACCESS_TOKEN_KEY, accessToken);
     set({ accessToken, user });
   },
   setUser: (user) => set({ user }),
   clearSession: async () => {
-    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await deletePersistedItem(ACCESS_TOKEN_KEY);
     set({ accessToken: null, user: null });
   }
 }));

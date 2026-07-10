@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getMe } from '@/api/auth';
 import { getOnboardingStatus } from '@/api/onboarding';
-import { StateBlock } from '@/components/StateBlock';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { useAuthStore } from '@/store/auth-store';
 
 function firstOnboardingRoute(status: Awaited<ReturnType<typeof getOnboardingStatus>>) {
@@ -62,7 +62,7 @@ export default function IndexScreen() {
   }, [me.data, setUser]);
 
   if (!hydrated) {
-    return <StateBlock title={t('auth.preparing')} message={t('auth.checkingSession')} />;
+    return <ScreenSkeleton variant="default" cardCount={2} />;
   }
 
   if (!token) {
@@ -74,7 +74,7 @@ export default function IndexScreen() {
   }
 
   if (!onboarding.data) {
-    return <StateBlock title={t('auth.loadingSetup')} message={t('auth.preparingNextStep')} />;
+    return <ScreenSkeleton variant="default" cardCount={2} />;
   }
 
   return <Redirect href={firstOnboardingRoute(onboarding.data)} />;

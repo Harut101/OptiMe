@@ -98,7 +98,7 @@ export const frFR = createLocaleResource({
     optional: 'Facultatif. Vous pouvez continuer sans connecter de données de santé.',
     loadingConnections: 'Chargement des connexions santé.',
     appleHealthDescription: "Apple Health peut partager l'activité, le sommeil et les séances de l'iPhone pour une personnalisation plus sûre.",
-    appleHealthIosOnly: 'Disponible sur iPhone dans une build de développement ou de production. Expo Go affiche un état indisponible sûr.',
+    appleHealthIosOnly: 'Connectez sur iPhone pour utiliser activité, sommeil et entraînements dans les prochains plans.',
     connectAppleHealth: 'Connecter Apple Health',
     syncAppleHealth: 'Synchroniser Apple Health',
     disconnectAppleHealth: 'Déconnecter Apple Health',

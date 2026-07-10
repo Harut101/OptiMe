@@ -9,6 +9,7 @@ import { getExerciseDetail } from '@/api/exercises';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { ExerciseMediaCarousel } from '@/features/daily-plan/ExerciseMediaCarousel';
@@ -37,7 +38,7 @@ export default function ExerciseDetailsScreen() {
     retry: 1
   });
 
-  if (today.isLoading) return <StateBlock title={t('plan.loading')} message={t('plan.loadingMessage')} />;
+  if (today.isLoading) return <ScreenSkeleton variant="detail" cardCount={3} />;
   if (!exercise?.exerciseSnapshot) {
     return <Screen><StateBlock title={t('plan.exerciseUnavailable')} message={t('plan.exerciseUnavailableMessage')} /></Screen>;
   }

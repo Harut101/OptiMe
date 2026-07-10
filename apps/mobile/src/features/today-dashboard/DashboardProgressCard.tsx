@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
@@ -15,6 +15,7 @@ interface DashboardProgressCardProps {
   hint?: string;
   tone: DashboardProgressTone;
   accessibilityLabel: string;
+  style?: ViewStyle;
 }
 
 export const dashboardRingGradients = {
@@ -36,26 +37,29 @@ export function DashboardProgressCard({
   subtitle,
   hint,
   tone,
-  accessibilityLabel
+  accessibilityLabel,
+  style
 }: DashboardProgressCardProps) {
   const isRestLikeState = value === null && centerLabel && centerLabel !== '-';
   const ringTone = isRestLikeState ? 'rest' : tone;
 
   return (
-    <Card>
+    <Card style={[styles.cardShell, style]}>
       <View style={styles.card} accessible accessibilityLabel={accessibilityLabel}>
-        <CircularProgressRing
-          value={value}
-          size={110}
-          strokeWidth={16}
-          label={centerLabel}
-          gradientColors={dashboardRingGradients[ringTone]}
-          trackColor={ringTracks[ringTone]}
-          trackOpacity={0.92}
-          endCapColor={dashboardRingGradients[ringTone][dashboardRingGradients[ringTone].length - 1]}
-          emptyArcValue={isRestLikeState ? 18 : 0}
-          accessibilityLabel={accessibilityLabel}
-        />
+        <View style={styles.ringSlot}>
+          <CircularProgressRing
+            value={value}
+            size={110}
+            strokeWidth={16}
+            label={centerLabel}
+            gradientColors={dashboardRingGradients[ringTone]}
+            trackColor={ringTracks[ringTone]}
+            trackOpacity={0.92}
+            endCapColor={dashboardRingGradients[ringTone][dashboardRingGradients[ringTone].length - 1]}
+            emptyArcValue={isRestLikeState ? 18 : 0}
+            accessibilityLabel={accessibilityLabel}
+          />
+        </View>
         <View style={styles.copy}>
           <Text variant="label" style={styles.title}>{title}</Text>
           <Text variant="body" style={styles.subtitle}>{subtitle}</Text>
@@ -67,10 +71,19 @@ export function DashboardProgressCard({
 }
 
 const styles = StyleSheet.create({
+  cardShell: {
+    flex: 1
+  },
   card: {
     alignItems: 'center',
+    flex: 1,
     gap: 14,
     paddingVertical: 2
+  },
+  ringSlot: {
+    alignItems: 'center',
+    height: 112,
+    justifyContent: 'center'
   },
   copy: {
     alignItems: 'center',

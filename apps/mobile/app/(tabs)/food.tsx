@@ -13,6 +13,7 @@ import {
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { AppToast } from '@/components/AppToast';
@@ -20,6 +21,7 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
@@ -46,15 +48,10 @@ import {
   MealProgressWidget,
   PremiumMealCard
 } from '@/features/food-dashboard/FoodDashboardWidgets';
-import {
-  FOOD_STATUSES,
-  getMealStatusActionLabel
-} from '@/features/food-tracking/food-tracking-summary';
 import type {
   DailyFoodPlan,
   EvaluatePlanImpactResponse,
   FoodDayLogResponse,
-  FoodMeal,
   FoodMealProgressStatus,
   NutritionPreferencesRequest,
   PlanImpactChangeType
@@ -178,7 +175,7 @@ export default function FoodScreen() {
   });
 
   if (preferences.isLoading) {
-    return <Screen><StateBlock title={t('common.loading')} message={t('food.loadingMessage')} /></Screen>;
+    return <ScreenSkeleton variant="list" cardCount={4} />;
   }
 
   if (preferences.isError) {
@@ -288,38 +285,48 @@ export default function FoodScreen() {
 
       {validationError && !editing ? <Text style={styles.error}>{validationError}</Text> : null}
 
-      {!preferences.data && !editing ? (
+      {!preferences.data ? (
         <StateBlock
           title={t('food.emptyTitle')}
           message={t('food.emptyMessage')}
           actionTitle={t('food.setup')}
           onAction={startSetup}
         />
-      ) : editing ? (
-        <>
-          <FoodPreferencesForm value={value} onChange={setValue} />
-          {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
-          {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
-          <View style={styles.actions}>
-            <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
-            <Button
-              title={t('common.cancel')}
-              variant="secondary"
-              disabled={mutation.isPending}
-              onPress={() => {
-                setValue(savedValue);
-                setValidationError(null);
-                setEditing(false);
-              }}
-            />
-          </View>
-        </>
       ) : (
         <>
           <FoodSummary value={savedValue} />
           <Button title={t('common.edit')} variant="secondary" onPress={() => { setSuccessMessage(null); setEditing(true); }} />
         </>
       )}
+
+      <BottomSheet
+        visible={editing}
+        title={preferences.data ? t('food.updateFoodPreferences') : t('food.setup')}
+        subtitle={t('food.intro')}
+        onClose={() => {
+          if (mutation.isPending) return;
+          setValue(savedValue);
+          setValidationError(null);
+          setEditing(false);
+        }}
+      >
+        <FoodPreferencesForm value={value} onChange={setValue} />
+        {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
+        {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
+        <View style={styles.actions}>
+          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
+          <Button
+            title={t('common.cancel')}
+            variant="secondary"
+            disabled={mutation.isPending}
+            onPress={() => {
+              setValue(savedValue);
+              setValidationError(null);
+              setEditing(false);
+            }}
+          />
+        </View>
+      </BottomSheet>
 
       {successMessage ? (
         <AppToast title={t('feedback.savedSuccessfully')} message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
@@ -351,91 +358,45 @@ function DailyFoodPlanCard({
 }) {
   const { t } = useTranslation();
   const fallback = foodPlan.source === 'DETERMINISTIC_FALLBACK' || foodPlan.validation.status === 'FALLBACK';
-  const [selectedMeal, setSelectedMeal] = useState<FoodMeal | null>(null);
 
   return (
     <>
       <MealProgressWidget foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
 
-      <Card>
-      <SectionHeader title={t('food.mealPlan')} subtitle={t('food.whatToEatToday')} />
-      {fallback ? <StatusPill label={t('food.fallbackMealPlan')} tone="warning" /> : null}
-      <View style={styles.compactActions}>
-        <Button
-          title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
-          variant="secondary"
-          disabled={isRegenerating}
-          accessibilityLabel={t('food.regenerateMenu')}
-          onPress={onRegenerateMenu}
-          style={styles.compactActionButton}
-        />
-      </View>
-      <View style={styles.mealList}>
-        {foodPlan.meals.map((meal) => (
-          <PremiumMealCard
-            key={meal.id}
-            meal={meal}
-            foodLog={foodLog}
-            disabled={isUpdatingStatus}
-            onPress={() => onOpenMeal(meal.id)}
-            onUpdateStatus={(status) => onUpdateMealStatus(meal.id, status)}
-            onOpenActions={() => setSelectedMeal(meal)}
+      <View style={styles.mealPlanSection}>
+        <View style={styles.mealPlanHeader}>
+          <Text variant="heading" style={styles.mealPlanTitle}>{t('food.mealPlan')}</Text>
+          <Text variant="muted">{t('food.whatToEatToday')}</Text>
+        </View>
+        {fallback ? (
+          <View style={styles.mealPlanInlineStatus}>
+            <StatusPill label={t('food.fallbackMealPlan')} tone="warning" />
+          </View>
+        ) : null}
+        <View style={styles.compactActions}>
+          <Button
+            title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
+            variant="secondary"
+            disabled={isRegenerating}
+            accessibilityLabel={t('food.regenerateMenu')}
+            onPress={onRegenerateMenu}
+            style={styles.compactActionButton}
           />
-        ))}
+        </View>
+        <View style={styles.mealList}>
+          {foodPlan.meals.map((meal) => (
+            <PremiumMealCard
+              key={meal.id}
+              meal={meal}
+              foodLog={foodLog}
+              disabled={isUpdatingStatus}
+              onPress={() => onOpenMeal(meal.id)}
+              onUpdateStatus={(status) => onUpdateMealStatus(meal.id, status)}
+            />
+          ))}
+        </View>
       </View>
-    </Card>
-      <MealActionSheet
-        meal={selectedMeal}
-        foodLog={foodLog}
-        disabled={isUpdatingStatus}
-        onClose={() => setSelectedMeal(null)}
-        onUpdateStatus={(status) => {
-          if (!selectedMeal) return;
-          onUpdateMealStatus(selectedMeal.id, status);
-          setSelectedMeal(null);
-        }}
-      />
     </>
-  );
-}
-
-function MealActionSheet({
-  meal,
-  foodLog,
-  disabled,
-  onClose,
-  onUpdateStatus
-}: {
-  meal: FoodMeal | null;
-  foodLog?: FoodDayLogResponse;
-  disabled: boolean;
-  onClose: () => void;
-  onUpdateStatus: (status: FoodMealProgressStatus) => void;
-}) {
-  const { t } = useTranslation();
-  const currentStatus = meal ? (foodLog?.mealProgress.find((item) => item.mealId === meal.id)?.status ?? 'PLANNED') : 'PLANNED';
-
-  return (
-    <AppFeedbackSheet
-      visible={Boolean(meal)}
-      title={meal ? meal.title : t('food.mealActions')}
-      message={t('food.mealActionsHelp')}
-      tone="info"
-      onClose={onClose}
-      actions={[
-        ...FOOD_STATUSES.filter((status) => status !== currentStatus).map((status) => ({
-          label: getMealStatusActionLabel(status, t),
-          disabled,
-          variant: 'secondary' as const,
-          onPress: () => onUpdateStatus(status)
-        })),
-        {
-          label: t('common.cancel'),
-          variant: 'ghost' as const,
-          onPress: onClose
-        }
-      ]}
-    />
   );
 }
 
@@ -457,7 +418,21 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
 const styles = StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' },
-  mealList: { gap: 10, marginTop: 10 },
+  mealPlanSection: { gap: 10 },
+  mealPlanHeader: {
+    gap: 3,
+    paddingHorizontal: 2
+  },
+  mealPlanTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 27
+  },
+  mealPlanInlineStatus: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 2
+  },
+  mealList: { gap: 10 },
   pressed: { opacity: 0.78 },
   linkText: { color: colors.primaryDark, fontWeight: '700' },
   compactActions: {

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementSystem } from '@optime/shared-types';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
@@ -62,41 +62,39 @@ export function WeightUpdateModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Card>
-          <Text variant="heading">{t('weight.updateWeight')}</Text>
-          <Text variant="muted">{t('weight.futurePlansOnly')}</Text>
-          <Field
-            label={t('weight.weightValue', { unit: unitLabel })}
-            value={weight}
-            onChangeText={setWeight}
-            keyboardType="decimal-pad"
-            accessibilityLabel={t('weight.weightInputAccessibility', { unit: unitLabel })}
-            error={localError ?? undefined}
-          />
-          <Field
-            label={t('weight.optionalNote')}
-            value={note}
-            onChangeText={setNote}
-            placeholder={t('weight.notePlaceholder')}
-            accessibilityLabel={t('weight.optionalNote')}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Button title={isSaving ? t('common.saving') : t('weight.saveWeight')} disabled={isSaving} onPress={submit} />
-          <Button title={t('common.cancel')} variant="secondary" disabled={isSaving} onPress={onClose} />
-        </Card>
+    <BottomSheet
+      visible={visible}
+      title={t('weight.updateWeight')}
+      subtitle={t('weight.futurePlansOnly')}
+      onClose={onClose}
+    >
+      <View style={styles.content}>
+        <Field
+          label={t('weight.weightValue', { unit: unitLabel })}
+          value={weight}
+          onChangeText={setWeight}
+          keyboardType="decimal-pad"
+          accessibilityLabel={t('weight.weightInputAccessibility', { unit: unitLabel })}
+          error={localError ?? undefined}
+        />
+        <Field
+          label={t('weight.optionalNote')}
+          value={note}
+          onChangeText={setNote}
+          placeholder={t('weight.notePlaceholder')}
+          accessibilityLabel={t('weight.optionalNote')}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button title={isSaving ? t('common.saving') : t('weight.saveWeight')} disabled={isSaving} onPress={submit} />
+        <Button title={t('common.cancel')} variant="secondary" disabled={isSaving} onPress={onClose} />
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(16, 23, 19, 0.48)'
+  content: {
+    gap: 12
   },
   error: {
     color: colors.danger,

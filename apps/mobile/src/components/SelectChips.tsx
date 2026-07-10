@@ -56,14 +56,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   activeChip: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.divider,
     shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 1
   },
   pressed: {
     opacity: 0.82
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   activeText: {
-    color: colors.textInverse,
+    color: colors.textPrimary,
     fontWeight: '800'
   }
 });

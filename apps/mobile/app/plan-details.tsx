@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { resolveSupportedLocale } from '@optime/shared-types';
 
@@ -12,16 +12,19 @@ import {
   submitDailyPlanFeedback
 } from '@/api/daily-plans';
 import { Button } from '@/components/Button';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
+import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { PlanTabbedContent } from '@/features/daily-plan/PlanTabbedContent';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
+import { colors } from '@/theme/colors';
 import type {
   PlanFeedbackRating,
   PlanFeedbackTag
@@ -33,6 +36,7 @@ export default function PlanDetailsScreen() {
   const [rating, setRating] = useState<PlanFeedbackRating | null>(null);
   const [selectedTags, setSelectedTags] = useState<PlanFeedbackTag[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
   const today = useQuery({
     queryKey: ['today-plan'],
@@ -92,7 +96,7 @@ export default function PlanDetailsScreen() {
   const refreshing = today.isRefetching || checkIns.isRefetching;
 
   if (today.isLoading) {
-    return <StateBlock title={t('plan.loading')} message={t('plan.loadingMessage')} />;
+    return <ScreenSkeleton variant="detail" cardCount={4} />;
   }
 
   const plan = today.data?.plan;
@@ -170,8 +174,18 @@ export default function PlanDetailsScreen() {
         ))}
       </Card>
 
-      <Card>
-        <SectionHeader title={t('plan.helpfulQuestion')} />
+      <FeedbackTrigger
+        title={t('plan.helpfulQuestion')}
+        actionLabel={t('plan.sendFeedback')}
+        message={feedbackMessage}
+        onPress={() => setFeedbackVisible(true)}
+      />
+
+      <BottomSheet
+        visible={feedbackVisible}
+        title={t('plan.helpfulQuestion')}
+        onClose={() => setFeedbackVisible(false)}
+      >
         <View style={styles.row}>
           <Button
             title={t('plan.helpful')}
@@ -196,7 +210,7 @@ export default function PlanDetailsScreen() {
                 title={tag.label}
                 variant={active ? 'primary' : 'secondary'}
                 style={styles.tagButton}
-                onPress={() => toggleTag(tag.value, setSelectedTags)}
+            onPress={() => toggleTag(tag.value, setSelectedTags)}
               />
             );
           })}
@@ -205,10 +219,40 @@ export default function PlanDetailsScreen() {
         <Button
           title={feedback.isPending ? t('common.saving') : t('plan.sendFeedback')}
           disabled={!rating || feedback.isPending}
-          onPress={() => feedback.mutate()}
+          onPress={() => {
+            feedback.mutate();
+            setFeedbackVisible(false);
+          }}
         />
-      </Card>
+      </BottomSheet>
     </Screen>
+  );
+}
+
+function FeedbackTrigger({
+  title,
+  actionLabel,
+  message,
+  onPress
+}: {
+  title: string;
+  actionLabel: string;
+  message: string | null;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [styles.feedbackTrigger, pressed ? styles.feedbackTriggerPressed : null]}
+    >
+      <View style={styles.feedbackTriggerCopy}>
+        <Text variant="label">{title}</Text>
+        {message ? <Text variant="muted">{message}</Text> : null}
+      </View>
+      <Text style={styles.feedbackTriggerAction}>{actionLabel}</Text>
+    </Pressable>
   );
 }
 
@@ -243,6 +287,36 @@ function toggleTag(
 }
 
 const styles = StyleSheet.create({
+  feedbackTrigger: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderColor: 'rgba(209, 209, 214, 0.65)',
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 2
+  },
+  feedbackTriggerPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.99 }]
+  },
+  feedbackTriggerCopy: {
+    flex: 1,
+    gap: 3
+  },
+  feedbackTriggerAction: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '900'
+  },
   row: {
     flexDirection: 'row',
     gap: 10

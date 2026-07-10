@@ -71,7 +71,7 @@ export function ExerciseCard({ exercise, summary, locale, t, onPress }: Exercise
         {equipment.length ? <Text variant="muted">{equipment.join(' · ')}</Text> : null}
         {exercise.notes ? <Text variant="muted">{exercise.notes}</Text> : null}
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={20} color={colors.muted} accessible={false} /> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={20} color={colors.muted} accessible={false} style={styles.chevron} /> : null}
     </>
   );
 
@@ -91,18 +91,18 @@ const styles = StyleSheet.create({
   card: {
     minHeight: 104,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 12,
     backgroundColor: colors.card
   },
   pressed: { opacity: 0.78 },
   thumbnail: {
-    width: 72,
-    height: 88,
+    width: 66,
+    height: 78,
     borderRadius: 10,
     backgroundColor: colors.surface,
     alignItems: 'center',
@@ -111,6 +111,17 @@ const styles = StyleSheet.create({
   },
   image: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   imageLoading: { opacity: 0 },
-  content: { flex: 1, gap: 4 },
-  name: { fontWeight: '700' }
+  content: {
+    flex: 1,
+    flexShrink: 1,
+    gap: 4,
+    minWidth: 0
+  },
+  name: {
+    fontWeight: '800',
+    flexShrink: 1
+  },
+  chevron: {
+    marginTop: 38
+  }
 });

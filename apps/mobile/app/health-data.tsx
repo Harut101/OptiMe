@@ -21,7 +21,6 @@ import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
-import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { nativeHealthService, NativeHealthServiceError } from '@/features/health/native-health.service';
@@ -144,7 +143,7 @@ export default function HealthDataScreen() {
   };
 
   if (connections.isLoading) {
-    return <StateBlock title={t('common.loading')} message={t('health.loadingConnections')} />;
+    return <HealthConnectionsSkeleton />;
   }
 
   return (
@@ -252,6 +251,34 @@ export default function HealthDataScreen() {
   }
 }
 
+function HealthConnectionsSkeleton() {
+  return (
+    <Screen>
+      <View style={styles.skeletonHeader}>
+        <View style={[styles.skeletonLine, styles.skeletonTitle]} />
+        <View style={[styles.skeletonLine, styles.skeletonIntroWide]} />
+        <View style={[styles.skeletonLine, styles.skeletonIntro]} />
+      </View>
+
+      {[0, 1, 2].map((item) => (
+        <Card key={item}>
+          <View style={styles.skeletonProviderHeader}>
+            <View style={styles.skeletonIcon} />
+            <View style={styles.skeletonCopy}>
+              <View style={[styles.skeletonLine, styles.skeletonProviderName]} />
+              <View style={[styles.skeletonLine, styles.skeletonBodyWide]} />
+              <View style={[styles.skeletonLine, styles.skeletonBody]} />
+            </View>
+            <View style={styles.skeletonPill} />
+          </View>
+          <View style={[styles.skeletonLine, styles.skeletonHelper]} />
+          {item === 0 ? <View style={styles.skeletonButton} /> : null}
+        </Card>
+      ))}
+    </Screen>
+  );
+}
+
 function ConnectionCard({
   source,
   connection,
@@ -298,7 +325,7 @@ function ConnectionCard({
           <View style={styles.actionRow}>
             {!isConnected ? (
               <Button
-                title={isActionPending ? t('health.connecting') : t('health.connectAppleHealth')}
+                title={isActionPending ? t('health.connecting') : t('health.connect')}
                 disabled={isActionPending}
                 accessibilityLabel={t('health.connectAppleHealth')}
                 onPress={onConnect}
@@ -313,14 +340,16 @@ function ConnectionCard({
                 style={styles.actionButton}
               />
             )}
-            <Button
-              title={t('health.disconnect')}
-              variant="secondary"
-              disabled={isActionPending}
-              accessibilityLabel={t('health.disconnectAppleHealth')}
-              onPress={onDisconnect}
-              style={styles.actionButton}
-            />
+            {isConnected ? (
+              <Button
+                title={t('health.disconnect')}
+                variant="secondary"
+                disabled={isActionPending}
+                accessibilityLabel={t('health.disconnectAppleHealth')}
+                onPress={onDisconnect}
+                style={styles.actionButton}
+              />
+            ) : null}
           </View>
         </>
       ) : null}
@@ -659,6 +688,70 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     minWidth: 130
+  },
+  skeletonHeader: {
+    gap: 12,
+    paddingTop: 8
+  },
+  skeletonLine: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 999
+  },
+  skeletonTitle: {
+    height: 38,
+    width: '78%'
+  },
+  skeletonIntroWide: {
+    height: 14,
+    width: '92%'
+  },
+  skeletonIntro: {
+    height: 14,
+    width: '68%'
+  },
+  skeletonProviderHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12
+  },
+  skeletonIcon: {
+    backgroundColor: colors.healthMuted,
+    borderRadius: 18,
+    height: 48,
+    width: 48
+  },
+  skeletonCopy: {
+    flex: 1,
+    gap: 8,
+    paddingTop: 2
+  },
+  skeletonProviderName: {
+    height: 18,
+    width: '48%'
+  },
+  skeletonBodyWide: {
+    height: 12,
+    width: '86%'
+  },
+  skeletonBody: {
+    height: 12,
+    width: '62%'
+  },
+  skeletonPill: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 999,
+    height: 36,
+    width: 112
+  },
+  skeletonHelper: {
+    height: 12,
+    width: '52%'
+  },
+  skeletonButton: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 18,
+    height: 52,
+    width: '100%'
   },
   successText: { color: colors.success, fontWeight: '700' },
   errorText: { color: colors.danger, fontWeight: '700' }
