@@ -3,6 +3,7 @@ import { DietType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { FOOD_CATALOG_ENGLISH_LOCALE, toFoodCatalogLocale } from './food-catalog-locale';
+import { normalizeFoodName, normalizeFoodRestrictions } from './food-catalog-restrictions';
 import type {
   FoodCatalogCandidate,
   FoodCatalogNutrition,
@@ -25,7 +26,7 @@ export class FoodCatalogService {
       include: catalogInclude,
       orderBy: [{ sortOrder: 'asc' }, { slug: 'asc' }]
     });
-    const restrictions = normalizeRestrictions(input.restrictions);
+    const restrictions = normalizeFoodRestrictions(input.restrictions);
 
     return records
       .filter((record) => this.isDietCompatible(record, input.dietType))
@@ -75,10 +76,11 @@ export class FoodCatalogService {
     return record.dietTypes.includes(dietType);
   }
 
-  private matchesRestriction(record: FoodCatalogRecord, restrictions: string[]) {
-    if (!restrictions.length) return false;
+  private matchesRestriction(record: FoodCatalogRecord, restrictions: ReturnType<typeof normalizeFoodRestrictions>) {
+    if (!restrictions.exactNames.length && !restrictions.tags.length) return false;
+    if (record.restrictionTags.some((tag) => restrictions.tags.includes(tag))) return true;
     const labels = record.translations.flatMap((translation) => [translation.name, ...translation.aliases]);
-    return labels.some((label) => restrictions.some((restriction) => sameFood(label, restriction)));
+    return labels.some((label) => restrictions.exactNames.some((restriction) => sameFood(label, restriction)));
   }
 
   private toCandidate(record: FoodCatalogRecord, locale: ListFoodCatalogCandidatesInput['locale']): FoodCatalogCandidate {
@@ -99,27 +101,14 @@ export class FoodCatalogService {
       carbsPer100g: record.carbsPer100g.toNumber(),
       fatPer100g: record.fatPer100g.toNumber(),
       fiberPer100g: record.fiberPer100g?.toNumber() ?? null,
-      dietTypes: record.dietTypes
+      dietTypes: record.dietTypes,
+      restrictionTags: record.restrictionTags
     };
   }
 }
 
-function normalizeRestrictions(input?: {
-  allergies?: string[];
-  excludedFoods?: string[];
-  dislikedFoods?: string[];
-}) {
-  return [...(input?.allergies ?? []), ...(input?.excludedFoods ?? []), ...(input?.dislikedFoods ?? [])]
-    .map((value) => normalizeFoodName(value))
-    .filter(Boolean);
-}
-
 function sameFood(candidate: string, restriction: string) {
   return normalizeFoodName(candidate) === restriction;
-}
-
-function normalizeFoodName(value: string) {
-  return value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 }
 
 function roundDecimal(value: number) {

@@ -1,4 +1,4 @@
-import { DietType, FoodCatalogCategory } from '@prisma/client';
+import { DietType, FoodCatalogCategory, FoodRestrictionTag } from '@prisma/client';
 
 import type { SeedFoodCatalogItem } from './types';
 
@@ -41,13 +41,13 @@ export const foodCatalog: SeedFoodCatalogItem[] = [
   {
     slug: 'egg', category: FoodCatalogCategory.PROTEIN, caloriesPer100g: 143,
     proteinPer100g: 12.6, carbsPer100g: 0.7, fatPer100g: 9.5, fiberPer100g: 0,
-    dietTypes: VEGETARIAN, sortOrder: 20,
+    dietTypes: VEGETARIAN, restrictionTags: [FoodRestrictionTag.EGG], sortOrder: 20,
     translations: translations(['Egg', 'eggs'], ['Яйцо', 'яйца'], ['Œuf', 'œufs'], ['鸡蛋'])
   },
   {
     slug: 'greek-yogurt-plain', category: FoodCatalogCategory.DAIRY_OR_ALTERNATIVE, caloriesPer100g: 73,
     proteinPer100g: 9, carbsPer100g: 3.9, fatPer100g: 2, fiberPer100g: 0,
-    dietTypes: VEGETARIAN, sortOrder: 30,
+    dietTypes: VEGETARIAN, restrictionTags: [FoodRestrictionTag.DAIRY], sortOrder: 30,
     translations: translations(['Plain Greek yogurt', 'Greek yogurt'], ['Натуральный греческий йогурт', 'греческий йогурт'], ['Yaourt grec nature', 'yaourt grec'], ['原味希腊酸奶'])
   },
   {
@@ -59,13 +59,13 @@ export const foodCatalog: SeedFoodCatalogItem[] = [
   {
     slug: 'salmon-cooked', category: FoodCatalogCategory.PROTEIN, caloriesPer100g: 206,
     proteinPer100g: 22, carbsPer100g: 0, fatPer100g: 12, fiberPer100g: 0,
-    dietTypes: [DietType.OMNIVORE, DietType.PESCATARIAN, DietType.MEDITERRANEAN], sortOrder: 50,
+    dietTypes: [DietType.OMNIVORE, DietType.PESCATARIAN, DietType.MEDITERRANEAN], restrictionTags: [FoodRestrictionTag.FISH], sortOrder: 50,
     translations: translations(['Cooked salmon', 'salmon'], ['Готовый лосось', 'лосось'], ['Saumon cuit', 'saumon'], ['熟三文鱼', '三文鱼'])
   },
   {
     slug: 'firm-tofu', category: FoodCatalogCategory.PROTEIN, caloriesPer100g: 144,
     proteinPer100g: 17, carbsPer100g: 2.8, fatPer100g: 8.7, fiberPer100g: 2.3,
-    dietTypes: PLANT_BASED, sortOrder: 60,
+    dietTypes: PLANT_BASED, restrictionTags: [FoodRestrictionTag.SOY], sortOrder: 60,
     translations: translations(['Firm tofu', 'tofu'], ['Твёрдый тофу', 'тофу'], ['Tofu ferme', 'tofu'], ['老豆腐', '豆腐'])
   },
   {
@@ -95,7 +95,7 @@ export const foodCatalog: SeedFoodCatalogItem[] = [
   {
     slug: 'whole-grain-bread', category: FoodCatalogCategory.GRAIN, caloriesPer100g: 247,
     proteinPer100g: 13, carbsPer100g: 41, fatPer100g: 4.2, fiberPer100g: 6,
-    dietTypes: PLANT_BASED, sortOrder: 110,
+    dietTypes: PLANT_BASED, restrictionTags: [FoodRestrictionTag.WHEAT, FoodRestrictionTag.GLUTEN], sortOrder: 110,
     translations: translations(['Whole-grain bread', 'whole wheat bread'], ['Цельнозерновой хлеб', 'хлеб из цельного зерна'], ['Pain complet', 'pain complet'], ['全麦面包'])
   },
   {
@@ -173,7 +173,7 @@ export const foodCatalog: SeedFoodCatalogItem[] = [
   {
     slug: 'almonds', category: FoodCatalogCategory.FAT, caloriesPer100g: 579,
     proteinPer100g: 21.2, carbsPer100g: 21.6, fatPer100g: 49.9, fiberPer100g: 12.5,
-    dietTypes: PLANT_BASED, sortOrder: 240,
+    dietTypes: PLANT_BASED, restrictionTags: [FoodRestrictionTag.TREE_NUT], sortOrder: 240,
     translations: translations(['Almonds', 'almond'], ['Миндаль'], ['Amandes', 'amande'], ['杏仁'])
   }
 ];

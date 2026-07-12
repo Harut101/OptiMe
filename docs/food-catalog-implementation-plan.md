@@ -40,6 +40,12 @@ Exit criteria: AI cannot introduce an unknown or restricted ingredient, and macr
 
 Exit criteria: one malformed AI section never removes the user's full plan.
 
+## Safety hardening - complete before Phase 4
+
+- Catalog restriction tags identify common allergen and dietary-risk groups.
+- Multilingual synonym mapping filters tagged foods before the AI receives candidates.
+- Final deterministic SafetyService validation remains in place after generation.
+
 ## Deferred
 
 - Branded products and barcode lookup.

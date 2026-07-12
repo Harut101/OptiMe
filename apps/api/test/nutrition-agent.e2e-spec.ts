@@ -5,6 +5,7 @@ import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import type { NutritionAgentInput } from '../src/modules/nutrition-agent/nutrition-agent.types';
+import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
 import { SafetyService } from '../src/modules/safety/safety.service';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 import { cleanupDatabase } from './helpers/cleanup';
@@ -100,7 +101,7 @@ describe('Specialized Nutrition Agent food plans', () => {
         dietType: 'OMNIVORE',
         mealsPerDay: 3,
         notes: null,
-        allergies: [],
+        allergies: ['milk', 'fish', 'soy', 'tree nuts'],
         excludedFoods: ['avocado'],
         dislikedFoods: [],
         preferredFoods: []
@@ -116,6 +117,9 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.meals).toHaveLength(3);
     expect(fallback.meals.flatMap((meal) => meal.ingredients).every((ingredient) => ingredient.catalogFoodSlug)).toBe(true);
     expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => ingredient.catalogFoodSlug === 'avocado')).toBe(false);
+    expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (
+      ['greek-yogurt-plain', 'salmon-cooked', 'firm-tofu', 'almonds'].includes(ingredient.catalogFoodSlug ?? '')
+    ))).toBe(false);
 
     const ingredientTotals = fallback.meals.flatMap((meal) => meal.ingredients).reduce(
       (totals, ingredient) => ({
@@ -130,6 +134,27 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.totals.proteinGrams).toBeCloseTo(ingredientTotals.proteinGrams, 1);
     expect(fallback.totals.carbsGrams).toBeCloseTo(ingredientTotals.carbsGrams, 1);
     expect(fallback.totals.fatGrams).toBeCloseTo(ingredientTotals.fatGrams, 1);
+  });
+
+  it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {
+    const service = ctx.app.get(FoodCatalogService);
+    const candidates = await service.listAllowedCandidates({
+      locale: 'ru-RU',
+      dietType: 'OMNIVORE',
+      restrictions: {
+        allergies: ['молоко', 'рыба', 'соя', 'орехи'],
+        excludedFoods: ['авокадо']
+      }
+    });
+    const slugs = candidates.map((candidate) => candidate.slug);
+
+    expect(slugs).not.toContain('greek-yogurt-plain');
+    expect(slugs).not.toContain('salmon-cooked');
+    expect(slugs).not.toContain('firm-tofu');
+    expect(slugs).not.toContain('almonds');
+    expect(slugs).not.toContain('avocado');
+    expect(slugs).toContain('chicken-breast-cooked');
+    expect(candidates.find((candidate) => candidate.slug === 'chicken-breast-cooked')?.name).toBe('Готовая куриная грудка');
   });
 
   it('validates foodPlan schema for meal types, ingredient quantities, and negative macros', async () => {

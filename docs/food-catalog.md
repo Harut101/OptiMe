@@ -18,6 +18,14 @@ It includes:
 - a service to list candidates after applying exact allergy, excluded-food, and disliked-food filters;
 - a service to calculate nutrition from a catalog item and a gram amount.
 
+## Restriction safety
+
+Catalog items carry backend-owned restriction tags. The current curated catalog marks dairy, egg, fish, soy, tree nut, wheat, and gluten ingredients where applicable.
+
+Before an AI request or deterministic fallback is composed, FoodCatalogService maps common allergy and exclusion terms to these tags. The mapping supports the current product locales, including examples such as `milk` / `молоко`, `fish` / `рыба`, `soy` / `соя`, and `nuts` / `орехи`.
+
+This is an additional hard filter; deterministic SafetyService still remains the authority for validating the final plan. Unknown or ambiguous user-entered restrictions are not silently treated as safe catalog matches.
+
 The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. Existing legacy plans remain readable because `catalogFoodSlug` is optional in the shared plan contract.
 
 ## Current generation behavior

@@ -1,4 +1,4 @@
-import type { DietType, FoodCatalogCategory } from '@prisma/client';
+import type { DietType, FoodCatalogCategory, FoodRestrictionTag } from '@prisma/client';
 import type { SupportedLocale } from '@optime/shared-types';
 
 export interface FoodCatalogRestrictions {
@@ -25,6 +25,7 @@ export interface FoodCatalogCandidate {
   fatPer100g: number;
   fiberPer100g: number | null;
   dietTypes: DietType[];
+  restrictionTags: FoodRestrictionTag[];
 }
 
 export interface FoodCatalogNutrition {

@@ -27,6 +27,7 @@ export async function seedFoodCatalog(prisma: PrismaClient) {
         fatPer100g: definition.fatPer100g,
         fiberPer100g: definition.fiberPer100g ?? null,
         dietTypes: definition.dietTypes,
+        restrictionTags: definition.restrictionTags ?? [],
         isActive: true,
         sortOrder: definition.sortOrder
       },
@@ -38,6 +39,7 @@ export async function seedFoodCatalog(prisma: PrismaClient) {
         fatPer100g: definition.fatPer100g,
         fiberPer100g: definition.fiberPer100g ?? null,
         dietTypes: definition.dietTypes,
+        restrictionTags: definition.restrictionTags ?? [],
         isActive: true,
         sortOrder: definition.sortOrder
       }

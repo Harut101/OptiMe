@@ -358,6 +358,19 @@ enum FoodCatalogCategory {
   OTHER
 }
 
+enum FoodRestrictionTag {
+  DAIRY
+  EGG
+  FISH
+  SHELLFISH
+  PEANUT
+  TREE_NUT
+  SOY
+  SESAME
+  WHEAT
+  GLUTEN
+}
+
 enum MeasurementSystem {
   METRIC
   IMPERIAL
@@ -1084,6 +1097,7 @@ model FoodCatalogItem {
   fatPer100g      Decimal             @db.Decimal(7, 2)
   fiberPer100g    Decimal?            @db.Decimal(7, 2)
   dietTypes       DietType[]          @default([])
+  restrictionTags FoodRestrictionTag[] @default([])
   isActive        Boolean             @default(true)
   sortOrder       Int                 @default(0)
   createdAt       DateTime            @default(now())
