@@ -40,7 +40,9 @@ Every newly persisted plan records internal `debug.generation` provenance. It ma
 
 ## Data sources
 
-The initial entries are curated generic references. Future imports may use USDA FoodData Central for generic foods. Source provenance is stored per catalog item so a later import can retain its original identifier without replacing curated data.
+The initial entries are curated generic references. A controlled USDA FoodData Central import foundation is available for local, reviewed generic-food snapshots. Source provenance is stored per catalog item so an import retains its original identifier without replacing curated data.
+
+USDA imports are inactive by default and never enter planning until local review assigns translations, diet suitability, and restriction tags. See [USDA Food Import](usda-food-import.md) for the dry-run and apply workflow.
 
 Do not use Open Food Facts data in the primary catalog without a separate licensing and data-quality review.
 
@@ -51,10 +53,13 @@ After applying the Prisma migration and generating Prisma Client:
 ```powershell
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:validate
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:seed
+
+# Optional, review-first USDA Foundation Foods import.
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:import -- --input "C:\data\FoundationFoods.json" --limit 25
 ```
 
 ## Next implementation steps
 
 1. Add curated recipe-template metadata only when it is needed for a user-visible recipe experience.
-2. Add a controlled USDA import pipeline after the catalog-backed daily-plan loop is stable.
+2. Add an admin-only catalog-curation workflow to review and activate USDA imports.
 3. Add branded products, barcode lookup, and user-created recipes only after source and licensing review.

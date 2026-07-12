@@ -20,6 +20,7 @@
     "exercise:validate:db": "ts-node prisma/seeds/exercises/validate.ts --database",
     "food-catalog:seed": "ts-node prisma/seeds/foods/seed.ts",
     "food-catalog:validate": "ts-node prisma/seeds/foods/validate.ts",
+    "food-catalog:usda:import": "ts-node scripts/food-catalog/import-usda-fdc.ts",
     "exercise-media:reconcile": "ts-node scripts/exercise-media/reconcile.ts",
     "exercise-media:align-catalog": "ts-node scripts/exercise-media/align-catalog.ts",
     "exercise-media:normalize-blocked": "ts-node scripts/exercise-media/normalize-blocked.ts",
