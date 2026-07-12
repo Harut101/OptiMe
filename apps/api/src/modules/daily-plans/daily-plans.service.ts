@@ -266,6 +266,7 @@ export class DailyPlansService {
           : null,
         resolvedTrainingDay
       });
+      let finalFoodPlan = foodPlanResult.foodPlan;
       providerPlanResult = {
         ...providerPlanResult,
         planJson: this.withFoodPlan(providerPlanResult.planJson, foodPlanResult.foodPlan)
@@ -363,6 +364,7 @@ export class DailyPlansService {
             : null,
           resolvedTrainingDay
         });
+        finalFoodPlan = retryFoodPlanResult.foodPlan;
         retryProviderPlanResult.planJson = this.withFoodPlan(
           retryProviderPlanResult.planJson,
           retryFoodPlanResult.foodPlan
@@ -433,7 +435,10 @@ export class DailyPlansService {
         ...safePlanResult,
         planJson: this.withPlanDebugContext(
           this.withRecoveryAwareContext(
-            this.withNutritionTargetSnapshot(safePlanResult.planJson, nutritionTarget),
+            this.withNutritionTargetSnapshot(
+              this.ensureFoodPlan(safePlanResult.planJson, finalFoodPlan),
+              nutritionTarget
+            ),
             personalizationContext,
             trainingEnabled,
             resolvedTrainingDay.isTrainingDay
@@ -449,12 +454,19 @@ export class DailyPlansService {
         exercisePreparation.usedAiRetry,
         exercisePreparation.usedDeterministicFallback
       );
+      safePlanResult.planJson = this.withGenerationSectionDebug(
+        safePlanResult.planJson,
+        exercisePreparation.usedDeterministicFallback
+      );
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
       const status = safePlanResult.status;
       const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
         .map((exercise) => exercise.exerciseId)
         .filter((exerciseId): exerciseId is string => Boolean(exerciseId));
       this.logger.log(`exercise selection finalized; exerciseIds=${JSON.stringify(finalExerciseIds)}`);
+      this.logger.log(
+        `plan completion finalized; complete=${safePlanResult.planJson.debug?.generation?.isComplete ?? false}; adjustedSections=${safePlanResult.planJson.debug?.generation?.adjustedSections.join(',') || 'none'}`
+      );
       this.logger.log(
         `daily plan generation completed; fallback used: ${status === PlanStatus.FALLBACK}; final status=${status}`
       );
@@ -1881,11 +1893,7 @@ export class DailyPlansService {
     return {
       ...planJson,
       debug: {
-        provider: planJson.debug.provider,
-        generatedBy: planJson.debug.generatedBy,
-        ...(planJson.debug.fallbackReason ? { fallbackReason: planJson.debug.fallbackReason } : {}),
-        ...(planJson.debug.planQualityMode ? { planQualityMode: planJson.debug.planQualityMode } : {}),
-        ...(planJson.debug.protocols ? { protocols: planJson.debug.protocols } : {}),
+        ...planJson.debug,
         safetyAgent: safetyAgentDebug
       }
     };
@@ -2033,6 +2041,37 @@ export class DailyPlansService {
     };
   }
 
+  private withGenerationSectionDebug(
+    planJson: DailyPlanJson,
+    usedDeterministicExerciseFallback: boolean
+  ): DailyPlanJson {
+    if (!planJson.debug) return planJson;
+
+    const adjustedSections = new Set(planJson.debug.generation?.adjustedSections ?? []);
+    if (planJson.debug.provider === 'fallback') {
+      adjustedSections.add('CORE');
+      adjustedSections.add('TRAINING');
+      adjustedSections.add('RECOVERY');
+    }
+    if (planJson.nutrition.foodPlan?.source === 'DETERMINISTIC_FALLBACK') {
+      adjustedSections.add('NUTRITION');
+    }
+    if (usedDeterministicExerciseFallback) {
+      adjustedSections.add('TRAINING');
+    }
+
+    return {
+      ...planJson,
+      debug: {
+        ...planJson.debug,
+        generation: {
+          isComplete: true,
+          adjustedSections: [...adjustedSections]
+        }
+      }
+    };
+  }
+
   private withTrainingScheduleSnapshot(
     planJson: DailyPlanJson,
     resolvedTrainingDay: ResolvedTrainingDayContext
@@ -2061,6 +2100,13 @@ export class DailyPlansService {
         foodPlan
       }
     };
+  }
+
+  private ensureFoodPlan(
+    planJson: DailyPlanJson,
+    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
+  ): DailyPlanJson {
+    return planJson.nutrition.foodPlan ? planJson : this.withFoodPlan(planJson, foodPlan);
   }
 
   private withRecoveryAwareContext(
@@ -2438,13 +2484,16 @@ export class DailyPlansService {
     planJson: DailyPlanJson;
     latencyMs: number;
   }) {
+    const adjustedSections = input.planJson.debug?.generation?.adjustedSections ?? [];
+    const fallbackReason = this.getFallbackReason(input.planJson)
+      ?? this.getSectionFallbackReason(input.planJson, adjustedSections);
     await this.recordAiOperationSafely({
       userId: input.userId,
       feature: AiOperationFeature.DAILY_PLAN,
       provider: this.getAiOperationProvider(),
       model: this.getAiOperationModel(),
       status:
-        input.status === PlanStatus.READY
+        input.status === PlanStatus.READY && adjustedSections.length === 0
           ? AiOperationStatus.SUCCESS
           : AiOperationStatus.FALLBACK,
       latencyMs: input.latencyMs,
@@ -2452,7 +2501,7 @@ export class DailyPlansService {
       safetyAgentEnabled: this.safetyAgentConfig.enabled,
       safetyAgentProvider: this.safetyAgentConfig.provider,
       safetyAgentApproved: this.getSafetyAgentApproved(input.planJson),
-      fallbackReason: this.getFallbackReason(input.planJson) ?? null,
+      fallbackReason,
       errorReason: null
     });
   }
@@ -2507,6 +2556,19 @@ export class DailyPlansService {
 
   private getSafetyRetryUsed(planJson: DailyPlanJson) {
     return planJson.debug?.safetyAgent?.retryUsed === true || planJson.debug?.exerciseSelection?.usedAiRetry === true;
+  }
+
+  private getSectionFallbackReason(
+    planJson: DailyPlanJson,
+    adjustedSections: Array<'CORE' | 'NUTRITION' | 'TRAINING' | 'RECOVERY'>
+  ) {
+    const foodPlanReason = planJson.nutrition.foodPlan?.validation.status === 'FALLBACK'
+      ? planJson.nutrition.foodPlan.validation.reasons[0]
+      : null;
+    if (foodPlanReason) return foodPlanReason;
+    if (adjustedSections.includes('TRAINING')) return 'deterministic_training_section_adjustment';
+    if (adjustedSections.length > 0) return 'deterministic_section_adjustment';
+    return null;
   }
 
   private getSafeAiOperationErrorReason(error: unknown) {

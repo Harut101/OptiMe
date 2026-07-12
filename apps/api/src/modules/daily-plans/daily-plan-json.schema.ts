@@ -478,6 +478,12 @@ export const dailyPlanJsonSchema = z.object({
         })
         .optional(),
       fallbackReason: z.string().optional(),
+      generation: z
+        .object({
+          isComplete: z.boolean(),
+          adjustedSections: z.array(z.enum(['CORE', 'NUTRITION', 'TRAINING', 'RECOVERY'])).max(4)
+        })
+        .optional(),
       safetyAgent: z
         .object({
           enabled: z.boolean(),

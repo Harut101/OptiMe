@@ -4734,8 +4734,13 @@ describe('Sprint 1 backend vertical slice', () => {
         provider: 'fallback',
         generatedBy: 'SafeFallbackPlanFactory',
         fallbackReason: 'The generated plan could not be safely validated.',
-        planQualityMode: 'BASIC'
+        planQualityMode: 'BASIC',
+        generation: {
+          isComplete: true,
+          adjustedSections: expect.arrayContaining(['CORE', 'TRAINING', 'RECOVERY'])
+        }
       });
+      expect(plan.body.plan.nutrition.foodPlan?.meals.length).toBeGreaterThan(0);
       expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     } finally {
       await cleanupDatabase(customCtx.prisma);

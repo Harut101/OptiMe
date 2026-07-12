@@ -36,6 +36,8 @@ The backend then resolves each slug, replaces the display name with the catalog 
 
 If the Nutrition Agent cannot provide a valid catalog-backed menu after its retry, OptiMe composes a complete deterministic fallback menu from allowed catalog foods. The current placeholder fallback remains only for the exceptional case where the user restrictions leave too few safe catalog candidates.
 
+Every newly persisted plan records internal `debug.generation` provenance. It marks the plan as complete and lists only the sections that needed a deterministic safe adjustment. This metadata is not rendered in mobile UI; it supports operations and regression tests without exposing implementation language to users.
+
 ## Data sources
 
 The initial entries are curated generic references. Future imports may use USDA FoodData Central for generic foods. Source provenance is stored per catalog item so a later import can retain its original identifier without replacing curated data.

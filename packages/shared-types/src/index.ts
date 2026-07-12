@@ -1215,6 +1215,10 @@ export interface DailyPlanJson {
       recoveryProtocolId: string;
     };
     fallbackReason?: string;
+    generation?: {
+      isComplete: boolean;
+      adjustedSections: Array<'CORE' | 'NUTRITION' | 'TRAINING' | 'RECOVERY'>;
+    };
     safetyAgent?: {
       enabled: boolean;
       provider: 'mock' | 'openai';
