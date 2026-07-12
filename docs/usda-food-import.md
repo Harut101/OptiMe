@@ -34,6 +34,39 @@ To include a different official FDC data type intentionally, pass it explicitly:
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:import -- --input "C:\data\SRLegacyFoods.json" --data-types "SR Legacy" --limit 25
 ```
 
+## Curation and activation
+
+An import alone never activates a food. Create a review manifest after checking the imported USDA item. It must provide a category, at least one allowed diet type, restriction tags, and translations for every product locale.
+
+```json
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "123456",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Reviewed foundation vegetable", "aliases": [] },
+        "ru-RU": { "name": "Проверенный овощ", "aliases": [] },
+        "fr-FR": { "name": "Légume vérifié", "aliases": [] },
+        "zh-CN": { "name": "已审核蔬菜", "aliases": [] }
+      }
+    }
+  ]
+}
+```
+
+Run curation as dry-run first, then use `--apply` deliberately:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:curate -- --input "C:\data\usda-curation.json"
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:curate -- --input "C:\data\usda-curation.json" --apply
+```
+
+The curation script refuses unknown FDC IDs. It also does not let a raw import overwrite an already active, reviewed item.
+
 ## Guarantees
 
 - imports are idempotent by `source=USDA_FDC` plus `sourceFoodId`;
@@ -47,4 +80,4 @@ To include a different official FDC data type intentionally, pass it explicitly:
 
 USDA states that FoodData Central data are public domain under CC0 and provides both data downloads and an API. The API requires a data.gov key and is rate-limited, so OptiMe's initial workflow imports a deliberately reviewed local snapshot rather than fetching from the API during normal product operation.
 
-Future work may add a protected admin-only source update job, source release tracking, localization review, and a catalog-curation activation workflow. It must retain the inactive-by-default boundary.
+Future work may add a protected admin-only source update job and source release tracking. It must retain the inactive-by-default boundary.

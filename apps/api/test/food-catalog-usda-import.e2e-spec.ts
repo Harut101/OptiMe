@@ -1,6 +1,10 @@
 import { FoodCatalogSource, PreferredLocale } from '@prisma/client';
 
 import { prepareUsdaFdcImport } from '../src/modules/food-catalog/usda-fdc-import';
+import {
+  applyUsdaFdcCuration,
+  parseUsdaFdcCurationManifest
+} from '../src/modules/food-catalog/usda-fdc-curation';
 import { importFoods } from '../scripts/food-catalog/import-usda-fdc';
 import { cleanupDatabase } from './helpers/cleanup';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -110,5 +114,68 @@ describe('USDA FoodData Central import foundation', () => {
     });
     const repeatImport = await importFoods(ctx.prisma, [food]);
     expect(repeatImport).toEqual({ createdOrUpdated: 0, skippedReviewed: 1 });
+  });
+
+  it('activates only an explicitly reviewed USDA food with all supported translations', async () => {
+    const [food] = prepareUsdaFdcImport(payload).foods;
+    await importFoods(ctx.prisma, [food]);
+
+    const manifest = parseUsdaFdcCurationManifest({
+      version: 1,
+      foods: [{
+        sourceFoodId: '123456',
+        category: 'VEGETABLE',
+        dietTypes: ['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN', 'MEDITERRANEAN'],
+        restrictionTags: [],
+        translations: {
+          'en-US': { name: 'Reviewed foundation vegetable', aliases: ['foundation vegetable'] },
+          'ru-RU': { name: 'Проверенный овощ', aliases: [] },
+          'fr-FR': { name: 'Légume vérifié', aliases: [] },
+          'zh-CN': { name: '已审核蔬菜', aliases: [] }
+        }
+      }]
+    });
+
+    await expect(applyUsdaFdcCuration(ctx.prisma, manifest)).resolves.toEqual({ activated: 1 });
+    const curated = await ctx.prisma.foodCatalogItem.findUniqueOrThrow({
+      where: {
+        source_sourceFoodId: {
+          source: FoodCatalogSource.USDA_FDC,
+          sourceFoodId: '123456'
+        }
+      },
+      include: { translations: true }
+    });
+    expect(curated.isActive).toBe(true);
+    expect(curated.dietTypes).toEqual([
+      'OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN', 'MEDITERRANEAN'
+    ]);
+    expect(curated.translations).toHaveLength(4);
+    expect(curated.translations).toContainEqual(expect.objectContaining({
+      locale: PreferredLocale.RU_RU,
+      name: 'Проверенный овощ'
+    }));
+  });
+
+  it('refuses curation manifests that reference foods that were not imported first', async () => {
+    const manifest = parseUsdaFdcCurationManifest({
+      version: 1,
+      foods: [{
+        sourceFoodId: '999999',
+        category: 'VEGETABLE',
+        dietTypes: ['VEGAN'],
+        restrictionTags: [],
+        translations: {
+          'en-US': { name: 'Missing food', aliases: [] },
+          'ru-RU': { name: 'Отсутствующий продукт', aliases: [] },
+          'fr-FR': { name: 'Aliment absent', aliases: [] },
+          'zh-CN': { name: '缺失食品', aliases: [] }
+        }
+      }]
+    });
+
+    await expect(applyUsdaFdcCuration(ctx.prisma, manifest)).rejects.toThrow(
+      'USDA curation references missing imported foods: 999999'
+    );
   });
 });

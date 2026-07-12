@@ -57,22 +57,23 @@ Exit criteria: one malformed AI section never removes the user's full plan. Met:
 
 Exit criteria: safe fallback plans can use a broader catalog without random choices, free-text food invention, or bypassing restrictions. Met.
 
-## Phase 6: Controlled USDA import foundation - complete
+## Phase 6: Controlled USDA import and curation foundation - complete
 
 - Added a local JSON importer for official FoodData Central exports.
 - Default scope accepts Foundation records and validates required per-100 g nutrients.
 - Imports are idempotent by USDA FDC ID and preserve manually reviewed active rows.
 - Imported records remain inactive until a future catalog-curation workflow reviews safety tags, diet suitability, and localization.
+- Added a manifest-driven curation script that requires all supported locales, diet suitability, and restriction tags before activating an imported item.
 - The importer is tooling only: no mobile, API request, or daily-plan generation path calls USDA.
 
-Exit criteria: USDA data can be evaluated and stored locally without making unreviewed data available to users. Met.
+Exit criteria: USDA data can be evaluated, reviewed, and stored locally without making unreviewed data available to users. Met.
 
 ## Deferred
 
 - Branded products and barcode lookup.
 - User-created recipes and recipe imports.
 - Food photo recognition.
-- Scheduled USDA source updates and catalog-curation activation workflow.
+- Scheduled USDA source updates and admin-only curation UI.
 - Regional retail product coverage.
 
 These are valuable, but they should follow a stable generic-food and recipe-template foundation.

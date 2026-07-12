@@ -18,13 +18,15 @@ async function main() {
   const options = parseOptions(process.argv.slice(2));
   const payload = JSON.parse(await readFile(options.inputPath, 'utf8')) as unknown;
   const prepared = prepareUsdaFdcImport(payload, options.dataTypes);
+  const eligible = prepared.foods.length;
   const foods = options.limit === null ? prepared.foods : prepared.foods.slice(0, options.limit);
 
   if (!options.apply) {
     console.log(JSON.stringify({
       mode: 'dry-run',
-      prepared: foods.length,
-      skipped: prepared.skipped.length,
+      eligible,
+      selectedForImport: foods.length,
+      skipped: summarizeSkipped(prepared.skipped),
       sample: foods.slice(0, 5).map((food) => ({
         sourceFoodId: food.sourceFoodId,
         name: food.name,
@@ -46,6 +48,13 @@ async function main() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+function summarizeSkipped(skipped: Array<{ reason: string }>) {
+  return skipped.reduce<Record<string, number>>((summary, item) => {
+    summary[item.reason] = (summary[item.reason] ?? 0) + 1;
+    return summary;
+  }, {});
 }
 
 export async function importFoods(prisma: PrismaClient, foods: PreparedUsdaFdcFood[]) {
