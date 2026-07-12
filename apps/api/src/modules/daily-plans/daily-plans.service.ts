@@ -459,7 +459,7 @@ export class DailyPlansService {
         exercisePreparation.usedDeterministicFallback
       );
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
-      const status = safePlanResult.status;
+      const status = this.resolvePersistedPlanStatus(safePlanResult);
       const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
         .map((exercise) => exercise.exerciseId)
         .filter((exerciseId): exerciseId is string => Boolean(exerciseId));
@@ -468,7 +468,7 @@ export class DailyPlansService {
         `plan completion finalized; complete=${safePlanResult.planJson.debug?.generation?.isComplete ?? false}; adjustedSections=${safePlanResult.planJson.debug?.generation?.adjustedSections.join(',') || 'none'}`
       );
       this.logger.log(
-        `daily plan generation completed; fallback used: ${status === PlanStatus.FALLBACK}; final status=${status}`
+        `daily plan generation completed; safe replacement used: ${safePlanResult.status === PlanStatus.FALLBACK}; persisted status=${status}`
       );
 
       const plan = existingPlan
@@ -2244,6 +2244,14 @@ export class DailyPlansService {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
   }
 
+  private resolvePersistedPlanStatus(result: DailyPlanValidationResult) {
+    // A complete deterministic replacement is a usable plan, not a user-facing failure.
+    // Provenance and operational fallback metrics remain in plan.debug and AiOperationLog.
+    return result.planJson.debug?.generation?.isComplete
+      ? PlanStatus.READY
+      : result.status;
+  }
+
   private canUseSafetyFeedbackRetry(providerStatus: PlanStatus) {
     return (
       providerStatus === PlanStatus.READY &&
@@ -2359,7 +2367,10 @@ export class DailyPlansService {
         take: historyLimit,
         select: {
           status: true,
-          readinessLevel: true
+          readinessLevel: true,
+          planLocalDate: true,
+          planTimezone: true,
+          planJson: true
         }
       })
     ]);
@@ -2378,9 +2389,27 @@ export class DailyPlansService {
       historySummary: {
         recentPlanCount: recentPlans.length,
         readinessLevels: [...new Set(recentPlans.map((plan) => plan.readinessLevel))],
-        fallbackCount: recentPlans.filter((plan) => plan.status === PlanStatus.FALLBACK).length
+        fallbackCount: recentPlans.filter((plan) => this.wasSafelyAdjustedPlan(plan)).length
       }
     };
+  }
+
+  private wasSafelyAdjustedPlan(plan: {
+    status: PlanStatus;
+    planLocalDate: string;
+    planTimezone: string;
+    readinessLevel: string;
+    planJson: Prisma.JsonValue;
+  }) {
+    if (plan.status === PlanStatus.FALLBACK) return true;
+
+    const normalized = normalizeDailyPlanJson({
+      planJson: plan.planJson,
+      planLocalDate: plan.planLocalDate,
+      planTimezone: plan.planTimezone,
+      readinessLevel: plan.readinessLevel
+    });
+    return (normalized.debug?.generation?.adjustedSections.length ?? 0) > 0;
   }
 
   private getContextLevel(planQualityMode: PlanQualityMode) {

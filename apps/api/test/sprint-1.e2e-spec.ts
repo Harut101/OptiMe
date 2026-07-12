@@ -3390,7 +3390,7 @@ describe('Sprint 1 backend vertical slice', () => {
       where: { userId: user.user.id }
     });
 
-    expect(plan.body.status).toBe('FALLBACK');
+    expect(plan.body.status).toBe('READY');
     expect(log.status).toBe(AiOperationStatus.FALLBACK);
     expect(log.fallbackReason).toContain('conflicts with your allergies');
     expect(log.errorReason).toBeNull();
@@ -4005,7 +4005,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(response.body.status).toBe('FALLBACK');
+      expect(response.body.status).toBe('READY');
       expect(response.body.plan.safety.reasons[0]).toContain('pregnancy');
       expect(response.body.plan.safety.userSafeMessage).toContain('extra care');
     } finally {
@@ -4067,7 +4067,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(response.body.status).toBe('FALLBACK');
+      expect(response.body.status).toBe('READY');
       expect(response.body.plan.safety.reasons).toContain(
         'The generated plan included exercise guidance that needs to be made safer.'
       );
@@ -4099,7 +4099,7 @@ describe('Sprint 1 backend vertical slice', () => {
       .send({ forceRegenerate: true })
       .expect(201);
 
-    expect(plan.body.status).toBe('FALLBACK');
+    expect(plan.body.status).toBe('READY');
     expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
     expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
@@ -4723,7 +4723,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
       expect(plan.body.plan.safety.adjustedForSafety).toBe(true);
       expect(plan.body.plan.safety.userSafeMessage).toBe(
@@ -5015,7 +5015,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.safetyAgent).toBeUndefined();
       expect(reviewCalls).toBe(0);
     } finally {
@@ -5081,7 +5081,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe(expectedReason);
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
@@ -5255,7 +5255,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe(expectedReason);
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
@@ -5309,7 +5309,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.safetyAgent).toBeUndefined();
       expect(requests).toHaveLength(0);
     } finally {
@@ -5467,7 +5467,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_rejected');
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
@@ -5520,7 +5520,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_failed');
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
@@ -5576,7 +5576,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_invalid_output');
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
@@ -5805,7 +5805,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: false })
         .expect(201);
 
-      expect(response.body.status).toBe('FALLBACK');
+      expect(response.body.status).toBe('READY');
       await expect(
         customCtx.app.get(UsageLedgerService).getUsage(
           user.user.id,
@@ -6190,7 +6190,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe('schema_validation_failed');
     } finally {
       await cleanupDatabase(customCtx.prisma);
@@ -6218,7 +6218,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
       expect(plan.body.plan.debug).toMatchObject({
         provider: 'fallback',
@@ -6272,7 +6272,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
       expect(JSON.stringify(plan.body.plan)).toContain('conflicts with your allergies');
       expect(plan.body.plan.debug.fallbackReason).toContain('conflicts with your allergies');
@@ -6471,7 +6471,7 @@ describe('Sprint 1 backend vertical slice', () => {
           .send({ forceRegenerate: true })
           .expect(201);
 
-        expect(plan.body.status).toBe('FALLBACK');
+        expect(plan.body.status).toBe('READY');
         expect(plan.body.plan.debug.fallbackReason).toContain('conflicts with your allergies');
       } finally {
         await cleanupDatabase(customCtx.prisma);
@@ -6499,7 +6499,7 @@ describe('Sprint 1 backend vertical slice', () => {
     allowedPlan.nutrition.meals[0].foods[0].notes = 'Avoid pork and use chicken instead.';
 
     for (const [email, planJson, expectedStatus] of [
-      ['openai-excluded-name-conflict@example.com', conflictPlan, 'FALLBACK'],
+      ['openai-excluded-name-conflict@example.com', conflictPlan, 'READY'],
       ['openai-excluded-avoid-note@example.com', allowedPlan, 'READY']
     ] as const) {
       const customCtx = await createOpenAiModeTestApp({
@@ -6576,7 +6576,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({ forceRegenerate: true })
         .expect(201);
 
-      expect(plan.body.status).toBe('FALLBACK');
+      expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe(expectedReason);
     } finally {
       await cleanupDatabase(customCtx.prisma);
