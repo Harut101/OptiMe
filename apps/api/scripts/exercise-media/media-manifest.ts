@@ -85,6 +85,7 @@ const localeMap: Record<SupportedLocale, PreferredLocale> = {
 
 export async function validateExerciseMediaAssets(): Promise<ExerciseMediaValidationReport> {
   const fileNames = await readSourceFileNames(sourceDirectory);
+  const previousMetadata = await readPreviousValidationMetadata();
   const catalogBySlug = new Map(exerciseCatalog.map((exercise) => [exercise.slug, exercise] as const));
   const reconciliation = reconcileExerciseMedia({
     fileNames,
@@ -176,7 +177,8 @@ export async function validateExerciseMediaAssets(): Promise<ExerciseMediaValida
       manifestItems: manifest.length,
       mediaCoveredExercises,
       fallbackOnlyExercises: exerciseCatalog.length - mediaCoveredExercises,
-      validationFailures: failures.length
+      validationFailures: failures.length,
+      ...previousMetadata
     },
     failures,
     manifest
@@ -328,6 +330,22 @@ async function fileExists(path: string) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function readPreviousValidationMetadata() {
+  try {
+    const existing = JSON.parse(await readFile(validationReportPath, 'utf8')) as Partial<ExerciseMediaValidationReport>;
+    const summary = existing.summary;
+    if (!summary) return {};
+
+    return {
+      ...(typeof summary.copiedFiles === 'number' ? { copiedFiles: summary.copiedFiles } : {}),
+      ...(typeof summary.exerciseMediaRows === 'number' ? { exerciseMediaRows: summary.exerciseMediaRows } : {}),
+      ...(typeof summary.exerciseMediaTranslationRows === 'number' ? { exerciseMediaTranslationRows: summary.exerciseMediaTranslationRows } : {})
+    };
+  } catch {
+    return {};
   }
 }
 

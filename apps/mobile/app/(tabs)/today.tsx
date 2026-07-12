@@ -24,16 +24,16 @@ import {
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { AICoachBottomSheet } from '@/components/AICoachBottomSheet';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { BottomSheet } from '@/components/BottomSheet';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
+import { AppToast } from '@/components/AppToast';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { SectionHeader } from '@/components/SectionHeader';
 import { SelectChips } from '@/components/SelectChips';
 import { StateBlock } from '@/components/StateBlock';
-import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { DashboardProgressCard } from '@/features/today-dashboard/DashboardProgressCard';
@@ -44,7 +44,6 @@ import {
   resolveNutritionProgress,
   resolveTrainingProgress
 } from '@/features/today-dashboard/today-progress';
-import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import {
   formatUsageLimitMessage,
   getUsageLimitError
@@ -64,12 +63,7 @@ import { resolveHealthDataReadiness } from '@/features/health/health-readiness';
 import { getLocalDateString } from '@/features/training-overrides/local-date';
 import { ORDERED_DAYS, toDraft } from '@/features/training-schedule/weekly-schedule';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
-import {
-  formatWorkoutFocus,
-  formatWorkoutSetCount,
-  getWorkoutAccessibilityLabel
-} from '@/features/workout/workout-summary';
-import type { ProgressivePrompt, DailyPlanJson, EvaluatePlanImpactResponse } from '@/types/api';
+import type { ProgressivePrompt, EvaluatePlanImpactResponse } from '@/types/api';
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -83,6 +77,7 @@ export default function TodayScreen() {
   const setTrainingScheduleDraft = useTrainingScheduleDraftStore((state) => state.setDraft);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
+  const [limitSheetVisible, setLimitSheetVisible] = useState(false);
   const [healthReadinessMessage, setHealthReadinessMessage] = useState<string | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
@@ -172,6 +167,7 @@ export default function TodayScreen() {
       await queryClient.invalidateQueries({ queryKey: ['usage-summary'] });
       await queryClient.refetchQueries({ queryKey: ['today-plan'], type: 'active' });
       setLimitMessage(null);
+      setLimitSheetVisible(false);
       setPlanImpact(null);
       setPlanImpactError(null);
       setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
@@ -183,7 +179,7 @@ export default function TodayScreen() {
       if (usageLimit) {
         const message = formatUsageLimitMessage(usageLimit, t, preferredLocale);
         setLimitMessage(message);
-        Alert.alert(t('today.limitReached'), `${message} ${t('today.upgradeSoon')}`);
+        setLimitSheetVisible(true);
         return;
       }
 
@@ -308,10 +304,6 @@ export default function TodayScreen() {
   const plan = today.data?.plan;
   const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
   const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
-  const safetyMessage = getPlanSafetyMessage(today.data);
-  const completedWorkout = workoutSession.data?.status === 'COMPLETED'
-    ? workoutSession.data.summary
-    : null;
   const nutritionProgress = resolveNutritionProgress({
     plan,
     foodLog: foodLog.data,
@@ -368,20 +360,27 @@ export default function TodayScreen() {
             </View>
           </View>
           <AIRecommendationEntry
-            title="AI Coach"
+            title={t('aiCoach.title')}
             summary={plan.summary.message}
             badge={t(`enums.readiness.${today.data.readinessLevel}` as never)}
             onPress={() => setCoachVisible(true)}
           />
+          <WearableSummaryCard
+            wearable={wearableSnapshot.data}
+            connections={healthConnections.data?.connections}
+            locale={preferredLocale}
+            onOpenHealth={() => router.push('/health-data')}
+          />
+          <WeightProgressCard
+            summary={weightSummary.data}
+            locale={preferredLocale}
+            measurementSystem={measurementSystem}
+            compact
+            isLoading={weightSummary.isLoading}
+            isError={weightSummary.isError}
+            onUpdate={() => setWeightModalVisible(true)}
+          />
         </>
-      ) : null}
-
-      {limitMessage ? (
-        <ContextNoteCard
-          title={t('today.limitReached')}
-          message={`${limitMessage} ${t('today.upgradeSoon')}`}
-          tone="warning"
-        />
       ) : null}
 
       {healthReadinessMessage ? (
@@ -403,7 +402,13 @@ export default function TodayScreen() {
           }
 
           setPlanImpact(null);
-          router.push('/plan-details');
+          router.push(
+            planImpact?.affectedSections.some((section) =>
+              section === 'NUTRITION_TARGET' || section === 'FOOD_PLAN'
+            )
+              ? '/(tabs)/food'
+              : '/(tabs)/training'
+          );
         }}
         onFutureOnly={() => {
           setPlanImpact(null);
@@ -423,109 +428,25 @@ export default function TodayScreen() {
         </>
       ) : (
         <>
-          {refreshMessage ? (
-            <View style={styles.compactStatusRow}>
-              <StatusPill label={refreshMessage} tone="success" />
-            </View>
+          {progressivePrompt.data ? (
+            <ProgressivePromptTrigger
+              title={t('today.improvePlans')}
+              prompt={progressivePrompt.data}
+              onPress={() => setProgressivePromptVisible(true)}
+            />
           ) : null}
-
-          {safetyMessage ? (
-            <View style={styles.compactStatusRow}>
-              <StatusPill label={t('today.safetyNote')} tone="warning" />
-            </View>
-          ) : null}
-
-          <Button title={t('today.details')} onPress={() => router.push('/plan-details')} />
           <Button
             title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
             variant="secondary"
             disabled={generate.isPending}
             onPress={() => handleGeneratePlan(true)}
           />
-
-          <Card>
-            <SectionHeader title={t('today.nutrition')} />
-            {!trainingEnabled ? <StatusPill label={t('appModes.nutritionOnly')} tone="warning" /> : null}
-            <Text variant="body">{plan.nutrition.calorieGuidance.notes}</Text>
-            <Text variant="muted">{plan.nutrition.macroGuidance.notes}</Text>
-            <Text variant="muted">
-              {t('today.protein')}: {plan.nutrition.macroGuidance.protein} - {t('today.carbs')}:{' '}
-              {plan.nutrition.macroGuidance.carbs} - {t('today.fat')}: {plan.nutrition.macroGuidance.fat}
-            </Text>
-          </Card>
-
-          {!trainingEnabled ? (
-            <Card>
-              <SectionHeader title={t('today.trainingOffTitle')} />
-              <Text variant="body">{t('today.trainingOffMessage')}</Text>
-              <Button title={t('today.enableTraining')} variant="secondary" onPress={() => router.push('/goal-editor')} />
-            </Card>
-          ) : (
-            <Card>
-              <SectionHeader title={t('today.training')} />
-              {plan.trainingLoadAgentSnapshot ? (
-                <>
-                  <StatusPill
-                    label={getTrainingLoadReadinessLabel(plan.trainingLoadAgentSnapshot.readiness, t)}
-                    tone={plan.trainingLoadAgentSnapshot.readiness === 'RECOVERY_FOCUSED' ? 'warning' : 'neutral'}
-                  />
-                  <Text variant="body">{plan.trainingLoadAgentSnapshot.userFacingSummary}</Text>
-                </>
-              ) : null}
-              <Text variant="body">{plan.training.recommendation}</Text>
-              <Text variant="muted">{plan.training.intensity.toLowerCase()} - {plan.training.notes}</Text>
-              <Button
-                title={t('trainingOverrides.restTodayOnly')}
-                variant="ghost"
-                disabled={generate.isPending}
-                onPress={handleRestTodayOnly}
-              />
-            </Card>
-          )}
-
-          {completedWorkout ? (
-            <Card>
-              <SectionHeader title={t('workout.workoutCompleted')} />
-              <Text variant="body">{formatWorkoutFocus(completedWorkout, t)}</Text>
-              <Text variant="muted">{formatWorkoutSetCount(completedWorkout, t)}</Text>
-              {completedWorkout.isPartial ? <Text variant="muted">{t('workout.partialWorkoutSaved')}</Text> : null}
-              <Button
-                title={t('workout.viewSummary')}
-                variant="secondary"
-                accessibilityLabel={getWorkoutAccessibilityLabel(completedWorkout, t)}
-                onPress={() => router.push({ pathname: '/workout-session' as never, params: { sessionId: completedWorkout.id } })}
-              />
-            </Card>
-          ) : null}
-
-          <Card>
-            <SectionHeader title={t('today.recovery')} />
-            <Text variant="body">{plan.recovery.recommendation}</Text>
-            <Text variant="muted">{plan.nutrition.hydration.guidance}</Text>
-          </Card>
-
-          <WeightProgressCard
-            summary={weightSummary.data}
-            locale={preferredLocale}
-            measurementSystem={measurementSystem}
-            compact
-            isLoading={weightSummary.isLoading}
-            isError={weightSummary.isError}
-            onUpdate={() => setWeightModalVisible(true)}
-          />
-
-          <WearableSummaryCard
-            wearable={wearableSnapshot.data}
-            connections={healthConnections.data?.connections}
-            locale={preferredLocale}
-            onOpenHealth={() => router.push('/health-data')}
-          />
-
-          {progressivePrompt.data ? (
-            <ProgressivePromptTrigger
-              title={t('today.improvePlans')}
-              prompt={progressivePrompt.data}
-              onPress={() => setProgressivePromptVisible(true)}
+          {trainingEnabled ? (
+            <Button
+              title={t('trainingOverrides.restTodayOnly')}
+              variant="ghost"
+              disabled={generate.isPending}
+              onPress={handleRestTodayOnly}
             />
           ) : null}
         </>
@@ -569,6 +490,27 @@ export default function TodayScreen() {
           />
         ) : null}
       </BottomSheet>
+      <AppFeedbackSheet
+        visible={limitSheetVisible && Boolean(limitMessage)}
+        title={t('today.limitReached')}
+        message={`${limitMessage ?? ''} ${t('today.upgradeSoon')}`.trim()}
+        tone="warning"
+        onClose={() => setLimitSheetVisible(false)}
+        actions={[
+          {
+            label: t('common.close'),
+            variant: 'secondary',
+            onPress: () => setLimitSheetVisible(false)
+          }
+        ]}
+      />
+      {refreshMessage ? (
+        <AppToast
+          title={refreshMessage}
+          tone="success"
+          onDismiss={() => setRefreshMessage(null)}
+        />
+      ) : null}
     </Screen>
   );
 
@@ -841,17 +783,6 @@ export default function TodayScreen() {
 function getTodayDayOfWeek() {
   const jsDay = new Date().getDay();
   return ORDERED_DAYS[(jsDay + 6) % 7];
-}
-
-function getTrainingLoadReadinessLabel(
-  readiness: NonNullable<DailyPlanJson['trainingLoadAgentSnapshot']>['readiness'],
-  t: TFunction
-) {
-  if (readiness === 'NORMAL') return t('trainingLoad.normal');
-  if (readiness === 'CONTROLLED') return t('trainingLoad.controlled');
-  if (readiness === 'LIGHT') return t('trainingLoad.light');
-  if (readiness === 'RECOVERY_FOCUSED') return t('trainingLoad.recoveryFocused');
-  return t('trainingLoad.unknown');
 }
 
 function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean; label: string }) {
@@ -1173,9 +1104,6 @@ const styles = StyleSheet.create({
   },
   dashboardProgressCard: {
     minHeight: 284
-  },
-  compactStatusRow: {
-    alignItems: 'flex-start'
   },
   promptTrigger: {
     alignItems: 'center',

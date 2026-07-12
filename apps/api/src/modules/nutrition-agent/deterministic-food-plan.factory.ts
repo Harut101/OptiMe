@@ -30,7 +30,7 @@ export function createDeterministicFoodPlan(
     ...(input.nutritionPreference?.excludedFoods ?? [])
   ];
   const safePreferredFoods = (input.nutritionPreference?.preferredFoods ?? []).filter(
-    (food) => !restrictedFoods.some((restrictedFood) => sameFood(food, restrictedFood))
+    (food) => isSafePreferredFood(food, restrictedFoods)
   );
   const meals = splits.map((split, index) =>
     createMeal({
@@ -39,6 +39,7 @@ export function createDeterministicFoodPlan(
       split,
       totals,
       preferredFood: safePreferredFoods[index],
+      restrictedFoods,
       trainingDay: target.dayType === 'TRAINING_DAY'
     })
   );
@@ -69,6 +70,7 @@ function createMeal(input: {
   split: number;
   totals: { caloriesKcal: number; proteinGrams: number; carbsGrams: number; fatGrams: number };
   preferredFood?: string;
+  restrictedFoods: string[];
   trainingDay: boolean;
 }): FoodMeal {
   const mealType = getMealType(input.index, input.mealCount, input.trainingDay);
@@ -79,9 +81,11 @@ function createMeal(input: {
     fatGrams: input.totals.fatGrams * input.split
   });
   const title = getMealTitle(mealType);
-  const ingredientName = input.preferredFood?.trim()
-    ? `Balanced ${input.preferredFood.trim()} plate`
-    : `${title} balanced plate`;
+  const ingredientName = getSafeFallbackIngredientName({
+    preferredFood: input.preferredFood,
+    title,
+    restrictedFoods: input.restrictedFoods
+  });
 
   return {
     id: `${mealType.toLowerCase()}-${input.index + 1}`,
@@ -169,4 +173,54 @@ function roundTotals<T extends { caloriesKcal: number; proteinGrams: number; car
 
 function sameFood(a: string, b: string) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * A user can exclude a previously generated placeholder ingredient. Fallback
+ * content must never recreate that same placeholder on a later plan refresh.
+ */
+function isSafePreferredFood(food: string, restrictedFoods: string[]) {
+  const preferred = food.trim();
+
+  if (!preferred) {
+    return false;
+  }
+
+  return ![
+    preferred,
+    `Balanced ${preferred} plate`
+  ].some((candidate) => containsRestrictedFood(candidate, restrictedFoods));
+}
+
+function getSafeFallbackIngredientName(input: {
+  preferredFood?: string;
+  title: string;
+  restrictedFoods: string[];
+}) {
+  const preferred = input.preferredFood?.trim();
+  const candidates = [
+    preferred ? `Balanced ${preferred} plate` : null,
+    `${input.title} balanced plate`,
+    'Balanced meal',
+    'Meal components'
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  return candidates.find((candidate) => !containsRestrictedFood(candidate, input.restrictedFoods))
+    ?? 'Meal components';
+}
+
+function containsRestrictedFood(candidate: string, restrictedFoods: string[]) {
+  return restrictedFoods.some((restrictedFood) => {
+    const normalized = restrictedFood.trim().toLowerCase();
+
+    if (!normalized) {
+      return false;
+    }
+
+    return new RegExp(`(^|\\b)${escapeRegExp(normalized)}(\\b|$)`, 'i').test(candidate.trim());
+  });
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

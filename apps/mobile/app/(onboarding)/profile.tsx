@@ -14,7 +14,6 @@ import {
   PersonalProfileForm,
   toProfileRequest
 } from '@/features/profile/PersonalProfileForm';
-import { WELLNESS_DISCLAIMER } from '@/features/safety/safety-copy';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ProfileSetupScreen() {
@@ -58,7 +57,7 @@ export default function ProfileSetupScreen() {
         onPrimary={continueOnboarding}
       >
         <Text variant="label">{t('onboarding.safetyNote')}</Text>
-        <Text variant="muted">{WELLNESS_DISCLAIMER}</Text>
+        <Text variant="muted">{t('safety.disclaimer')}</Text>
         <PersonalProfileForm value={value} onChange={setValue} />
       </OnboardingStepShell>
       <AppFeedbackSheet

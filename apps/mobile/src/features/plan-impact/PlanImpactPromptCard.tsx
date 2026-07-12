@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/colors';
@@ -16,6 +17,10 @@ interface PlanImpactPromptCardProps {
   onFutureOnly: () => void;
 }
 
+/**
+ * Plan impact is a time-sensitive decision, not persistent dashboard content.
+ * It opens as an action sheet after a planning-sensitive change.
+ */
 export function PlanImpactPromptCard({
   impact,
   isUpdating = false,
@@ -24,6 +29,11 @@ export function PlanImpactPromptCard({
   onFutureOnly
 }: PlanImpactPromptCardProps) {
   const { t } = useTranslation();
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    setDismissed(false);
+  }, [impact]);
 
   if (!impact?.prompt) return null;
 
@@ -34,14 +44,10 @@ export function PlanImpactPromptCard({
   const secondaryLabel = t(`planImpact.actions.${prompt.secondaryAction}` as never);
 
   return (
-    <Card>
-      <View style={styles.header}>
-        <View style={[styles.accent, prompt.safetyCritical ? styles.safety : styles.standard]} />
-        <View style={styles.copy}>
-          <Text variant="label">{t('planImpact.label')}</Text>
-          <Text variant="heading">{title}</Text>
-          <Text variant="muted">{message}</Text>
-        </View>
+    <BottomSheet visible={!dismissed} title={title} onClose={() => setDismissed(true)}>
+      <View style={styles.copy}>
+        <Text variant="label" style={styles.eyebrow}>{t('planImpact.label')}</Text>
+        <Text variant="body">{message}</Text>
       </View>
 
       {prompt.safetyCritical ? (
@@ -52,15 +58,13 @@ export function PlanImpactPromptCard({
         />
       ) : null}
 
-      {prompt.requiresAiGeneration ? (
-        <Text variant="muted">
-          {prompt.usageCost
+      <Text variant="muted">
+        {prompt.requiresAiGeneration
+          ? prompt.usageCost
             ? t('planImpact.usesGeneration', { count: prompt.usageCost })
-            : t('planImpact.mayUseGeneration')}
-        </Text>
-      ) : (
-        <Text variant="muted">{t('planImpact.noGenerationNeeded')}</Text>
-      )}
+            : t('planImpact.mayUseGeneration')
+          : t('planImpact.noGenerationNeeded')}
+      </Text>
 
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
@@ -69,48 +73,21 @@ export function PlanImpactPromptCard({
           title={isUpdating ? t('today.refreshing') : primaryLabel}
           disabled={isUpdating}
           onPress={onUpdateToday}
-          style={styles.actionButton}
         />
         <Button
           title={secondaryLabel}
           variant="secondary"
           disabled={isUpdating}
           onPress={onFutureOnly}
-          style={styles.actionButton}
         />
       </View>
-    </Card>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    gap: 12
-  },
-  accent: {
-    borderRadius: 999,
-    width: 5
-  },
-  standard: {
-    backgroundColor: colors.primary
-  },
-  safety: {
-    backgroundColor: colors.warning
-  },
-  copy: {
-    flex: 1,
-    gap: 6
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10
-  },
-  actionButton: {
-    flex: 1
-  },
-  error: {
-    color: colors.danger,
-    fontWeight: '700'
-  }
+  copy: { gap: 8 },
+  eyebrow: { color: colors.primaryDark },
+  actions: { gap: 10 },
+  error: { color: colors.danger, fontWeight: '700' }
 });

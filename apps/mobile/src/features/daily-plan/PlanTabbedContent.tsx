@@ -1,23 +1,20 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  DailyPlanCheckInResponse,
   DailyPlanJson,
   ExerciseListItem,
-  MealCheckInStatus,
   PreWorkoutCheckRequest,
   PreWorkoutReadinessStatus,
   PreWorkoutPreflightResponse,
   SupportedLocale,
   TrainingReplacementProposalsResponse,
-  TrainingCheckInStatus,
   WorkoutPainArea
 } from '@optime/shared-types';
 import { WORKOUT_PAIN_AREAS } from '@optime/shared-types';
 import type { WorkoutSessionResponse } from '@optime/shared-types';
 import { useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
 import {
@@ -33,7 +30,6 @@ import { SelectChips } from '@/components/SelectChips';
 import { MultiSelectChips } from '@/components/MultiSelectChips';
 import { Text } from '@/components/Text';
 import { ExerciseCard } from './ExerciseCard';
-import { PlanContentTabs, type PlanContentTab } from './PlanContentTabs';
 import { formatWorkoutSetCount } from '@/features/workout/workout-summary';
 import {
   ReplacementProposalCard,
@@ -46,15 +42,15 @@ import { colors } from '@/theme/colors';
 interface PlanTabbedContentProps {
   planId: string;
   plan: DailyPlanJson;
-  checkIns?: DailyPlanCheckInResponse[];
-  checkInPending: boolean;
   locale: SupportedLocale;
   t: TFunction;
-  onMealCheckIn: (mealIndex: number, mealName: string, status: MealCheckInStatus) => void;
-  onTrainingCheckIn: (status: TrainingCheckInStatus, painOrDiscomfort?: boolean) => void;
 }
 
-export function PlanTabbedContent(props: PlanTabbedContentProps) {
+/**
+ * The daily training workspace is shared by the Training tab and the legacy
+ * plan-details route. Food tracking intentionally lives only in the Food tab.
+ */
+export function DailyTrainingPlanContent(props: PlanTabbedContentProps) {
   const { plan, planId, locale, t } = props;
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -127,167 +123,58 @@ export function PlanTabbedContent(props: PlanTabbedContentProps) {
     }
   });
   const summaryById = new Map((summaries.data?.items ?? []).map((item) => [item.id, item] as const));
-  const defaultTab: PlanContentTab = plan.nutrition.meals.length > 0 ? 'food' : exercises.length > 0 ? 'training' : 'food';
-  const [selectedTab, setSelectedTab] = useState<PlanContentTab>(defaultTab);
-
-  useEffect(() => {
-    setSelectedTab(defaultTab);
-  }, [defaultTab, plan.generatedAt]);
-
   return (
-    <>
-      <PlanContentTabs
-        value={selectedTab}
-        foodLabel={t('plan.foodTab')}
-        trainingLabel={t('plan.trainingTab')}
-        onChange={setSelectedTab}
-      />
-
-      {selectedTab === 'food' ? <FoodContent {...props} /> : (
-        <TrainingContent
-          {...props}
-          exercises={exercises}
-          summaryById={summaryById}
-          summariesFailed={summaries.isError}
-          onRetrySummaries={() => summaries.refetch()}
-          workoutSession={workoutSession.data ?? null}
-          workoutSessionUnavailable={workoutSession.isError}
-          workoutSessionLoading={workoutSession.isLoading}
-          preWorkoutOpen={preWorkoutOpen}
-          workoutStartPending={startWorkout.isPending}
-          workoutStartFailed={startWorkout.isError || preflight.isError || loadReplacementProposals.isError || applyReplacements.isError}
-          preWorkoutSaving={startWorkout.isPending || preflight.isPending || loadReplacementProposals.isPending || applyReplacements.isPending}
-          preWorkoutConflict={preWorkoutConflict}
-          replacementProposals={replacementProposals}
-          onStartWorkout={() => setPreWorkoutOpen(true)}
-          onCancelPreWorkout={() => {
-            setPreWorkoutOpen(false);
-            setPreWorkoutConflict(null);
-            setReplacementProposals(null);
-            setPendingPreWorkoutCheck(null);
-          }}
-          onSubmitPreWorkout={(preWorkoutCheck) => {
-            if (preWorkoutCheck.readinessStatus === 'PAIN_OR_LIMITATION') {
-              preflight.mutate(preWorkoutCheck);
-              return;
-            }
-            startWorkout.mutate(preWorkoutCheck);
-          }}
-          onAdjustWorkout={() => {
-            if (pendingPreWorkoutCheck) loadReplacementProposals.mutate(pendingPreWorkoutCheck);
-          }}
-          onApplyReplacements={() => {
-            if (pendingPreWorkoutCheck && replacementProposals) {
-              applyReplacements.mutate({ preWorkoutCheck: pendingPreWorkoutCheck, proposals: replacementProposals });
-            }
-          }}
-          onRestToday={() => router.push('/training-overrides/day' as never)}
-          onContinueWithCaution={() => {
-            if (pendingPreWorkoutCheck) {
-              startWorkout.mutate({ ...pendingPreWorkoutCheck, acknowledgedPainConflict: true });
-            }
-          }}
-          onOpenWorkout={(sessionId) =>
-            router.push({ pathname: '/workout-session' as never, params: { sessionId } })
-          }
-          onOpenExercise={(exerciseId) => router.push({
-            pathname: '/exercise-details' as never,
-            params: { planId, exerciseId }
-          })}
-        />
-      )}
-    </>
-  );
-}
-
-function FoodContent(props: PlanTabbedContentProps) {
-  const { plan, checkIns, checkInPending, t, onMealCheckIn } = props;
-  const router = useRouter();
-  const structuredMeals = plan.nutrition.foodPlan?.meals ?? [];
-
-  return (
-    <>
-      <View style={styles.mealsSection}>
-        <View style={styles.mealsSectionHeader}>
-          <Text variant="heading" style={styles.mealsSectionTitle}>{t('plan.meals')}</Text>
-          <Text variant="muted">{t('plan.mealsHelp')}</Text>
-        </View>
-        {plan.nutrition.meals.map((meal, index) => (
-          <View key={`${meal.name}-${index}`} style={styles.mealSection}>
-            <View style={styles.mealHeader}>
-              <Text variant="heading" style={styles.mealName}>{meal.name}</Text>
-              {getMealStatus(checkIns, index) ? (
-                <Text variant="caption" style={styles.mealStatusText}>
-                  {mealStatuses(t).find((status) => status.value === getMealStatus(checkIns, index))?.label}
-                </Text>
-              ) : null}
-            </View>
-            {meal.purpose ? <Text variant="caption" style={styles.mealPurpose}>{meal.purpose}</Text> : null}
-            <View style={styles.mealPreviewList}>
-              {meal.foods.slice(0, 3).map((food, foodIndex) => (
-                <View key={`${food.name}-${foodIndex}`} style={styles.mealPreviewRow}>
-                  <View style={styles.mealPreviewDot} />
-                  <Text style={styles.mealPreviewText}>
-                    {food.portion ? <Text style={styles.mealPreviewPortion}>{food.portion} </Text> : null}
-                    {food.name}
-                  </Text>
-                </View>
-              ))}
-              {meal.foods.length > 3 ? (
-                <Text style={styles.mealPreviewMore}>+{meal.foods.length - 3}</Text>
-              ) : null}
-            </View>
-            <View style={styles.mealActionRow}>
-              {mealStatuses(t).map((status) => (
-                <Pressable
-                  key={status.value}
-                  disabled={checkInPending}
-                  accessibilityRole="button"
-                  accessibilityState={{
-                    selected: getMealStatus(checkIns, index) === status.value,
-                    disabled: checkInPending
-                  }}
-                  style={({ pressed }) => [
-                    styles.mealAction,
-                    getMealStatus(checkIns, index) === status.value ? styles.mealActionSelected : null,
-                    pressed && !checkInPending ? styles.mealActionPressed : null,
-                    checkInPending ? styles.mealActionDisabled : null
-                  ]}
-                  onPress={() => onMealCheckIn(index, meal.name, status.value)}
-                >
-                  <Text
-                    variant="caption"
-                    style={[
-                      styles.mealActionText,
-                      getMealStatus(checkIns, index) === status.value ? styles.mealActionTextSelected : null
-                    ]}
-                  >
-                    {status.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {structuredMeals[index] ? (
-              <Button
-                title={t('food.viewMealDetails')}
-                variant="secondary"
-                onPress={() =>
-                  router.push({
-                    pathname: '/meal-details' as never,
-                    params: { dailyPlanId: props.planId, mealId: structuredMeals[index].id }
-                  })
-                }
-              />
-            ) : null}
-          </View>
-        ))}
-      </View>
-      <Card>
-        <Text variant="label">{t('plan.hydration')}</Text>
-        <Text variant="body">{plan.nutrition.hydration.guidance}</Text>
-        {plan.nutrition.hydration.notes ? <Text variant="muted">{plan.nutrition.hydration.notes}</Text> : null}
-      </Card>
-    </>
+    <TrainingContent
+      {...props}
+      exercises={exercises}
+      summaryById={summaryById}
+      summariesFailed={summaries.isError}
+      onRetrySummaries={() => summaries.refetch()}
+      workoutSession={workoutSession.data ?? null}
+      workoutSessionUnavailable={workoutSession.isError}
+      workoutSessionLoading={workoutSession.isLoading}
+      preWorkoutOpen={preWorkoutOpen}
+      workoutStartPending={startWorkout.isPending}
+      workoutStartFailed={startWorkout.isError || preflight.isError || loadReplacementProposals.isError || applyReplacements.isError}
+      preWorkoutSaving={startWorkout.isPending || preflight.isPending || loadReplacementProposals.isPending || applyReplacements.isPending}
+      preWorkoutConflict={preWorkoutConflict}
+      replacementProposals={replacementProposals}
+      onStartWorkout={() => setPreWorkoutOpen(true)}
+      onCancelPreWorkout={() => {
+        setPreWorkoutOpen(false);
+        setPreWorkoutConflict(null);
+        setReplacementProposals(null);
+        setPendingPreWorkoutCheck(null);
+      }}
+      onSubmitPreWorkout={(preWorkoutCheck) => {
+        if (preWorkoutCheck.readinessStatus === 'PAIN_OR_LIMITATION') {
+          preflight.mutate(preWorkoutCheck);
+          return;
+        }
+        startWorkout.mutate(preWorkoutCheck);
+      }}
+      onAdjustWorkout={() => {
+        if (pendingPreWorkoutCheck) loadReplacementProposals.mutate(pendingPreWorkoutCheck);
+      }}
+      onApplyReplacements={() => {
+        if (pendingPreWorkoutCheck && replacementProposals) {
+          applyReplacements.mutate({ preWorkoutCheck: pendingPreWorkoutCheck, proposals: replacementProposals });
+        }
+      }}
+      onRestToday={() => router.push('/training-overrides/day' as never)}
+      onContinueWithCaution={() => {
+        if (pendingPreWorkoutCheck) {
+          startWorkout.mutate({ ...pendingPreWorkoutCheck, acknowledgedPainConflict: true });
+        }
+      }}
+      onOpenWorkout={(sessionId) =>
+        router.push({ pathname: '/workout-session' as never, params: { sessionId } })
+      }
+      onOpenExercise={(exerciseId) => router.push({
+        pathname: '/exercise-details' as never,
+        params: { planId, exerciseId }
+      })}
+    />
   );
 }
 
@@ -315,7 +202,7 @@ function TrainingContent(props: PlanTabbedContentProps & {
   onOpenWorkout: (sessionId: string) => void;
   onOpenExercise: (exerciseId: string) => void;
 }) {
-  const { plan, exercises = [], checkIns, checkInPending, locale, t, summaryById } = props;
+  const { plan, exercises = [], locale, t, summaryById } = props;
   return (
     <>
       <View style={styles.trainingSection}>
@@ -663,18 +550,6 @@ function WorkoutSessionCard({
   );
 }
 
-const mealStatuses = (t: TFunction): Array<{ label: string; value: MealCheckInStatus }> => [
-  { label: t('plan.statusCompleted'), value: 'COMPLETED' },
-  { label: t('plan.statusPartial'), value: 'PARTIALLY_COMPLETED' },
-  { label: t('plan.statusSkipped'), value: 'SKIPPED' },
-  { label: t('plan.statusSwapped'), value: 'SWAPPED' }
-];
-const trainingStatuses = (t: TFunction): Array<{ label: string; value: TrainingCheckInStatus }> => [
-  { label: t('plan.statusCompleted'), value: 'COMPLETED' },
-  { label: t('plan.statusPartial'), value: 'PARTIALLY_COMPLETED' },
-  { label: t('plan.statusSkipped'), value: 'SKIPPED' },
-  { label: t('plan.statusRested'), value: 'RESTED_INSTEAD' }
-];
 const preWorkoutOptions = (t: TFunction): Array<{ label: string; value: PreWorkoutReadinessStatus }> => [
   { label: t('workout.readinessGood'), value: 'GOOD' },
   { label: t('workout.readinessTired'), value: 'TIRED' },
@@ -683,18 +558,6 @@ const preWorkoutOptions = (t: TFunction): Array<{ label: string; value: PreWorko
 ];
 const splitCsv = (value: string) =>
   value.split(',').map((item) => item.trim()).filter(Boolean);
-const getMealStatus = (items: DailyPlanCheckInResponse[] | undefined, index: number) => {
-  const payload = items?.find((item) => item.type === 'MEAL' && item.subjectKey === `meal:${index}`)?.payload;
-  return payload && 'status' in payload ? payload.status as MealCheckInStatus : null;
-};
-const getTrainingStatus = (items?: DailyPlanCheckInResponse[]) => {
-  const payload = items?.find((item) => item.type === 'TRAINING')?.payload;
-  return payload && 'status' in payload ? payload.status as TrainingCheckInStatus : null;
-};
-const getPainSignal = (items?: DailyPlanCheckInResponse[]) => {
-  const payload = items?.find((item) => item.type === 'TRAINING')?.payload;
-  return Boolean(payload && 'painOrDiscomfort' in payload && payload.painOrDiscomfort);
-};
 const getPainAreaLabel = (area: WorkoutPainArea, t: TFunction) => {
   if (area === 'CORE_ABS') return t('workout.painAreaCoreAbs');
   if (area === 'LOWER_BACK') return t('workout.painAreaLowerBack');
@@ -748,22 +611,11 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 2
   },
-  mealHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between'
-  },
   mealName: {
     flex: 1,
     fontSize: 21,
     lineHeight: 26,
     letterSpacing: -0.25
-  },
-  mealStatusText: {
-    color: colors.primaryDark,
-    fontWeight: '900',
-    paddingTop: 4
   },
   mealPurpose: {
     color: colors.textSecondary,
@@ -848,39 +700,6 @@ const styles = StyleSheet.create({
   },
   foodNotes: {
     color: colors.textSecondary
-  },
-  mealActionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingTop: 2
-  },
-  mealAction: {
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 34,
-    paddingHorizontal: 13
-  },
-  mealActionSelected: {
-    borderColor: colors.primary
-  },
-  mealActionPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.98 }]
-  },
-  mealActionDisabled: {
-    opacity: 0.45
-  },
-  mealActionText: {
-    color: colors.textSecondary,
-    fontWeight: '800'
-  },
-  mealActionTextSelected: {
-    color: colors.primaryDark
   },
   preWorkoutActions: { gap: 8 },
   replacementReview: { gap: 10, paddingTop: 8 },

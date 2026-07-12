@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { goalSchema, profileSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementSystem, PlanImpactChangeType, SupportedLocale } from '@optime/shared-types';
@@ -16,7 +16,6 @@ import {
   Ruler,
   Scale,
   Settings,
-  ShieldCheck,
   Target,
   UserRound,
   Utensils,
@@ -97,7 +96,6 @@ export default function ProfileScreen() {
       <TrainingHubSection />
       <ConnectionsSection />
       <SettingsSection />
-      <HealthSection />
       <LogoutSection />
     </Screen>
   );
@@ -209,7 +207,7 @@ function PersonalSection() {
       <BottomSheet
         visible={editing}
         title={t('profile.editProfile')}
-        subtitle={t('profile.ageSafety')}
+        subtitle={t('profile.hubIntro')}
         onClose={() => {
           if (mutation.isPending) return;
           setValue(savedValue);
@@ -311,6 +309,10 @@ function GoalNutritionSection() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    message: string;
+    payload: Parameters<typeof saveGoal>[0];
+  } | null>(null);
   const pendingChangeTypes = useRef<PlanImpactChangeType[]>(['PRIMARY_GOAL_CHANGED']);
 
   useEffect(() => {
@@ -389,14 +391,11 @@ function GoalNutritionSection() {
     }
 
     if (modeChanged || goalChanged) {
-      Alert.alert(
-        t('goals.confirmTitle'),
-        getGoalChangeConfirmationCopy(value.impactMode, savedValue.impactMode, goalChanged, t),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.save'), onPress: () => mutation.mutate(result.data) }
-        ]
-      );
+      setPendingConfirmation({
+        message: getGoalChangeConfirmationCopy(value.impactMode, savedValue.impactMode, goalChanged, t),
+        payload: result.data
+      });
+      setEditing(false);
       return;
     }
 
@@ -449,6 +448,36 @@ function GoalNutritionSection() {
           <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={closeEditor} />
         </View>
       </BottomSheet>
+      <AppFeedbackSheet
+        visible={Boolean(pendingConfirmation)}
+        title={t('goals.confirmTitle')}
+        message={pendingConfirmation?.message ?? ''}
+        tone="warning"
+        onClose={() => {
+          setPendingConfirmation(null);
+          setEditing(true);
+        }}
+        actions={[
+          {
+            label: t('common.save'),
+            disabled: mutation.isPending,
+            onPress: () => {
+              if (!pendingConfirmation) return;
+              mutation.mutate(pendingConfirmation.payload);
+              setPendingConfirmation(null);
+            }
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            disabled: mutation.isPending,
+            onPress: () => {
+              setPendingConfirmation(null);
+              setEditing(true);
+            }
+          }
+        ]}
+      />
       <PlanImpactPromptCard
         impact={planImpact}
         isUpdating={regenerateTodayPlan.isPending}
@@ -486,14 +515,14 @@ function TrainingHubSection() {
         tone="training"
         title={t('training.current')}
         subtitle={t('training.setupSummaryHelp')}
-        onPress={() => router.push('/(tabs)/training')}
+        onPress={() => router.push('/training-setup' as never)}
       />
       <SettingsListItem
         icon={<CalendarDays size={18} color={colors.training} />}
         tone="training"
         title={t('schedule.weeklySchedule')}
         subtitle={t('schedule.weeklyScheduleHelp')}
-        onPress={() => router.push('/(tabs)/training')}
+        onPress={() => router.push('/weekly-routine' as never)}
       />
       <SettingsListItem
         icon={<History size={18} color={colors.training} />}
@@ -611,23 +640,6 @@ function WeightSection() {
   }
 }
 
-function HealthSection() {
-  const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
-  return (
-    <View style={styles.section}>
-      <Card>
-        <SectionHeader title={t('profile.wellnessSafety')} />
-        <SettingsListItem
-          icon={<ShieldCheck size={18} color={user?.safeMode ? colors.warning : colors.success} />}
-          title={user?.safeMode ? t('profile.safeMode') : t('profile.standardMode')}
-          subtitle={t('profile.ageSafety')}
-        />
-      </Card>
-    </View>
-  );
-}
-
 function ConnectionsSection() {
   const { t } = useTranslation();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
@@ -635,20 +647,27 @@ function ConnectionsSection() {
   const provider = getPlatformHealthProvider();
   const label = provider ? getHealthProviderLabel(t, provider) : t('health.title');
   const connection = status.data?.connections.find((item) => item.provider === provider);
+  const statusLabel = status.isLoading
+    ? t('common.loading')
+    : status.isError
+      ? t('health.unavailable')
+      : formatHealthStatus(connection?.status, t);
+  const lastSyncLabel = t('health.lastSync', {
+    value: connection?.lastSyncAt
+      ? new Date(connection.lastSyncAt).toLocaleString(preferredLocale)
+      : t('health.notSynced')
+  });
 
   return (
     <View style={styles.section}>
       <Card>
-        <SectionHeader title={label} />
+        <SectionHeader title={t('profile.sections.connections')} />
         <SettingsListItem
           icon={<Watch size={18} color={colors.health} />}
-          title={status.isLoading ? t('common.loading') : status.isError ? t('health.unavailable') : formatHealthStatus(connection?.status, t)}
-          subtitle={t('health.lastSync', { value: connection?.lastSyncAt ? new Date(connection.lastSyncAt).toLocaleString(preferredLocale) : t('health.notSynced') })}
-          value={label}
+          title={label}
+          subtitle={`${statusLabel} · ${lastSyncLabel}`}
           onPress={() => router.push('/health-data')}
         />
-        <Text variant="caption">{t('health.intro')}</Text>
-        <Button title={connection?.status === 'CONNECTED' ? t('health.manage') : t('health.connect')} variant="secondary" onPress={() => router.push('/health-data')} />
       </Card>
     </View>
   );
@@ -742,7 +761,6 @@ function SettingsSection() {
             }}
           />
         ) : null}
-        <Text variant="muted">{t('settings.futureControls')}</Text>
         {__DEV__ ? (
           <SettingsListItem
             icon={<Settings size={18} color={colors.info} />}

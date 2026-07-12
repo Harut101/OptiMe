@@ -1,11 +1,9 @@
 import { router } from 'expo-router';
-import { Dumbbell, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Screen } from '@/components/Screen';
-import { SelectableCard } from '@/components/SelectableCard';
+import { Text } from '@/components/Text';
 import { OnboardingStepShell } from '@/features/onboarding/OnboardingStepShell';
-import { colors } from '@/theme/colors';
 
 export default function TrainingNextStepScreen() {
   const { t } = useTranslation();
@@ -23,20 +21,8 @@ export default function TrainingNextStepScreen() {
         secondaryLabel={t('onboarding.skipTrainingSetup')}
         onSecondary={() => router.replace('/(tabs)/today')}
       >
-        <SelectableCard
-          icon={<Dumbbell size={19} color={colors.textInverse} />}
-          selected
-          title={t('onboarding.setUpWeeklyRoutine')}
-          subtitle={t('onboarding.trainingOptionalMessage')}
-          onPress={() => router.replace('/(tabs)/training')}
-        />
-        <SelectableCard
-          icon={<Utensils size={19} color={colors.nutrition} />}
-          selected={false}
-          title={t('onboarding.skipTrainingSetup')}
-          subtitle={t('onboarding.configureTrainingAnytime')}
-          onPress={() => router.replace('/(tabs)/today')}
-        />
+        <Text variant="body">{t('onboarding.trainingOptionalMessage')}</Text>
+        <Text variant="muted">{t('onboarding.configureTrainingAnytime')}</Text>
       </OnboardingStepShell>
     </Screen>
   );

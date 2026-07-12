@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import type { DailyPlanMeal } from '@optime/shared-types';
 
 import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
@@ -255,6 +256,8 @@ export default function FoodScreen() {
             updateMealStatus.mutate({ dailyPlanId: todayPlan.data!.id, mealId, status })
           }
         />
+      ) : todayPlan.data?.plan.nutrition.meals.length ? (
+        <FallbackMealPlanCard meals={todayPlan.data.plan.nutrition.meals} />
       ) : todayPlan.isError ? (
         <ContextNoteCard title={t('food.mealPlan')} message={t('food.mealPlanUnavailable')} tone="warning" />
       ) : null}
@@ -400,6 +403,35 @@ function DailyFoodPlanCard({
   );
 }
 
+/** Older and safety-fallback plans still contain practical meal guidance. */
+function FallbackMealPlanCard({ meals }: { meals: DailyPlanMeal[] }) {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.mealPlanSection}>
+      <View style={styles.mealPlanHeader}>
+        <Text variant="heading" style={styles.mealPlanTitle}>{t('food.mealPlan')}</Text>
+        <Text variant="muted">{t('food.whatToEatToday')}</Text>
+      </View>
+      <View style={styles.mealList}>
+        {meals.map((meal, index) => (
+          <Card key={`${meal.name}-${index}`} style={styles.fallbackMealCard}>
+            <Text variant="label" style={styles.fallbackMealName}>{meal.name}</Text>
+            {meal.purpose ? <Text variant="muted">{meal.purpose}</Text> : null}
+            <View style={styles.fallbackFoodList}>
+              {meal.foods.map((food, foodIndex) => (
+                <Text key={`${food.name}-${foodIndex}`} variant="body" style={styles.fallbackFoodText}>
+                  {food.portion ? `${food.portion} ` : ''}{food.name}
+                </Text>
+              ))}
+            </View>
+          </Card>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
   const { t } = useTranslation();
   return (
@@ -441,6 +473,18 @@ const styles = StyleSheet.create({
   },
   compactActionButton: {
     flex: 1
+  },
+  fallbackMealCard: {
+    gap: 8
+  },
+  fallbackMealName: {
+    fontSize: 18
+  },
+  fallbackFoodList: {
+    gap: 6
+  },
+  fallbackFoodText: {
+    lineHeight: 22
   }
 });
 

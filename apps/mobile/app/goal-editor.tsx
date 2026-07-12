@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { goalSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,8 @@ import { generateTodayPlan } from '@/api/daily-plans';
 import { getGoal, saveGoal } from '@/api/goals';
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { ScreenSkeleton } from '@/components/ScreenSkeleton';
@@ -48,6 +50,10 @@ export default function GoalEditorScreen() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    message: string;
+    payload: Parameters<typeof saveGoal>[0];
+  } | null>(null);
   const pendingChangeTypes = useRef<PlanImpactChangeType[]>(['PRIMARY_GOAL_CHANGED']);
 
   useEffect(() => {
@@ -121,14 +127,10 @@ export default function GoalEditorScreen() {
     }
 
     if (modeChanged || goalChanged) {
-      Alert.alert(
-        t('goals.confirmTitle'),
-        getGoalChangeConfirmationCopy(value.impactMode, persistedValue.impactMode, goalChanged, t),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.save'), onPress: () => mutation.mutate(result.data) }
-        ]
-      );
+      setPendingConfirmation({
+        message: getGoalChangeConfirmationCopy(value.impactMode, persistedValue.impactMode, goalChanged, t),
+        payload: result.data
+      });
       return;
     }
 
@@ -187,7 +189,14 @@ export default function GoalEditorScreen() {
         </>
       ) : null}
 
-      {successMessage ? <Card><Text variant="label">{t('common.saved')}</Text><Text variant="muted">{successMessage}</Text></Card> : null}
+      {successMessage ? (
+        <AppToast
+          title={t('feedback.savedSuccessfully')}
+          message={successMessage}
+          tone="success"
+          onDismiss={() => setSuccessMessage(null)}
+        />
+      ) : null}
       <PlanImpactPromptCard
         impact={planImpact}
         isUpdating={regenerateTodayPlan.isPending}
@@ -198,6 +207,31 @@ export default function GoalEditorScreen() {
           setPlanImpactError(null);
           setSuccessMessage(t('planImpact.futureOnlySaved'));
         }}
+      />
+      <AppFeedbackSheet
+        visible={pendingConfirmation !== null}
+        title={t('goals.confirmTitle')}
+        message={pendingConfirmation?.message ?? ''}
+        tone="warning"
+        onClose={() => setPendingConfirmation(null)}
+        actions={[
+          {
+            label: t('common.save'),
+            disabled: mutation.isPending,
+            onPress: () => {
+              if (!pendingConfirmation) return;
+              const payload = pendingConfirmation.payload;
+              setPendingConfirmation(null);
+              mutation.mutate(payload);
+            }
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            disabled: mutation.isPending,
+            onPress: () => setPendingConfirmation(null)
+          }
+        ]}
       />
     </Screen>
   );

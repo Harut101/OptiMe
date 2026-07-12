@@ -9,6 +9,9 @@ import {
   OPENAI_CLIENT_FACTORY
 } from '../ai/open-ai-client.factory';
 import { dailyFoodPlanSchema } from '../daily-plans/daily-plan-json.schema';
+import { FoodCatalogService } from '../food-catalog/food-catalog.service';
+import type { FoodCatalogCandidate } from '../food-catalog/food-catalog.types';
+import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanValidationService } from './food-plan-validation.service';
 import { nutritionAgentFoodPlanOpenAiSchema } from './nutrition-agent.openai-schema';
@@ -26,6 +29,8 @@ export class NutritionAgentService {
   constructor(
     private readonly configService: ConfigService,
     private readonly validator: FoodPlanValidationService,
+    private readonly foodCatalog: FoodCatalogService,
+    private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -64,11 +69,7 @@ export class NutritionAgentService {
     const fallbackReasons = retryAttempt.validationReasons.length
       ? retryAttempt.validationReasons
       : [retryAttempt.errorReason];
-    const fallback = createDeterministicFoodPlan(
-      input,
-      'DETERMINISTIC_FALLBACK',
-      fallbackReasons
-    );
+    const fallback = await this.createFallbackFoodPlan(input, fallbackReasons);
     this.logResult(input, fallback, 1, fallbackReasons);
 
     return {
@@ -93,11 +94,7 @@ export class NutritionAgentService {
       };
     }
 
-    const fallback = createDeterministicFoodPlan(
-      input,
-      'DETERMINISTIC_FALLBACK',
-      validation.reasons
-    );
+    const fallback = createDeterministicFoodPlan(input, 'DETERMINISTIC_FALLBACK', validation.reasons);
     this.logResult(input, fallback, 0, validation.reasons);
     return {
       foodPlan: fallback,
@@ -112,6 +109,23 @@ export class NutritionAgentService {
     previousValidationReasons: string[]
   ): Promise<NutritionAgentAttemptResult> {
     const model = this.getModel();
+    const catalogCandidates = await this.foodCatalog.listAllowedCandidates({
+      locale: input.locale,
+      dietType: input.nutritionPreference?.dietType,
+      restrictions: {
+        allergies: input.nutritionPreference?.allergies,
+        excludedFoods: input.nutritionPreference?.excludedFoods,
+        dislikedFoods: input.nutritionPreference?.dislikedFoods
+      }
+    });
+
+    if (catalogCandidates.length < 3) {
+      return {
+        ok: false,
+        validationReasons: ['CATALOG_SAFE_CANDIDATES_UNAVAILABLE'],
+        errorReason: 'CATALOG_SAFE_CANDIDATES_UNAVAILABLE'
+      };
+    }
 
     try {
       this.logger.log(
@@ -128,7 +142,7 @@ export class NutritionAgentService {
             },
             {
               role: 'user',
-              content: JSON.stringify(this.buildPlanningContext(input, previousValidationReasons))
+              content: JSON.stringify(this.buildPlanningContext(input, previousValidationReasons, catalogCandidates))
             }
           ],
           text: {
@@ -144,7 +158,7 @@ export class NutritionAgentService {
       );
 
       this.logger.log('nutrition agent OpenAI response received');
-      return this.parseAndValidateResponse(response, input);
+      return this.parseAndValidateResponse(response, input, catalogCandidates);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'nutrition_agent_openai_error';
       this.logger.warn(`nutrition agent OpenAI request failed; reason=${message.slice(0, 120)}`);
@@ -157,9 +171,15 @@ export class NutritionAgentService {
     }
   }
 
+  private async createFallbackFoodPlan(input: NutritionAgentInput, reasons: string[]) {
+    return (await this.catalogFallbackFoodPlan.create(input, reasons))
+      ?? createDeterministicFoodPlan(input, 'DETERMINISTIC_FALLBACK', reasons);
+  }
+
   private parseAndValidateResponse(
     response: OpenAiResponse,
-    input: NutritionAgentInput
+    input: NutritionAgentInput,
+    catalogCandidates: FoodCatalogCandidate[]
   ): NutritionAgentAttemptResult {
     const outputText = this.extractOutputText(response);
 
@@ -193,7 +213,16 @@ export class NutritionAgentService {
       };
     }
 
-    const validation = this.validator.validate(schemaResult.data, this.validationContext(input));
+    const normalizedCatalogPlan = this.normalizeCatalogFoodPlan(schemaResult.data, catalogCandidates);
+    if (!normalizedCatalogPlan) {
+      return {
+        ok: false,
+        validationReasons: ['UNKNOWN_OR_INVALID_CATALOG_FOOD'],
+        errorReason: 'UNKNOWN_OR_INVALID_CATALOG_FOOD'
+      };
+    }
+
+    const validation = this.validator.validate(normalizedCatalogPlan, this.validationContext(input));
 
     if (!validation.passed) {
       return {
@@ -206,9 +235,9 @@ export class NutritionAgentService {
     return {
       ok: true,
       foodPlan: {
-        ...schemaResult.data,
+        ...normalizedCatalogPlan,
         validation: {
-          ...schemaResult.data.validation,
+          ...normalizedCatalogPlan.validation,
           status: 'VALID',
           reasons: []
         }
@@ -247,6 +276,8 @@ export class NutritionAgentService {
       'The deterministic Nutrition Engine is the source of numeric truth.',
       'The calorie and macro targets are fixed backend constraints. Do not change them. Create meals that fit them.',
       'Do not calculate a new daily target. Use the target calories, protein, carbs, and fat from the context.',
+      'Use only catalogFoodSlug values supplied in allowedCatalogFoods. Never invent an ingredient or a slug.',
+      'Every ingredient quantity must be in grams. Backend recalculates names, calories, and macros from catalog values.',
       'Every meal and ingredient must include calories, protein, carbs, and fat.',
       'Meal totals must approximately match ingredient sums. Day totals must approximately match meal sums.',
       'Respect the requested mealsPerDay exactly when provided.',
@@ -265,7 +296,11 @@ export class NutritionAgentService {
     ].join('\n');
   }
 
-  private buildPlanningContext(input: NutritionAgentInput, previousValidationReasons: string[]) {
+  private buildPlanningContext(
+    input: NutritionAgentInput,
+    previousValidationReasons: string[],
+    catalogCandidates: FoodCatalogCandidate[]
+  ) {
     return {
       localDate: input.planLocalDate,
       locale: input.locale,
@@ -305,6 +340,15 @@ export class NutritionAgentService {
         isMinor: input.isMinor,
         pregnancyStatus: input.pregnancyStatus ?? 'UNKNOWN'
       },
+      allowedCatalogFoods: catalogCandidates.map((candidate) => ({
+        slug: candidate.slug,
+        name: candidate.name,
+        category: candidate.category,
+        caloriesPer100g: candidate.caloriesPer100g,
+        proteinPer100g: candidate.proteinPer100g,
+        carbsPer100g: candidate.carbsPer100g,
+        fatPer100g: candidate.fatPer100g
+      })),
       regeneration: input.regeneration
         ? {
             mode: input.regeneration.mode,
@@ -315,6 +359,33 @@ export class NutritionAgentService {
         : null,
       previousValidationReasons
     };
+  }
+
+  private normalizeCatalogFoodPlan(plan: DailyFoodPlan, catalogCandidates: FoodCatalogCandidate[]) {
+    const bySlug = new Map(catalogCandidates.map((candidate) => [candidate.slug, candidate]));
+    const meals: DailyFoodPlan['meals'] = [];
+
+    for (const meal of plan.meals) {
+      const ingredients: DailyFoodPlan['meals'][number]['ingredients'] = [];
+      for (const ingredient of meal.ingredients) {
+        if (!ingredient.catalogFoodSlug || ingredient.unit !== 'g') return null;
+        const candidate = bySlug.get(ingredient.catalogFoodSlug);
+        if (!candidate) return null;
+        const nutrition = this.foodCatalog.calculateNutrition(candidate, ingredient.quantity);
+        ingredients.push({
+          ...ingredient,
+          name: candidate.name,
+          caloriesKcal: nutrition.caloriesKcal,
+          proteinGrams: nutrition.proteinGrams,
+          carbsGrams: nutrition.carbsGrams,
+          fatGrams: nutrition.fatGrams
+        });
+      }
+      const totals = sumFoodNutrition(ingredients);
+      meals.push({ ...meal, ...totals, ingredients });
+    }
+    const totals = sumFoodNutrition(meals);
+    return { ...plan, meals, totals };
   }
 
   private validationContext(input: NutritionAgentInput) {
@@ -420,4 +491,16 @@ function normalizeTotals(value: unknown): DailyFoodPlan['totals'] {
 
 function numberOrZero(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function sumFoodNutrition(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {
+  return items.reduce<DailyFoodPlan['totals']>(
+    (totals, item) => ({
+      caloriesKcal: totals.caloriesKcal + item.caloriesKcal,
+      proteinGrams: totals.proteinGrams + item.proteinGrams,
+      carbsGrams: totals.carbsGrams + item.carbsGrams,
+      fatGrams: totals.fatGrams + item.fatGrams
+    }),
+    { caloriesKcal: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0 }
+  );
 }

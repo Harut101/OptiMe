@@ -2,8 +2,11 @@ import request from 'supertest';
 import type { DailyFoodPlan } from '@optime/shared-types';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
+import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
+import type { NutritionAgentInput } from '../src/modules/nutrition-agent/nutrition-agent.types';
 import { SafetyService } from '../src/modules/safety/safety.service';
+import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 import { cleanupDatabase } from './helpers/cleanup';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -15,6 +18,7 @@ describe('Specialized Nutrition Agent food plans', () => {
   beforeAll(async () => {
     delete process.env.AI_PROVIDER;
     ctx = await createTestApp();
+    await seedFoodCatalog(ctx.prisma);
   });
 
   beforeEach(async () => {
@@ -60,6 +64,72 @@ describe('Specialized Nutrition Agent food plans', () => {
       isOptional: false
     });
     expect(foodPlan.meals[0].substitutions[0].reasonCode).toBe('SIMILAR_MACROS');
+  });
+
+  it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
+    const service = ctx.app.get(CatalogFallbackFoodPlanService);
+    const fallback = await service.create({
+      planLocalDate: '2026-07-12',
+      locale: 'en-US',
+      planQualityMode: 'BASIC',
+      appMode: 'NUTRITION_ONLY',
+      safeMode: false,
+      isMinor: false,
+      nutritionTarget: {
+        safety: { status: 'OK' },
+        calories: { targetKcal: 2200 }
+      },
+      nutritionTargetSnapshot: {
+        engineVersion: 1,
+        localDate: '2026-07-12',
+        dayType: 'REST_DAY',
+        appMode: 'NUTRITION_ONLY',
+        primaryGoal: 'HEALTHY_EATING',
+        targetKcal: 2200,
+        minKcal: 2000,
+        maxKcal: 2400,
+        maintenanceEstimateKcal: 2200,
+        proteinGrams: 130,
+        carbsGrams: 250,
+        fatGrams: 70,
+        safetyStatus: 'OK',
+        safetyReasons: [],
+        explanation: { titleCode: 'TODAY_TARGET', reasonCodes: [] }
+      },
+      nutritionPreference: {
+        dietType: 'OMNIVORE',
+        mealsPerDay: 3,
+        notes: null,
+        allergies: [],
+        excludedFoods: ['avocado'],
+        dislikedFoods: [],
+        preferredFoods: []
+      },
+      goalSummary: null,
+      resolvedTrainingDay: { isTrainingDay: false }
+    } as unknown as NutritionAgentInput, ['NUTRITION_AGENT_OPENAI_FAILED']);
+
+    expect(fallback).not.toBeNull();
+    if (!fallback) throw new Error('Expected a catalog-backed fallback food plan.');
+    expect(dailyFoodPlanSchema.safeParse(fallback).success).toBe(true);
+    expect(fallback.source).toBe('DETERMINISTIC_FALLBACK');
+    expect(fallback.meals).toHaveLength(3);
+    expect(fallback.meals.flatMap((meal) => meal.ingredients).every((ingredient) => ingredient.catalogFoodSlug)).toBe(true);
+    expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => ingredient.catalogFoodSlug === 'avocado')).toBe(false);
+
+    const ingredientTotals = fallback.meals.flatMap((meal) => meal.ingredients).reduce(
+      (totals, ingredient) => ({
+        caloriesKcal: totals.caloriesKcal + ingredient.caloriesKcal,
+        proteinGrams: totals.proteinGrams + ingredient.proteinGrams,
+        carbsGrams: totals.carbsGrams + ingredient.carbsGrams,
+        fatGrams: totals.fatGrams + ingredient.fatGrams
+      }),
+      { caloriesKcal: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0 }
+    );
+    expect(fallback.totals.caloriesKcal).toBe(ingredientTotals.caloriesKcal);
+    expect(fallback.totals.proteinGrams).toBeCloseTo(ingredientTotals.proteinGrams, 1);
+    expect(fallback.totals.carbsGrams).toBeCloseTo(ingredientTotals.carbsGrams, 1);
+    expect(fallback.totals.fatGrams).toBeCloseTo(ingredientTotals.fatGrams, 1);
   });
 
   it('validates foodPlan schema for meal types, ingredient quantities, and negative macros', async () => {
@@ -195,6 +265,25 @@ describe('Specialized Nutrition Agent food plans', () => {
       restrictedFood: 'avocado',
       matchedPath: 'nutrition.foodPlan.meals[0].ingredients[0].name'
     });
+  });
+
+  it('does not recreate an excluded fallback placeholder ingredient', async () => {
+    const user = await registerTestUser(ctx.app, 'nutrition-agent-excluded-placeholder@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {
+      preferredFoods: ['No'],
+      excludedFoods: ['Balanced No plate']
+    });
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+
+    expect(generated.body.status).toBe('READY');
+    const ingredientNames = (generated.body.plan.nutrition.foodPlan as DailyFoodPlan).meals
+      .flatMap((meal) => meal.ingredients.map((ingredient) => ingredient.name.toLowerCase()));
+    expect(ingredientNames).not.toContain('balanced no plate');
   });
 
   it('blocks restricted foods in structured foodPlan substitutions and preparation steps', async () => {

@@ -126,7 +126,7 @@ export default function MealDetailsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={meal.title} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
+      <ScreenHeader title={t('food.viewMealDetails')} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
 
       <Card variant="elevated" style={styles.heroCard}>
         <View style={styles.heroTop}>
@@ -140,10 +140,6 @@ export default function MealDetailsScreen() {
         </View>
         <Text variant="heading">{meal.title}</Text>
         <Text variant="muted">{meal.servingSummary}</Text>
-        <View style={styles.heroMetricRow}>
-          <Text variant="metric">{meal.caloriesKcal}</Text>
-          <Text variant="body" style={styles.kcalUnit}>kcal</Text>
-        </View>
       </Card>
 
       <Card>
@@ -181,10 +177,6 @@ export default function MealDetailsScreen() {
           <MacroMetricWidget label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="carbs" />
           <MacroMetricWidget label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="fat" />
         </View>
-        <Text variant="muted">{t('food.serving')}: {meal.servingSummary}</Text>
-        {meal.prepTimeMinutes !== null ? (
-          <Text variant="muted">{t('food.prepTimeValue', { minutes: String(meal.prepTimeMinutes) })}</Text>
-        ) : null}
       </Card>
 
       <Card>
@@ -303,16 +295,6 @@ const styles = StyleSheet.create({
   prepBadge: {
     color: colors.primaryDark,
     fontWeight: '800'
-  },
-  heroMetricRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 6
-  },
-  kcalUnit: {
-    color: colors.textSecondary,
-    fontWeight: '800',
-    paddingBottom: 6
   },
   ingredient: { gap: 8, paddingVertical: 8 },
   substitution: { gap: 3, paddingVertical: 5 },

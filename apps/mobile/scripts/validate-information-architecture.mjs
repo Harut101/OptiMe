@@ -38,11 +38,15 @@ assert(trainingDayEditor.includes("params: { generateAfterRoutine: '1' }"), 'Wee
 const foodStandalone = read('app/(tabs)/food.tsx');
 const foodOnboarding = read('app/(onboarding)/nutrition-preferences.tsx');
 const trainingStandalone = read('app/(tabs)/training.tsx');
+const trainingSetup = read('app/training-setup.tsx');
+const weeklyRoutine = read('app/weekly-routine.tsx');
 const onboardingLayout = read('app/(onboarding)/_layout.tsx');
 const trainingNextStep = read('app/(onboarding)/training-next-step.tsx');
 assert(foodStandalone.includes('FoodPreferencesForm'), 'Food tab must use the shared food form.');
 assert(foodOnboarding.includes('FoodPreferencesForm'), 'Onboarding must use the shared food form.');
-assert(trainingStandalone.includes('TrainingSetupForm'), 'Training tab must use the shared training form.');
+assert(trainingStandalone.includes('DailyTrainingPlanContent'), 'Training tab must own today\'s workout workspace.');
+assert(trainingSetup.includes('TrainingSetupForm'), 'Training setup must use the shared training form.');
+assert(weeklyRoutine.includes('WeeklyRoutinePreviewCard'), 'Weekly Routine must own the weekly routine preview.');
 assert(!existsSync(resolve(root, 'app/(onboarding)/training-preferences.tsx')), 'Onboarding must not include detailed training setup.');
 assert(!existsSync(resolve(root, 'app/(onboarding)/training-schedule/index.tsx')), 'Weekly Routine editor must not live inside onboarding.');
 assert(!onboardingLayout.includes('training-schedule'), 'Onboarding stack must not register weekly routine routes.');
@@ -50,18 +54,20 @@ assert(trainingNextStep.includes("t('onboarding.setUpWeeklyRoutine')"), 'Onboard
 assert(trainingNextStep.includes("router.replace('/(tabs)/training')"), 'Optional training setup must route to the Training tab.');
 assert(trainingNextStep.includes("router.replace('/(tabs)/today')"), 'Optional training setup must be skippable.');
 
-for (const [name, source] of [['Food', foodStandalone], ['Training', trainingStandalone]]) {
+for (const [name, source] of [['Food', foodStandalone]]) {
   assert(!source.includes('generateDailyPlan'), `${name} save must not regenerate a plan.`);
   assert(!source.includes("['today-plan']"), `${name} save must not invalidate the current plan.`);
 }
 
 const profile = read('app/(tabs)/profile.tsx');
-for (const section of ['PersonalSection', 'GoalNutritionSection', 'TrainingHubSection', 'ConnectionsSection', 'SettingsSection', 'HealthSection']) {
+for (const section of ['PersonalSection', 'GoalNutritionSection', 'TrainingHubSection', 'ConnectionsSection', 'SettingsSection']) {
   assert(profile.includes(section), `Profile is missing ${section}.`);
 }
+assert(!profile.includes("t('profile.ageSafety')"), 'Profile must not expose backend-derived safety implementation copy.');
 assert(profile.includes("t('profile.hubIntro')"), 'Profile must use the settings hub header.');
 assert(profile.includes("router.push('/(tabs)/food')"), 'Profile must route nutrition ownership to Food.');
-assert(profile.includes("router.push('/(tabs)/training')"), 'Profile must route training ownership to Training.');
+assert(profile.includes("router.push('/training-setup' as never)"), 'Profile must route training preferences to profile settings.');
+assert(profile.includes("router.push('/weekly-routine' as never)"), 'Profile must route Weekly Routine to profile settings.');
 assert(profile.includes('PlanImpactPromptCard'), 'Profile must expose plan-impact prompts for planning-sensitive changes.');
 
 const goalsForm = read('src/features/goals/GoalsForm.tsx');
@@ -82,9 +88,11 @@ const planDetails = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
 assert(rootStack.includes('name="exercise-details"'), 'Exercise Details must be a full-screen stack route.');
 assert(rootStack.includes('name="training-overrides/day"'), 'Today-only training override editor must be registered as a stack route.');
-assert(planDetails.includes('PlanTabbedContent'), 'Plan Details must own the Food/Training content views.');
+assert(rootStack.includes('name="training-setup"') && rootStack.includes('name="weekly-routine"'), 'Training settings routes must be registered.');
+assert(planDetails.includes('DailyTrainingPlanContent'), 'Legacy Plan Details must show training only.');
 assert(planDetails.includes("t('plan.recovery')") && planDetails.includes("t('plan.reminders')"), 'Shared recovery and reminders are missing.');
 assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Shared sections must not be duplicated inside content tabs.');
+assert(!planContent.includes('FoodContent') && !planContent.includes('PlanContentTabs'), 'Food must be owned exclusively by the Food tab.');
 assert(!planContent.includes('generateDailyPlan'), 'Switching plan tabs must not generate a plan.');
 
 console.log('Information architecture validator passed.');

@@ -1,10 +1,7 @@
 import type { DailyPlanResponse } from '@/types/api';
 import type { TFunction } from 'i18next';
 
-export const WELLNESS_DISCLAIMER =
-  'OptiMe is an AI wellness assistant, not a medical service. It does not diagnose or treat medical conditions. For injuries, pregnancy/postpartum concerns, medical symptoms, or major lifestyle changes, consider consulting a qualified professional.';
-
-export function getPlanSafetyMessage(planResponse?: DailyPlanResponse | null) {
+export function getPlanSafetyMessage(planResponse: DailyPlanResponse | null | undefined, t: TFunction) {
   if (!planResponse) {
     return null;
   }
@@ -15,7 +12,7 @@ export function getPlanSafetyMessage(planResponse?: DailyPlanResponse | null) {
     return null;
   }
 
-  return plan.safety.userSafeMessage ?? mapSafetyReasonsToUserMessage(plan.safety.reasons);
+  return plan.safety.userSafeMessage ?? mapSafetyReasonsToUserMessage(plan.safety.reasons, t);
 }
 
 export function getFriendlyGoalErrorMessage(error: Error, t?: TFunction) {
@@ -40,7 +37,7 @@ export function getFriendlyGoalErrorMessage(error: Error, t?: TFunction) {
   return t?.('safety.goalGeneric' as never) ?? 'Please adjust this goal and try again. We want the plan to stay safe, steady, and practical.';
 }
 
-function mapSafetyReasonsToUserMessage(reasons: string[]) {
+function mapSafetyReasonsToUserMessage(reasons: string[], t: TFunction) {
   const reasonText = reasons.join(' | ').toLowerCase();
 
   if (
@@ -48,7 +45,7 @@ function mapSafetyReasonsToUserMessage(reasons: string[]) {
     reasonText.includes('minor') ||
     reasonText.includes('safe mode')
   ) {
-    return 'We adjusted today toward balanced meals, hydration, recovery, and healthy movement.';
+    return t('safety.planAdjustedBalanced' as never);
   }
 
   if (
@@ -57,7 +54,7 @@ function mapSafetyReasonsToUserMessage(reasons: string[]) {
     reasonText.includes('steadier goal') ||
     reasonText.includes('aggressive')
   ) {
-    return 'We adjusted today toward a steadier plan that supports energy, training, and recovery.';
+    return t('safety.planAdjustedSteady' as never);
   }
 
   if (
@@ -66,11 +63,11 @@ function mapSafetyReasonsToUserMessage(reasons: string[]) {
     reasonText.includes('breastfeeding') ||
     reasonText.includes('nursing')
   ) {
-    return 'We adjusted today toward gentle, balanced guidance because your health context calls for extra care.';
+    return t('safety.planAdjustedHealthContext' as never);
   }
 
   if (reasonText.includes('allerg') || reasonText.includes('excluded food')) {
-    return 'We switched to a safer plan because the generated plan may have conflicted with your allergies or excluded foods.';
+    return t('safety.planAdjustedFoodSafety' as never);
   }
 
   if (
@@ -80,11 +77,11 @@ function mapSafetyReasonsToUserMessage(reasons: string[]) {
     reasonText.includes('exhaust') ||
     reasonText.includes('injur')
   ) {
-    return 'We reduced training intensity today so movement stays conservative and recovery-friendly.';
+    return t('safety.planAdjustedTraining' as never);
   }
 
   if (reasonText.includes('safety_agent')) {
-    return 'We used a safer fallback because the generated plan needed a more conservative safety review.';
+    return t('safety.planAdjustedReview' as never);
   }
 
   if (
@@ -94,8 +91,8 @@ function mapSafetyReasonsToUserMessage(reasons: string[]) {
     reasonText.includes('missing_output') ||
     reasonText.includes('openai_')
   ) {
-    return 'We used a reliable safe plan today because the generated plan could not be fully verified.';
+    return t('safety.planAdjustedFallback' as never);
   }
 
-  return 'We adjusted today toward a safer, steadier plan.';
+  return t('safety.planAdjustedGeneric' as never);
 }

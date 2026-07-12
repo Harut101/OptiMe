@@ -536,7 +536,7 @@ export class SafetyService {
     const normalizedBefore = before.replace(/[^\w\s'-:]/g, ' ').replace(/\s+/g, ' ').trim();
     const normalizedAfter = after.replace(/\s+/g, ' ').trim();
     const avoidanceBeforePattern =
-      /\b(avoid|avoids|avoiding|avoided|without|no|exclude|excludes|excluding|excluded|skip|skipping|free[-\s]?from|allergy:|allergic to)(?:\s+(?:your|listed|allergy:?)){0,4}$/i;
+      /\b(avoid|avoids|avoiding|avoided|without|no|exclude|excludes|excluding|excluded|skip|skipping|free[-\s]?from|allergy:|allergic to)(?:\s+(?:your|listed|allergy:?|food|foods|meal|meals|dish|dishes|option|options|item|items|with|containing|that|include|includes|including|made|prepared|served)){0,8}$/i;
 
     return avoidanceBeforePattern.test(normalizedBefore) || /^[-\s]?free\b/i.test(normalizedAfter);
   }

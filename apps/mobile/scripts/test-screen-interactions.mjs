@@ -32,7 +32,7 @@ assert(!existsSync(resolve(root, 'app/(tabs)/settings.tsx')), 'Obsolete Settings
 
 const food = read('app/(tabs)/food.tsx');
 assertIncludes(food, [
-  "queryKey: ['nutrition-preferences']", "t('common.loading')",
+  "queryKey: ['nutrition-preferences']", 'ScreenSkeleton',
   "t('food.emptyTitle')", 'FoodPreferencesForm', "t('common.save')", "t('common.cancel')",
   "t('food.savedMessage')", 'useUnsavedChangesGuard',
   'setValue(savedValue)', 'saveNutritionPreferences', 'mutation.isPending || !dirty'
@@ -40,15 +40,11 @@ assertIncludes(food, [
 
 const training = read('app/(tabs)/training.tsx');
 assertIncludes(training, [
-  "queryKey: ['training-preferences']", "t('common.loading')",
+  "queryKey: ['today-plan']", 'ScreenSkeleton',
   "t('training.disabledTitle')", "t('training.disabledMessage')", "t('training.enableTraining')",
-  "router.push('/goal-editor')", 'TrainingSetupForm', "t('common.save')", "t('common.cancel')",
-  "t('training.savedMessage')", 'useUnsavedChangesGuard',
-  'setValue(savedValue)', 'saveTrainingPreferences', 'saveSettings.isPending || !settingsDirty',
-  'TodaysWorkoutCard', "t('trainingLoad.title')", 'TrainingLoadInsightCard', "t('workout.openWorkoutHistory')",
-  "t('training.editSetup')", "t('schedule.weeklySchedule')"
-], 'Training');
-assert(!training.includes("t('training.section')"), 'Training tab must not use the old weekly/settings section toggle.');
+  "router.push('/goal-editor')", 'DailyTrainingPlanContent', "t('training.intro')"
+], 'Today Training');
+assert(!training.includes('TrainingSetupForm') && !training.includes('WeeklyRoutinePreviewCard'), 'Training tab must not mix daily training with future settings.');
 
 const trainingForm = read('src/features/training-preferences/TrainingSetupForm.tsx');
 assertIncludes(trainingForm, [
@@ -70,7 +66,7 @@ assertIncludes(profile, [
   'AppToast',
   'AppFeedbackSheet',
   'PlanImpactPromptCard',
-  "router.push('/goal-editor')",
+  'GoalsForm',
   "router.push('/health-data')",
   'useUnsavedChangesGuard',
   'setValue(savedValue)'
@@ -84,7 +80,7 @@ assertIncludes(personalForm, [
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
-  "queryKey: ['goal']", "t('common.loading')", "t('goals.emptyTitle')", 'GoalsForm',
+  "queryKey: ['goal']", 'ScreenSkeleton', "t('goals.emptyTitle')", 'GoalsForm',
   "t('common.save')", "t('common.cancel')", 'useUnsavedChangesGuard', 'setValue(persistedValue)',
   "t('goals.savedMessage')", 'saveGoal'
 ], 'Goals');
@@ -116,7 +112,6 @@ assert(!onboardingLayout.includes('training-schedule'), 'Onboarding stack must n
 assertIncludes(onboardingNutrition, ['OnboardingStepShell', 'AppFeedbackSheet', 'ensureQueryData', "'/(onboarding)/training-next-step' as Href", "'/(tabs)/today' as Href", 'router.replace(nextRoute)'], 'Nutrition onboarding routing');
 assertIncludes(onboardingTrainingNextStep, [
   'OnboardingStepShell',
-  'SelectableCard',
   "t('onboarding.trainingEnabledTitle')",
   "t('onboarding.trainingOptionalMessage')",
   "t('onboarding.setUpWeeklyRoutine')",
@@ -124,22 +119,24 @@ assertIncludes(onboardingTrainingNextStep, [
   "router.replace('/(tabs)/training')",
   "router.replace('/(tabs)/today')"
 ], 'Optional training setup');
+assert(!onboardingTrainingNextStep.includes('SelectableCard'), 'Optional training setup must not duplicate footer actions with selectable cards.');
 assert(!onboardingProfile.includes('Alert.alert') && !onboardingGoal.includes('Alert.alert') && !onboardingNutrition.includes('Alert.alert'), 'Onboarding must use unified feedback instead of raw alerts.');
 
 const planDetails = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
-const planTabs = read('src/features/daily-plan/PlanContentTabs.tsx');
+const weeklyRoutine = read('app/weekly-routine.tsx');
+const trainingSetup = read('app/training-setup.tsx');
 const exerciseCard = read('src/features/daily-plan/ExerciseCard.tsx');
 const exerciseDetails = read('app/exercise-details.tsx');
 const mediaCarousel = read('src/features/daily-plan/ExerciseMediaCarousel.tsx');
 const exerciseApi = read('src/api/exercises.ts');
-assertIncludes(planDetails, ['PlanTabbedContent', "t('plan.recovery')", "t('plan.reminders')", 'ScreenHeader', 'SectionHeader', 'ContextNoteCard'], 'Plan Details');
+assertIncludes(planDetails, ['DailyTrainingPlanContent', "t('plan.recovery')", "t('plan.reminders')", 'ScreenHeader', 'SectionHeader', 'ContextNoteCard'], 'Plan Details');
 assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Recovery and reminders must remain shared outside plan tabs.');
-assertIncludes(planTabs, ['accessibilityRole="tab"', 'accessibilityState={{ selected }}', 'foodLabel', 'trainingLabel'], 'Plan content tabs');
 assertIncludes(planContent, [
-  "plan.nutrition.meals.length > 0 ? 'food'", "exercises.length > 0 ? 'training'", "useState<PlanContentTab>(defaultTab)",
-  "queryKey: ['exercise-summaries', locale, exerciseIds]", 'FoodContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
-], 'Plan tab content');
+  "queryKey: ['exercise-summaries', locale, exerciseIds]", 'DailyTrainingPlanContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
+], 'Daily training content');
+assert(!planContent.includes('onMealCheckIn'), 'Plan Details must not expose a second meal-tracking interaction.');
+assert(!planContent.includes('FoodContent') && !planContent.includes('PlanContentTabs'), 'Food belongs only to the Food tab.');
 assertIncludes(planContent, [
   'PreWorkoutCheckCard', "t('workout.preWorkoutCheck')", "t('workout.skipPreWorkoutCheck')",
   "submit('SKIPPED')", 'preWorkoutCheck'
@@ -162,7 +159,7 @@ assertIncludes(exerciseDetails, [
 assertIncludes(mediaCarousel, ['source={{ uri: urlOverrides[item.id] ?? getExerciseMediaDisplayUrl(item.url) }}', 'horizontal', 'pagingEnabled', 'aspectRatio: 4 / 5', 'resizeMode="contain"', 'available.length > 1', "available.length === 0"], 'Exercise media carousel');
 assert(!mediaCarousel.includes('autoplay') && !mediaCarousel.includes('infinite'), 'Exercise media must not autoplay or loop infinitely.');
 assertIncludes(exerciseApi, ['`/exercises?${params.toString()}`', 'ids: uniqueIds.join', '`/exercises/${encodeURIComponent(exerciseId)}`'], 'Exercise API client');
-for (const source of [planContent, planTabs, exerciseCard, exerciseDetails, mediaCarousel, exerciseApi]) {
+for (const source of [planContent, exerciseCard, exerciseDetails, mediaCarousel, exerciseApi]) {
   assert(!source.includes('generateDailyPlan'), 'Daily Plan content navigation must not regenerate a plan.');
   assert(!source.includes('daily-plans/generate'), 'Daily Plan content navigation must not call generation endpoints.');
   assert(!source.includes('openai'), 'Daily Plan content navigation must not call OpenAI.');
@@ -173,7 +170,7 @@ for (const [name, source] of [
 ]) {
   assert(!source.includes('generateDailyPlan'), `${name} must not regenerate the current plan.`);
   assert(!source.includes('daily-plans/generate'), `${name} must not call the generation endpoint.`);
-  assert(source.includes('isDraftDirty') || name === 'Goals', `${name} must use shared dirty comparison.`);
+  assert(source.includes('isDraftDirty') || name === 'Goals' || name === 'Training', `${name} must use shared dirty comparison when editing state exists.`);
 }
 
 const health = read('app/health-data.tsx');
@@ -247,13 +244,13 @@ assertIncludes(nativeHealthUtils, [
 ], 'Apple Health snapshot sanitization');
 
 const today = read('app/(tabs)/today.tsx');
-assertIncludes(today, ['ScreenHeader', 'StatusPill', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
-assertIncludes(today, [
-  'trainingLoadAgentSnapshot',
-  'getTrainingLoadReadinessLabel',
-  "t('trainingLoad.controlled')",
-  "t('trainingLoad.recoveryFocused')"
-], 'Today Training Load Agent guidance');
+assertIncludes(today, ['ScreenHeader', 'AppToast', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
+assert(!today.includes("t('today.safetyNote')"), 'Today must not render a contextless safety-status pill.');
+assert(today.includes('AppFeedbackSheet') && today.includes('limitSheetVisible'), 'Today usage limits must use a dismissible sheet, not permanent layout content.');
+assert(!today.includes('title={t(\'today.limitReached\')}\n          message={`${limitMessage}'), 'Today must not render a persistent usage-limit card.');
+const planImpactPrompt = read('src/features/plan-impact/PlanImpactPromptCard.tsx');
+assertIncludes(planImpactPrompt, ['BottomSheet', 'Plan impact is a time-sensitive decision', 'onUpdateToday', 'onFutureOnly'], 'Plan impact action sheet');
+assert(!planImpactPrompt.includes('import { Card }'), 'Plan impact must not render as a persistent card.');
 assertIncludes(today, [
   'DashboardProgressCard',
   'WearableSummaryCard',
@@ -261,6 +258,16 @@ assertIncludes(today, [
   'resolveTrainingProgress',
   'getHealthConnections'
 ], 'Today dashboard');
+const todayCoachIndex = today.indexOf('<AIRecommendationEntry');
+const todayWearableIndex = today.indexOf('<WearableSummaryCard');
+const todayWeightIndex = today.indexOf('<WeightProgressCard');
+const todayActionsIndex = today.indexOf("title={generate.isPending ? t('today.refreshing') : t('today.refresh')}");
+assert(
+  todayCoachIndex < todayWearableIndex &&
+    todayWearableIndex < todayWeightIndex &&
+    todayWeightIndex < todayActionsIndex,
+  'Today content priority must be AI Coach, wearable summary, weight, then plan actions.'
+);
 assert(!today.includes('UsageStatus'), 'Today must not render permanent usage/limit status.');
 assert(!today.includes('getUsageSummary'), 'Today must not fetch usage limits for always-visible dashboard text.');
 assert(!today.includes('NutritionTargetSummaryCard'), 'Today must not duplicate the nutrition target summary.');
@@ -298,6 +305,7 @@ assertIncludes(food, [
   'NutritionTargetSummaryCard',
   'MealProgressWidget',
   'PremiumMealCard',
+  'FallbackMealPlanCard',
   'AppFeedbackSheet',
   'AppToast',
   "t('food.emptyTitle')",
@@ -318,12 +326,12 @@ assertIncludes(mealDetails, [
 assert(!mealDetails.includes('Alert.alert'), 'Meal Details must use unified feedback sheets instead of raw alerts.');
 assertIncludes(training, [
   'ScreenHeader',
-  'TrainingStatusCard',
-  'TrainingLoadInsightCard',
-  'WeeklyRoutinePreviewCard',
-  'AppToast',
-  "t('schedule.weeklySchedule')"
-], 'Training polish');
+  'DailyTrainingPlanContent',
+  "queryKey: ['today-plan']",
+  "t('training.intro')"
+], 'Today Training workspace');
+assertIncludes(trainingSetup, ['TrainingSetupForm', 'PlanImpactPromptCard'], 'Training setup');
+assertIncludes(weeklyRoutine, ['WeeklyRoutinePreviewCard', "t('schedule.weeklySchedule')", 'PlanImpactPromptCard'], 'Weekly Routine settings');
 assert(!training.includes('Alert.alert'), 'Training tab must use unified feedback components instead of raw alerts.');
 const trainingOverrideEditor = read('app/training-overrides/day.tsx');
 assertIncludes(trainingOverrideEditor, [
@@ -349,10 +357,11 @@ assertIncludes(profile, [
   'AppToast',
   'AppFeedbackSheet',
   'PlanImpactPromptCard',
-  "router.push('/goal-editor')",
+  'GoalsForm',
   "router.push('/health-data')",
   "router.push('/(tabs)/food')",
-  "router.push('/(tabs)/training')",
+  "router.push('/training-setup' as never)",
+  "router.push('/weekly-routine' as never)",
   "router.push('/workout-history')",
   'useUnsavedChangesGuard',
   'setValue(savedValue)'

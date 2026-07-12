@@ -506,6 +506,7 @@ export const foodNutritionTotalsSchema = z.object({
 });
 
 export const foodIngredientSchema = foodNutritionTotalsSchema.extend({
+  catalogFoodSlug: z.string().trim().min(1).max(120).optional(),
   name: z.string().trim().min(1).max(120),
   quantity: z.number().positive().max(10000),
   unit: z.enum(['g', 'ml', 'piece', 'tbsp', 'tsp', 'cup', 'serving']),

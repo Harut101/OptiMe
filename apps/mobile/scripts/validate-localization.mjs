@@ -76,7 +76,7 @@ assert(!languageOptions.includes('es-419') && !languageOptions.includes('de-DE')
 const today = read('app/(tabs)/today.tsx');
 const details = read('app/plan-details.tsx');
 const planContent = read('src/features/daily-plan/PlanTabbedContent.tsx');
-assert(today.includes('plan.summary.title') && today.includes('plan.summary.message'), 'Today must render stored plan text directly.');
+assert(today.includes('plan.summary.message'), 'Today must render stored plan text directly.');
 assert(planContent.includes('exercise.name') && details.includes('plan.reminders.map'), 'Plan Details must render stored AI content directly.');
 assert(!today.includes("t(plan.summary") && !planContent.includes("t(exercise.name"), 'Stored AI content must not be passed through translation lookup.');
 

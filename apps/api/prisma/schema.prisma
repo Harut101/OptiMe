@@ -342,6 +342,22 @@ enum PreferredLocale {
   ZH_CN @map("zh-CN")
 }
 
+enum FoodCatalogSource {
+  CURATED
+  USDA_FDC
+}
+
+enum FoodCatalogCategory {
+  PROTEIN
+  GRAIN
+  LEGUME
+  VEGETABLE
+  FRUIT
+  DAIRY_OR_ALTERNATIVE
+  FAT
+  OTHER
+}
+
 enum MeasurementSystem {
   METRIC
   IMPERIAL
@@ -1054,4 +1070,41 @@ model ExerciseMediaTranslation {
 
   @@unique([exerciseMediaId, locale])
   @@index([locale])
+}
+
+model FoodCatalogItem {
+  id              String              @id @default(cuid())
+  slug            String              @unique
+  source          FoodCatalogSource   @default(CURATED)
+  sourceFoodId    String?
+  category        FoodCatalogCategory
+  caloriesPer100g Int
+  proteinPer100g  Decimal             @db.Decimal(7, 2)
+  carbsPer100g    Decimal             @db.Decimal(7, 2)
+  fatPer100g      Decimal             @db.Decimal(7, 2)
+  fiberPer100g    Decimal?            @db.Decimal(7, 2)
+  dietTypes       DietType[]          @default([])
+  isActive        Boolean             @default(true)
+  sortOrder       Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  translations    FoodCatalogTranslation[]
+
+  @@unique([source, sourceFoodId])
+  @@index([isActive, sortOrder, slug])
+  @@index([category, isActive])
+}
+
+model FoodCatalogTranslation {
+  id                String          @id @default(cuid())
+  foodCatalogItemId String
+  locale            PreferredLocale
+  name              String
+  aliases           String[]        @default([])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  foodCatalogItem   FoodCatalogItem @relation(fields: [foodCatalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([foodCatalogItemId, locale])
+  @@index([locale, name])
 }

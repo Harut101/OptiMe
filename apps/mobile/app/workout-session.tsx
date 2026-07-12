@@ -165,10 +165,9 @@ export default function WorkoutSessionScreen() {
 
       <WorkoutProgressHeader
         title={formatWorkoutFocus(data.summary, t)}
-        subtitle={[
-          formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage),
-          t('workout.startedAt', { time: formatWorkoutTime(data.startedAt, i18n.resolvedLanguage) })
-        ].join(' · ')}
+        subtitle={data.completedAt
+          ? t('workout.completedAt', { time: formatWorkoutTime(data.completedAt, i18n.resolvedLanguage) })
+          : t('workout.startedAt', { time: formatWorkoutTime(data.startedAt, i18n.resolvedLanguage) })}
         progressPercent={data.progressPercent}
         completedExercises={data.completedExerciseCount}
         totalExercises={data.plannedExerciseCount}
@@ -180,16 +179,6 @@ export default function WorkoutSessionScreen() {
         isCompleted={completed}
         isPartial={data.summary.isPartial}
       />
-
-      {data.completedAt ? (
-        <ContextNoteCard
-          title={t('workout.workoutSummary')}
-          message={t('workout.completedAt', { time: formatWorkoutTime(data.completedAt, i18n.resolvedLanguage) })}
-          tone={completed ? 'success' : 'neutral'}
-        />
-      ) : null}
-
-      <ContextNoteCard title={t('workout.safetyNote')} message={t('workout.safetyMessage')} tone="warning" />
 
       {data.trainingLoadAgentSnapshot ? (
         <TrainingLoadInsightCard
@@ -207,10 +196,6 @@ export default function WorkoutSessionScreen() {
           message={formatPreWorkoutCheck(data.preWorkoutCheck, t)}
           tone={data.preWorkoutCheck.readinessStatus === 'PAIN_OR_LIMITATION' ? 'warning' : 'neutral'}
         />
-      ) : null}
-
-      {completed ? (
-        <ContextNoteCard title={t('workout.readOnly')} message={t('workout.thisWorkoutCompleted')} />
       ) : null}
 
       {completed ? (

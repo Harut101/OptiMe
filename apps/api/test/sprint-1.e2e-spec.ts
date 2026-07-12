@@ -55,6 +55,7 @@ import { cleanupDatabase } from './helpers/cleanup';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
 import { seedExerciseCatalog } from '../prisma/seeds/exercises/seed';
+import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 
 describe('Sprint 1 backend vertical slice', () => {
   let ctx: TestApp;
@@ -73,6 +74,7 @@ describe('Sprint 1 backend vertical slice', () => {
     delete process.env.SAFETY_AGENT_PROVIDER;
     ctx = await createTestApp();
     await seedExerciseCatalog(ctx.prisma);
+    await seedFoodCatalog(ctx.prisma);
   });
 
   beforeEach(async () => {
@@ -3629,6 +3631,8 @@ describe('Sprint 1 backend vertical slice', () => {
       'Add variety and fiber, avoiding avocado.',
       'Choose vegetables, avoiding avocado.',
       'Avoid avocado.',
+      'Avoid foods with avocado as per your preference.',
+      'Avoid meals containing avocado.',
       'Without avocado.',
       'No avocado.',
       'Avocado-free option.',
@@ -7074,6 +7078,7 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
   const carbsGrams = numberOrDefault(fixedTarget.carbsGrams, 240);
   const fatGrams = numberOrDefault(fixedTarget.fatGrams, 65);
   const requestedMealsPerDay = Math.max(1, Math.min(5, numberOrDefault(context.requestedMealsPerDay, 3)));
+  const catalogIngredients = createMockCatalogIngredients(context, proteinGrams, carbsGrams, fatGrams);
   const mealTypes = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'POST_WORKOUT'];
   const meals = Array.from({ length: requestedMealsPerDay }, (_, index) => {
     const isLast = index === requestedMealsPerDay - 1;
@@ -7102,18 +7107,17 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
       fatGrams: fat,
       prepTimeMinutes: 15,
       servingSummary: '1 balanced serving',
-      ingredients: [
-        {
-          name: `Lean protein ${index + 1}`,
-          quantity: 1,
-          unit: 'serving',
-          caloriesKcal: calories,
-          proteinGrams: protein,
-          carbsGrams: carbs,
-          fatGrams: fat,
-          isOptional: false
-        }
-      ],
+      ingredients: catalogIngredients.map((ingredient) => ({
+        catalogFoodSlug: ingredient.slug,
+        name: ingredient.name,
+        quantity: splitMockQuantity(ingredient.quantity, index, requestedMealsPerDay),
+        unit: 'g',
+        caloriesKcal: calories,
+        proteinGrams: protein,
+        carbsGrams: carbs,
+        fatGrams: fat,
+        isOptional: false
+      })),
       preparationSteps: ['Combine the ingredients and season simply.'],
       substitutions: [
         {
@@ -7142,6 +7146,51 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
       meals
     })
   };
+}
+
+function createMockCatalogIngredients(
+  context: Record<string, unknown>,
+  targetProtein: number,
+  targetCarbs: number,
+  targetFat: number
+) {
+  const foods = Array.isArray(context.allowedCatalogFoods)
+    ? context.allowedCatalogFoods.filter(isRecord)
+    : [];
+  const bySlug = new Map(foods.map((food) => [String(food.slug), food]));
+  const protein = bySlug.get('chicken-breast-cooked') ?? bySlug.get('firm-tofu');
+  const carb = bySlug.get('brown-rice-cooked') ?? bySlug.get('quinoa-cooked');
+  const fat = bySlug.get('olive-oil') ?? bySlug.get('avocado');
+
+  if (!protein || !carb || !fat) {
+    throw new Error('OpenAI nutrition mock requires seeded catalog food candidates.');
+  }
+
+  const carbGrams = targetCarbs / numberOrDefault(carb.carbsPer100g, 1) * 100;
+  const carbProtein = carbGrams / 100 * numberOrDefault(carb.proteinPer100g, 0);
+  const proteinGrams = Math.max(
+    5,
+    (targetProtein - carbProtein) / numberOrDefault(protein.proteinPer100g, 1) * 100
+  );
+  const remainingFat = Math.max(
+    1,
+    targetFat
+      - proteinGrams / 100 * numberOrDefault(protein.fatPer100g, 0)
+      - carbGrams / 100 * numberOrDefault(carb.fatPer100g, 0)
+  );
+  const fatGrams = remainingFat / numberOrDefault(fat.fatPer100g, 1) * 100;
+
+  return [
+    { slug: String(protein.slug), name: String(protein.name), quantity: proteinGrams },
+    { slug: String(carb.slug), name: String(carb.name), quantity: carbGrams },
+    { slug: String(fat.slug), name: String(fat.name), quantity: fatGrams }
+  ];
+}
+
+function splitMockQuantity(total: number, index: number, count: number) {
+  const base = Math.round(total / count * 10) / 10;
+  if (index < count - 1) return Math.max(0.1, base);
+  return Math.max(0.1, Math.round((total - base * (count - 1)) * 10) / 10);
 }
 
 function parseJsonRecord(value: unknown): Record<string, unknown> {

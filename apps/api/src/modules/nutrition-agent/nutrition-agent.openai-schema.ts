@@ -14,6 +14,7 @@ const ingredientSchema = {
   type: 'object',
   additionalProperties: false,
   required: [
+    'catalogFoodSlug',
     'name',
     'quantity',
     'unit',
@@ -24,13 +25,17 @@ const ingredientSchema = {
     'isOptional'
   ],
   properties: {
+    catalogFoodSlug: {
+      type: 'string',
+      description: 'One allowed catalog food slug from the planning context. Never invent a slug.'
+    },
     name: {
       type: 'string',
       description:
         'Clean ingredient name only. Never include allergies/excluded foods or parenthetical restriction text.'
     },
     quantity: { type: 'number', minimum: 0.01, maximum: 10000 },
-    unit: { type: 'string', enum: ['g', 'ml', 'piece', 'tbsp', 'tsp', 'cup', 'serving'] },
+    unit: { type: 'string', enum: ['g'] },
     caloriesKcal: { type: 'integer', minimum: 0, maximum: 10000 },
     proteinGrams: { type: 'number', minimum: 0, maximum: 1000 },
     carbsGrams: { type: 'number', minimum: 0, maximum: 1500 },

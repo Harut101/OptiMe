@@ -8,12 +8,14 @@ import type { TFunction } from 'i18next';
 import { generateTodayPlan } from '@/api/daily-plans';
 import {
   createMockWearableSnapshot,
+  deleteHealthData,
   getHealthConnections,
   getTodayWearableSnapshot,
   updateHealthConnectionStatus
 } from '@/api/health';
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { HealthMetricWidget } from '@/components/HealthMetricWidget';
@@ -47,6 +49,7 @@ export default function HealthDataScreen() {
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [deleteSource, setDeleteSource] = useState<HealthProvider | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const connections = useQuery({
@@ -103,6 +106,18 @@ export default function HealthDataScreen() {
       setActionMessage(t('health.syncError'));
     }
   });
+  const deleteSyncedData = useMutation({
+    mutationFn: (source: HealthProvider) => deleteHealthData({ provider: source }),
+    onSuccess: async (result) => {
+      await refreshHealthQueries(queryClient);
+      setDeleteSource(null);
+      setActionMessage(t('health.deletedCount', { count: result.summaryCountDeleted }));
+    },
+    onError: () => {
+      setDeleteSource(null);
+      setActionMessage(t('health.syncError'));
+    }
+  });
   const regenerateTodayPlan = useMutation({
     mutationFn: () => generateTodayPlan(true),
     onSuccess: async (data) => {
@@ -122,26 +137,6 @@ export default function HealthDataScreen() {
       );
     }
   });
-  const connectedSources = connections.data?.connections.filter((item) => item.status === 'CONNECTED') ?? [];
-  const hasConnectedSource = connectedSources.length > 0;
-  const hasConnectedMockSource = connectedSources.some((item) => item.source === 'MOCK');
-  const handleSync = () => {
-    if (!hasConnectedSource) {
-      setActionMessage(`${t('health.noConnectedSource')} ${t('health.connectSourceToSync')}`);
-      return;
-    }
-
-    if (__DEV__ && hasConnectedMockSource) {
-      mockSnapshot.mutate();
-      return;
-    }
-
-    setActionMessage(t('health.nativeBuildHelp'));
-  };
-  const handleFoundationAction = () => {
-    setActionMessage(`${t('health.noConnectedSource')} ${t('health.connectSourceToSync')}`);
-  };
-
   if (connections.isLoading) {
     return <HealthConnectionsSkeleton />;
   }
@@ -161,13 +156,16 @@ export default function HealthDataScreen() {
           onConnect={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
           onSync={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
           onDisconnect={source === 'APPLE_HEALTH' ? () => appleHealthDisconnect.mutate() : undefined}
+          onDelete={source === 'APPLE_HEALTH' ? () => setDeleteSource(source) : undefined}
           locale={preferredLocale}
           isActionPending={
             source === 'APPLE_HEALTH' &&
-            (appleHealthSync.isPending || appleHealthDisconnect.isPending)
+            (appleHealthSync.isPending || appleHealthDisconnect.isPending || deleteSyncedData.isPending)
           }
         />
       ))}
+
+      {actionMessage ? <ContextNoteCard title={t('health.status')} message={actionMessage} /> : null}
 
       <WearableSnapshotCard
         snapshot={snapshot.data}
@@ -186,34 +184,6 @@ export default function HealthDataScreen() {
           setActionMessage(t('planImpact.futureOnlySaved'));
         }}
       />
-
-      <Card>
-        <Text variant="label">{t('health.manage')}</Text>
-        <Text variant="muted">{t('health.syncHelp')}</Text>
-        <View style={styles.actionRow}>
-          <Button
-            title={mockSnapshot.isPending ? t('health.syncing') : t('health.sync')}
-            disabled={mockSnapshot.isPending}
-            accessibilityLabel={t('health.sync')}
-            onPress={handleSync}
-            style={styles.actionButton}
-          />
-          <Button
-            title={t('health.disconnect')}
-            variant="secondary"
-            accessibilityLabel={t('health.disconnect')}
-            onPress={handleFoundationAction}
-            style={styles.actionButton}
-          />
-        </View>
-        <Button
-          title={t('health.deleteData')}
-          variant="ghost"
-          accessibilityLabel={t('health.deleteData')}
-          onPress={handleFoundationAction}
-        />
-        {actionMessage ? <ContextNoteCard title={t('health.status')} message={actionMessage} /> : null}
-      </Card>
 
       {__DEV__ ? (
         <Card>
@@ -237,6 +207,29 @@ export default function HealthDataScreen() {
       {connections.isError ? (
         <ContextNoteCard title={t('health.unavailable')} message={t('errors.unableLoad')} tone="warning" />
       ) : null}
+      <AppFeedbackSheet
+        visible={deleteSource !== null}
+        title={t('health.deleteConfirm')}
+        message={t('health.actionCannotUndo')}
+        tone="danger"
+        onClose={() => setDeleteSource(null)}
+        actions={[
+          {
+            label: deleteSyncedData.isPending ? t('health.deleting') : t('health.deleteData'),
+            variant: 'danger',
+            disabled: deleteSyncedData.isPending,
+            onPress: () => {
+              if (deleteSource) deleteSyncedData.mutate(deleteSource);
+            }
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            disabled: deleteSyncedData.isPending,
+            onPress: () => setDeleteSource(null)
+          }
+        ]}
+      />
     </Screen>
   );
 
@@ -285,6 +278,7 @@ function ConnectionCard({
   onConnect,
   onSync,
   onDisconnect,
+  onDelete,
   locale,
   isActionPending = false
 }: {
@@ -293,6 +287,7 @@ function ConnectionCard({
   onConnect?: () => void;
   onSync?: () => void;
   onDisconnect?: () => void;
+  onDelete?: () => void;
   locale: string;
   isActionPending?: boolean;
 }) {
@@ -333,7 +328,7 @@ function ConnectionCard({
               />
             ) : (
               <Button
-                title={isActionPending ? t('health.syncing') : t('health.syncAppleHealth')}
+                title={isActionPending ? t('health.syncing') : t('health.sync')}
                 disabled={isActionPending}
                 accessibilityLabel={t('health.syncAppleHealth')}
                 onPress={onSync}
@@ -341,14 +336,24 @@ function ConnectionCard({
               />
             )}
             {isConnected ? (
-              <Button
-                title={t('health.disconnect')}
-                variant="secondary"
-                disabled={isActionPending}
-                accessibilityLabel={t('health.disconnectAppleHealth')}
-                onPress={onDisconnect}
-                style={styles.actionButton}
-              />
+              <>
+                <Button
+                  title={t('health.disconnect')}
+                  variant="secondary"
+                  disabled={isActionPending}
+                  accessibilityLabel={t('health.disconnectAppleHealth')}
+                  onPress={onDisconnect}
+                  style={styles.actionButton}
+                />
+                <Button
+                  title={t('health.deleteData')}
+                  variant="ghost"
+                  disabled={isActionPending}
+                  accessibilityLabel={t('health.deleteData')}
+                  onPress={onDelete}
+                  style={styles.actionButton}
+                />
+              </>
             ) : null}
           </View>
         </>

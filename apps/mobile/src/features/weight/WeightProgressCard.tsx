@@ -142,15 +142,13 @@ function TargetArrow({
   color: string;
   mutedColor: string;
 }) {
-  if (relation === 'above') {
-    return <ArrowUp size={18} color={color} strokeWidth={3} />;
-  }
+  const icon = relation === 'above'
+    ? <ArrowUp size={18} color={color} strokeWidth={3} />
+    : relation === 'below'
+      ? <ArrowDown size={18} color={color} strokeWidth={3} />
+      : <Minus size={18} color={mutedColor} strokeWidth={3} />;
 
-  if (relation === 'below') {
-    return <ArrowDown size={18} color={color} strokeWidth={3} />;
-  }
-
-  return <Minus size={18} color={mutedColor} strokeWidth={3} />;
+  return <View style={styles.targetArrow}>{icon}</View>;
 }
 
 function getTargetRelation(currentWeightKg: number | null, targetWeightKg: number | null) {
@@ -243,6 +241,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     paddingBottom: 8
+  },
+  targetArrow: {
+    marginBottom: 12
   },
   supportingText: {
     fontSize: 15,

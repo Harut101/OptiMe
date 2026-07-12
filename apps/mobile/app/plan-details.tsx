@@ -1,17 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { resolveSupportedLocale } from '@optime/shared-types';
 
-import {
-  getDailyPlanCheckIns,
-  getTodayPlan,
-  submitDailyPlanCheckIn,
-  submitDailyPlanFeedback
-} from '@/api/daily-plans';
+import { getTodayPlan, submitDailyPlanFeedback } from '@/api/daily-plans';
 import { Button } from '@/components/Button';
+import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
@@ -22,7 +18,7 @@ import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
-import { PlanTabbedContent } from '@/features/daily-plan/PlanTabbedContent';
+import { DailyTrainingPlanContent } from '@/features/daily-plan/PlanTabbedContent';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
 import { colors } from '@/theme/colors';
 import type {
@@ -32,44 +28,14 @@ import type {
 
 export default function PlanDetailsScreen() {
   const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
   const [rating, setRating] = useState<PlanFeedbackRating | null>(null);
   const [selectedTags, setSelectedTags] = useState<PlanFeedbackTag[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
+  const [feedbackErrorVisible, setFeedbackErrorVisible] = useState(false);
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
-  });
-  const checkIns = useQuery({
-    queryKey: ['daily-plan-check-ins', today.data?.id],
-    queryFn: () => getDailyPlanCheckIns(today.data!.id),
-    enabled: Boolean(today.data?.id)
-  });
-  const checkIn = useMutation({
-    mutationFn: ({
-      dailyPlanId,
-      body
-    }: {
-      dailyPlanId: string;
-      body: Parameters<typeof submitDailyPlanCheckIn>[1];
-    }) => submitDailyPlanCheckIn(dailyPlanId, body),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ['daily-plan-check-ins', today.data?.id] });
-      const payload = variables.body.payload;
-      const reportedPain =
-        variables.body.type === 'TRAINING' &&
-        'painOrDiscomfort' in payload &&
-        payload.painOrDiscomfort;
-
-      setCheckInMessage(
-        reportedPain
-          ? t('plan.painThanks')
-          : t('plan.checkInThanks')
-      );
-    },
-    onError: () => Alert.alert(t('plan.checkInFailed'), `${t('errors.unableSave')}\n\n${t('plan.planStillHere')}`)
   });
   const feedback = useMutation({
     mutationFn: () => {
@@ -83,24 +49,19 @@ export default function PlanDetailsScreen() {
       });
     },
     onSuccess: () => setFeedbackMessage(t('plan.feedbackThanks')),
-    onError: () => Alert.alert(t('plan.feedbackFailed'), t('errors.unableSave'))
+    onError: () => setFeedbackErrorVisible(true)
   });
   const handleRefresh = async () => {
-    const refreshedToday = await today.refetch();
-    const planId = refreshedToday.data?.id ?? today.data?.id;
-
-    if (planId) {
-      await queryClient.refetchQueries({ queryKey: ['daily-plan-check-ins', planId], type: 'active' });
-    }
+    await today.refetch();
   };
-  const refreshing = today.isRefetching || checkIns.isRefetching;
+  const refreshing = today.isRefetching;
 
   if (today.isLoading) {
     return <ScreenSkeleton variant="detail" cardCount={4} />;
   }
 
   const plan = today.data?.plan;
-  const safetyMessage = getPlanSafetyMessage(today.data);
+  const safetyMessage = getPlanSafetyMessage(today.data, t);
 
   if (!plan) {
     return (
@@ -121,30 +82,12 @@ export default function PlanDetailsScreen() {
         <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
       ) : null}
 
-      <PlanTabbedContent
+      <DailyTrainingPlanContent
         planId={today.data!.id}
         plan={plan}
-        checkIns={checkIns.data?.items}
-        checkInPending={checkIn.isPending}
         locale={locale}
         t={t}
-        onMealCheckIn={(mealIndex, mealName, status) => checkIn.mutate({
-          dailyPlanId: today.data!.id,
-          body: { type: 'MEAL', payload: { mealIndex, mealName, status } }
-        })}
-        onTrainingCheckIn={(status, painOrDiscomfort) => checkIn.mutate({
-          dailyPlanId: today.data!.id,
-          body: {
-            type: 'TRAINING',
-            payload: {
-              status,
-              ...(painOrDiscomfort ? { painOrDiscomfort: true, notes: 'Pain or discomfort reported.' } : {})
-            }
-          }
-        })}
       />
-
-      {checkInMessage ? <ContextNoteCard title={t('common.saved')} message={checkInMessage} tone="success" /> : null}
 
       {plan.contextNotes?.trainingLoad ? (
         <ContextNoteCard
@@ -225,6 +168,20 @@ export default function PlanDetailsScreen() {
           }}
         />
       </BottomSheet>
+      <AppFeedbackSheet
+        visible={feedbackErrorVisible}
+        title={t('plan.feedbackFailed')}
+        message={t('errors.unableSave')}
+        tone="warning"
+        onClose={() => setFeedbackErrorVisible(false)}
+        actions={[
+          {
+            label: t('common.close'),
+            variant: 'secondary',
+            onPress: () => setFeedbackErrorVisible(false)
+          }
+        ]}
+      />
     </Screen>
   );
 }

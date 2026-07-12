@@ -992,6 +992,7 @@ export interface FoodNutritionTotals {
 }
 
 export interface FoodIngredient extends FoodNutritionTotals {
+  catalogFoodSlug?: string;
   name: string;
   quantity: number;
   unit: FoodIngredientUnit;
