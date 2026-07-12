@@ -108,7 +108,14 @@ export class FoodCatalogService {
 }
 
 function sameFood(candidate: string, restriction: string) {
-  return normalizeFoodName(candidate) === restriction;
+  const normalizedCandidate = normalizeFoodName(candidate);
+  if (normalizedCandidate === restriction) return true;
+
+  // Users usually enter a base food name (for example, "couscous"), while
+  // catalog labels may include a preparation qualifier such as "Cooked couscous".
+  return normalizedCandidate.split(' ').some((_, index, words) => (
+    words.slice(index, index + restriction.split(' ').length).join(' ') === restriction
+  ));
 }
 
 function roundDecimal(value: number) {

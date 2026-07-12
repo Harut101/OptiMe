@@ -1,5 +1,6 @@
 import { DietType, FoodCatalogCategory, FoodRestrictionTag } from '@prisma/client';
 
+import { foodCatalogExpansion } from './catalog-expansion';
 import type { SeedFoodCatalogItem } from './types';
 
 function translations(
@@ -31,7 +32,7 @@ const VEGETARIAN = [
   DietType.MEDITERRANEAN
 ];
 
-export const foodCatalog: SeedFoodCatalogItem[] = [
+const coreFoodCatalog: SeedFoodCatalogItem[] = [
   {
     slug: 'rolled-oats', category: FoodCatalogCategory.GRAIN, caloriesPer100g: 379,
     proteinPer100g: 13.2, carbsPer100g: 67.7, fatPer100g: 6.5, fiberPer100g: 10.1,
@@ -177,3 +178,5 @@ export const foodCatalog: SeedFoodCatalogItem[] = [
     translations: translations(['Almonds', 'almond'], ['Миндаль'], ['Amandes', 'amande'], ['杏仁'])
   }
 ];
+
+export const foodCatalog: SeedFoodCatalogItem[] = [...coreFoodCatalog, ...foodCatalogExpansion];

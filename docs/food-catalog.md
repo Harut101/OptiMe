@@ -8,7 +8,7 @@ The catalog does not replace AI. The Nutrition Agent will eventually select prac
 
 ## Current batch
 
-The first batch adds a curated generic-food catalog with 24 commonly used foods and translations for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
+The current curated generic-food catalog contains 80 commonly available foods and translations for `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`.
 
 It includes:
 
@@ -26,7 +26,7 @@ Before an AI request or deterministic fallback is composed, FoodCatalogService m
 
 This is an additional hard filter; deterministic SafetyService still remains the authority for validating the final plan. Unknown or ambiguous user-entered restrictions are not silently treated as safe catalog matches.
 
-The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. Existing legacy plans remain readable because `catalogFoodSlug` is optional in the shared plan contract.
+The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. The fallback templates rotate allowed proteins, grains, vegetables, fruits, and fats deterministically by local date, so they provide practical variation without relying on model arithmetic. Existing legacy plans remain readable because `catalogFoodSlug` is optional in the shared plan contract.
 
 ## Current generation behavior
 
@@ -55,7 +55,6 @@ After applying the Prisma migration and generating Prisma Client:
 
 ## Next implementation steps
 
-1. Add richer allergen tags and synonym mapping for catalog safety filters.
-2. Add section-level provenance to distinguish AI and deterministic food sections without exposing technical internals in the mobile UI.
-3. Treat a failed food section as a section-level safe adjustment, not a missing daily plan.
-4. Add a controlled USDA import pipeline after the catalog-backed daily-plan loop is stable.
+1. Add curated recipe-template metadata only when it is needed for a user-visible recipe experience.
+2. Add a controlled USDA import pipeline after the catalog-backed daily-plan loop is stable.
+3. Add branded products, barcode lookup, and user-created recipes only after source and licensing review.

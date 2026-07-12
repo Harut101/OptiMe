@@ -4,14 +4,14 @@
 
 Every generation returns a complete safe daily plan. AI improves variety and explanations, while OptiMe owns nutrition calculations, dietary restrictions, and recovery behavior.
 
-## Phase 1: Catalog foundation - in progress
+## Phase 1: Catalog foundation - complete
 
 - FoodCatalogItem and FoodCatalogTranslation Prisma models.
 - Curated generic food seed with source provenance.
 - Four supported locales and aliases.
 - Safe candidate filtering and per-100 g nutrition calculation.
 
-Exit criteria: migration applies, catalog validates, and the seed is repeatable.
+Exit criteria: migration applies, catalog validates, and the seed is repeatable. Met with 80 curated generic foods and 320 localized translation rows.
 
 ## Phase 2: Catalog-backed deterministic meals - complete
 
@@ -48,10 +48,19 @@ Exit criteria: one malformed AI section never removes the user's full plan. Met:
 - Multilingual synonym mapping filters tagged foods before the AI receives candidates.
 - Final deterministic SafetyService validation remains in place after generation.
 
+## Phase 5: Curated variety and deterministic recipe templates - complete
+
+- Expanded the generic catalog from 24 to 80 commonly available foods.
+- Added new tagged dairy, fish, shellfish, soy, peanut, tree-nut, sesame, wheat, and gluten entries.
+- Expanded fallback templates across standard, pescatarian, vegetarian, vegan, and low-carb patterns.
+- Rotate allowed alternatives deterministically by plan local date while keeping all nutrition calculations backend-owned.
+
+Exit criteria: safe fallback plans can use a broader catalog without random choices, free-text food invention, or bypassing restrictions. Met.
+
 ## Deferred
 
 - Branded products and barcode lookup.
-- Recipe imports and user-created recipes.
+- User-created recipes and recipe imports.
 - Food photo recognition.
 - Full USDA import pipeline and scheduled source updates.
 - Regional retail product coverage.

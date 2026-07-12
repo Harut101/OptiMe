@@ -47,9 +47,14 @@ export class CatalogFallbackFoodPlanService {
       getRecipes(input.nutritionPreference?.dietType),
       input.nutritionPreference?.mealsPerDay
     );
+    const variationOffset = getVariationOffset(input.planLocalDate);
     const baseCalories = recipes.reduce(
-      (sum, recipe) => sum + recipe.ingredients.reduce((mealSum, ingredient) => {
-        const candidate = firstAvailable(ingredient.alternatives, bySlug);
+      (sum, recipe, recipeIndex) => sum + recipe.ingredients.reduce((mealSum, ingredient, ingredientIndex) => {
+        const candidate = firstAvailable(
+          ingredient.alternatives,
+          bySlug,
+          variationOffset + recipeIndex + ingredientIndex
+        );
         return mealSum + (candidate ? candidate.caloriesPer100g * ingredient.grams / 100 : 0);
       }, 0),
       0
@@ -60,7 +65,14 @@ export class CatalogFallbackFoodPlanService {
     }
 
     const scale = clamp(input.nutritionTarget.calories.targetKcal / baseCalories, 0.6, 2.4);
-    const meals = recipes.map((recipe, index) => this.createMeal(recipe, index, bySlug, scale, input.locale));
+    const meals = recipes.map((recipe, index) => this.createMeal(
+      recipe,
+      index,
+      bySlug,
+      scale,
+      input.locale,
+      variationOffset
+    ));
 
     if (meals.some((meal) => meal.ingredients.length === 0)) {
       return null;
@@ -92,10 +104,15 @@ export class CatalogFallbackFoodPlanService {
     index: number,
     candidates: Map<string, FoodCatalogCandidate>,
     scale: number,
-    locale: NutritionAgentInput['locale']
+    locale: NutritionAgentInput['locale'],
+    variationOffset: number
   ): FoodMeal {
-    const ingredients = recipe.ingredients.flatMap((template) => {
-      const candidate = firstAvailable(template.alternatives, candidates);
+    const ingredients = recipe.ingredients.flatMap((template, ingredientIndex) => {
+      const candidate = firstAvailable(
+        template.alternatives,
+        candidates,
+        variationOffset + index + ingredientIndex
+      );
       if (!candidate) return [];
       const quantity = roundToFive(template.grams * scale);
       const nutrition = this.foodCatalog.calculateNutrition(candidate, quantity);
@@ -163,8 +180,8 @@ function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeT
   const snack: RecipeTemplate = {
     mealType: 'SNACK',
     ingredients: [
-      { alternatives: ['banana', 'apple', 'mixed-berries'], grams: 110 },
-      { alternatives: ['greek-yogurt-plain', 'firm-tofu', 'almonds'], grams: 90 }
+      { alternatives: ['banana', 'apple', 'orange', 'pear', 'mixed-berries', 'strawberries'], grams: 110 },
+      { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu', 'hummus', 'almonds', 'pumpkin-seeds'], grams: 90 }
     ]
   };
   return [...recipes, ...Array.from({ length: count - 3 }, () => snack)];
@@ -172,21 +189,21 @@ function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeT
 
 const standardRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['rolled-oats'], grams: 70 },
-    { alternatives: ['greek-yogurt-plain', 'egg'], grams: 200 },
-    { alternatives: ['mixed-berries', 'banana', 'apple'], grams: 120 }
+    { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 70 },
+    { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'egg', 'firm-tofu'], grams: 200 },
+    { alternatives: ['mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries'], grams: 120 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['chicken-breast-cooked', 'firm-tofu', 'lentils-cooked'], grams: 190 },
-    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'baked-potato'], grams: 220 },
-    { alternatives: ['broccoli-cooked', 'carrot', 'spinach'], grams: 150 },
+    { alternatives: ['chicken-breast-cooked', 'turkey-breast-cooked', 'lean-beef-cooked', 'firm-tofu', 'lentils-cooked', 'black-beans-cooked'], grams: 190 },
+    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 220 },
+    { alternatives: ['broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked'], grams: 150 },
     { alternatives: ['olive-oil', 'avocado'], grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['salmon-cooked', 'chicken-breast-cooked', 'firm-tofu'], grams: 170 },
-    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'baked-potato'], grams: 190 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked'], grams: 120 },
-    { alternatives: ['tomato', 'cucumber', 'carrot'], grams: 100 },
+    { alternatives: ['salmon-cooked', 'cod-cooked', 'shrimp-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu'], grams: 170 },
+    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 190 },
+    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked'], grams: 120 },
+    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked'], grams: 100 },
     { alternatives: ['olive-oil', 'avocado'], grams: 10 }
   ] }
 ];
@@ -194,7 +211,7 @@ const standardRecipes: RecipeTemplate[] = [
 const pescatarianRecipes: RecipeTemplate[] = [
   standardRecipes[0],
   { ...standardRecipes[1], ingredients: [
-    { alternatives: ['salmon-cooked', 'firm-tofu', 'lentils-cooked'], grams: 180 },
+    { alternatives: ['salmon-cooked', 'cod-cooked', 'shrimp-cooked', 'canned-tuna-in-water', 'firm-tofu', 'lentils-cooked'], grams: 180 },
     ...standardRecipes[1].ingredients.slice(1)
   ] },
   standardRecipes[2]
@@ -203,57 +220,68 @@ const pescatarianRecipes: RecipeTemplate[] = [
 const vegetarianRecipes: RecipeTemplate[] = [
   standardRecipes[0],
   { ...standardRecipes[1], ingredients: [
-    { alternatives: ['lentils-cooked', 'firm-tofu', 'egg'], grams: 210 },
+    { alternatives: ['lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'egg', 'cottage-cheese'], grams: 210 },
     ...standardRecipes[1].ingredients.slice(1)
   ] },
   { ...standardRecipes[2], ingredients: [
-    { alternatives: ['firm-tofu', 'lentils-cooked', 'egg'], grams: 190 },
+    { alternatives: ['firm-tofu', 'tempeh', 'lentils-cooked', 'chickpeas-cooked', 'egg', 'cottage-cheese'], grams: 190 },
     ...standardRecipes[2].ingredients.slice(1)
   ] }
 ];
 
 const veganRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['rolled-oats'], grams: 75 },
-    { alternatives: ['firm-tofu', 'chickpeas-cooked'], grams: 170 },
-    { alternatives: ['mixed-berries', 'banana', 'apple'], grams: 130 }
+    { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 75 },
+    { alternatives: ['firm-tofu', 'tempeh', 'chickpeas-cooked', 'black-beans-cooked'], grams: 170 },
+    { alternatives: ['mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries'], grams: 130 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['lentils-cooked', 'chickpeas-cooked', 'firm-tofu'], grams: 230 },
-    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'baked-potato'], grams: 200 },
-    { alternatives: ['broccoli-cooked', 'carrot', 'spinach'], grams: 160 },
+    { alternatives: ['lentils-cooked', 'chickpeas-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh'], grams: 230 },
+    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 200 },
+    { alternatives: ['broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked'], grams: 160 },
     { alternatives: ['olive-oil', 'avocado'], grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['chickpeas-cooked', 'lentils-cooked', 'firm-tofu'], grams: 210 },
-    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'baked-potato'], grams: 180 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked'], grams: 130 },
-    { alternatives: ['tomato', 'cucumber', 'carrot'], grams: 100 },
+    { alternatives: ['chickpeas-cooked', 'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh'], grams: 210 },
+    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 180 },
+    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked'], grams: 130 },
+    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked'], grams: 100 },
     { alternatives: ['olive-oil', 'avocado'], grams: 10 }
   ] }
 ];
 
 const lowCarbRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['egg', 'firm-tofu'], grams: 150 },
-    { alternatives: ['greek-yogurt-plain', 'firm-tofu'], grams: 180 },
-    { alternatives: ['avocado', 'olive-oil'], grams: 70 }
+    { alternatives: ['egg', 'firm-tofu', 'tempeh', 'cottage-cheese'], grams: 150 },
+    { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu'], grams: 180 },
+    { alternatives: ['avocado', 'olive-oil', 'walnuts', 'pumpkin-seeds'], grams: 70 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['chicken-breast-cooked', 'firm-tofu', 'salmon-cooked'], grams: 210 },
-    { alternatives: ['broccoli-cooked', 'spinach', 'mixed-salad-greens'], grams: 220 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 20 }
+    { alternatives: ['chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh', 'salmon-cooked', 'cod-cooked'], grams: 210 },
+    { alternatives: ['broccoli-cooked', 'spinach', 'mixed-salad-greens', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked'], grams: 220 },
+    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds'], grams: 20 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['salmon-cooked', 'chicken-breast-cooked', 'firm-tofu'], grams: 200 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked'], grams: 180 },
-    { alternatives: ['tomato', 'cucumber', 'carrot'], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 18 }
+    { alternatives: ['salmon-cooked', 'cod-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh'], grams: 200 },
+    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked'], grams: 180 },
+    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'mushrooms-cooked'], grams: 100 },
+    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds'], grams: 18 }
   ] }
 ];
 
-function firstAvailable(alternatives: string[], candidates: Map<string, FoodCatalogCandidate>) {
-  return alternatives.map((slug) => candidates.get(slug)).find((candidate): candidate is FoodCatalogCandidate => Boolean(candidate));
+function firstAvailable(
+  alternatives: string[],
+  candidates: Map<string, FoodCatalogCandidate>,
+  variationOffset = 0
+) {
+  return alternatives
+    .map((_, index) => alternatives[(index + variationOffset) % alternatives.length])
+    .map((slug) => candidates.get(slug))
+    .find((candidate): candidate is FoodCatalogCandidate => Boolean(candidate));
+}
+
+function getVariationOffset(planLocalDate: string) {
+  return [...planLocalDate].reduce((sum, character) => sum + character.charCodeAt(0), 0);
 }
 
 function sumNutrition(items: Array<FoodNutritionTotals>) {

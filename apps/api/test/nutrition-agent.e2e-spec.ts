@@ -6,6 +6,7 @@ import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/c
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import type { NutritionAgentInput } from '../src/modules/nutrition-agent/nutrition-agent.types';
 import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
+import { foodCatalog } from '../prisma/seeds/foods/catalog';
 import { SafetyService } from '../src/modules/safety/safety.service';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 import { cleanupDatabase } from './helpers/cleanup';
@@ -34,6 +35,29 @@ describe('Specialized Nutrition Agent food plans', () => {
     } else {
       delete process.env.AI_PROVIDER;
     }
+  });
+
+  it('ships an expanded curated catalog and filters tagged foods before planning', async () => {
+    expect(foodCatalog).toHaveLength(80);
+
+    const service = ctx.app.get(FoodCatalogService);
+    const candidates = await service.listAllowedCandidates({
+      locale: 'en-US',
+      dietType: 'VEGAN',
+      restrictions: {
+        allergies: ['soy', 'sesame'],
+        excludedFoods: ['couscous']
+      }
+    });
+    const slugs = candidates.map((candidate) => candidate.slug);
+
+    expect(slugs).toContain('black-beans-cooked');
+    expect(slugs).toContain('sweet-potato-baked');
+    expect(slugs).not.toContain('tempeh');
+    expect(slugs).not.toContain('edamame-cooked');
+    expect(slugs).not.toContain('unsweetened-soy-milk');
+    expect(slugs).not.toContain('tahini');
+    expect(slugs).not.toContain('couscous-cooked');
   });
 
   it('stores a structured foodPlan inside generated DailyPlanJson', async () => {

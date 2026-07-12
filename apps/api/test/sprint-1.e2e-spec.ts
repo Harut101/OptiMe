@@ -75,7 +75,7 @@ describe('Sprint 1 backend vertical slice', () => {
     ctx = await createTestApp();
     await seedExerciseCatalog(ctx.prisma);
     await seedFoodCatalog(ctx.prisma);
-  });
+  }, 30_000);
 
   beforeEach(async () => {
     await cleanupDatabase(ctx.prisma);
