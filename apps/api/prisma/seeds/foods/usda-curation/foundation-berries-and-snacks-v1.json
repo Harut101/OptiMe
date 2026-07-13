@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "2346410",
+      "category": "FRUIT",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Raspberries", "aliases": ["raspberry"] },
+        "ru-RU": { "name": "\u041c\u0430\u043b\u0438\u043d\u0430", "aliases": ["\u043c\u0430\u043b\u0438\u043d\u0430"] },
+        "fr-FR": { "name": "Framboises", "aliases": ["framboise"] },
+        "zh-CN": { "name": "\u8986\u76c6\u5b50", "aliases": ["\u6811\u8393"] }
+      }
+    },
+    {
+      "sourceFoodId": "2346414",
+      "category": "FRUIT",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Unsweetened applesauce", "aliases": ["applesauce"] },
+        "ru-RU": { "name": "\u041d\u0435\u0441\u043b\u0430\u0434\u043a\u043e\u0435 \u044f\u0431\u043b\u043e\u0447\u043d\u043e\u0435 \u043f\u044e\u0440\u0435", "aliases": ["\u044f\u0431\u043b\u043e\u0447\u043d\u043e\u0435 \u043f\u044e\u0440\u0435"] },
+        "fr-FR": { "name": "Compote de pommes sans sucre", "aliases": ["compote de pommes"] },
+        "zh-CN": { "name": "\u65e0\u7cd6\u82f9\u679c\u6ce5", "aliases": ["\u82f9\u679c\u6ce5"] }
+      }
+    }
+  ]
+}

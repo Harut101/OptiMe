@@ -74,7 +74,7 @@ Run curation as dry-run first, then use `--apply` deliberately:
 
 The curation script refuses unknown FDC IDs. It also does not let a raw import overwrite an already active, reviewed item.
 
-The repository includes the first reviewed fresh-produce manifest at `apps/api/prisma/seeds/foods/usda-curation/foundation-fresh-produce-v1.json` and a second reviewed mushroom/almond-milk manifest at `apps/api/prisma/seeds/foods/usda-curation/foundation-mushrooms-and-almond-milk-v1.json`. They activate only explicitly reviewed foods; all other imported source records remain inactive until separately reviewed.
+The repository includes reviewed fresh-produce, mushroom/almond-milk, and berry/snack manifests under `apps/api/prisma/seeds/foods/usda-curation/`. They activate only explicitly reviewed foods; all other imported source records remain inactive until separately reviewed.
 
 ### Review imported records
 
