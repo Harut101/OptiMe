@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "1999628",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Shiitake mushrooms", "aliases": ["shiitake"] },
+        "ru-RU": { "name": "\u0413\u0440\u0438\u0431\u044b \u0448\u0438\u0438\u0442\u0430\u043a\u0435", "aliases": ["\u0448\u0438\u0438\u0442\u0430\u043a\u0435"] },
+        "fr-FR": { "name": "Champignons shiitake", "aliases": ["shiitake"] },
+        "zh-CN": { "name": "\u9999\u83c7", "aliases": ["\u9999\u83c7\u83cc"] }
+      }
+    },
+    {
+      "sourceFoodId": "1999629",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "White button mushrooms", "aliases": ["button mushrooms"] },
+        "ru-RU": { "name": "\u0428\u0430\u043c\u043f\u0438\u043d\u044c\u043e\u043d\u044b", "aliases": ["\u0431\u0435\u043b\u044b\u0435 \u0433\u0440\u0438\u0431\u044b"] },
+        "fr-FR": { "name": "Champignons de Paris", "aliases": ["champignons blancs"] },
+        "zh-CN": { "name": "\u767d\u53e3\u8629\u83c7", "aliases": ["\u767d\u8611\u83c7"] }
+      }
+    },
+    {
+      "sourceFoodId": "1999631",
+      "category": "DAIRY_OR_ALTERNATIVE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": ["TREE_NUT"],
+      "translations": {
+        "en-US": { "name": "Unsweetened almond milk", "aliases": ["almond milk"] },
+        "ru-RU": { "name": "\u041d\u0435\u0441\u043b\u0430\u0434\u043a\u043e\u0435 \u043c\u0438\u043d\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e", "aliases": ["\u043c\u0438\u043d\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e"] },
+        "fr-FR": { "name": "Lait d'amande sans sucre", "aliases": ["lait d'amande"] },
+        "zh-CN": { "name": "\u65e0\u7cd6\u674f\u4ec1\u5976", "aliases": ["\u674f\u4ec1\u5976"] }
+      }
+    },
+    {
+      "sourceFoodId": "2003598",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Portobello mushrooms", "aliases": ["portobello"] },
+        "ru-RU": { "name": "\u0413\u0440\u0438\u0431\u044b \u043f\u043e\u0440\u0442\u043e\u0431\u0435\u043b\u043b\u043e", "aliases": ["\u043f\u043e\u0440\u0442\u043e\u0431\u0435\u043b\u043b\u043e"] },
+        "fr-FR": { "name": "Champignons portobello", "aliases": ["portobello"] },
+        "zh-CN": { "name": "\u6ce2\u6258\u8d1d\u6d1b\u8611\u83c7", "aliases": ["\u5927\u8910\u8611\u83c7"] }
+      }
+    }
+  ]
+}
