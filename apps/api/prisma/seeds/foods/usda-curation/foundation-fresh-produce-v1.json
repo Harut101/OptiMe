@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "323505",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Raw kale", "aliases": ["kale"] },
+        "ru-RU": { "name": "\u0421\u044b\u0440\u0430\u044f \u043a\u0430\u043f\u0443\u0441\u0442\u0430 \u043a\u0435\u0439\u043b", "aliases": ["\u043a\u0435\u0439\u043b"] },
+        "fr-FR": { "name": "Chou kale cru", "aliases": ["kale"] },
+        "zh-CN": { "name": "\u751f\u7fbd\u8863\u7518\u84dd", "aliases": ["\u7fbd\u8863\u7518\u84dd"] }
+      }
+    },
+    {
+      "sourceFoodId": "746769",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Romaine lettuce", "aliases": ["romaine", "cos lettuce"] },
+        "ru-RU": { "name": "\u0421\u0430\u043b\u0430\u0442 \u0440\u043e\u043c\u044d\u043d", "aliases": ["\u0440\u043e\u043c\u044d\u043d"] },
+        "fr-FR": { "name": "Laitue romaine", "aliases": ["romaine"] },
+        "zh-CN": { "name": "\u7f57\u9a6c\u751f\u83dc", "aliases": ["\u957f\u53f6\u751f\u83dc"] }
+      }
+    },
+    {
+      "sourceFoodId": "746770",
+      "category": "FRUIT",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Cantaloupe melon", "aliases": ["cantaloupe"] },
+        "ru-RU": { "name": "\u0414\u044b\u043d\u044f \u043a\u0430\u043d\u0442\u0430\u043b\u0443\u043f\u0430", "aliases": ["\u043a\u0430\u043d\u0442\u0430\u043b\u0443\u043f\u0430"] },
+        "fr-FR": { "name": "Melon cantaloup", "aliases": ["cantaloup"] },
+        "zh-CN": { "name": "\u54c8\u5bc6\u74dc", "aliases": ["\u7f51\u7eb9\u751c\u74dc"] }
+      }
+    }
+  ]
+}

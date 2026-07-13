@@ -11,6 +11,7 @@ type ImportOptions = {
   apply: boolean;
   inputPath: string;
   limit: number | null;
+  offset: number;
   dataTypes: string[];
 };
 
@@ -19,12 +20,15 @@ async function main() {
   const payload = JSON.parse(await readFile(options.inputPath, 'utf8')) as unknown;
   const prepared = prepareUsdaFdcImport(payload, options.dataTypes);
   const eligible = prepared.foods.length;
-  const foods = options.limit === null ? prepared.foods : prepared.foods.slice(0, options.limit);
+  const foods = options.limit === null
+    ? prepared.foods.slice(options.offset)
+    : prepared.foods.slice(options.offset, options.offset + options.limit);
 
   if (!options.apply) {
     console.log(JSON.stringify({
       mode: 'dry-run',
       eligible,
+      offset: options.offset,
       selectedForImport: foods.length,
       skipped: summarizeSkipped(prepared.skipped),
       sample: foods.slice(0, 5).map((food) => ({
@@ -147,13 +151,19 @@ function parseOptions(args: string[]): ImportOptions {
     throw new Error('--limit must be a positive integer.');
   }
 
+  const rawOffset = optionValue(args, '--offset') ?? '0';
+  const offset = Number(rawOffset);
+  if (!Number.isInteger(offset) || offset < 0) {
+    throw new Error('--offset must be a non-negative integer.');
+  }
+
   const dataTypes = (optionValue(args, '--data-types') ?? 'Foundation')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
   if (!dataTypes.length) throw new Error('--data-types must include at least one USDA data type.');
 
-  return { apply, inputPath, limit, dataTypes };
+  return { apply, inputPath, limit, offset, dataTypes };
 }
 
 function optionValue(args: string[], key: string) {
