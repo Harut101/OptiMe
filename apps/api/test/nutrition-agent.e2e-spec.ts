@@ -6,6 +6,7 @@ import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/c
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import type { NutritionAgentInput } from '../src/modules/nutrition-agent/nutrition-agent.types';
 import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
+import { FoodCatalogSelectionService } from '../src/modules/food-catalog/food-catalog-selection.service';
 import { foodCatalog } from '../prisma/seeds/foods/catalog';
 import { SafetyService } from '../src/modules/safety/safety.service';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
@@ -58,6 +59,33 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(slugs).not.toContain('unsweetened-soy-milk');
     expect(slugs).not.toContain('tahini');
     expect(slugs).not.toContain('couscous-cooked');
+  });
+
+  it('builds a compact, date-stable catalog shortlist that keeps preferences and restrictions safe', async () => {
+    const service = ctx.app.get(FoodCatalogSelectionService);
+    const input = {
+      locale: 'en-US' as const,
+      dietType: 'VEGAN' as const,
+      planLocalDate: '2026-07-14',
+      preferredFoods: ['potato'],
+      restrictions: {
+        allergies: ['soy', 'sesame'],
+        excludedFoods: ['couscous']
+      }
+    };
+    const first = await service.selectForDailyPlan(input);
+    const second = await service.selectForDailyPlan(input);
+
+    expect(first.candidates.length).toBeLessThanOrEqual(35);
+    expect(first.candidates.map((candidate) => candidate.slug)).toEqual(
+      second.candidates.map((candidate) => candidate.slug)
+    );
+    expect(first.byRole.VEGETABLE.length).toBeGreaterThan(0);
+    expect(first.byRole.MAIN_PROTEIN.map((candidate) => candidate.slug)).toEqual(
+      expect.not.arrayContaining(['tempeh', 'edamame-cooked'])
+    );
+    expect(first.candidates.map((candidate) => candidate.slug)).not.toContain('couscous-cooked');
+    expect(first.byRole.CARBOHYDRATE[0]?.slug).toBe('baked-potato');
   });
 
   it('stores a structured foodPlan inside generated DailyPlanJson', async () => {

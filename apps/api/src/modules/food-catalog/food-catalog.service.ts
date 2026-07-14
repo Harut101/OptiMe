@@ -102,7 +102,8 @@ export class FoodCatalogService {
       fatPer100g: record.fatPer100g.toNumber(),
       fiberPer100g: record.fiberPer100g?.toNumber() ?? null,
       dietTypes: record.dietTypes,
-      restrictionTags: record.restrictionTags
+      restrictionTags: record.restrictionTags,
+      aliases: translation.aliases
     };
   }
 }

@@ -26,6 +26,30 @@ export interface FoodCatalogCandidate {
   fiberPer100g: number | null;
   dietTypes: DietType[];
   restrictionTags: FoodRestrictionTag[];
+  aliases: string[];
+}
+
+export const FOOD_CATALOG_SELECTION_ROLES = [
+  'BREAKFAST_BASE',
+  'MAIN_PROTEIN',
+  'CARBOHYDRATE',
+  'VEGETABLE',
+  'FRUIT',
+  'FAT',
+  'DAIRY_OR_ALTERNATIVE'
+] as const;
+
+export type FoodCatalogSelectionRole = (typeof FOOD_CATALOG_SELECTION_ROLES)[number];
+
+export interface SelectDailyFoodCatalogInput extends Omit<ListFoodCatalogCandidatesInput, 'limit'> {
+  planLocalDate: string;
+  preferredFoods?: string[];
+  maxPerRole?: number;
+}
+
+export interface DailyFoodCatalogSelection {
+  candidates: FoodCatalogCandidate[];
+  byRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>;
 }
 
 export interface FoodCatalogNutrition {

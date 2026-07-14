@@ -10,7 +10,12 @@ import {
 } from '../ai/open-ai-client.factory';
 import { dailyFoodPlanSchema } from '../daily-plans/daily-plan-json.schema';
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
-import type { FoodCatalogCandidate } from '../food-catalog/food-catalog.types';
+import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
+import {
+  FOOD_CATALOG_SELECTION_ROLES,
+  type DailyFoodCatalogSelection,
+  type FoodCatalogCandidate
+} from '../food-catalog/food-catalog.types';
 import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanValidationService } from './food-plan-validation.service';
@@ -30,6 +35,7 @@ export class NutritionAgentService {
     private readonly configService: ConfigService,
     private readonly validator: FoodPlanValidationService,
     private readonly foodCatalog: FoodCatalogService,
+    private readonly foodCatalogSelection: FoodCatalogSelectionService,
     private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
@@ -109,9 +115,11 @@ export class NutritionAgentService {
     previousValidationReasons: string[]
   ): Promise<NutritionAgentAttemptResult> {
     const model = this.getModel();
-    const catalogCandidates = await this.foodCatalog.listAllowedCandidates({
+    const catalogSelection = await this.foodCatalogSelection.selectForDailyPlan({
       locale: input.locale,
       dietType: input.nutritionPreference?.dietType,
+      planLocalDate: input.planLocalDate,
+      preferredFoods: input.nutritionPreference?.preferredFoods,
       restrictions: {
         allergies: input.nutritionPreference?.allergies,
         excludedFoods: input.nutritionPreference?.excludedFoods,
@@ -119,7 +127,7 @@ export class NutritionAgentService {
       }
     });
 
-    if (catalogCandidates.length < 3) {
+    if (catalogSelection.candidates.length < 3) {
       return {
         ok: false,
         validationReasons: ['CATALOG_SAFE_CANDIDATES_UNAVAILABLE'],
@@ -142,7 +150,7 @@ export class NutritionAgentService {
             },
             {
               role: 'user',
-              content: JSON.stringify(this.buildPlanningContext(input, previousValidationReasons, catalogCandidates))
+              content: JSON.stringify(this.buildPlanningContext(input, previousValidationReasons, catalogSelection))
             }
           ],
           text: {
@@ -158,7 +166,7 @@ export class NutritionAgentService {
       );
 
       this.logger.log('nutrition agent OpenAI response received');
-      return this.parseAndValidateResponse(response, input, catalogCandidates);
+      return this.parseAndValidateResponse(response, input, catalogSelection.candidates);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'nutrition_agent_openai_error';
       this.logger.warn(`nutrition agent OpenAI request failed; reason=${message.slice(0, 120)}`);
@@ -277,6 +285,7 @@ export class NutritionAgentService {
       'The calorie and macro targets are fixed backend constraints. Do not change them. Create meals that fit them.',
       'Do not calculate a new daily target. Use the target calories, protein, carbs, and fat from the context.',
       'Use only catalogFoodSlug values supplied in allowedCatalogFoods. Never invent an ingredient or a slug.',
+      'Use selectionRoles as meal-building guidance: choose proteins, carbohydrate bases, vegetables, fruit, and fats that fit each meal.',
       'Every ingredient quantity must be in grams. Backend recalculates names, calories, and macros from catalog values.',
       'Every meal and ingredient must include calories, protein, carbs, and fat.',
       'Meal totals must approximately match ingredient sums. Day totals must approximately match meal sums.',
@@ -299,7 +308,7 @@ export class NutritionAgentService {
   private buildPlanningContext(
     input: NutritionAgentInput,
     previousValidationReasons: string[],
-    catalogCandidates: FoodCatalogCandidate[]
+    catalogSelection: DailyFoodCatalogSelection
   ) {
     return {
       localDate: input.planLocalDate,
@@ -340,10 +349,13 @@ export class NutritionAgentService {
         isMinor: input.isMinor,
         pregnancyStatus: input.pregnancyStatus ?? 'UNKNOWN'
       },
-      allowedCatalogFoods: catalogCandidates.map((candidate) => ({
+      allowedCatalogFoods: catalogSelection.candidates.map((candidate) => ({
         slug: candidate.slug,
         name: candidate.name,
         category: candidate.category,
+        selectionRoles: FOOD_CATALOG_SELECTION_ROLES.filter((role) => (
+          catalogSelection.byRole[role].some((roleCandidate) => roleCandidate.slug === candidate.slug)
+        )),
         caloriesPer100g: candidate.caloriesPer100g,
         proteinPer100g: candidate.proteinPer100g,
         carbsPer100g: candidate.carbsPer100g,
