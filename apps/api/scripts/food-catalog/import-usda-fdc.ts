@@ -12,6 +12,7 @@ type ImportOptions = {
   inputPath: string;
   limit: number | null;
   offset: number;
+  previewLimit: number;
   dataTypes: string[];
 };
 
@@ -31,7 +32,7 @@ async function main() {
       offset: options.offset,
       selectedForImport: foods.length,
       skipped: summarizeSkipped(prepared.skipped),
-      sample: foods.slice(0, 5).map((food) => ({
+      sample: foods.slice(0, options.previewLimit).map((food) => ({
         sourceFoodId: food.sourceFoodId,
         name: food.name,
         category: food.category
@@ -157,13 +158,19 @@ function parseOptions(args: string[]): ImportOptions {
     throw new Error('--offset must be a non-negative integer.');
   }
 
+  const rawPreviewLimit = optionValue(args, '--preview-limit') ?? '5';
+  const previewLimit = Number(rawPreviewLimit);
+  if (!Number.isInteger(previewLimit) || previewLimit < 1 || previewLimit > 100) {
+    throw new Error('--preview-limit must be an integer between 1 and 100.');
+  }
+
   const dataTypes = (optionValue(args, '--data-types') ?? 'Foundation')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
   if (!dataTypes.length) throw new Error('--data-types must include at least one USDA data type.');
 
-  return { apply, inputPath, limit, offset, dataTypes };
+  return { apply, inputPath, limit, offset, previewLimit, dataTypes };
 }
 
 function optionValue(args: string[], key: string) {

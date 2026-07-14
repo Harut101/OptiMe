@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "2515378",
+      "category": "FAT",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": ["TREE_NUT"],
+      "translations": {
+        "en-US": { "name": "Raw macadamia nuts", "aliases": ["macadamias"] },
+        "ru-RU": { "name": "\u041e\u0440\u0435\u0445\u0438 \u043c\u0430\u043a\u0430\u0434\u0430\u043c\u0438\u044f", "aliases": ["\u043c\u0430\u043a\u0430\u0434\u0430\u043c\u0438\u044f"] },
+        "fr-FR": { "name": "Noix de macadamia", "aliases": ["macadamia"] },
+        "zh-CN": { "name": "\u590f\u5a01\u5937\u679c", "aliases": ["\u590f\u5a01\u5937\u575a\u679c"] }
+      }
+    },
+    {
+      "sourceFoodId": "2515379",
+      "category": "FAT",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": ["TREE_NUT"],
+      "translations": {
+        "en-US": { "name": "Raw pistachios", "aliases": ["pistachios"] },
+        "ru-RU": { "name": "\u0424\u0438\u0441\u0442\u0430\u0448\u043a\u0438", "aliases": ["\u0444\u0438\u0441\u0442\u0430\u0448\u043a\u0438"] },
+        "fr-FR": { "name": "Pistaches", "aliases": ["pistache"] },
+        "zh-CN": { "name": "\u5f00\u5fc3\u679c", "aliases": ["\u5f00\u5fc3\u679c\u4ec1"] }
+      }
+    },
+    {
+      "sourceFoodId": "2644286",
+      "category": "LEGUME",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Canned navy beans, drained", "aliases": ["navy beans"] },
+        "ru-RU": { "name": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0431\u0435\u043b\u0430\u044f \u0444\u0430\u0441\u043e\u043b\u044c", "aliases": ["\u0431\u0435\u043b\u0430\u044f \u0444\u0430\u0441\u043e\u043b\u044c"] },
+        "fr-FR": { "name": "Haricots blancs en conserve, égouttés", "aliases": ["haricots blancs"] },
+        "zh-CN": { "name": "\u6ca5\u5e72\u7f50\u88c5\u6d77\u519b\u8c46", "aliases": ["\u6d77\u519b\u8c46"] }
+      }
+    },
+    {
+      "sourceFoodId": "2644287",
+      "category": "LEGUME",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Canned cannellini beans, drained", "aliases": ["cannellini beans"] },
+        "ru-RU": { "name": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0444\u0430\u0441\u043e\u043b\u044c \u043a\u0430\u043d\u043d\u0435\u043b\u043b\u0438\u043d\u0438", "aliases": ["\u043a\u0430\u043d\u043d\u0435\u043b\u043b\u0438\u043d\u0438"] },
+        "fr-FR": { "name": "Haricots cannellini en conserve, égouttés", "aliases": ["cannellini"] },
+        "zh-CN": { "name": "\u6ca5\u5e72\u7f50\u88c5\u5361\u5185\u5229\u5c3c\u767d\u8c46", "aliases": ["\u5361\u5185\u5229\u5c3c\u8c46"] }
+      }
+    },
+    {
+      "sourceFoodId": "2644292",
+      "category": "LEGUME",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Canned pinto beans, drained", "aliases": ["pinto beans"] },
+        "ru-RU": { "name": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0444\u0430\u0441\u043e\u043b\u044c \u043f\u0438\u043d\u0442\u043e", "aliases": ["\u0444\u0430\u0441\u043e\u043b\u044c \u043f\u0438\u043d\u0442\u043e"] },
+        "fr-FR": { "name": "Haricots pinto en conserve, égouttés", "aliases": ["haricots pinto"] },
+        "zh-CN": { "name": "\u6ca5\u5e72\u7f50\u88c5\u6591\u8c46", "aliases": ["\u6591\u8c46"] }
+      }
+    }
+  ]
+}

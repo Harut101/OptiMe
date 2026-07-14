@@ -35,6 +35,8 @@ Use `--offset` to inspect or import the next small source batch without reproces
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:import -- --input "C:\data\FoundationFoods.json" --offset 25 --limit 25
 ```
 
+Use `--preview-limit 25` with a dry-run when the full selected source batch needs review before import. The default preview remains five records.
+
 To include a different official FDC data type intentionally, pass it explicitly:
 
 ```powershell
@@ -74,7 +76,7 @@ Run curation as dry-run first, then use `--apply` deliberately:
 
 The curation script refuses unknown FDC IDs. It also does not let a raw import overwrite an already active, reviewed item.
 
-The repository includes reviewed fresh-produce, mushroom/almond-milk, and berry/snack manifests under `apps/api/prisma/seeds/foods/usda-curation/`. They activate only explicitly reviewed foods; all other imported source records remain inactive until separately reviewed.
+The repository includes reviewed fresh-produce, mushroom/almond-milk, berry/snack, and legume/nut manifests under `apps/api/prisma/seeds/foods/usda-curation/`. They activate only explicitly reviewed foods; all other imported source records remain inactive until separately reviewed.
 
 ### Review imported records
 
@@ -83,6 +85,12 @@ List imported USDA records before creating a manifest. This command is read-only
 ```powershell
 # Review the inactive USDA queue. This does not change the database.
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:list -- --active false --limit 100
+```
+
+To inspect a small set of imported records by FDC ID, use `--source-ids`:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:list -- --source-ids "2515378,2515379"
 ```
 
 ## Guarantees

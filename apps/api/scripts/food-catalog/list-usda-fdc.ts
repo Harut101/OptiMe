@@ -3,6 +3,7 @@ import { FoodCatalogSource, PrismaClient } from '@prisma/client';
 type ListOptions = {
   active: boolean | null;
   limit: number;
+  sourceFoodIds: string[];
 };
 
 async function main() {
@@ -13,7 +14,8 @@ async function main() {
     const foods = await prisma.foodCatalogItem.findMany({
       where: {
         source: FoodCatalogSource.USDA_FDC,
-        ...(options.active === null ? {} : { isActive: options.active })
+        ...(options.active === null ? {} : { isActive: options.active }),
+        ...(options.sourceFoodIds.length ? { sourceFoodId: { in: options.sourceFoodIds } } : {})
       },
       include: {
         translations: {
@@ -58,9 +60,18 @@ function parseOptions(args: string[]): ListOptions {
     throw new Error('--limit must be an integer between 1 and 500.');
   }
 
+  const sourceFoodIds = (optionValue(args, '--source-ids') ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (sourceFoodIds.some((sourceFoodId) => !/^\d+$/.test(sourceFoodId))) {
+    throw new Error('--source-ids must be a comma-separated list of numeric FDC IDs.');
+  }
+
   return {
     active: activeOption === undefined ? null : activeOption === 'true',
-    limit
+    limit,
+    sourceFoodIds
   };
 }
 
