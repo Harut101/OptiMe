@@ -65,7 +65,9 @@ After applying the Prisma migration and generating Prisma Client:
 
 ## Next implementation steps
 
-The coverage audit reports the four direct diet scenarios that the catalog currently filters precisely: omnivore, vegetarian, vegan, and pescatarian. A scenario is `READY` when every required meal role has at least two safe candidates, `LIMITED` when a role has only one candidate, and `BLOCKED` when a required role is absent. Keto, low-carb, halal, kosher, and Mediterranean suitability currently need richer product metadata; they are intentionally not reported as separate audit scenarios yet.
+The coverage audit reports omnivore, vegetarian, vegan, pescatarian, Mediterranean, keto, and low-carb scenarios. A scenario is `READY` when every required meal role has at least two safe candidates, `LIMITED` when a role has only one candidate, and `BLOCKED` when a required role is absent. Mediterranean selection requires explicit Mediterranean catalog metadata. Keto and low-carb selection use conservative catalog-level thresholds of 10 g and 15 g carbohydrates per 100 g respectively; these are selection guardrails, not medical nutrition targets.
+
+Halal and kosher are deliberately excluded from the readiness audit. Generic nutrient data cannot prove certification, source, slaughter method, or preparation compliance. They remain available as preferences until OptiMe has an auditable verified-compliance data source.
 
 1. Add curated recipe-template metadata only when it is needed for a user-visible recipe experience.
 2. Add an admin-only catalog-curation workflow to review and activate USDA imports.

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DietType, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { isFoodCatalogDietCompatible } from './food-catalog-diet-policy';
 import { FOOD_CATALOG_ENGLISH_LOCALE, toFoodCatalogLocale } from './food-catalog-locale';
 import { normalizeFoodName, normalizeFoodRestrictions } from './food-catalog-restrictions';
 import type {
@@ -61,19 +62,11 @@ export class FoodCatalogService {
   }
 
   private isDietCompatible(record: FoodCatalogRecord, dietType?: DietType | null) {
-    if (
-      !dietType
-      || dietType === DietType.NONE
-      || dietType === DietType.OMNIVORE
-      || dietType === DietType.KETO
-      || dietType === DietType.LOW_CARB
-      || dietType === DietType.MEDITERRANEAN
-      || dietType === DietType.HALAL
-      || dietType === DietType.KOSHER
-    ) {
-      return true;
-    }
-    return record.dietTypes.includes(dietType);
+    return isFoodCatalogDietCompatible(
+      dietType,
+      record.dietTypes,
+      record.carbsPer100g.toNumber()
+    );
   }
 
   private matchesRestriction(record: FoodCatalogRecord, restrictions: ReturnType<typeof normalizeFoodRestrictions>) {

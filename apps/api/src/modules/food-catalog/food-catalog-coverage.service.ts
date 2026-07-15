@@ -9,7 +9,7 @@ import { FOOD_CATALOG_SELECTION_ROLES, type FoodCatalogSelectionRole } from './f
 export type FoodCatalogCoverageStatus = 'READY' | 'LIMITED' | 'BLOCKED';
 
 export interface FoodCatalogCoverageScenario {
-  id: 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN';
+  id: 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN' | 'MEDITERRANEAN' | 'LOW_CARB' | 'KETO';
   dietType: DietType;
   requiredRoles: FoodCatalogSelectionRole[];
 }
@@ -47,6 +47,21 @@ const COVERAGE_SCENARIOS: FoodCatalogCoverageScenario[] = [
     id: 'PESCATARIAN',
     dietType: DietType.PESCATARIAN,
     requiredRoles: [...FOOD_CATALOG_SELECTION_ROLES]
+  },
+  {
+    id: 'MEDITERRANEAN',
+    dietType: DietType.MEDITERRANEAN,
+    requiredRoles: [...FOOD_CATALOG_SELECTION_ROLES]
+  },
+  {
+    id: 'LOW_CARB',
+    dietType: DietType.LOW_CARB,
+    requiredRoles: ['MAIN_PROTEIN', 'VEGETABLE', 'FAT']
+  },
+  {
+    id: 'KETO',
+    dietType: DietType.KETO,
+    requiredRoles: ['MAIN_PROTEIN', 'VEGETABLE', 'FAT']
   }
 ];
 

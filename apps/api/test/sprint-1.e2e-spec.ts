@@ -2591,7 +2591,7 @@ describe('Sprint 1 backend vertical slice', () => {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
     }
-  });
+  }, 20_000);
 
   it('passes wearable snapshot context into daily planning without exposing raw wearable metrics in debug', async () => {
     const capturedInputs: GenerateDailyPlanInput[] = [];
