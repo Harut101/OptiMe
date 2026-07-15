@@ -56,6 +56,10 @@ Legacy `nutrition.meals` remains readable and is still present for backward comp
 - unsafe diet language
 - conservative language for safe mode, minors, pregnancy, postpartum, and breastfeeding contexts
 
+## Deterministic Portion Solver
+
+After the AI selects only safe catalog ingredients and gram quantities, `FoodPlanPortionSolverService` may make a bounded deterministic adjustment to those quantities before validation. It never adds foods, removes foods, changes meal structure, or bypasses allergy/exclusion filters. The solver keeps an adjustment only when it reduces deviation from the backend calorie and macro target. It is disabled when the Nutrition Engine reports `NEEDS_MORE_INFO` or the target is incomplete, so conservative fallback behavior remains unchanged.
+
 Current tolerances:
 
 - calories: within 5% or 100 kcal, whichever is larger

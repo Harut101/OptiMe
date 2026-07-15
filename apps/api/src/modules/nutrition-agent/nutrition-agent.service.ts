@@ -17,6 +17,7 @@ import {
 } from '../food-catalog/food-catalog.types';
 import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
+import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
 import {
   nutritionAgentFoodPlanDraftSchema,
@@ -40,6 +41,7 @@ export class NutritionAgentService {
     private readonly foodCatalog: FoodCatalogService,
     private readonly foodCatalogSelection: FoodCatalogSelectionService,
     private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
+    private readonly portionSolver: FoodPlanPortionSolverService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -232,7 +234,25 @@ export class NutritionAgentService {
       };
     }
 
-    const validation = this.validator.validate(normalizedCatalogPlan, this.validationContext(input));
+    const portionSolveResult = input.nutritionTarget.safety.status === 'NEEDS_MORE_INFO'
+      ? { foodPlan: normalizedCatalogPlan, adjusted: false, beforeScore: 0, afterScore: 0 }
+      : this.portionSolver.solve({
+          foodPlan: normalizedCatalogPlan,
+          target: {
+            caloriesKcal: input.nutritionTarget.calories.targetKcal,
+            proteinGrams: input.nutritionTarget.macros.proteinGrams,
+            carbsGrams: input.nutritionTarget.macros.carbsGrams,
+            fatGrams: input.nutritionTarget.macros.fatGrams
+          },
+          catalogCandidates
+        });
+    if (portionSolveResult.adjusted) {
+      this.logger.log(
+        `nutrition agent portion solver adjusted quantities; beforeScore=${portionSolveResult.beforeScore.toFixed(3)}; afterScore=${portionSolveResult.afterScore.toFixed(3)}`
+      );
+    }
+
+    const validation = this.validator.validate(portionSolveResult.foodPlan, this.validationContext(input));
 
     if (!validation.passed) {
       return {
@@ -245,9 +265,9 @@ export class NutritionAgentService {
     return {
       ok: true,
       foodPlan: {
-        ...normalizedCatalogPlan,
+        ...portionSolveResult.foodPlan,
         validation: {
-          ...normalizedCatalogPlan.validation,
+          ...portionSolveResult.foodPlan.validation,
           status: 'VALID',
           reasons: []
         }

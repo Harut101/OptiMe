@@ -4,6 +4,7 @@ import { FoodCatalogSource } from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
+import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import {
   nutritionAgentFoodPlanDraftSchema,
@@ -87,6 +88,94 @@ describe('Specialized Nutrition Agent food plans', () => {
       'unit',
       'isOptional'
     ]);
+  });
+
+  it('adjusts safe catalog quantities closer to the deterministic nutrition target', async () => {
+    const foodCatalogService = ctx.app.get(FoodCatalogService);
+    const solver = ctx.app.get(FoodPlanPortionSolverService);
+    const candidates = await foodCatalogService.listAllowedCandidates({
+      locale: 'en-US',
+      dietType: 'OMNIVORE'
+    });
+    const selected = ['chicken-breast-cooked', 'brown-rice-cooked', 'olive-oil'].map((slug) => (
+      candidates.find((candidate) => candidate.slug === slug)
+    ));
+    expect(selected.every(Boolean)).toBe(true);
+
+    const [chicken, rice, oliveOil] = selected as NonNullable<(typeof selected)[number]>[];
+    const targetIngredients = [
+      makeCatalogIngredient(foodCatalogService, chicken, 240),
+      makeCatalogIngredient(foodCatalogService, rice, 300),
+      makeCatalogIngredient(foodCatalogService, oliveOil, 20)
+    ];
+    const initialIngredients = [
+      makeCatalogIngredient(foodCatalogService, chicken, 120),
+      makeCatalogIngredient(foodCatalogService, rice, 150),
+      makeCatalogIngredient(foodCatalogService, oliveOil, 10)
+    ];
+    const targetTotals = sumFoodTotals(targetIngredients);
+    const initialTotals = sumFoodTotals(initialIngredients);
+    const inputPlan: DailyFoodPlan = {
+      source: 'NUTRITION_AGENT',
+      localDate: '2026-07-15',
+      locale: 'en-US',
+      nutritionTargetSnapshot: {} as DailyFoodPlan['nutritionTargetSnapshot'],
+      totals: initialTotals,
+      validation: {
+        status: 'VALID',
+        reasons: [],
+        tolerances: { caloriesPercent: 5, proteinGrams: 10, carbsGrams: 15, fatGrams: 10 }
+      },
+      meals: [{
+        id: 'lunch-1',
+        mealType: 'LUNCH',
+        title: 'Catalog lunch',
+        shortDescription: null,
+        ...initialTotals,
+        prepTimeMinutes: 15,
+        servingSummary: 'One serving',
+        ingredients: initialIngredients,
+        preparationSteps: ['Prepare simply.'],
+        substitutions: [],
+        explanation: { reasonCodes: ['TARGET_ALIGNED'] }
+      }]
+    };
+
+    const result = solver.solve({
+      foodPlan: inputPlan,
+      target: targetTotals,
+      catalogCandidates: [chicken, rice, oliveOil]
+    });
+
+    expect(result.adjusted).toBe(true);
+    expect(result.afterScore).toBeLessThan(result.beforeScore);
+    expect(result.foodPlan.meals[0].ingredients.map((ingredient) => ingredient.catalogFoodSlug)).toEqual([
+      'chicken-breast-cooked',
+      'brown-rice-cooked',
+      'olive-oil'
+    ]);
+    expect(result.foodPlan.totals.caloriesKcal).toBeCloseTo(targetTotals.caloriesKcal, -1);
+    expect(result.foodPlan.totals.proteinGrams).toBeCloseTo(targetTotals.proteinGrams, 0);
+    expect(result.foodPlan.totals.carbsGrams).toBeCloseTo(targetTotals.carbsGrams, 0);
+    expect(result.foodPlan.totals.fatGrams).toBeCloseTo(targetTotals.fatGrams, 0);
+
+    const alreadyAlignedPlan: DailyFoodPlan = {
+      ...inputPlan,
+      totals: targetTotals,
+      meals: [{
+        ...inputPlan.meals[0],
+        ...targetTotals,
+        ingredients: targetIngredients
+      }]
+    };
+    const unchanged = solver.solve({
+      foodPlan: alreadyAlignedPlan,
+      target: targetTotals,
+      catalogCandidates: [chicken, rice, oliveOil]
+    });
+
+    expect(unchanged.adjusted).toBe(false);
+    expect(unchanged.foodPlan).toEqual(alreadyAlignedPlan);
   });
 
   it('ships an expanded curated catalog and filters tagged foods before planning', async () => {
@@ -685,3 +774,34 @@ describe('Specialized Nutrition Agent food plans', () => {
     return response.body;
   }
 });
+
+function makeCatalogIngredient(
+  foodCatalogService: FoodCatalogService,
+  candidate: Awaited<ReturnType<FoodCatalogService['listAllowedCandidates']>>[number],
+  quantity: number
+) {
+  const nutrition = foodCatalogService.calculateNutrition(candidate, quantity);
+  return {
+    catalogFoodSlug: candidate.slug,
+    name: candidate.name,
+    quantity,
+    unit: 'g' as const,
+    caloriesKcal: nutrition.caloriesKcal,
+    proteinGrams: nutrition.proteinGrams,
+    carbsGrams: nutrition.carbsGrams,
+    fatGrams: nutrition.fatGrams,
+    isOptional: false
+  };
+}
+
+function sumFoodTotals(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {
+  return items.reduce(
+    (totals, item) => ({
+      caloriesKcal: totals.caloriesKcal + item.caloriesKcal,
+      proteinGrams: totals.proteinGrams + item.proteinGrams,
+      carbsGrams: totals.carbsGrams + item.carbsGrams,
+      fatGrams: totals.fatGrams + item.fatGrams
+    }),
+    { caloriesKcal: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0 }
+  );
+}
