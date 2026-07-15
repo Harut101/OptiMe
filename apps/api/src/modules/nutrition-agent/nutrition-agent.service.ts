@@ -16,6 +16,7 @@ import {
   type FoodCatalogCandidate
 } from '../food-catalog/food-catalog.types';
 import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
+import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
@@ -41,6 +42,7 @@ export class NutritionAgentService {
     private readonly foodCatalog: FoodCatalogService,
     private readonly foodCatalogSelection: FoodCatalogSelectionService,
     private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
+    private readonly catalogRebalancer: FoodPlanCatalogRebalancerService,
     private readonly portionSolver: FoodPlanPortionSolverService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
@@ -252,7 +254,31 @@ export class NutritionAgentService {
       );
     }
 
-    const validation = this.validator.validate(portionSolveResult.foodPlan, this.validationContext(input));
+    let resolvedFoodPlan = portionSolveResult.foodPlan;
+    let validation = this.validator.validate(resolvedFoodPlan, this.validationContext(input));
+
+    if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
+      const rebalanced = this.catalogRebalancer.rebalance({
+        foodPlan: resolvedFoodPlan,
+        target: {
+          caloriesKcal: input.nutritionTarget.calories.targetKcal,
+          proteinGrams: input.nutritionTarget.macros.proteinGrams,
+          carbsGrams: input.nutritionTarget.macros.carbsGrams,
+          fatGrams: input.nutritionTarget.macros.fatGrams
+        },
+        catalogCandidates
+      });
+      if (rebalanced.rebalanced) {
+        const rebalancedValidation = this.validator.validate(rebalanced.foodPlan, this.validationContext(input));
+        if (rebalancedValidation.passed) {
+          resolvedFoodPlan = rebalanced.foodPlan;
+          validation = rebalancedValidation;
+          this.logger.log(
+            `nutrition agent catalog rebalancer applied one safe substitution; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
+          );
+        }
+      }
+    }
 
     if (!validation.passed) {
       return {
@@ -265,9 +291,9 @@ export class NutritionAgentService {
     return {
       ok: true,
       foodPlan: {
-        ...portionSolveResult.foodPlan,
+        ...resolvedFoodPlan,
         validation: {
-          ...portionSolveResult.foodPlan.validation,
+          ...resolvedFoodPlan.validation,
           status: 'VALID',
           reasons: []
         }
@@ -503,6 +529,17 @@ export class NutritionAgentService {
     const value = Number(this.configService.get<string>(key));
     return Number.isFinite(value) && value > 0 ? Math.trunc(value) : fallback;
   }
+}
+
+const CATALOG_REBALANCEABLE_VALIDATION_REASONS = new Set([
+  'CALORIES_OUTSIDE_TARGET_TOLERANCE',
+  'PROTEIN_OUTSIDE_TARGET_TOLERANCE',
+  'CARBS_OUTSIDE_TARGET_TOLERANCE',
+  'FAT_OUTSIDE_TARGET_TOLERANCE'
+]);
+
+function canAttemptCatalogRebalance(reasons: string[]) {
+  return reasons.length > 0 && reasons.every((reason) => CATALOG_REBALANCEABLE_VALIDATION_REASONS.has(reason));
 }
 
 function sumFoodNutrition(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {

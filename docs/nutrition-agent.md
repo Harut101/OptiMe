@@ -60,6 +60,8 @@ Legacy `nutrition.meals` remains readable and is still present for backward comp
 
 After the AI selects only safe catalog ingredients and gram quantities, `FoodPlanPortionSolverService` may make a bounded deterministic adjustment to those quantities before validation. It never adds foods, removes foods, changes meal structure, or bypasses allergy/exclusion filters. The solver keeps an adjustment only when it reduces deviation from the backend calorie and macro target. It is disabled when the Nutrition Engine reports `NEEDS_MORE_INFO` or the target is incomplete, so conservative fallback behavior remains unchanged.
 
+When a valid catalog plan still misses only calorie or macro tolerances after portion solving, `FoodPlanCatalogRebalancerService` may test one allowed substitute from the same catalog category, then solve portions again. It keeps a substitute only when it improves target fit and the existing meal title, description, and instructions do not name the original ingredient. It never runs for schema, safety, allergy, exclusion, or arithmetic failures.
+
 Current tolerances:
 
 - calories: within 5% or 100 kcal, whichever is larger

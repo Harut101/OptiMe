@@ -4,6 +4,7 @@ import { FoodCatalogSource } from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
+import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
 import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import {
@@ -93,6 +94,7 @@ describe('Specialized Nutrition Agent food plans', () => {
   it('adjusts safe catalog quantities closer to the deterministic nutrition target', async () => {
     const foodCatalogService = ctx.app.get(FoodCatalogService);
     const solver = ctx.app.get(FoodPlanPortionSolverService);
+    const rebalancer = ctx.app.get(FoodPlanCatalogRebalancerService);
     const candidates = await foodCatalogService.listAllowedCandidates({
       locale: 'en-US',
       dietType: 'OMNIVORE'
@@ -176,6 +178,48 @@ describe('Specialized Nutrition Agent food plans', () => {
 
     expect(unchanged.adjusted).toBe(false);
     expect(unchanged.foodPlan).toEqual(alreadyAlignedPlan);
+
+    const salmon = candidates.find((candidate) => candidate.slug === 'salmon-cooked');
+    expect(salmon).toBeDefined();
+    if (!salmon) throw new Error('Expected salmon in the curated catalog.');
+
+    const rebalanceIngredients = [
+      makeCatalogIngredient(foodCatalogService, chicken, 150),
+      makeCatalogIngredient(foodCatalogService, rice, 200)
+    ];
+    const rebalanceTarget = sumFoodTotals([
+      makeCatalogIngredient(foodCatalogService, salmon, 150),
+      makeCatalogIngredient(foodCatalogService, rice, 200)
+    ]);
+    const rebalancePlan: DailyFoodPlan = {
+      ...inputPlan,
+      totals: sumFoodTotals(rebalanceIngredients),
+      meals: [{
+        ...inputPlan.meals[0],
+        title: 'Balanced lunch',
+        ...sumFoodTotals(rebalanceIngredients),
+        ingredients: rebalanceIngredients
+      }]
+    };
+    const rebalanced = rebalancer.rebalance({
+      foodPlan: rebalancePlan,
+      target: rebalanceTarget,
+      catalogCandidates: [chicken, salmon, rice]
+    });
+
+    expect(rebalanced.rebalanced).toBe(true);
+    expect(rebalanced.afterScore).toBeLessThan(rebalanced.beforeScore);
+    expect(rebalanced.foodPlan.meals[0].ingredients.map((ingredient) => ingredient.catalogFoodSlug)).toContain('salmon-cooked');
+
+    const protectedCopy = rebalancer.rebalance({
+      foodPlan: {
+        ...rebalancePlan,
+        meals: [{ ...rebalancePlan.meals[0], title: 'Chicken lunch' }]
+      },
+      target: rebalanceTarget,
+      catalogCandidates: [chicken, salmon, rice]
+    });
+    expect(protectedCopy.rebalanced).toBe(false);
   });
 
   it('ships an expanded curated catalog and filters tagged foods before planning', async () => {

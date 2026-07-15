@@ -63,7 +63,7 @@ export class FoodPlanPortionSolverService {
       };
     }
 
-    const beforeScore = calculateScore(initialPlan.totals, input.target);
+    const beforeScore = calculateFoodPlanPortionScore(initialPlan.totals, input.target);
     let bestPlan = initialPlan;
     let bestScore = beforeScore;
 
@@ -83,7 +83,7 @@ export class FoodPlanPortionSolverService {
         variable.quantity = previousQuantity;
 
         if (!candidatePlan) continue;
-        const candidateScore = calculateScore(candidatePlan.totals, input.target);
+        const candidateScore = calculateFoodPlanPortionScore(candidatePlan.totals, input.target);
         if (candidateScore + 0.0001 < iterationScore) {
           bestVariable = variable;
           bestQuantity = suggestedQuantity;
@@ -188,7 +188,7 @@ export class FoodPlanPortionSolverService {
   }
 }
 
-function calculateScore(actual: FoodNutritionTotals, target: FoodPlanPortionSolverTarget) {
+export function calculateFoodPlanPortionScore(actual: FoodNutritionTotals, target: FoodPlanPortionSolverTarget) {
   return nutritionDimensions(actual, target).reduce(
     (score, dimension) => score + dimension.weight * (dimension.current - dimension.target) ** 2,
     0
