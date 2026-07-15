@@ -10,12 +10,13 @@ import type {
 } from '@optime/shared-types';
 
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
-import type { FoodCatalogCandidate } from '../food-catalog/food-catalog.types';
+import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
+import type { FoodCatalogCandidate, FoodCatalogSelectionRole } from '../food-catalog/food-catalog.types';
 import { FOOD_PLAN_VALIDATION_TOLERANCES } from './food-plan-validation.constants';
 import type { NutritionAgentInput } from './nutrition-agent.types';
 
 type RecipeIngredient = {
-  alternatives: string[];
+  role: FoodCatalogSelectionRole;
   grams: number;
 };
 
@@ -24,39 +25,47 @@ type RecipeTemplate = {
   ingredients: RecipeIngredient[];
 };
 
+type ResolvedRecipeIngredient = RecipeIngredient & { candidate: FoodCatalogCandidate };
+
+type ResolvedRecipeTemplate = Omit<RecipeTemplate, 'ingredients'> & {
+  ingredients: ResolvedRecipeIngredient[];
+};
+
 @Injectable()
 export class CatalogFallbackFoodPlanService {
-  constructor(private readonly foodCatalog: FoodCatalogService) {}
+  constructor(
+    private readonly foodCatalog: FoodCatalogService,
+    private readonly foodCatalogSelection: FoodCatalogSelectionService
+  ) {}
 
   async create(input: NutritionAgentInput, reasons: string[]): Promise<DailyFoodPlan | null> {
     if (input.nutritionTarget.safety.status === 'NEEDS_MORE_INFO') {
       return null;
     }
 
-    const candidates = await this.foodCatalog.listAllowedCandidates({
+    const catalogSelection = await this.foodCatalogSelection.selectForDailyPlan({
       locale: input.locale,
       dietType: input.nutritionPreference?.dietType,
+      planLocalDate: input.planLocalDate,
+      preferredFoods: input.nutritionPreference?.preferredFoods,
+      maxPerRole: 8,
       restrictions: {
         allergies: input.nutritionPreference?.allergies,
         excludedFoods: input.nutritionPreference?.excludedFoods,
         dislikedFoods: input.nutritionPreference?.dislikedFoods
       }
     });
-    const bySlug = new Map(candidates.map((candidate) => [candidate.slug, candidate]));
     const recipes = withMealCount(
       getRecipes(input.nutritionPreference?.dietType),
-      input.nutritionPreference?.mealsPerDay
+      input.nutritionPreference?.mealsPerDay,
+      input.nutritionPreference?.dietType
     );
-    const variationOffset = getVariationOffset(input.planLocalDate);
-    const baseCalories = recipes.reduce(
-      (sum, recipe, recipeIndex) => sum + recipe.ingredients.reduce((mealSum, ingredient, ingredientIndex) => {
-        const candidate = firstAvailable(
-          ingredient.alternatives,
-          bySlug,
-          variationOffset + recipeIndex + ingredientIndex
-        );
-        return mealSum + (candidate ? candidate.caloriesPer100g * ingredient.grams / 100 : 0);
-      }, 0),
+    const resolvedRecipes = resolveRecipes(recipes, catalogSelection.byRole);
+    const baseCalories = resolvedRecipes.reduce(
+      (sum, recipe) => sum + recipe.ingredients.reduce(
+        (mealSum, ingredient) => mealSum + (ingredient.candidate.caloriesPer100g * ingredient.grams / 100),
+        0
+      ),
       0
     );
 
@@ -65,13 +74,11 @@ export class CatalogFallbackFoodPlanService {
     }
 
     const scale = clamp(input.nutritionTarget.calories.targetKcal / baseCalories, 0.6, 2.4);
-    const meals = recipes.map((recipe, index) => this.createMeal(
+    const meals = resolvedRecipes.map((recipe, index) => this.createMeal(
       recipe,
       index,
-      bySlug,
       scale,
-      input.locale,
-      variationOffset
+      input.locale
     ));
 
     if (meals.some((meal) => meal.ingredients.length === 0)) {
@@ -100,23 +107,16 @@ export class CatalogFallbackFoodPlanService {
   }
 
   private createMeal(
-    recipe: RecipeTemplate,
+    recipe: ResolvedRecipeTemplate,
     index: number,
-    candidates: Map<string, FoodCatalogCandidate>,
     scale: number,
-    locale: NutritionAgentInput['locale'],
-    variationOffset: number
+    locale: NutritionAgentInput['locale']
   ): FoodMeal {
-    const ingredients = recipe.ingredients.flatMap((template, ingredientIndex) => {
-      const candidate = firstAvailable(
-        template.alternatives,
-        candidates,
-        variationOffset + index + ingredientIndex
-      );
-      if (!candidate) return [];
+    const ingredients = recipe.ingredients.map((template) => {
+      const { candidate } = template;
       const quantity = roundToFive(template.grams * scale);
       const nutrition = this.foodCatalog.calculateNutrition(candidate, quantity);
-      return [{
+      return {
         catalogFoodSlug: candidate.slug,
         name: candidate.name,
         quantity,
@@ -126,7 +126,7 @@ export class CatalogFallbackFoodPlanService {
         carbsGrams: nutrition.carbsGrams,
         fatGrams: nutrition.fatGrams,
         isOptional: false
-      } satisfies FoodIngredient];
+      } satisfies FoodIngredient;
     });
     const totals = sumNutrition(ingredients);
     const title = mealTitle(recipe.mealType, locale);
@@ -158,14 +158,15 @@ export class CatalogFallbackFoodPlanService {
 }
 
 function getRecipes(dietType?: DietType | null): RecipeTemplate[] {
-  if (dietType === DietType.VEGAN) return veganRecipes;
-  if (dietType === DietType.VEGETARIAN) return vegetarianRecipes;
   if (dietType === DietType.KETO || dietType === DietType.LOW_CARB) return lowCarbRecipes;
-  if (dietType === DietType.PESCATARIAN) return pescatarianRecipes;
-  return standardRecipes;
+  return dietType === DietType.VEGAN ? veganRecipes : standardRecipes;
 }
 
-function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeTemplate[] {
+function withMealCount(
+  recipes: RecipeTemplate[],
+  mealsPerDay?: number,
+  dietType?: DietType | null
+): RecipeTemplate[] {
   const count = Math.min(Math.max(Math.trunc(mealsPerDay ?? 3), 1), 6);
   if (count === 3) return recipes;
   if (count === 1) return [{
@@ -180,11 +181,8 @@ function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeT
   const snack: RecipeTemplate = {
     mealType: 'SNACK',
     ingredients: [
-      { alternatives: [
-        'banana', 'apple', 'orange', 'pear', 'mixed-berries', 'strawberries',
-        'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
-      ], grams: 110 },
-      { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu', 'hummus', 'almonds', 'pumpkin-seeds'], grams: 90 }
+      { role: 'FRUIT', grams: 110 },
+      { role: dietType === DietType.VEGAN ? 'MAIN_PROTEIN' : 'DAIRY_OR_ALTERNATIVE', grams: 90 }
     ]
   };
   return [...recipes, ...Array.from({ length: count - 3 }, () => snack)];
@@ -192,147 +190,102 @@ function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeT
 
 const standardRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 70 },
-    { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'egg', 'firm-tofu'], grams: 200 },
-    { alternatives: [
-      'mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries',
-      'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
-    ], grams: 120 }
+    { role: 'BREAKFAST_BASE', grams: 70 },
+    { role: 'DAIRY_OR_ALTERNATIVE', grams: 200 },
+    { role: 'FRUIT', grams: 120 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: [
-      'chicken-breast-cooked', 'turkey-breast-cooked', 'lean-beef-cooked', 'firm-tofu', 'lentils-cooked', 'black-beans-cooked',
-      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
-    ], grams: 190 },
-    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 220 },
-    { alternatives: [
-      'broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 150 },
-    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 12 }
+    { role: 'MAIN_PROTEIN', grams: 190 },
+    { role: 'CARBOHYDRATE', grams: 220 },
+    { role: 'VEGETABLE', grams: 150 },
+    { role: 'FAT', grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['salmon-cooked', 'cod-cooked', 'shrimp-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu'], grams: 170 },
-    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 190 },
-    { alternatives: [
-      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769'
-    ], grams: 120 },
-    { alternatives: [
-      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked',
-      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 10 }
-  ] }
-];
-
-const pescatarianRecipes: RecipeTemplate[] = [
-  standardRecipes[0],
-  { ...standardRecipes[1], ingredients: [
-    { alternatives: ['salmon-cooked', 'cod-cooked', 'shrimp-cooked', 'canned-tuna-in-water', 'firm-tofu', 'lentils-cooked'], grams: 180 },
-    ...standardRecipes[1].ingredients.slice(1)
-  ] },
-  standardRecipes[2]
-];
-
-const vegetarianRecipes: RecipeTemplate[] = [
-  standardRecipes[0],
-  { ...standardRecipes[1], ingredients: [
-    { alternatives: [
-      'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'egg', 'cottage-cheese',
-      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
-    ], grams: 210 },
-    ...standardRecipes[1].ingredients.slice(1)
-  ] },
-  { ...standardRecipes[2], ingredients: [
-    { alternatives: [
-      'firm-tofu', 'tempeh', 'lentils-cooked', 'chickpeas-cooked', 'egg', 'cottage-cheese',
-      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
-    ], grams: 190 },
-    ...standardRecipes[2].ingredients.slice(1)
+    { role: 'MAIN_PROTEIN', grams: 170 },
+    { role: 'CARBOHYDRATE', grams: 190 },
+    { role: 'VEGETABLE', grams: 120 },
+    { role: 'VEGETABLE', grams: 100 },
+    { role: 'FAT', grams: 10 }
   ] }
 ];
 
 const veganRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 75 },
-    { alternatives: ['firm-tofu', 'tempeh', 'chickpeas-cooked', 'black-beans-cooked'], grams: 170 },
-    { alternatives: [
-      'mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries',
-      'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
-    ], grams: 130 }
+    { role: 'BREAKFAST_BASE', grams: 75 },
+    { role: 'MAIN_PROTEIN', grams: 170 },
+    { role: 'FRUIT', grams: 130 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: [
-      'lentils-cooked', 'chickpeas-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh',
-      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
-    ], grams: 230 },
-    { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 200 },
-    { alternatives: [
-      'broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 160 },
-    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 12 }
+    { role: 'MAIN_PROTEIN', grams: 230 },
+    { role: 'CARBOHYDRATE', grams: 200 },
+    { role: 'VEGETABLE', grams: 160 },
+    { role: 'FAT', grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: [
-      'chickpeas-cooked', 'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh',
-      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
-    ], grams: 210 },
-    { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 180 },
-    { alternatives: [
-      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769'
-    ], grams: 130 },
-    { alternatives: [
-      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked',
-      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 10 }
+    { role: 'MAIN_PROTEIN', grams: 210 },
+    { role: 'CARBOHYDRATE', grams: 180 },
+    { role: 'VEGETABLE', grams: 130 },
+    { role: 'VEGETABLE', grams: 100 },
+    { role: 'FAT', grams: 10 }
   ] }
 ];
 
 const lowCarbRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
-    { alternatives: ['egg', 'firm-tofu', 'tempeh', 'cottage-cheese'], grams: 150 },
-    { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu'], grams: 180 },
-    { alternatives: ['avocado', 'olive-oil', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 70 }
+    { role: 'MAIN_PROTEIN', grams: 150 },
+    { role: 'DAIRY_OR_ALTERNATIVE', grams: 180 },
+    { role: 'FAT', grams: 70 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh', 'salmon-cooked', 'cod-cooked'], grams: 210 },
-    { alternatives: [
-      'broccoli-cooked', 'spinach', 'mixed-salad-greens', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 220 },
-    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 20 }
+    { role: 'MAIN_PROTEIN', grams: 210 },
+    { role: 'VEGETABLE', grams: 220 },
+    { role: 'FAT', grams: 20 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['salmon-cooked', 'cod-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh'], grams: 200 },
-    { alternatives: [
-      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked',
-      'usda-fdc-323505', 'usda-fdc-746769'
-    ], grams: 180 },
-    { alternatives: [
-      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'mushrooms-cooked',
-      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
-    ], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 18 }
+    { role: 'MAIN_PROTEIN', grams: 200 },
+    { role: 'VEGETABLE', grams: 180 },
+    { role: 'VEGETABLE', grams: 100 },
+    { role: 'FAT', grams: 18 }
   ] }
 ];
 
-function firstAvailable(
-  alternatives: string[],
-  candidates: Map<string, FoodCatalogCandidate>,
-  variationOffset = 0
-) {
-  return alternatives
-    .map((_, index) => alternatives[(index + variationOffset) % alternatives.length])
-    .map((slug) => candidates.get(slug))
-    .find((candidate): candidate is FoodCatalogCandidate => Boolean(candidate));
+function resolveRecipes(
+  recipes: RecipeTemplate[],
+  candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>
+): ResolvedRecipeTemplate[] {
+  const roleCursors: Partial<Record<FoodCatalogSelectionRole, number>> = {};
+
+  return recipes.map((recipe) => {
+    const usedSlugs = new Set<string>();
+    const ingredients = recipe.ingredients.flatMap((ingredient) => {
+      const candidate = selectCandidateForRole(ingredient.role, candidatesByRole, roleCursors, usedSlugs);
+      if (!candidate) return [];
+      usedSlugs.add(candidate.slug);
+      return [{ ...ingredient, candidate }];
+    });
+    return { ...recipe, ingredients };
+  });
 }
 
-function getVariationOffset(planLocalDate: string) {
-  return [...planLocalDate].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+function selectCandidateForRole(
+  role: FoodCatalogSelectionRole,
+  candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>,
+  roleCursors: Partial<Record<FoodCatalogSelectionRole, number>>,
+  usedSlugs: Set<string>
+) {
+  const candidates = candidatesByRole[role];
+  if (!candidates.length) return null;
+
+  const cursor = roleCursors[role] ?? 0;
+  for (let offset = 0; offset < candidates.length; offset += 1) {
+    const index = (cursor + offset) % candidates.length;
+    const candidate = candidates[index];
+    if (usedSlugs.has(candidate.slug)) continue;
+    roleCursors[role] = index + 1;
+    return candidate;
+  }
+
+  return null;
 }
 
 function sumNutrition(items: Array<FoodNutritionTotals>) {

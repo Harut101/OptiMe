@@ -177,7 +177,7 @@ describe('Specialized Nutrition Agent food plans', () => {
         allergies: ['milk', 'fish', 'soy', 'tree nuts'],
         excludedFoods: ['avocado'],
         dislikedFoods: [],
-        preferredFoods: []
+        preferredFoods: ['kale']
       },
       goalSummary: null,
       resolvedTrainingDay: { isTrainingDay: false }
