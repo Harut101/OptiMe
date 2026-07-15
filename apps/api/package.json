@@ -20,6 +20,7 @@
     "exercise:validate:db": "ts-node prisma/seeds/exercises/validate.ts --database",
     "food-catalog:seed": "ts-node prisma/seeds/foods/seed.ts",
     "food-catalog:validate": "ts-node prisma/seeds/foods/validate.ts",
+    "food-catalog:coverage": "ts-node scripts/food-catalog/audit-coverage.ts",
     "food-catalog:usda:import": "ts-node scripts/food-catalog/import-usda-fdc.ts",
     "food-catalog:usda:curate": "ts-node scripts/food-catalog/curate-usda-fdc.ts",
     "food-catalog:usda:list": "ts-node scripts/food-catalog/list-usda-fdc.ts",

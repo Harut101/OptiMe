@@ -56,11 +56,16 @@ After applying the Prisma migration and generating Prisma Client:
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:validate
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:seed
 
+# Check active catalog coverage before or after a USDA curation batch.
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:coverage -- --locale en-US
+
 # Optional, review-first USDA Foundation Foods import.
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:import -- --input "C:\data\FoundationFoods.json" --limit 25
 ```
 
 ## Next implementation steps
+
+The coverage audit reports the four direct diet scenarios that the catalog currently filters precisely: omnivore, vegetarian, vegan, and pescatarian. A scenario is `READY` when every required meal role has at least two safe candidates, `LIMITED` when a role has only one candidate, and `BLOCKED` when a required role is absent. Keto, low-carb, halal, kosher, and Mediterranean suitability currently need richer product metadata; they are intentionally not reported as separate audit scenarios yet.
 
 1. Add curated recipe-template metadata only when it is needed for a user-visible recipe experience.
 2. Add an admin-only catalog-curation workflow to review and activate USDA imports.

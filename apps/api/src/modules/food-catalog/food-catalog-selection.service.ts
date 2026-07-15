@@ -10,7 +10,7 @@ import type {
 } from './food-catalog.types';
 import { FOOD_CATALOG_SELECTION_ROLES } from './food-catalog.types';
 
-const ROLE_CATEGORIES: Record<FoodCatalogSelectionRole, FoodCatalogCategory[]> = {
+export const FOOD_CATALOG_ROLE_CATEGORIES: Record<FoodCatalogSelectionRole, FoodCatalogCategory[]> = {
   BREAKFAST_BASE: [
     FoodCatalogCategory.GRAIN,
     FoodCatalogCategory.DAIRY_OR_ALTERNATIVE,
@@ -42,16 +42,24 @@ export class FoodCatalogSelectionService {
       limit: 160
     });
     const preferredFoods = normalizePreferenceTerms(input.preferredFoods ?? []);
+    const candidatesByRole = groupFoodCatalogCandidatesByRole(allCandidates);
     const byRole = {} as DailyFoodCatalogSelection['byRole'];
 
     for (const role of FOOD_CATALOG_SELECTION_ROLES) {
-      const candidatesForRole = allCandidates.filter((candidate) => ROLE_CATEGORIES[role].includes(candidate.category));
-      byRole[role] = rankCandidates(candidatesForRole, role, input.planLocalDate, preferredFoods).slice(0, maxPerRole);
+      byRole[role] = rankCandidates(candidatesByRole[role], role, input.planLocalDate, preferredFoods).slice(0, maxPerRole);
     }
 
     const candidates = deduplicateCandidates(FOOD_CATALOG_SELECTION_ROLES.flatMap((role) => byRole[role]));
     return { candidates, byRole };
   }
+}
+
+export function groupFoodCatalogCandidatesByRole(candidates: FoodCatalogCandidate[]) {
+  const byRole = {} as Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>;
+  for (const role of FOOD_CATALOG_SELECTION_ROLES) {
+    byRole[role] = candidates.filter((candidate) => FOOD_CATALOG_ROLE_CATEGORIES[role].includes(candidate.category));
+  }
+  return byRole;
 }
 
 function rankCandidates(
