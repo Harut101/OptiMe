@@ -47,6 +47,8 @@ To include a different official FDC data type intentionally, pass it explicitly:
 
 An import alone never activates a food. Create a review manifest after checking the imported USDA item. It must provide a category, at least one allowed diet type, restriction tags, and translations for every product locale.
 
+The reviewed manifests in `prisma/seeds/foods/usda-curation` are intentionally small and role-focused. For example, `foundation-low-carb-produce-v1.json` adds plain low-carbohydrate vegetables and unsweetened soy milk. It does not activate restaurant dishes, sweetened juices, processed sausages, or raw meat entries merely because their macro values happen to fit a diet filter.
+
 ```json
 {
   "version": 1,

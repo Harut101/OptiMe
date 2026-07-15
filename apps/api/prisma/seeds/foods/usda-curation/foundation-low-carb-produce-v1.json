@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "foods": [
+    {
+      "sourceFoodId": "1999630",
+      "category": "DAIRY_OR_ALTERNATIVE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": ["SOY"],
+      "translations": {
+        "en-US": { "name": "Unsweetened soy milk", "aliases": ["plain soy milk"] },
+        "ru-RU": { "name": "\u041d\u0435\u0441\u043b\u0430\u0434\u043a\u043e\u0435 \u0441\u043e\u0435\u0432\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e", "aliases": ["\u0441\u043e\u0435\u0432\u043e\u0435 \u043c\u043e\u043b\u043e\u043a\u043e"] },
+        "fr-FR": { "name": "Lait de soja sans sucre", "aliases": ["lait de soja nature"] },
+        "zh-CN": { "name": "\u65e0\u7cd6\u8c46\u6d46", "aliases": ["\u539f\u5473\u8c46\u6d46"] }
+      }
+    },
+    {
+      "sourceFoodId": "1999632",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Baby spinach", "aliases": ["young spinach"] },
+        "ru-RU": { "name": "\u041c\u043e\u043b\u043e\u0434\u043e\u0439 \u0448\u043f\u0438\u043d\u0430\u0442", "aliases": ["\u0448\u043f\u0438\u043d\u0430\u0442"] },
+        "fr-FR": { "name": "Jeunes pousses d'epinards", "aliases": ["epinards"] },
+        "zh-CN": { "name": "\u5ae9\u83e0\u83dc", "aliases": ["\u83e0\u83dc"] }
+      }
+    },
+    {
+      "sourceFoodId": "1999634",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Roma tomato", "aliases": ["plum tomato"] },
+        "ru-RU": { "name": "\u041f\u043e\u043c\u0438\u0434\u043e\u0440 \u0440\u043e\u043c\u0430", "aliases": ["\u043f\u043e\u043c\u0438\u0434\u043e\u0440 \u0441\u043b\u0438\u0432\u043a\u0430"] },
+        "fr-FR": { "name": "Tomate Roma", "aliases": ["tomate allongee"] },
+        "zh-CN": { "name": "\u7f57\u9a6c\u756a\u8304", "aliases": ["\u957f\u5f62\u756a\u8304"] }
+      }
+    },
+    {
+      "sourceFoodId": "2003601",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Crimini mushrooms", "aliases": ["baby bella mushrooms"] },
+        "ru-RU": { "name": "\u0413\u0440\u0438\u0431\u044b \u043a\u0440\u0438\u043c\u0438\u043d\u0438", "aliases": ["\u043a\u043e\u0440\u0438\u0447\u043d\u0435\u0432\u044b\u0435 \u0448\u0430\u043c\u043f\u0438\u043d\u044c\u043e\u043d\u044b"] },
+        "fr-FR": { "name": "Champignons crimini", "aliases": ["baby bella"] },
+        "zh-CN": { "name": "\u8910\u8272\u53e3\u8611", "aliases": ["\u5a03\u5a03\u8910\u8611"] }
+      }
+    },
+    {
+      "sourceFoodId": "747447",
+      "category": "VEGETABLE",
+      "dietTypes": ["OMNIVORE", "VEGETARIAN", "VEGAN", "PESCATARIAN", "MEDITERRANEAN"],
+      "restrictionTags": [],
+      "translations": {
+        "en-US": { "name": "Raw broccoli", "aliases": ["broccoli florets"] },
+        "ru-RU": { "name": "\u0421\u044b\u0440\u0430\u044f \u0431\u0440\u043e\u043a\u043a\u043e\u043b\u0438", "aliases": ["\u0431\u0440\u043e\u043a\u043a\u043e\u043b\u0438"] },
+        "fr-FR": { "name": "Brocoli cru", "aliases": ["fleurons de brocoli"] },
+        "zh-CN": { "name": "\u751f\u897f\u5170\u82b1", "aliases": ["\u897f\u5170\u82b1\u5c0f\u6735"] }
+      }
+    }
+  ]
+}
