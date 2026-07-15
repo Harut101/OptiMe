@@ -5,6 +5,10 @@ import { FoodCatalogSource } from '@prisma/client';
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
+import {
+  nutritionAgentFoodPlanDraftSchema,
+  nutritionAgentFoodPlanOpenAiSchema
+} from '../src/modules/nutrition-agent/nutrition-agent.openai-schema';
 import type { NutritionAgentInput } from '../src/modules/nutrition-agent/nutrition-agent.types';
 import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../src/modules/food-catalog/food-catalog-selection.service';
@@ -37,6 +41,52 @@ describe('Specialized Nutrition Agent food plans', () => {
     } else {
       delete process.env.AI_PROVIDER;
     }
+  });
+
+  it('accepts catalog-only AI meal drafts and keeps nutrition fields backend-owned', () => {
+    const draft = {
+      meals: [{
+        id: 'breakfast-1',
+        mealType: 'BREAKFAST',
+        title: 'Breakfast',
+        shortDescription: null,
+        prepTimeMinutes: 10,
+        servingSummary: 'One serving',
+        ingredients: [{
+          catalogFoodSlug: 'oats-cooked',
+          quantity: 180,
+          unit: 'g',
+          isOptional: false
+        }],
+        preparationSteps: ['Prepare simply.'],
+        substitutions: [],
+        explanation: { reasonCodes: ['TARGET_ALIGNED'], params: {} }
+      }]
+    };
+
+    expect(nutritionAgentFoodPlanDraftSchema.safeParse(draft).success).toBe(true);
+    expect(nutritionAgentFoodPlanDraftSchema.safeParse({
+      ...draft,
+      totals: { caloriesKcal: 100, proteinGrams: 1, carbsGrams: 1, fatGrams: 1 }
+    }).success).toBe(false);
+    expect(nutritionAgentFoodPlanDraftSchema.safeParse({
+      ...draft,
+      meals: [{
+        ...draft.meals[0],
+        ingredients: [{
+          ...draft.meals[0].ingredients[0],
+          name: 'Model-provided name'
+        }]
+      }]
+    }).success).toBe(false);
+
+    expect(nutritionAgentFoodPlanOpenAiSchema.required).toEqual(['meals']);
+    expect(nutritionAgentFoodPlanOpenAiSchema.properties.meals.items.properties.ingredients.items.required).toEqual([
+      'catalogFoodSlug',
+      'quantity',
+      'unit',
+      'isOptional'
+    ]);
   });
 
   it('ships an expanded curated catalog and filters tagged foods before planning', async () => {

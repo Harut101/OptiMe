@@ -7,6 +7,7 @@ The AI Nutrition Agent creates a structured daily food plan after the determinis
 - `NutritionTargetsService` remains the numeric source of truth.
 - The AI Nutrition Agent must not calculate or override target calories, protein, carbs, or fat.
 - The agent may choose meals, ingredients, portions, preparation notes, and display-only substitutions inside the deterministic target.
+- For every ingredient, the agent returns only an approved catalog slug, a gram quantity, and whether it is optional. The backend resolves the localized name and recalculates every ingredient, meal, and day nutrition value.
 - Mobile never calls OpenAI directly.
 - The agent uses the existing backend OpenAI client factory and Structured Outputs when `AI_PROVIDER=openai`; mock mode stays deterministic.
 

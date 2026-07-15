@@ -30,7 +30,7 @@ The catalog is currently used for Nutrition Agent ingredient selection and deter
 
 ## Current generation behavior
 
-When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user.
+When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names or nutrition values.
 
 The shortlist is not a second source of truth. The full active catalog remains authoritative, and the backend still recalculates nutrition and applies every restriction before a plan is saved. A future recipe-template layer can add finer cooking-state or cuisine metadata if the product needs it.
 

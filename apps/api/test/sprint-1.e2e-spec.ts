@@ -7078,7 +7078,6 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
   const messages = input.input as Array<{ content?: string }> | undefined;
   const context = parseJsonRecord(messages?.[1]?.content);
   const fixedTarget = parseJsonRecord(context.fixedNutritionTarget);
-  const targetKcal = numberOrDefault(fixedTarget.targetKcal, 2100);
   const proteinGrams = numberOrDefault(fixedTarget.proteinGrams, 120);
   const carbsGrams = numberOrDefault(fixedTarget.carbsGrams, 240);
   const fatGrams = numberOrDefault(fixedTarget.fatGrams, 65);
@@ -7086,41 +7085,17 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
   const catalogIngredients = createMockCatalogIngredients(context, proteinGrams, carbsGrams, fatGrams);
   const mealTypes = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'POST_WORKOUT'];
   const meals = Array.from({ length: requestedMealsPerDay }, (_, index) => {
-    const isLast = index === requestedMealsPerDay - 1;
-    const divisor = requestedMealsPerDay;
-    const calories = isLast
-      ? targetKcal - Math.round(targetKcal / divisor) * (divisor - 1)
-      : Math.round(targetKcal / divisor);
-    const protein = isLast
-      ? roundMacro(proteinGrams - roundMacro(proteinGrams / divisor) * (divisor - 1))
-      : roundMacro(proteinGrams / divisor);
-    const carbs = isLast
-      ? roundMacro(carbsGrams - roundMacro(carbsGrams / divisor) * (divisor - 1))
-      : roundMacro(carbsGrams / divisor);
-    const fat = isLast
-      ? roundMacro(fatGrams - roundMacro(fatGrams / divisor) * (divisor - 1))
-      : roundMacro(fatGrams / divisor);
-
     return {
       id: `meal-${index + 1}`,
       mealType: mealTypes[index] ?? 'SNACK',
       title: `Balanced meal ${index + 1}`,
       shortDescription: 'A simple meal built around the fixed nutrition target.',
-      caloriesKcal: calories,
-      proteinGrams: protein,
-      carbsGrams: carbs,
-      fatGrams: fat,
       prepTimeMinutes: 15,
       servingSummary: '1 balanced serving',
       ingredients: catalogIngredients.map((ingredient) => ({
         catalogFoodSlug: ingredient.slug,
-        name: ingredient.name,
         quantity: splitMockQuantity(ingredient.quantity, index, requestedMealsPerDay),
         unit: 'g',
-        caloriesKcal: calories,
-        proteinGrams: protein,
-        carbsGrams: carbs,
-        fatGrams: fat,
         isOptional: false
       })),
       preparationSteps: ['Combine the ingredients and season simply.'],
@@ -7142,12 +7117,6 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
 
   return {
     output_text: JSON.stringify({
-      totals: {
-        caloriesKcal: targetKcal,
-        proteinGrams,
-        carbsGrams,
-        fatGrams
-      },
       meals
     })
   };
@@ -7186,9 +7155,9 @@ function createMockCatalogIngredients(
   const fatGrams = remainingFat / numberOrDefault(fat.fatPer100g, 1) * 100;
 
   return [
-    { slug: String(protein.slug), name: String(protein.name), quantity: proteinGrams },
-    { slug: String(carb.slug), name: String(carb.name), quantity: carbGrams },
-    { slug: String(fat.slug), name: String(fat.name), quantity: fatGrams }
+    { slug: String(protein.slug), quantity: proteinGrams },
+    { slug: String(carb.slug), quantity: carbGrams },
+    { slug: String(fat.slug), quantity: fatGrams }
   ];
 }
 
@@ -7213,10 +7182,6 @@ function parseJsonRecord(value: unknown): Record<string, unknown> {
 
 function numberOrDefault(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function roundMacro(value: number) {
-  return Math.round(value * 10) / 10;
 }
 
 function getOpenAiMockResponse(

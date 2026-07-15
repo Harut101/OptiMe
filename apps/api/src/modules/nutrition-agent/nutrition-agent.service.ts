@@ -8,7 +8,6 @@ import {
   OpenAiResponsesClient,
   OPENAI_CLIENT_FACTORY
 } from '../ai/open-ai-client.factory';
-import { dailyFoodPlanSchema } from '../daily-plans/daily-plan-json.schema';
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
 import {
@@ -19,7 +18,11 @@ import {
 import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanValidationService } from './food-plan-validation.service';
-import { nutritionAgentFoodPlanOpenAiSchema } from './nutrition-agent.openai-schema';
+import {
+  nutritionAgentFoodPlanDraftSchema,
+  nutritionAgentFoodPlanOpenAiSchema,
+  type NutritionAgentFoodPlanDraft
+} from './nutrition-agent.openai-schema';
 import type { NutritionAgentInput, NutritionAgentResult } from './nutrition-agent.types';
 
 type NutritionAgentAttemptResult =
@@ -210,8 +213,7 @@ export class NutritionAgentService {
       };
     }
 
-    const candidate = this.wrapBackendOwnedFields(parsed, input);
-    const schemaResult = dailyFoodPlanSchema.safeParse(candidate);
+    const schemaResult = nutritionAgentFoodPlanDraftSchema.safeParse(parsed);
 
     if (!schemaResult.success) {
       return {
@@ -221,7 +223,7 @@ export class NutritionAgentService {
       };
     }
 
-    const normalizedCatalogPlan = this.normalizeCatalogFoodPlan(schemaResult.data, catalogCandidates);
+    const normalizedCatalogPlan = this.normalizeCatalogFoodPlan(schemaResult.data, input, catalogCandidates);
     if (!normalizedCatalogPlan) {
       return {
         ok: false,
@@ -254,29 +256,6 @@ export class NutritionAgentService {
     };
   }
 
-  private wrapBackendOwnedFields(value: unknown, input: NutritionAgentInput): DailyFoodPlan {
-    const record = isRecord(value) ? value : {};
-
-    return {
-      source: 'NUTRITION_AGENT',
-      localDate: input.planLocalDate,
-      locale: input.locale,
-      nutritionTargetSnapshot: input.nutritionTargetSnapshot,
-      totals: normalizeTotals(record.totals),
-      validation: {
-        status: 'VALID',
-        reasons: [],
-        tolerances: {
-          caloriesPercent: 5,
-          proteinGrams: 10,
-          carbsGrams: 15,
-          fatGrams: 10
-        }
-      },
-      meals: Array.isArray(record.meals) ? record.meals as DailyFoodPlan['meals'] : []
-    };
-  }
-
   private buildSystemInstructions(previousValidationReasons: string[]) {
     return [
       'You are the OptiMe Specialized Nutrition Agent.',
@@ -286,9 +265,8 @@ export class NutritionAgentService {
       'Do not calculate a new daily target. Use the target calories, protein, carbs, and fat from the context.',
       'Use only catalogFoodSlug values supplied in allowedCatalogFoods. Never invent an ingredient or a slug.',
       'Use selectionRoles as meal-building guidance: choose proteins, carbohydrate bases, vegetables, fruit, and fats that fit each meal.',
-      'Every ingredient quantity must be in grams. Backend recalculates names, calories, and macros from catalog values.',
-      'Every meal and ingredient must include calories, protein, carbs, and fat.',
-      'Meal totals must approximately match ingredient sums. Day totals must approximately match meal sums.',
+      'Every ingredient quantity must be in grams. Return only catalogFoodSlug, quantity, unit, and isOptional for ingredients.',
+      'Do not return ingredient names, calories, protein, carbs, fat, meal totals, or daily totals. Backend owns and calculates all of those values.',
       'Respect the requested mealsPerDay exactly when provided.',
       'Never include allergies, intolerances, or excluded foods in ingredients, meal titles, substitutions, or preparation steps.',
       'Treat disliked foods as strong avoid preferences unless there is no safe practical alternative.',
@@ -373,7 +351,11 @@ export class NutritionAgentService {
     };
   }
 
-  private normalizeCatalogFoodPlan(plan: DailyFoodPlan, catalogCandidates: FoodCatalogCandidate[]) {
+  private normalizeCatalogFoodPlan(
+    plan: NutritionAgentFoodPlanDraft,
+    input: NutritionAgentInput,
+    catalogCandidates: FoodCatalogCandidate[]
+  ): DailyFoodPlan | null {
     const bySlug = new Map(catalogCandidates.map((candidate) => [candidate.slug, candidate]));
     const meals: DailyFoodPlan['meals'] = [];
 
@@ -397,7 +379,24 @@ export class NutritionAgentService {
       meals.push({ ...meal, ...totals, ingredients });
     }
     const totals = sumFoodNutrition(meals);
-    return { ...plan, meals, totals };
+    return {
+      source: 'NUTRITION_AGENT',
+      localDate: input.planLocalDate,
+      locale: input.locale,
+      nutritionTargetSnapshot: input.nutritionTargetSnapshot,
+      totals,
+      validation: {
+        status: 'VALID',
+        reasons: [],
+        tolerances: {
+          caloriesPercent: 5,
+          proteinGrams: 10,
+          carbsGrams: 15,
+          fatGrams: 10
+        }
+      },
+      meals
+    };
   }
 
   private validationContext(input: NutritionAgentInput) {
@@ -484,25 +483,6 @@ export class NutritionAgentService {
     const value = Number(this.configService.get<string>(key));
     return Number.isFinite(value) && value > 0 ? Math.trunc(value) : fallback;
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function normalizeTotals(value: unknown): DailyFoodPlan['totals'] {
-  const record = isRecord(value) ? value : {};
-
-  return {
-    caloriesKcal: numberOrZero(record.caloriesKcal),
-    proteinGrams: numberOrZero(record.proteinGrams),
-    carbsGrams: numberOrZero(record.carbsGrams),
-    fatGrams: numberOrZero(record.fatGrams)
-  };
-}
-
-function numberOrZero(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 function sumFoodNutrition(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {
