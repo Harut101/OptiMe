@@ -180,7 +180,10 @@ function withMealCount(recipes: RecipeTemplate[], mealsPerDay?: number): RecipeT
   const snack: RecipeTemplate = {
     mealType: 'SNACK',
     ingredients: [
-      { alternatives: ['banana', 'apple', 'orange', 'pear', 'mixed-berries', 'strawberries'], grams: 110 },
+      { alternatives: [
+        'banana', 'apple', 'orange', 'pear', 'mixed-berries', 'strawberries',
+        'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
+      ], grams: 110 },
       { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu', 'hummus', 'almonds', 'pumpkin-seeds'], grams: 90 }
     ]
   };
@@ -191,20 +194,35 @@ const standardRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
     { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 70 },
     { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'egg', 'firm-tofu'], grams: 200 },
-    { alternatives: ['mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries'], grams: 120 }
+    { alternatives: [
+      'mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries',
+      'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
+    ], grams: 120 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['chicken-breast-cooked', 'turkey-breast-cooked', 'lean-beef-cooked', 'firm-tofu', 'lentils-cooked', 'black-beans-cooked'], grams: 190 },
+    { alternatives: [
+      'chicken-breast-cooked', 'turkey-breast-cooked', 'lean-beef-cooked', 'firm-tofu', 'lentils-cooked', 'black-beans-cooked',
+      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
+    ], grams: 190 },
     { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 220 },
-    { alternatives: ['broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked'], grams: 150 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 12 }
+    { alternatives: [
+      'broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 150 },
+    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
     { alternatives: ['salmon-cooked', 'cod-cooked', 'shrimp-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu'], grams: 170 },
     { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 190 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked'], grams: 120 },
-    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked'], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 10 }
+    { alternatives: [
+      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769'
+    ], grams: 120 },
+    { alternatives: [
+      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked',
+      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 100 },
+    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 10 }
   ] }
 ];
 
@@ -220,11 +238,17 @@ const pescatarianRecipes: RecipeTemplate[] = [
 const vegetarianRecipes: RecipeTemplate[] = [
   standardRecipes[0],
   { ...standardRecipes[1], ingredients: [
-    { alternatives: ['lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'egg', 'cottage-cheese'], grams: 210 },
+    { alternatives: [
+      'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'egg', 'cottage-cheese',
+      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
+    ], grams: 210 },
     ...standardRecipes[1].ingredients.slice(1)
   ] },
   { ...standardRecipes[2], ingredients: [
-    { alternatives: ['firm-tofu', 'tempeh', 'lentils-cooked', 'chickpeas-cooked', 'egg', 'cottage-cheese'], grams: 190 },
+    { alternatives: [
+      'firm-tofu', 'tempeh', 'lentils-cooked', 'chickpeas-cooked', 'egg', 'cottage-cheese',
+      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
+    ], grams: 190 },
     ...standardRecipes[2].ingredients.slice(1)
   ] }
 ];
@@ -233,20 +257,38 @@ const veganRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
     { alternatives: ['rolled-oats', 'buckwheat-cooked', 'rice-cakes'], grams: 75 },
     { alternatives: ['firm-tofu', 'tempeh', 'chickpeas-cooked', 'black-beans-cooked'], grams: 170 },
-    { alternatives: ['mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries'], grams: 130 }
+    { alternatives: [
+      'mixed-berries', 'banana', 'apple', 'orange', 'pear', 'blueberries',
+      'usda-fdc-746770', 'usda-fdc-2346410', 'usda-fdc-2346414'
+    ], grams: 130 }
   ] },
   { mealType: 'LUNCH', ingredients: [
-    { alternatives: ['lentils-cooked', 'chickpeas-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh'], grams: 230 },
+    { alternatives: [
+      'lentils-cooked', 'chickpeas-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh',
+      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
+    ], grams: 230 },
     { alternatives: ['brown-rice-cooked', 'quinoa-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 200 },
-    { alternatives: ['broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked'], grams: 160 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 12 }
+    { alternatives: [
+      'broccoli-cooked', 'carrot', 'spinach', 'bell-pepper', 'zucchini', 'green-beans-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 160 },
+    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 12 }
   ] },
   { mealType: 'DINNER', ingredients: [
-    { alternatives: ['chickpeas-cooked', 'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh'], grams: 210 },
+    { alternatives: [
+      'chickpeas-cooked', 'lentils-cooked', 'black-beans-cooked', 'kidney-beans-cooked', 'firm-tofu', 'tempeh',
+      'usda-fdc-2644286', 'usda-fdc-2644287', 'usda-fdc-2644292'
+    ], grams: 210 },
     { alternatives: ['quinoa-cooked', 'brown-rice-cooked', 'white-rice-cooked', 'buckwheat-cooked', 'baked-potato', 'sweet-potato-baked'], grams: 180 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked'], grams: 130 },
-    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked'], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado'], grams: 10 }
+    { alternatives: [
+      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'asparagus-cooked', 'kale-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769'
+    ], grams: 130 },
+    { alternatives: [
+      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'zucchini', 'mushrooms-cooked',
+      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 100 },
+    { alternatives: ['olive-oil', 'avocado', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 10 }
   ] }
 ];
 
@@ -254,18 +296,27 @@ const lowCarbRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
     { alternatives: ['egg', 'firm-tofu', 'tempeh', 'cottage-cheese'], grams: 150 },
     { alternatives: ['greek-yogurt-plain', 'cottage-cheese', 'firm-tofu'], grams: 180 },
-    { alternatives: ['avocado', 'olive-oil', 'walnuts', 'pumpkin-seeds'], grams: 70 }
+    { alternatives: ['avocado', 'olive-oil', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 70 }
   ] },
   { mealType: 'LUNCH', ingredients: [
     { alternatives: ['chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh', 'salmon-cooked', 'cod-cooked'], grams: 210 },
-    { alternatives: ['broccoli-cooked', 'spinach', 'mixed-salad-greens', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked'], grams: 220 },
-    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds'], grams: 20 }
+    { alternatives: [
+      'broccoli-cooked', 'spinach', 'mixed-salad-greens', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769', 'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 220 },
+    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 20 }
   ] },
   { mealType: 'DINNER', ingredients: [
     { alternatives: ['salmon-cooked', 'cod-cooked', 'chicken-breast-cooked', 'turkey-breast-cooked', 'firm-tofu', 'tempeh'], grams: 200 },
-    { alternatives: ['mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked'], grams: 180 },
-    { alternatives: ['tomato', 'cucumber', 'carrot', 'bell-pepper', 'mushrooms-cooked'], grams: 100 },
-    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds'], grams: 18 }
+    { alternatives: [
+      'mixed-salad-greens', 'spinach', 'broccoli-cooked', 'cauliflower-cooked', 'zucchini', 'asparagus-cooked',
+      'usda-fdc-323505', 'usda-fdc-746769'
+    ], grams: 180 },
+    { alternatives: [
+      'tomato', 'cucumber', 'carrot', 'bell-pepper', 'mushrooms-cooked',
+      'usda-fdc-1999628', 'usda-fdc-1999629', 'usda-fdc-2003598'
+    ], grams: 100 },
+    { alternatives: ['olive-oil', 'avocado', 'walnuts', 'pumpkin-seeds', 'usda-fdc-2515378', 'usda-fdc-2515379'], grams: 18 }
   ] }
 ];
 

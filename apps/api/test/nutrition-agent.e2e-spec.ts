@@ -1,5 +1,6 @@
 import request from 'supertest';
 import type { DailyFoodPlan } from '@optime/shared-types';
+import { FoodCatalogSource } from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
@@ -121,8 +122,28 @@ describe('Specialized Nutrition Agent food plans', () => {
 
   it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
     const service = ctx.app.get(CatalogFallbackFoodPlanService);
+    await ctx.prisma.foodCatalogItem.create({
+      data: {
+        slug: 'usda-fdc-323505',
+        source: FoodCatalogSource.USDA_FDC,
+        sourceFoodId: '323505',
+        category: 'VEGETABLE',
+        caloriesPer100g: 35,
+        proteinPer100g: 2.9,
+        carbsPer100g: 4.4,
+        fatPer100g: 1.5,
+        fiberPer100g: 4.1,
+        dietTypes: ['OMNIVORE', 'VEGETARIAN', 'VEGAN', 'PESCATARIAN', 'MEDITERRANEAN'],
+        restrictionTags: [],
+        isActive: true,
+        translations: {
+          create: { locale: 'EN_US', name: 'Raw kale', aliases: ['kale'] }
+        }
+      }
+    });
+
     const fallback = await service.create({
-      planLocalDate: '2026-07-12',
+      planLocalDate: '2026-07-16',
       locale: 'en-US',
       planQualityMode: 'BASIC',
       appMode: 'NUTRITION_ONLY',
@@ -134,7 +155,7 @@ describe('Specialized Nutrition Agent food plans', () => {
       },
       nutritionTargetSnapshot: {
         engineVersion: 1,
-        localDate: '2026-07-12',
+        localDate: '2026-07-16',
         dayType: 'REST_DAY',
         appMode: 'NUTRITION_ONLY',
         primaryGoal: 'HEALTHY_EATING',
@@ -172,6 +193,9 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (
       ['greek-yogurt-plain', 'salmon-cooked', 'firm-tofu', 'almonds'].includes(ingredient.catalogFoodSlug ?? '')
     ))).toBe(false);
+    expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (
+      ingredient.catalogFoodSlug === 'usda-fdc-323505'
+    ))).toBe(true);
 
     const ingredientTotals = fallback.meals.flatMap((meal) => meal.ingredients).reduce(
       (totals, ingredient) => ({
@@ -186,6 +210,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.totals.proteinGrams).toBeCloseTo(ingredientTotals.proteinGrams, 1);
     expect(fallback.totals.carbsGrams).toBeCloseTo(ingredientTotals.carbsGrams, 1);
     expect(fallback.totals.fatGrams).toBeCloseTo(ingredientTotals.fatGrams, 1);
+    await ctx.prisma.foodCatalogItem.delete({ where: { slug: 'usda-fdc-323505' } });
   });
 
   it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {

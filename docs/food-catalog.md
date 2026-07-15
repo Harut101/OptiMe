@@ -36,7 +36,7 @@ The shortlist is not a second source of truth. The full active catalog remains a
 
 The backend then resolves each slug, replaces the display name with the catalog translation, and recalculates ingredient, meal, and day totals from catalog values. Unknown slugs or non-gram units are rejected and can trigger the existing single retry. This removes AI arithmetic as the source of meal-total mismatches.
 
-If the Nutrition Agent cannot provide a valid catalog-backed menu after its retry, OptiMe composes a complete deterministic fallback menu from allowed catalog foods. The current placeholder fallback remains only for the exceptional case where the user restrictions leave too few safe catalog candidates.
+If the Nutrition Agent cannot provide a valid catalog-backed menu after its retry, OptiMe composes a complete deterministic fallback menu from allowed catalog foods. Its ingredient alternatives include the reviewed active USDA fruit, vegetable, legume, and nut entries that fit the existing recipe roles. Unreviewed USDA imports remain inactive and cannot appear in a fallback menu. The current placeholder fallback remains only for the exceptional case where the user restrictions leave too few safe catalog candidates.
 
 Every newly persisted plan records internal `debug.generation` provenance. It marks the plan as complete and lists only the sections that needed a deterministic safe adjustment. This metadata is not rendered in mobile UI; it supports operations and regression tests without exposing implementation language to users.
 
