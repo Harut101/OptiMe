@@ -4,21 +4,42 @@ import type { SupportedLocale } from '@optime/shared-types';
 
 import { FoodCatalogService } from './food-catalog.service';
 import { groupFoodCatalogCandidatesByRole } from './food-catalog-selection.service';
-import { FOOD_CATALOG_SELECTION_ROLES, type FoodCatalogSelectionRole } from './food-catalog.types';
+import {
+  FOOD_CATALOG_SELECTION_ROLES,
+  type FoodCatalogRestrictions,
+  type FoodCatalogSelectionRole
+} from './food-catalog.types';
 
 export type FoodCatalogCoverageStatus = 'READY' | 'LIMITED' | 'BLOCKED';
 
 export interface FoodCatalogCoverageScenario {
-  id: 'OMNIVORE' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN' | 'MEDITERRANEAN' | 'LOW_CARB' | 'KETO';
+  id: FoodCatalogCoverageScenarioId;
   dietType: DietType;
   requiredRoles: FoodCatalogSelectionRole[];
+  restrictions?: FoodCatalogRestrictions;
 }
+
+export type FoodCatalogCoverageScenarioId =
+  | 'OMNIVORE'
+  | 'VEGETARIAN'
+  | 'VEGAN'
+  | 'PESCATARIAN'
+  | 'MEDITERRANEAN'
+  | 'LOW_CARB'
+  | 'KETO'
+  | 'OMNIVORE_DAIRY_AND_FISH_FREE'
+  | 'VEGETARIAN_EGG_AND_SOY_FREE'
+  | 'VEGAN_SOY_AND_TREE_NUT_FREE'
+  | 'GLUTEN_FREE_OMNIVORE'
+  | 'LOW_CARB_DAIRY_FREE'
+  | 'KETO_DAIRY_AND_TREE_NUT_FREE';
 
 export interface FoodCatalogCoverageResult {
   locale: SupportedLocale;
   scenarios: Array<{
     id: FoodCatalogCoverageScenario['id'];
     dietType: DietType;
+    restrictions: FoodCatalogRestrictions;
     status: FoodCatalogCoverageStatus;
     activeCandidateCount: number;
     roleCounts: Record<FoodCatalogSelectionRole, number>;
@@ -62,6 +83,42 @@ const COVERAGE_SCENARIOS: FoodCatalogCoverageScenario[] = [
     id: 'KETO',
     dietType: DietType.KETO,
     requiredRoles: ['MAIN_PROTEIN', 'VEGETABLE', 'FAT']
+  },
+  {
+    id: 'OMNIVORE_DAIRY_AND_FISH_FREE',
+    dietType: DietType.OMNIVORE,
+    requiredRoles: ['BREAKFAST_BASE', 'MAIN_PROTEIN', 'CARBOHYDRATE', 'VEGETABLE', 'FRUIT', 'FAT'],
+    restrictions: { allergies: ['milk', 'fish'] }
+  },
+  {
+    id: 'VEGETARIAN_EGG_AND_SOY_FREE',
+    dietType: DietType.VEGETARIAN,
+    requiredRoles: [...FOOD_CATALOG_SELECTION_ROLES],
+    restrictions: { allergies: ['egg', 'soy'] }
+  },
+  {
+    id: 'VEGAN_SOY_AND_TREE_NUT_FREE',
+    dietType: DietType.VEGAN,
+    requiredRoles: ['BREAKFAST_BASE', 'MAIN_PROTEIN', 'CARBOHYDRATE', 'VEGETABLE', 'FRUIT', 'FAT'],
+    restrictions: { allergies: ['soy', 'tree nuts'] }
+  },
+  {
+    id: 'GLUTEN_FREE_OMNIVORE',
+    dietType: DietType.OMNIVORE,
+    requiredRoles: [...FOOD_CATALOG_SELECTION_ROLES],
+    restrictions: { allergies: ['gluten'] }
+  },
+  {
+    id: 'LOW_CARB_DAIRY_FREE',
+    dietType: DietType.LOW_CARB,
+    requiredRoles: ['MAIN_PROTEIN', 'VEGETABLE', 'FAT'],
+    restrictions: { allergies: ['milk'] }
+  },
+  {
+    id: 'KETO_DAIRY_AND_TREE_NUT_FREE',
+    dietType: DietType.KETO,
+    requiredRoles: ['MAIN_PROTEIN', 'VEGETABLE', 'FAT'],
+    restrictions: { allergies: ['milk', 'tree nuts'] }
   }
 ];
 
@@ -78,6 +135,7 @@ export class FoodCatalogCoverageService {
       const candidates = await this.foodCatalog.listAllowedCandidates({
         locale,
         dietType: scenario.dietType,
+        restrictions: scenario.restrictions,
         limit: 160
       });
       const byRole = groupFoodCatalogCandidatesByRole(candidates);
@@ -96,6 +154,7 @@ export class FoodCatalogCoverageService {
       return {
         id: scenario.id,
         dietType: scenario.dietType,
+        restrictions: scenario.restrictions ?? {},
         status,
         activeCandidateCount: candidates.length,
         roleCounts,

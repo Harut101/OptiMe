@@ -13,6 +13,12 @@ void coverage.audit(locale)
     console.log(`Food catalog coverage (${report.locale})`);
     for (const scenario of report.scenarios) {
       console.log(`${scenario.id}: ${scenario.status}; active=${scenario.activeCandidateCount}`);
+      const restrictions = [
+        ...(scenario.restrictions.allergies ?? []).map((item) => `allergy:${item}`),
+        ...(scenario.restrictions.excludedFoods ?? []).map((item) => `excluded:${item}`),
+        ...(scenario.restrictions.dislikedFoods ?? []).map((item) => `disliked:${item}`)
+      ];
+      if (restrictions.length) console.log(`  restrictions=${restrictions.join(', ')}`);
       console.log(`  roles=${Object.entries(scenario.roleCounts).map(([role, count]) => `${role}:${count}`).join(', ')}`);
       if (scenario.missingRoles.length) console.log(`  missing=${scenario.missingRoles.join(', ')}`);
       if (scenario.limitedRoles.length) console.log(`  limited=${scenario.limitedRoles.join(', ')}`);
