@@ -98,6 +98,14 @@ Exit criteria: a temporary OpenAI copy failure cannot prevent a user from receiv
 
 Exit criteria: a user can replace one meal with a different safe catalog meal without changing the rest of the day. Met with e2e coverage.
 
+## Phase 10: Catalog-first mock parity - complete
+
+- Mock-mode initial plans now run the same deterministic catalog composition, portion solving, rebalancing, and validation path as production generation.
+- This keeps local development and QA aligned with the user-facing production meal structure while avoiding any external AI request.
+- The legacy deterministic mock plan remains only as a safe fallback when catalog composition cannot meet a user's restrictions or target.
+
+Exit criteria: a standard mock-generated plan persists catalog-backed ingredient slugs and validates against the same food-plan contract. Met with e2e coverage.
+
 ## Deferred
 
 - Branded products and barcode lookup.

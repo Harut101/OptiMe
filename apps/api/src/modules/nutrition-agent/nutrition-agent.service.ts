@@ -157,31 +157,32 @@ export class NutritionAgentService {
   }
 
   private async generateMockFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
-    if (input.regeneration?.mode === 'FULL_MENU_REGENERATION') {
-      const selectionSeed = this.fullMenuRegenerationSelectionSeed(input);
-      const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
-      const composedPlan = await this.recipeComposer.compose(input, {
-        selectionSeed
-      });
-      if (composedPlan) {
-        const { foodPlan, validation } = this.resolveComposedPlan(
-          composedPlan,
-          input,
-          catalogSelection.candidates
+    const selectionSeed = input.regeneration?.mode === 'FULL_MENU_REGENERATION'
+      ? this.fullMenuRegenerationSelectionSeed(input)
+      : undefined;
+    const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
+    const composedPlan = await this.recipeComposer.compose(input, { selectionSeed });
+    if (composedPlan) {
+      const { foodPlan, validation } = this.resolveComposedPlan(
+        composedPlan,
+        input,
+        catalogSelection.candidates
+      );
+      if (validation.passed) {
+        this.logger.log(
+          `nutrition agent mock deterministic composition passed; mode=${input.regeneration?.mode ?? 'INITIAL'}`
         );
-        if (validation.passed) {
-          this.logResult(input, foodPlan, 0, []);
-          return {
-            foodPlan,
-            retryCount: 0,
-            fallbackUsed: false,
-            validationReasonCodes: []
-          };
-        }
-        this.logger.warn(
-          `nutrition agent mock menu composition did not meet target; using legacy mock plan; reasons=${validation.reasons.join(',')}`
-        );
+        this.logResult(input, foodPlan, 0, []);
+        return {
+          foodPlan,
+          retryCount: 0,
+          fallbackUsed: false,
+          validationReasonCodes: []
+        };
       }
+      this.logger.warn(
+        `nutrition agent mock deterministic composition did not meet target; using legacy mock plan; reasons=${validation.reasons.join(',')}`
+      );
     }
 
     const foodPlan = createDeterministicFoodPlan(input, 'NUTRITION_AGENT');

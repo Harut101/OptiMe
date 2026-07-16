@@ -375,14 +375,28 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(foodPlan.nutritionTargetSnapshot.targetKcal).toBe(
       response.body.plan.nutritionTargetSnapshot.targetKcal
     );
-    expect(foodPlan.totals.caloriesKcal).toBe(
-      response.body.plan.nutritionTargetSnapshot.targetKcal
+    const targetKcal = response.body.plan.nutritionTargetSnapshot.targetKcal;
+    expect(Math.abs(foodPlan.totals.caloriesKcal - targetKcal)).toBeLessThanOrEqual(
+      Math.max(100, Math.round(targetKcal * 0.05))
     );
     expect(foodPlan.meals[0].ingredients[0]).toMatchObject({
-      unit: 'serving',
+      unit: 'g',
       isOptional: false
     });
     expect(foodPlan.meals[0].substitutions[0].reasonCode).toBe('SIMILAR_MACROS');
+
+    const persistedPlan = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: response.body.id }
+    });
+    const persistedFoodPlan = (persistedPlan.planJson as unknown as {
+      nutrition: { foodPlan: DailyFoodPlan };
+    }).nutrition.foodPlan;
+
+    expect(
+      persistedFoodPlan.meals
+        .flatMap((meal) => meal.ingredients)
+        .every((ingredient) => Boolean(ingredient.catalogFoodSlug))
+    ).toBe(true);
   });
 
   it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
