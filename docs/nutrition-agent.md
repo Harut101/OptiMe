@@ -80,7 +80,7 @@ For a new daily plan, `FoodPlanRecipeComposerService` first composes ingredients
 
 Instead, OpenAI receives the locked meal IDs and the safe ingredient names for each composed meal through the `daily_food_plan_copy` structured-output contract. It may return only localized meal titles, short descriptions, serving summaries, preparation time, and preparation steps. The backend merges this copy onto the composed plan and runs the same deterministic food-safety validation again.
 
-If this copy request is unavailable, malformed, or unsafe, OptiMe keeps the complete deterministic plan rather than downgrading the user to an incomplete plan or a user-visible fallback state. Focused food/menu regeneration retains the previous ingredient-selection flow for now so it can still offer a changed menu; it remains protected by the catalog, template, solver, and validator boundaries.
+If this copy request is unavailable, malformed, or unsafe, OptiMe keeps the complete deterministic plan rather than downgrading the user to an incomplete plan or a user-visible fallback state. Full-menu regeneration uses the same composition path with a stable seed derived from the saved menu, so it can select a different safe catalog variation without changing the saved nutrition target. Individual-meal regeneration retains the previous controlled ingredient-selection path until it has a bounded single-meal solver that preserves unaffected meals exactly.
 
 Current tolerances:
 
@@ -106,7 +106,7 @@ If retry fails, the backend stores a deterministic fallback food plan. The fallb
 
 The Nutrition Agent also supports two focused regeneration modes:
 
-- `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`.
+- `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`. The backend derives a stable variation seed from the stored meal ingredients, composes the next safe catalog option, solves and rebalances portions deterministically, then requests optional AI copy only.
 - `MEAL_REGENERATION`: regenerate the selected meal and return a complete adjusted food plan so the validator can re-check the whole day.
 
 Regeneration does not call the Nutrition Engine and does not calculate new calorie or macro targets. It reuses the selected Daily Plan's stored `nutritionTargetSnapshot`, current preferences, allergies, excluded foods, disliked foods, locale, and training-day context.

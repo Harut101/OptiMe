@@ -28,6 +28,14 @@ type ResolvedRecipeTemplate = Omit<FoodPlanRecipeTemplate, 'ingredients'> & {
   ingredients: ResolvedRecipeIngredient[];
 };
 
+export type CatalogFoodPlanComposeOptions = {
+  /**
+   * A stable variation key changes catalog ranking without changing the plan's
+   * real local date. Regeneration uses it to select the next safe menu.
+   */
+  selectionSeed?: string;
+};
+
 @Injectable()
 export class CatalogFallbackFoodPlanService {
   constructor(
@@ -44,7 +52,8 @@ export class CatalogFallbackFoodPlanService {
   async compose(
     input: NutritionAgentInput,
     reasons: string[],
-    source: DailyFoodPlanSource
+    source: DailyFoodPlanSource,
+    options: CatalogFoodPlanComposeOptions = {}
   ): Promise<DailyFoodPlan | null> {
     if (input.nutritionTarget.safety.status === 'NEEDS_MORE_INFO') {
       return null;
@@ -53,7 +62,9 @@ export class CatalogFallbackFoodPlanService {
     const catalogSelection = await this.foodCatalogSelection.selectForDailyPlan({
       locale: input.locale,
       dietType: input.nutritionPreference?.dietType,
-      planLocalDate: input.planLocalDate,
+      planLocalDate: options.selectionSeed
+        ? `${input.planLocalDate}:${options.selectionSeed}`
+        : input.planLocalDate,
       preferredFoods: input.nutritionPreference?.preferredFoods,
       maxPerRole: 8,
       restrictions: {

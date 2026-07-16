@@ -83,7 +83,8 @@ Exit criteria: AI generation and deterministic fallback use the same meal-role p
 - The composer runs before OpenAI and is used only when its fixed-target plan passes deterministic validation.
 - Added a separate structured-output contract for AI meal copy: titles, summaries, preparation time, and preparation steps only.
 - If AI copy fails or introduces unsafe language, the validated deterministic meal plan remains available without changing its nutrition values.
-- Existing full-menu and individual-meal regeneration retain their current controlled ingredient-selection path until they receive a dedicated variation strategy.
+- Full-menu regeneration derives a stable variation seed from the saved menu, selects a different safe catalog variant, and runs the deterministic portion solver plus catalog rebalancer before AI meal copy.
+- Individual-meal regeneration retains its current controlled ingredient-selection path until it has a bounded single-meal solver that can preserve every unaffected meal exactly.
 
 Exit criteria: a temporary OpenAI copy failure cannot prevent a user from receiving a complete, safe, target-aligned primary food plan. Met.
 

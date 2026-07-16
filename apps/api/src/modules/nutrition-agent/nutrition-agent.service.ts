@@ -124,7 +124,34 @@ export class NutritionAgentService {
     };
   }
 
-  private generateMockFoodPlan(input: NutritionAgentInput): NutritionAgentResult {
+  private async generateMockFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
+    if (input.regeneration?.mode === 'FULL_MENU_REGENERATION') {
+      const selectionSeed = this.fullMenuRegenerationSelectionSeed(input);
+      const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
+      const composedPlan = await this.recipeComposer.compose(input, {
+        selectionSeed
+      });
+      if (composedPlan) {
+        const { foodPlan, validation } = this.resolveComposedPlan(
+          composedPlan,
+          input,
+          catalogSelection.candidates
+        );
+        if (validation.passed) {
+          this.logResult(input, foodPlan, 0, []);
+          return {
+            foodPlan,
+            retryCount: 0,
+            fallbackUsed: false,
+            validationReasonCodes: []
+          };
+        }
+        this.logger.warn(
+          `nutrition agent mock menu composition did not meet target; using legacy mock plan; reasons=${validation.reasons.join(',')}`
+        );
+      }
+    }
+
     const foodPlan = createDeterministicFoodPlan(input, 'NUTRITION_AGENT');
     const validation = this.validator.validate(foodPlan, this.validationContext(input));
 
@@ -153,17 +180,10 @@ export class NutritionAgentService {
     previousValidationReasons: string[]
   ): Promise<NutritionAgentAttemptResult> {
     const model = this.getModel();
-    const catalogSelection = await this.foodCatalogSelection.selectForDailyPlan({
-      locale: input.locale,
-      dietType: input.nutritionPreference?.dietType,
-      planLocalDate: input.planLocalDate,
-      preferredFoods: input.nutritionPreference?.preferredFoods,
-      restrictions: {
-        allergies: input.nutritionPreference?.allergies,
-        excludedFoods: input.nutritionPreference?.excludedFoods,
-        dislikedFoods: input.nutritionPreference?.dislikedFoods
-      }
-    });
+    const selectionSeed = input.regeneration?.mode === 'FULL_MENU_REGENERATION'
+      ? this.fullMenuRegenerationSelectionSeed(input)
+      : undefined;
+    const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
 
     const catalogFeasibility = this.catalogFeasibility.assess({
       catalogSelection,
@@ -195,13 +215,19 @@ export class NutritionAgentService {
       };
     }
 
-    if (!input.regeneration) {
-      const composedPlan = await this.recipeComposer.compose(input);
+    if (!input.regeneration || input.regeneration.mode === 'FULL_MENU_REGENERATION') {
+      const composedPlan = await this.recipeComposer.compose(input, { selectionSeed });
       if (composedPlan) {
-        const composedValidation = this.validator.validate(composedPlan, this.validationContext(input));
+        const { foodPlan, validation: composedValidation } = this.resolveComposedPlan(
+          composedPlan,
+          input,
+          catalogSelection.candidates
+        );
         if (composedValidation.passed) {
-          this.logger.log('nutrition agent deterministic recipe composition passed; requesting AI meal copy only');
-          return this.requestOpenAiMealCopy(input, composedPlan, model);
+          this.logger.log(
+            `nutrition agent deterministic recipe composition passed; mode=${input.regeneration?.mode ?? 'INITIAL'}; requesting AI meal copy only`
+          );
+          return this.requestOpenAiMealCopy(input, foodPlan, model);
         }
         this.logger.warn(
           `nutrition agent deterministic recipe composition did not meet target; using ingredient-selection path; reasons=${composedValidation.reasons.join(',')}`
@@ -267,6 +293,66 @@ export class NutritionAgentService {
   private async createFallbackFoodPlan(input: NutritionAgentInput, reasons: string[]) {
     return (await this.catalogFallbackFoodPlan.create(input, reasons))
       ?? createDeterministicFoodPlan(input, 'DETERMINISTIC_FALLBACK', reasons);
+  }
+
+  private fullMenuRegenerationSelectionSeed(input: NutritionAgentInput) {
+    const currentPlan = input.regeneration?.existingFoodPlan;
+    if (!currentPlan || input.regeneration?.mode !== 'FULL_MENU_REGENERATION') return undefined;
+
+    // Saved menu content is a stable basis for choosing the next safe variant.
+    const fingerprint = currentPlan.meals
+      .map((meal) => `${meal.id}:${meal.ingredients.map((ingredient) => ingredient.catalogFoodSlug).join(',')}`)
+      .join('|');
+    return `menu-refresh-${stableHash(fingerprint).toString(36)}`;
+  }
+
+  private async selectCatalogForComposition(input: NutritionAgentInput, selectionSeed?: string) {
+    return this.foodCatalogSelection.selectForDailyPlan({
+      locale: input.locale,
+      dietType: input.nutritionPreference?.dietType,
+      planLocalDate: selectionSeed
+        ? `${input.planLocalDate}:${selectionSeed}`
+        : input.planLocalDate,
+      preferredFoods: input.nutritionPreference?.preferredFoods,
+      maxPerRole: 8,
+      restrictions: {
+        allergies: input.nutritionPreference?.allergies,
+        excludedFoods: input.nutritionPreference?.excludedFoods,
+        dislikedFoods: input.nutritionPreference?.dislikedFoods
+      }
+    });
+  }
+
+  private resolveComposedPlan(
+    composedPlan: DailyFoodPlan,
+    input: NutritionAgentInput,
+    catalogCandidates: FoodCatalogCandidate[]
+  ) {
+    let foodPlan = composedPlan;
+    let validation = this.validator.validate(foodPlan, this.validationContext(input));
+
+    if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
+      const rebalanced = this.catalogRebalancer.rebalance({
+        foodPlan,
+        target: this.portionSolverTarget(input),
+        catalogCandidates
+      });
+      if (rebalanced.rebalanced) {
+        const rebalancedValidation = this.validator.validate(
+          rebalanced.foodPlan,
+          this.validationContext(input)
+        );
+        if (rebalancedValidation.passed) {
+          foodPlan = rebalanced.foodPlan;
+          validation = rebalancedValidation;
+          this.logger.log(
+            `nutrition agent deterministic menu rebalanced; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
+          );
+        }
+      }
+    }
+
+    return { foodPlan, validation };
   }
 
   private async requestOpenAiMealCopy(
@@ -742,6 +828,15 @@ function canAttemptCatalogRebalance(reasons: string[]) {
 function isCatalogAvailabilityError(errorReason: string) {
   return errorReason === 'CATALOG_TARGET_UNAVAILABLE'
     || errorReason === 'CATALOG_RECIPE_TEMPLATES_UNAVAILABLE';
+}
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function mergeMealCopy(
