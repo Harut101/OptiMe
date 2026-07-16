@@ -433,19 +433,31 @@ export class DailyPlansService {
       }
       safePlanResult = {
         ...safePlanResult,
-        planJson: this.withPlanDebugContext(
-          this.withRecoveryAwareContext(
-            this.withNutritionTargetSnapshot(
-              this.ensureFoodPlan(safePlanResult.planJson, finalFoodPlan),
-              nutritionTarget
+        planJson: this.withSafeTrainingDayFallback({
+          planJson: safePlanResult.planJson,
+          resolvedTrainingDay,
+          exerciseSelection,
+          trainingEnabled
+        })
+      };
+      safePlanResult = {
+        ...safePlanResult,
+        planJson: this.withTrainingScheduleSnapshot(
+          this.withPlanDebugContext(
+            this.withRecoveryAwareContext(
+              this.withNutritionTargetSnapshot(
+                this.ensureFoodPlan(safePlanResult.planJson, finalFoodPlan),
+                nutritionTarget
+              ),
+              personalizationContext,
+              trainingEnabled,
+              resolvedTrainingDay.isTrainingDay
             ),
-            personalizationContext,
-            trainingEnabled,
-            resolvedTrainingDay.isTrainingDay
+            planQualityMode,
+            personalizationContext.selectedProtocols,
+            personalizationContext.healthPlanningContext
           ),
-          planQualityMode,
-          personalizationContext.selectedProtocols,
-          personalizationContext.healthPlanningContext
+          resolvedTrainingDay
         )
       };
       safePlanResult.planJson = this.withExerciseSelectionDebug(
@@ -2080,6 +2092,42 @@ export class DailyPlansService {
       ...planJson,
       trainingScheduleSnapshot: resolvedTrainingDay
     };
+  }
+
+  /**
+   * A rejected AI plan must not erase a user's already-resolved training day.
+   * These exercises are selected from the vetted library, so this path contains
+   * no rejected provider text and remains conservative by design.
+   */
+  private withSafeTrainingDayFallback(input: {
+    planJson: DailyPlanJson;
+    resolvedTrainingDay: ResolvedTrainingDayContext;
+    exerciseSelection: ExerciseSelectionResult;
+    trainingEnabled: boolean;
+  }): DailyPlanJson {
+    if (
+      !input.trainingEnabled ||
+      !input.resolvedTrainingDay.isTrainingDay ||
+      input.exerciseSelection.requestedExerciseCount === 0 ||
+      input.planJson.debug?.provider !== 'fallback'
+    ) {
+      return input.planJson;
+    }
+
+    const conservativePlan: DailyPlanJson = {
+      ...input.planJson,
+      training: {
+        ...input.planJson.training,
+        recommendation: 'Follow your planned session at a light, controlled pace.',
+        intensity: 'LIGHT',
+        notes: 'This version uses your saved routine and safer exercise options. Stop if discomfort increases.'
+      }
+    };
+
+    this.logger.warn(
+      `safe training-day fallback restored; exerciseCount=${input.exerciseSelection.requestedExerciseCount}`
+    );
+    return composeDeterministicFallbackWorkout(conservativePlan, input.exerciseSelection);
   }
 
   private withNutritionTargetSnapshot(

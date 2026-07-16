@@ -5469,6 +5469,10 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.debug.fallbackReason).toBe('safety_agent_retry_rejected');
+      expect(plan.body.plan.trainingScheduleSnapshot).toMatchObject({
+        isTrainingDay: true
+      });
+      expect(plan.body.plan.training.exercises.length).toBeGreaterThan(0);
       expect(plan.body.plan.debug.safetyAgent).toMatchObject({
         enabled: true,
         provider: 'openai',
