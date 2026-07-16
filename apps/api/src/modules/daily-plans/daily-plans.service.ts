@@ -51,6 +51,7 @@ import {
 } from '../exercise-selection/exercise-plan-validator';
 import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
+import { FoodLogsService } from '../food-logs/food-logs.service';
 import { HealthService } from '../health/health.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
@@ -122,6 +123,7 @@ export class DailyPlansService {
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
+    private readonly foodLogsService: FoodLogsService,
     private readonly healthService: HealthService,
     private readonly nutritionAgent: NutritionAgentService,
     private readonly nutritionTargetsService: NutritionTargetsService,
@@ -2392,14 +2394,14 @@ export class DailyPlansService {
     appMode: GoalImpactMode
   ): Promise<GenerateDailyPlanPersonalizationContext> {
     const trainingEnabled = appMode === GoalImpactMode.NUTRITION_AND_TRAINING;
-    const checkInSummary = await this.checkInsService.getRecentSummary(user.id);
-    const healthPlanningContext = await this.healthService.getRecentHealthSummariesForPlanning(
-      user.id,
-      {
+    const [checkInSummary, foodAdherenceSummary, healthPlanningContext] = await Promise.all([
+      this.checkInsService.getRecentSummary(user.id),
+      this.foodLogsService.getRecentSummary(user.id, planLocalDate),
+      this.healthService.getRecentHealthSummariesForPlanning(user.id, {
         planLocalDate,
         days: 7
-      }
-    );
+      })
+    ]);
     this.logger.log(
       [
         'daily plan health context resolved',
@@ -2496,6 +2498,7 @@ export class DailyPlansService {
 
     return {
       ...baseContext,
+      ...(foodAdherenceSummary ? { foodAdherenceSummary } : {}),
       feedbackSummary: {
         helpfulCount: recentFeedback.filter(
           (feedback) => feedback.rating === PlanFeedbackRating.HELPFUL

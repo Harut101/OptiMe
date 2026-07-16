@@ -270,6 +270,7 @@ export class OpenAiProviderService implements AiProvider {
           'Return exactly 3 nutrition.menuOptions.',
           'Use menu option focuses such as workout support, recovery/easier digestion, and busy day/simple prep.',
           'Generate a highly individualized plan using goal, preferences, schedule, history, feedback summaries, and readiness placeholders.',
+          'When foodAdherenceSummary is available, make the menu more practical and lower-friction without mentioning an adherence score, using guilt or shame, or reducing nutrition targets.',
           'Include practical meal timing around workouts when training is scheduled.',
           'Make training recommendations adaptive to goal, recent feedback, schedule, and recovery/readiness placeholders.',
           'For exercise suggestions, be specific and adaptive, but do not create advanced progression blocks yet.',
@@ -282,6 +283,7 @@ export class OpenAiProviderService implements AiProvider {
           'Use menu option focuses such as balanced standard day and quick/simple prep.',
           'Generate more detailed meals and training than BASIC.',
           'Use preferred foods, excluded foods, training schedule, goal, and feedback/history summaries when available.',
+          'When foodAdherenceSummary is available, make the menu more practical and lower-friction without mentioning an adherence score, using guilt or shame, or reducing nutrition targets.',
           'For training, suggest exercises based on current schedule, description, duration, intensity, and goal.',
           'Include sets, reps, and rest only when appropriate and safe.'
         ].join('\n');

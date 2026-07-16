@@ -21,6 +21,15 @@ interface PlannedMealSnapshot {
   mealTitleSnapshot: string;
 }
 
+export interface FoodAdherenceSummary {
+  daysWithTrackedMeals: number;
+  markedMealCount: number;
+  completedMealCount: number;
+  partialMealCount: number;
+  skippedMealCount: number;
+  commonSkippedMealTypes: FoodLogMealType[];
+}
+
 @Injectable()
 export class FoodLogsService {
   private readonly logger = new Logger(FoodLogsService.name);
@@ -91,6 +100,73 @@ export class FoodLogsService {
     );
 
     return this.toResponse(updated);
+  }
+
+  async getRecentSummary(
+    userId: string,
+    planLocalDate: string,
+    days = 14
+  ): Promise<FoodAdherenceSummary | null> {
+    if (!this.isLocalDate(planLocalDate)) {
+      return null;
+    }
+
+    const sinceLocalDate = this.shiftLocalDate(planLocalDate, -(days - 1));
+    const logs = await this.prisma.foodDayLog.findMany({
+      where: {
+        userId,
+        localDate: {
+          gte: sinceLocalDate,
+          lte: planLocalDate
+        }
+      },
+      select: {
+        completedMealCount: true,
+        partialMealCount: true,
+        skippedMealCount: true,
+        mealProgress: {
+          where: { status: FoodMealProgressStatus.SKIPPED },
+          select: { mealType: true }
+        }
+      }
+    });
+
+    const summary = logs.reduce<FoodAdherenceSummary>((result, log) => {
+      result.daysWithTrackedMeals += 1;
+      result.completedMealCount += log.completedMealCount;
+      result.partialMealCount += log.partialMealCount;
+      result.skippedMealCount += log.skippedMealCount;
+      result.markedMealCount +=
+        log.completedMealCount + log.partialMealCount + log.skippedMealCount;
+      return result;
+    }, {
+      daysWithTrackedMeals: 0,
+      markedMealCount: 0,
+      completedMealCount: 0,
+      partialMealCount: 0,
+      skippedMealCount: 0,
+      commonSkippedMealTypes: []
+    });
+
+    if (summary.markedMealCount === 0) {
+      return null;
+    }
+
+    const skippedMealTypeCounts = new Map<FoodLogMealType, number>();
+    logs.flatMap((log) => log.mealProgress).forEach((progress) => {
+      skippedMealTypeCounts.set(
+        progress.mealType,
+        (skippedMealTypeCounts.get(progress.mealType) ?? 0) + 1
+      );
+    });
+    summary.commonSkippedMealTypes = [...skippedMealTypeCounts.entries()]
+      .sort(([leftType, leftCount], [rightType, rightCount]) =>
+        rightCount - leftCount || leftType.localeCompare(rightType)
+      )
+      .slice(0, 2)
+      .map(([mealType]) => mealType);
+
+    return summary;
   }
 
   private async getOwnedDailyPlan(userId: string, dailyPlanId: string) {
@@ -297,5 +373,19 @@ export class FoodLogsService {
         })),
       updatedAt: log.updatedAt.toISOString()
     };
+  }
+
+  private shiftLocalDate(localDate: string, days: number) {
+    const date = new Date(`${localDate}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  private isLocalDate(value: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return false;
+    }
+
+    return !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime());
   }
 }

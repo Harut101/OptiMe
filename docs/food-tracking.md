@@ -59,6 +59,12 @@ Logs store only safe metadata:
 
 Do not log full meals, profile data, prompts, private notes, or raw `DailyPlanJson`.
 
+## Future-plan personalization
+
+For Plus and Pro planning, OptiMe summarizes the latest 14 local plan days with tracked meal statuses. The planning context contains only aggregate counts of marked, eaten, partially eaten, and skipped meals, plus up to two commonly skipped meal types. It never includes meal titles, ingredient lists, notes, or calorie data from the log.
+
+This is a practicality signal only. It may help the next menu favor simpler preparation or a more convenient meal structure. It must never lower nutrition targets, shame a user, describe an adherence score to the user, or replace deterministic safety and nutrition rules.
+
 ## Deferred
 
 - Custom food logging.
@@ -66,4 +72,3 @@ Do not log full meals, profile data, prompts, private notes, or raw `DailyPlanJs
 - Calorie tracking.
 - Photo logging.
 - Meal swap analytics.
-- AI adaptation from food completion history.

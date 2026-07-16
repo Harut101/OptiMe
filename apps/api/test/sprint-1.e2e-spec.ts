@@ -2215,6 +2215,75 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
+  it('adds recent food completion summary to personalized daily plan context', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'food-adherence-context@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'FoodAdherence');
+      await createTestSubscription(customCtx, user.user.id, {
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE
+      });
+
+      const firstPlan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+      const meals = firstPlan.body.plan.nutrition.foodPlan.meals;
+
+      await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${firstPlan.body.id}/food-log/meals/${meals[0].id}/status`)
+        .set(authHeader(user.accessToken))
+        .send({ status: 'EATEN' })
+        .expect(201);
+      await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${firstPlan.body.id}/food-log/meals/${meals[1].id}/status`)
+        .set(authHeader(user.accessToken))
+        .send({ status: 'SKIPPED' })
+        .expect(201);
+
+      await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(capturedInputs[1]?.personalizationContext.foodAdherenceSummary).toEqual({
+        daysWithTrackedMeals: 1,
+        markedMealCount: 2,
+        completedMealCount: 1,
+        partialMealCount: 0,
+        skippedMealCount: 1,
+        commonSkippedMealTypes: [meals[1].mealType]
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
   it('selects deterministic protocols from safety, goal, training preference, and check-in context', () => {
     const selector = ctx.app.get(ProtocolSelectorService);
 

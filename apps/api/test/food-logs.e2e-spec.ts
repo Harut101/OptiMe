@@ -5,6 +5,7 @@ import type { DailyFoodPlan } from '@optime/shared-types';
 import { cleanupDatabase } from './helpers/cleanup';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { createTestApp, TestApp } from './helpers/test-app';
+import { FoodLogsService } from '../src/modules/food-logs/food-logs.service';
 
 describe('Food meal completion tracking', () => {
   let ctx: TestApp;
@@ -92,6 +93,32 @@ describe('Food meal completion tracking', () => {
       markedMealCount: 0
     });
     expect(await ctx.prisma.foodMealProgress.count()).toBe(plan.foodPlan.meals.length);
+  });
+
+  it('summarizes recent meal completion safely without returning meal content', async () => {
+    const user = await registerTestUser(ctx.app, 'food-log-summary@example.com');
+    const plan = await generateStructuredPlan(user.accessToken);
+    const [firstMeal, secondMeal] = plan.foodPlan.meals;
+
+    await updateStatus(user.accessToken, plan.id, firstMeal.id, 'EATEN');
+    await updateStatus(user.accessToken, plan.id, secondMeal.id, 'SKIPPED');
+
+    const summary = await ctx.app
+      .get(FoodLogsService)
+      .getRecentSummary(user.user.id, plan.planLocalDate);
+
+    expect(summary).toEqual({
+      daysWithTrackedMeals: 1,
+      markedMealCount: 2,
+      completedMealCount: 1,
+      partialMealCount: 0,
+      skippedMealCount: 1,
+      commonSkippedMealTypes: [secondMeal.mealType]
+    });
+    expect(summary).not.toHaveProperty('mealTitleSnapshot');
+    await expect(
+      ctx.app.get(FoodLogsService).getRecentSummary(user.user.id, 'legacy-plan-key')
+    ).resolves.toBeNull();
   });
 
   it('rejects invalid meals and text-only plans safely', async () => {
@@ -210,6 +237,7 @@ describe('Food meal completion tracking', () => {
     expect(foodPlan.meals.length).toBeGreaterThanOrEqual(2);
     return {
       id: response.body.id as string,
+      planLocalDate: response.body.planLocalDate as string,
       planJson: response.body.plan,
       foodPlan
     };

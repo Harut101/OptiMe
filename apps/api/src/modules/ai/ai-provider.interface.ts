@@ -68,6 +68,14 @@ export interface GenerateDailyPlanPersonalizationContext {
     illnessLikeNotesReported: boolean;
     conservativeTrainingRecommended: boolean;
   };
+  foodAdherenceSummary?: {
+    daysWithTrackedMeals: number;
+    markedMealCount: number;
+    completedMealCount: number;
+    partialMealCount: number;
+    skippedMealCount: number;
+    commonSkippedMealTypes: string[];
+  };
   trainingPreference?: {
     targetMuscleGroups: TargetMuscleGroup[];
     trainingOutcome: TrainingOutcome | null;
