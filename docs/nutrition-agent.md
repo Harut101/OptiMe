@@ -64,6 +64,8 @@ When a valid catalog plan still misses only calorie or macro tolerances after po
 
 The deterministic fallback menu uses separate templates for omnivore, vegetarian, vegan, pescatarian, Mediterranean, and low-carb/keto preferences. Every template is resolved from the already-filtered safe catalog shortlist. If a dairy/alternative or breakfast-base role is unavailable because of a restriction, the fallback uses a narrowly defined safe role alternative instead of inserting a restricted placeholder. It then applies the same bounded portion solver when a complete target is available.
 
+Before an OpenAI request, `FoodPlanCatalogFeasibilityService` classifies the safe shortlist as `FEASIBLE`, `LIMITED`, or `UNAVAILABLE`. It uses `UNAVAILABLE` only for objective catalog failures such as no usable foods, calories, or a required macro source; in that case the request skips OpenAI and returns the safe fallback directly. `LIMITED` remains an AI planning hint rather than a rejection, preventing conservative diagnostics from unnecessarily reducing plan quality.
+
 Current tolerances:
 
 - calories: within 5% or 100 kcal, whichever is larger

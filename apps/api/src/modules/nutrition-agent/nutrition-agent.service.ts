@@ -16,6 +16,10 @@ import {
   type FoodCatalogCandidate
 } from '../food-catalog/food-catalog.types';
 import { CatalogFallbackFoodPlanService } from './catalog-fallback-food-plan.service';
+import {
+  FoodPlanCatalogFeasibilityService,
+  type FoodPlanCatalogFeasibilityResult
+} from './food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
@@ -42,6 +46,7 @@ export class NutritionAgentService {
     private readonly foodCatalog: FoodCatalogService,
     private readonly foodCatalogSelection: FoodCatalogSelectionService,
     private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
+    private readonly catalogFeasibility: FoodPlanCatalogFeasibilityService,
     private readonly catalogRebalancer: FoodPlanCatalogRebalancerService,
     private readonly portionSolver: FoodPlanPortionSolverService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
@@ -61,6 +66,20 @@ export class NutritionAgentService {
         retryCount: 0,
         fallbackUsed: false,
         validationReasonCodes: firstAttempt.validationReasons
+      };
+    }
+
+    if (firstAttempt.errorReason === 'CATALOG_TARGET_UNAVAILABLE') {
+      const fallbackReasons = firstAttempt.validationReasons.length
+        ? firstAttempt.validationReasons
+        : [firstAttempt.errorReason];
+      const fallback = await this.createFallbackFoodPlan(input, fallbackReasons);
+      this.logResult(input, fallback, 0, fallbackReasons);
+      return {
+        foodPlan: fallback,
+        retryCount: 0,
+        fallbackUsed: true,
+        validationReasonCodes: fallbackReasons
       };
     }
 
@@ -134,11 +153,19 @@ export class NutritionAgentService {
       }
     });
 
-    if (catalogSelection.candidates.length < 3) {
+    const catalogFeasibility = this.catalogFeasibility.assess({
+      catalogSelection,
+      target: this.portionSolverTarget(input)
+    });
+    this.logger.log(
+      `nutrition agent catalog feasibility; status=${catalogFeasibility.status}; safeCandidateCount=${catalogFeasibility.safeCandidateCount}; reasonCodes=${catalogFeasibility.reasonCodes.join(',') || 'none'}`
+    );
+
+    if (catalogFeasibility.status === 'UNAVAILABLE') {
       return {
         ok: false,
-        validationReasons: ['CATALOG_SAFE_CANDIDATES_UNAVAILABLE'],
-        errorReason: 'CATALOG_SAFE_CANDIDATES_UNAVAILABLE'
+        validationReasons: catalogFeasibility.reasonCodes,
+        errorReason: 'CATALOG_TARGET_UNAVAILABLE'
       };
     }
 
@@ -157,7 +184,12 @@ export class NutritionAgentService {
             },
             {
               role: 'user',
-              content: JSON.stringify(this.buildPlanningContext(input, previousValidationReasons, catalogSelection))
+              content: JSON.stringify(this.buildPlanningContext(
+                input,
+                previousValidationReasons,
+                catalogSelection,
+                catalogFeasibility
+              ))
             }
           ],
           text: {
@@ -240,12 +272,7 @@ export class NutritionAgentService {
       ? { foodPlan: normalizedCatalogPlan, adjusted: false, beforeScore: 0, afterScore: 0 }
       : this.portionSolver.solve({
           foodPlan: normalizedCatalogPlan,
-          target: {
-            caloriesKcal: input.nutritionTarget.calories.targetKcal,
-            proteinGrams: input.nutritionTarget.macros.proteinGrams,
-            carbsGrams: input.nutritionTarget.macros.carbsGrams,
-            fatGrams: input.nutritionTarget.macros.fatGrams
-          },
+          target: this.portionSolverTarget(input),
           catalogCandidates
         });
     if (portionSolveResult.adjusted) {
@@ -260,12 +287,7 @@ export class NutritionAgentService {
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
       const rebalanced = this.catalogRebalancer.rebalance({
         foodPlan: resolvedFoodPlan,
-        target: {
-          caloriesKcal: input.nutritionTarget.calories.targetKcal,
-          proteinGrams: input.nutritionTarget.macros.proteinGrams,
-          carbsGrams: input.nutritionTarget.macros.carbsGrams,
-          fatGrams: input.nutritionTarget.macros.fatGrams
-        },
+        target: this.portionSolverTarget(input),
         catalogCandidates
       });
       if (rebalanced.rebalanced) {
@@ -332,7 +354,8 @@ export class NutritionAgentService {
   private buildPlanningContext(
     input: NutritionAgentInput,
     previousValidationReasons: string[],
-    catalogSelection: DailyFoodCatalogSelection
+    catalogSelection: DailyFoodCatalogSelection,
+    catalogFeasibility: FoodPlanCatalogFeasibilityResult
   ) {
     return {
       localDate: input.planLocalDate,
@@ -372,6 +395,10 @@ export class NutritionAgentService {
         safeMode: input.safeMode,
         isMinor: input.isMinor,
         pregnancyStatus: input.pregnancyStatus ?? 'UNKNOWN'
+      },
+      catalogFeasibility: {
+        status: catalogFeasibility.status,
+        reasonCodes: catalogFeasibility.reasonCodes
       },
       allowedCatalogFoods: catalogSelection.candidates.map((candidate) => ({
         slug: candidate.slug,
@@ -455,6 +482,15 @@ export class NutritionAgentService {
       safeMode: input.safeMode,
       isMinor: input.isMinor,
       pregnancyStatus: input.pregnancyStatus
+    };
+  }
+
+  private portionSolverTarget(input: NutritionAgentInput) {
+    return {
+      caloriesKcal: input.nutritionTarget.calories.targetKcal,
+      proteinGrams: input.nutritionTarget.macros.proteinGrams,
+      carbsGrams: input.nutritionTarget.macros.carbsGrams,
+      fatGrams: input.nutritionTarget.macros.fatGrams
     };
   }
 

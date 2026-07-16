@@ -4,9 +4,15 @@ import { FoodCatalogSource } from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
+import { FoodPlanCatalogFeasibilityService } from '../src/modules/nutrition-agent/food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
 import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
+import {
+  FOOD_CATALOG_SELECTION_ROLES,
+  type DailyFoodCatalogSelection,
+  type FoodCatalogSelectionRole
+} from '../src/modules/food-catalog/food-catalog.types';
 import {
   nutritionAgentFoodPlanDraftSchema,
   nutritionAgentFoodPlanOpenAiSchema
@@ -89,6 +95,44 @@ describe('Specialized Nutrition Agent food plans', () => {
       'unit',
       'isOptional'
     ]);
+  });
+
+  it('classifies catalog feasibility conservatively before OpenAI generation', async () => {
+    const feasibility = ctx.app.get(FoodPlanCatalogFeasibilityService);
+    const selectionService = ctx.app.get(FoodCatalogSelectionService);
+    const target = { caloriesKcal: 2200, proteinGrams: 130, carbsGrams: 250, fatGrams: 70 };
+    const selection = await selectionService.selectForDailyPlan({
+      locale: 'en-US',
+      dietType: 'OMNIVORE',
+      planLocalDate: '2026-07-16'
+    });
+
+    expect(feasibility.assess({ target, catalogSelection: selection }).status).toBe('FEASIBLE');
+
+    const limitedSelection: DailyFoodCatalogSelection = {
+      candidates: selection.candidates,
+      byRole: {
+        ...selection.byRole,
+        MAIN_PROTEIN: selection.byRole.MAIN_PROTEIN.slice(0, 1),
+        CARBOHYDRATE: selection.byRole.CARBOHYDRATE.slice(0, 1),
+        FAT: selection.byRole.FAT.slice(0, 1)
+      }
+    };
+    expect(feasibility.assess({ target, catalogSelection: limitedSelection })).toMatchObject({
+      status: 'LIMITED',
+      reasonCodes: expect.arrayContaining(['CATALOG_MAIN_PROTEIN_ROLE_LIMITED'])
+    });
+
+    const emptyRoles = Object.fromEntries(
+      FOOD_CATALOG_SELECTION_ROLES.map((role) => [role, []])
+    ) as Record<FoodCatalogSelectionRole, []>;
+    expect(feasibility.assess({
+      target,
+      catalogSelection: { candidates: [], byRole: emptyRoles }
+    })).toMatchObject({
+      status: 'UNAVAILABLE',
+      reasonCodes: expect.arrayContaining(['CATALOG_SAFE_CANDIDATES_UNAVAILABLE'])
+    });
   });
 
   it('adjusts safe catalog quantities closer to the deterministic nutrition target', async () => {
