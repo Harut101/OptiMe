@@ -29,6 +29,7 @@ import {
   FoodPlanRecipeTemplateService,
   type FoodPlanRecipeTemplate
 } from './food-plan-recipe-template.service';
+import { FoodPlanTargetedMealRepairService } from './food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
 import {
   nutritionAgentMealCopyDraftSchema,
@@ -59,6 +60,7 @@ export class NutritionAgentService {
     private readonly catalogFallbackFoodPlan: CatalogFallbackFoodPlanService,
     private readonly catalogFeasibility: FoodPlanCatalogFeasibilityService,
     private readonly catalogRebalancer: FoodPlanCatalogRebalancerService,
+    private readonly targetedMealRepair: FoodPlanTargetedMealRepairService,
     private readonly portionSolver: FoodPlanPortionSolverService,
     private readonly recipeComposer: FoodPlanRecipeComposerService,
     private readonly recipeTemplates: FoodPlanRecipeTemplateService,
@@ -457,6 +459,25 @@ export class NutritionAgentService {
     let validation = this.validator.validate(foodPlan, this.validationContext(input));
 
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
+      const repaired = this.targetedMealRepair.repair({
+        foodPlan,
+        target: this.portionSolverTarget(input),
+        catalogCandidates
+      });
+      if (repaired.repaired) {
+        const repairedFoodPlan = normalizeFoodPlanNutrition(repaired.foodPlan);
+        const repairedValidation = this.validator.validate(repairedFoodPlan, this.validationContext(input));
+        if (repairedValidation.passed) {
+          foodPlan = repairedFoodPlan;
+          validation = repairedValidation;
+          this.logger.log(
+            `nutrition agent targeted meal repair applied; mealId=${repaired.mealId}; beforeScore=${repaired.beforeScore.toFixed(3)}; afterScore=${repaired.afterScore.toFixed(3)}`
+          );
+        }
+      }
+    }
+
+    if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
       const rebalanced = this.catalogRebalancer.rebalance({
         foodPlan,
         target: this.portionSolverTarget(input),
@@ -691,6 +712,25 @@ export class NutritionAgentService {
 
     let resolvedFoodPlan = normalizeFoodPlanNutrition(portionSolveResult.foodPlan);
     let validation = this.validator.validate(resolvedFoodPlan, this.validationContext(input));
+
+    if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
+      const repaired = this.targetedMealRepair.repair({
+        foodPlan: resolvedFoodPlan,
+        target: this.portionSolverTarget(input),
+        catalogCandidates
+      });
+      if (repaired.repaired) {
+        const repairedFoodPlan = normalizeFoodPlanNutrition(repaired.foodPlan);
+        const repairedValidation = this.validator.validate(repairedFoodPlan, this.validationContext(input));
+        if (repairedValidation.passed) {
+          resolvedFoodPlan = repairedFoodPlan;
+          validation = repairedValidation;
+          this.logger.log(
+            `nutrition agent targeted meal repair applied; mealId=${repaired.mealId}; beforeScore=${repaired.beforeScore.toFixed(3)}; afterScore=${repaired.afterScore.toFixed(3)}`
+          );
+        }
+      }
+    }
 
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
       const rebalanced = this.catalogRebalancer.rebalance({

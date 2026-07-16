@@ -12,6 +12,7 @@ import {
   FoodPlanPortionSolverService
 } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/food-plan-recipe-template.service';
+import { FoodPlanTargetedMealRepairService } from '../src/modules/nutrition-agent/food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import {
   FOOD_CATALOG_SELECTION_ROLES,
@@ -183,6 +184,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     const foodCatalogService = ctx.app.get(FoodCatalogService);
     const solver = ctx.app.get(FoodPlanPortionSolverService);
     const rebalancer = ctx.app.get(FoodPlanCatalogRebalancerService);
+    const targetedRepair = ctx.app.get(FoodPlanTargetedMealRepairService);
     const candidates = await foodCatalogService.listAllowedCandidates({
       locale: 'en-US',
       dietType: 'OMNIVORE'
@@ -308,6 +310,33 @@ describe('Specialized Nutrition Agent food plans', () => {
       catalogCandidates: [chicken, salmon, rice]
     });
     expect(protectedCopy.rebalanced).toBe(false);
+
+    const snackIngredients = [makeCatalogIngredient(foodCatalogService, oliveOil, 5)];
+    const snackTotals = sumFoodTotals(snackIngredients);
+    const stableSnack = {
+      ...inputPlan.meals[0],
+      id: 'snack-1',
+      mealType: 'SNACK' as const,
+      title: 'Stable snack',
+      ...snackTotals,
+      prepTimeMinutes: 5,
+      ingredients: snackIngredients
+    };
+    const twoMealPlan: DailyFoodPlan = {
+      ...rebalancePlan,
+      meals: [rebalancePlan.meals[0], stableSnack],
+      totals: sumFoodTotals([rebalancePlan.meals[0], stableSnack])
+    };
+    const targeted = targetedRepair.repair({
+      foodPlan: twoMealPlan,
+      target: sumFoodTotals([rebalanceTarget, snackTotals]),
+      catalogCandidates: [chicken, salmon, rice, oliveOil]
+    });
+
+    expect(targeted.repaired).toBe(true);
+    expect(targeted.mealId).toBe('lunch-1');
+    expect(targeted.afterScore).toBeLessThan(targeted.beforeScore);
+    expect(targeted.foodPlan.meals.find((meal) => meal.id === 'snack-1')).toEqual(stableSnack);
   });
 
   it('ships an expanded curated catalog and filters tagged foods before planning', async () => {

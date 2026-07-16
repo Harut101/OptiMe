@@ -8,6 +8,7 @@ import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FoodPlanRecipeComposerService } from './food-plan-recipe-composer.service';
 import { FoodPlanRecipeTemplateService } from './food-plan-recipe-template.service';
+import { FoodPlanTargetedMealRepairService } from './food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
 import { NutritionAgentService } from './nutrition-agent.service';
 
@@ -20,6 +21,7 @@ import { NutritionAgentService } from './nutrition-agent.service';
     FoodPlanPortionSolverService,
     FoodPlanRecipeComposerService,
     FoodPlanRecipeTemplateService,
+    FoodPlanTargetedMealRepairService,
     FoodPlanValidationService,
     NutritionAgentService
   ],
