@@ -544,8 +544,13 @@ export default function TodayScreen() {
           t('today.trainingPlannedPromptMessage'),
           [
             {
-              text: t('today.generateTrainingPlan'),
-              onPress: () => void continueThroughHealthReadiness(false)
+              text: t('today.setUpTodaysWorkout'),
+              onPress: () => {
+                router.push({
+                  pathname: '/training-overrides/day' as never,
+                  params: { dayOfWeek: todayDayOfWeek, localDate: todayLocalDate, returnToGenerate: '1' }
+                });
+              }
             },
             {
               text: t('trainingOverrides.restTodayOnly'),
