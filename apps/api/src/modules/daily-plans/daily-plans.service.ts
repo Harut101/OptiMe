@@ -104,9 +104,8 @@ const MATERIAL_SAFETY_REVIEW_PATTERNS: Array<{ category: string; pattern: RegExp
   { category: 'unsafe_diet', pattern: /starv|fasting|detox|extreme calor|severe (?:calorie|diet)|skip meals|punish(?:ment)? exercise/i },
   { category: 'body_shaming', pattern: /body.?sham|shame|guilt|disgust|lazy|punish/i },
   { category: 'medical_claim', pattern: /medical diagnos|diagnos|treat(?:ment)?|medical claim|supplement/i },
-  { category: 'unsafe_training', pattern: /unsafe (?:training|exercise|workout)|train through|push through|pain|dizz|illness|exhaust|injur|maximum effort|max effort|overtrain|aggress(?:ive|ively)/i },
-  { category: 'sensitive_context', pattern: /under.?18|minor|safe mode|pregnan|postpartum|breastfeed/i },
-  { category: 'food_restriction', pattern: /allerg|excluded food|restricted food/i }
+  { category: 'unsafe_training', pattern: /unsafe (?:training|exercise|workout)|train through|push through|ignore (?:pain|dizz|illness|exhaust|injur)|(?:exercise|workout|training).*(?:despite|with) (?:pain|dizz|illness|exhaust|injur)|maximum effort|max effort|overtrain|aggress(?:ive|ively)/i },
+  { category: 'sensitive_context', pattern: /unsafe.*(?:under.?18|minor|safe mode|pregnan|postpartum|breastfeed)|(?:under.?18|minor|safe mode|pregnan|postpartum|breastfeed).*(?:unsafe|high.?intensity|extreme|aggress)/i }
 ];
 
 @Injectable()
@@ -1792,6 +1791,9 @@ export class DailyPlansService {
             `categories=${rejection.categories.join(',')}`
           ].join('; ')
         );
+        for (const category of rejection.categories) {
+          this.logger.warn(`SafetyAgent blocking category=${category}`);
+        }
         if (
           input.allowSafetyRetry &&
           parsedReview.data.requiredChanges.some((change) => change.trim().length > 0)

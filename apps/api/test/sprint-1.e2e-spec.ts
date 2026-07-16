@@ -5095,7 +5095,7 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
-  it('keeps a deterministic-safe plan when SafetyAgent returns non-blocking editorial feedback', async () => {
+  it('keeps a deterministic-safe plan when SafetyAgent only questions an allergy-avoidance reminder', async () => {
     const previousEnabled = process.env.SAFETY_AGENT_ENABLED;
     process.env.SAFETY_AGENT_ENABLED = 'true';
     const customCtx = await createTestApp({
@@ -5106,8 +5106,8 @@ describe('Sprint 1 backend vertical slice', () => {
             reviewDailyPlan: async () => ({
               approved: false,
               riskLevel: 'medium',
-              reasons: ['The plan tone could be more concise.'],
-              requiredChanges: ['Use a shorter introduction.']
+              reasons: ['The plan mentions the allergy in an avoidance reminder.'],
+              requiredChanges: ['Do not mention the allergy in the reminder.']
             })
           }
         }
