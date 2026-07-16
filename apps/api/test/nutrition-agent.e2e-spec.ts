@@ -334,7 +334,8 @@ describe('Specialized Nutrition Agent food plans', () => {
       isMinor: false,
       nutritionTarget: {
         safety: { status: 'OK' },
-        calories: { targetKcal: 2200 }
+        calories: { targetKcal: 2200 },
+        macros: { proteinGrams: 130, carbsGrams: 250, fatGrams: 70 }
       },
       nutritionTargetSnapshot: {
         engineVersion: 1,
@@ -371,6 +372,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(dailyFoodPlanSchema.safeParse(fallback).success).toBe(true);
     expect(fallback.source).toBe('DETERMINISTIC_FALLBACK');
     expect(fallback.meals).toHaveLength(3);
+    expect(fallback.meals[0].ingredients).toHaveLength(3);
     expect(fallback.meals.flatMap((meal) => meal.ingredients).every((ingredient) => ingredient.catalogFoodSlug)).toBe(true);
     expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => ingredient.catalogFoodSlug === 'avocado')).toBe(false);
     expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (

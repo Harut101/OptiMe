@@ -62,6 +62,8 @@ After the AI selects only safe catalog ingredients and gram quantities, `FoodPla
 
 When a valid catalog plan still misses only calorie or macro tolerances after portion solving, `FoodPlanCatalogRebalancerService` may test one allowed substitute from the same catalog category, then solve portions again. It keeps a substitute only when it improves target fit and the existing meal title, description, and instructions do not name the original ingredient. It never runs for schema, safety, allergy, exclusion, or arithmetic failures.
 
+The deterministic fallback menu uses separate templates for omnivore, vegetarian, vegan, pescatarian, Mediterranean, and low-carb/keto preferences. Every template is resolved from the already-filtered safe catalog shortlist. If a dairy/alternative or breakfast-base role is unavailable because of a restriction, the fallback uses a narrowly defined safe role alternative instead of inserting a restricted placeholder. It then applies the same bounded portion solver when a complete target is available.
+
 Current tolerances:
 
 - calories: within 5% or 100 kcal, whichever is larger

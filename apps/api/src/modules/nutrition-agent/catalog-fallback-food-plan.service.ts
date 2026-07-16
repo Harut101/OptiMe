@@ -12,6 +12,7 @@ import type {
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
 import type { FoodCatalogCandidate, FoodCatalogSelectionRole } from '../food-catalog/food-catalog.types';
+import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FOOD_PLAN_VALIDATION_TOLERANCES } from './food-plan-validation.constants';
 import type { NutritionAgentInput } from './nutrition-agent.types';
 
@@ -35,7 +36,8 @@ type ResolvedRecipeTemplate = Omit<RecipeTemplate, 'ingredients'> & {
 export class CatalogFallbackFoodPlanService {
   constructor(
     private readonly foodCatalog: FoodCatalogService,
-    private readonly foodCatalogSelection: FoodCatalogSelectionService
+    private readonly foodCatalogSelection: FoodCatalogSelectionService,
+    private readonly portionSolver: FoodPlanPortionSolverService
   ) {}
 
   async create(input: NutritionAgentInput, reasons: string[]): Promise<DailyFoodPlan | null> {
@@ -86,7 +88,7 @@ export class CatalogFallbackFoodPlanService {
     }
 
     const totals = sumNutrition(meals);
-    return {
+    const fallbackPlan: DailyFoodPlan = {
       source: 'DETERMINISTIC_FALLBACK',
       localDate: input.planLocalDate,
       locale: input.locale,
@@ -104,6 +106,28 @@ export class CatalogFallbackFoodPlanService {
       },
       meals
     };
+    return this.solveFallbackPortions(fallbackPlan, input, catalogSelection.candidates);
+  }
+
+  private solveFallbackPortions(
+    foodPlan: DailyFoodPlan,
+    input: NutritionAgentInput,
+    catalogCandidates: FoodCatalogCandidate[]
+  ) {
+    const macros = input.nutritionTarget.macros;
+    if (!macros) return foodPlan;
+
+    const result = this.portionSolver.solve({
+      foodPlan,
+      target: {
+        caloriesKcal: input.nutritionTarget.calories.targetKcal,
+        proteinGrams: macros.proteinGrams,
+        carbsGrams: macros.carbsGrams,
+        fatGrams: macros.fatGrams
+      },
+      catalogCandidates
+    });
+    return result.adjusted ? result.foodPlan : foodPlan;
   }
 
   private createMeal(
@@ -159,7 +183,11 @@ export class CatalogFallbackFoodPlanService {
 
 function getRecipes(dietType?: DietType | null): RecipeTemplate[] {
   if (dietType === DietType.KETO || dietType === DietType.LOW_CARB) return lowCarbRecipes;
-  return dietType === DietType.VEGAN ? veganRecipes : standardRecipes;
+  if (dietType === DietType.VEGAN) return veganRecipes;
+  if (dietType === DietType.VEGETARIAN) return vegetarianRecipes;
+  if (dietType === DietType.PESCATARIAN) return pescatarianRecipes;
+  if (dietType === DietType.MEDITERRANEAN) return mediterraneanRecipes;
+  return omnivoreRecipes;
 }
 
 function withMealCount(
@@ -188,7 +216,7 @@ function withMealCount(
   return [...recipes, ...Array.from({ length: count - 3 }, () => snack)];
 }
 
-const standardRecipes: RecipeTemplate[] = [
+const omnivoreRecipes: RecipeTemplate[] = [
   { mealType: 'BREAKFAST', ingredients: [
     { role: 'BREAKFAST_BASE', grams: 70 },
     { role: 'DAIRY_OR_ALTERNATIVE', grams: 200 },
@@ -206,6 +234,66 @@ const standardRecipes: RecipeTemplate[] = [
     { role: 'VEGETABLE', grams: 120 },
     { role: 'VEGETABLE', grams: 100 },
     { role: 'FAT', grams: 10 }
+  ] }
+];
+
+const vegetarianRecipes: RecipeTemplate[] = [
+  { mealType: 'BREAKFAST', ingredients: [
+    { role: 'BREAKFAST_BASE', grams: 70 },
+    { role: 'MAIN_PROTEIN', grams: 150 },
+    { role: 'FRUIT', grams: 120 }
+  ] },
+  { mealType: 'LUNCH', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 210 },
+    { role: 'CARBOHYDRATE', grams: 210 },
+    { role: 'VEGETABLE', grams: 160 },
+    { role: 'FAT', grams: 12 }
+  ] },
+  { mealType: 'DINNER', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 190 },
+    { role: 'CARBOHYDRATE', grams: 180 },
+    { role: 'VEGETABLE', grams: 220 },
+    { role: 'FAT', grams: 10 }
+  ] }
+];
+
+const pescatarianRecipes: RecipeTemplate[] = [
+  { mealType: 'BREAKFAST', ingredients: [
+    { role: 'BREAKFAST_BASE', grams: 65 },
+    { role: 'DAIRY_OR_ALTERNATIVE', grams: 200 },
+    { role: 'FRUIT', grams: 120 }
+  ] },
+  { mealType: 'LUNCH', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 200 },
+    { role: 'CARBOHYDRATE', grams: 210 },
+    { role: 'VEGETABLE', grams: 180 },
+    { role: 'FAT', grams: 12 }
+  ] },
+  { mealType: 'DINNER', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 180 },
+    { role: 'CARBOHYDRATE', grams: 170 },
+    { role: 'VEGETABLE', grams: 230 },
+    { role: 'FAT', grams: 10 }
+  ] }
+];
+
+const mediterraneanRecipes: RecipeTemplate[] = [
+  { mealType: 'BREAKFAST', ingredients: [
+    { role: 'BREAKFAST_BASE', grams: 65 },
+    { role: 'DAIRY_OR_ALTERNATIVE', grams: 180 },
+    { role: 'FRUIT', grams: 140 }
+  ] },
+  { mealType: 'LUNCH', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 190 },
+    { role: 'CARBOHYDRATE', grams: 190 },
+    { role: 'VEGETABLE', grams: 220 },
+    { role: 'FAT', grams: 15 }
+  ] },
+  { mealType: 'DINNER', ingredients: [
+    { role: 'MAIN_PROTEIN', grams: 170 },
+    { role: 'CARBOHYDRATE', grams: 160 },
+    { role: 'VEGETABLE', grams: 250 },
+    { role: 'FAT', grams: 12 }
   ] }
 ];
 
@@ -273,20 +361,30 @@ function selectCandidateForRole(
   roleCursors: Partial<Record<FoodCatalogSelectionRole, number>>,
   usedSlugs: Set<string>
 ) {
-  const candidates = candidatesByRole[role];
-  if (!candidates.length) return null;
-
-  const cursor = roleCursors[role] ?? 0;
-  for (let offset = 0; offset < candidates.length; offset += 1) {
-    const index = (cursor + offset) % candidates.length;
-    const candidate = candidates[index];
-    if (usedSlugs.has(candidate.slug)) continue;
-    roleCursors[role] = index + 1;
-    return candidate;
+  for (const candidateRole of [role, ...ROLE_FALLBACKS[role]]) {
+    const candidates = candidatesByRole[candidateRole];
+    const cursor = roleCursors[candidateRole] ?? 0;
+    for (let offset = 0; offset < candidates.length; offset += 1) {
+      const index = (cursor + offset) % candidates.length;
+      const candidate = candidates[index];
+      if (usedSlugs.has(candidate.slug)) continue;
+      roleCursors[candidateRole] = index + 1;
+      return candidate;
+    }
   }
 
   return null;
 }
+
+const ROLE_FALLBACKS: Record<FoodCatalogSelectionRole, FoodCatalogSelectionRole[]> = {
+  BREAKFAST_BASE: ['CARBOHYDRATE'],
+  MAIN_PROTEIN: [],
+  CARBOHYDRATE: ['BREAKFAST_BASE'],
+  VEGETABLE: [],
+  FRUIT: [],
+  FAT: [],
+  DAIRY_OR_ALTERNATIVE: ['MAIN_PROTEIN', 'BREAKFAST_BASE']
+};
 
 function sumNutrition(items: Array<FoodNutritionTotals>) {
   return items.reduce<FoodNutritionTotals>(
