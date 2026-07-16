@@ -130,7 +130,7 @@ const exerciseCard = read('src/features/daily-plan/ExerciseCard.tsx');
 const exerciseDetails = read('app/exercise-details.tsx');
 const mediaCarousel = read('src/features/daily-plan/ExerciseMediaCarousel.tsx');
 const exerciseApi = read('src/api/exercises.ts');
-assertIncludes(planDetails, ['DailyTrainingPlanContent', "t('plan.recovery')", "t('plan.reminders')", 'ScreenHeader', 'SectionHeader', 'ContextNoteCard'], 'Plan Details');
+assertIncludes(planDetails, ['DailyTrainingPlanContent', "t('plan.recovery')", "t('plan.reminders')", 'topSafeArea={false}', 'SectionHeader', 'ContextNoteCard'], 'Plan Details');
 assert(!planContent.includes("t('plan.recovery')") && !planContent.includes("t('plan.reminders')"), 'Recovery and reminders must remain shared outside plan tabs.');
 assertIncludes(planContent, [
   "queryKey: ['exercise-summaries', locale, exerciseIds]", 'DailyTrainingPlanContent', 'TrainingContent', 'exercise.exerciseId && exercise.exerciseSnapshot'
@@ -315,7 +315,7 @@ assert(!food.includes('Alert.alert'), 'Food screen must use unified feedback com
 assert(!food.includes('MealCardV2'), 'Food screen must use premium meal cards.');
 const mealDetails = read('app/meal-details.tsx');
 assertIncludes(mealDetails, [
-  'ScreenHeader',
+  'topSafeArea={false}',
   'MealStatusControl',
   'MacroMetricWidget',
   'AppFeedbackSheet',

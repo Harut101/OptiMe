@@ -7,11 +7,12 @@ import { Screen } from './Screen';
 interface ScreenSkeletonProps {
   variant?: 'default' | 'dashboard' | 'detail' | 'list';
   cardCount?: number;
+  topSafeArea?: boolean;
 }
 
-export function ScreenSkeleton({ variant = 'default', cardCount = 3 }: ScreenSkeletonProps) {
+export function ScreenSkeleton({ variant = 'default', cardCount = 3, topSafeArea = true }: ScreenSkeletonProps) {
   return (
-    <Screen>
+    <Screen topSafeArea={topSafeArea}>
       <View style={styles.header}>
         <View style={[styles.line, styles.eyebrow]} />
         <View style={[styles.line, styles.title]} />

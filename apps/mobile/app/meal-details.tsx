@@ -16,7 +16,6 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
@@ -107,7 +106,7 @@ export default function MealDetailsScreen() {
   });
 
   if (today.isLoading) {
-    return <ScreenSkeleton variant="detail" cardCount={3} />;
+    return <ScreenSkeleton variant="detail" cardCount={3} topSafeArea={false} />;
   }
 
   const todayPlan = today.data ?? null;
@@ -118,16 +117,14 @@ export default function MealDetailsScreen() {
 
   if (!foodPlan || !meal) {
     return (
-      <Screen>
+      <Screen topSafeArea={false}>
         <StateBlock title={t('food.mealUnavailable')} message={t('food.mealUnavailableMessage')} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <ScreenHeader title={t('food.viewMealDetails')} subtitle={t(`food.mealTypes.${meal.mealType}`)} />
-
+    <Screen topSafeArea={false}>
       <Card variant="elevated" style={styles.heroCard}>
         <View style={styles.heroTop}>
           <StatusPill

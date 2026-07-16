@@ -12,7 +12,6 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Screen } from '@/components/Screen';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
@@ -57,7 +56,7 @@ export default function PlanDetailsScreen() {
   const refreshing = today.isRefetching;
 
   if (today.isLoading) {
-    return <ScreenSkeleton variant="detail" cardCount={4} />;
+    return <ScreenSkeleton variant="detail" cardCount={4} topSafeArea={false} />;
   }
 
   const plan = today.data?.plan;
@@ -65,7 +64,7 @@ export default function PlanDetailsScreen() {
 
   if (!plan) {
     return (
-      <Screen refreshing={refreshing} onRefresh={handleRefresh}>
+      <Screen refreshing={refreshing} onRefresh={handleRefresh} topSafeArea={false}>
         <StateBlock title={t('plan.noPlan')} message={t('plan.noPlanMessage')} />
       </Screen>
     );
@@ -75,9 +74,7 @@ export default function PlanDetailsScreen() {
   const locale = resolveSupportedLocale(i18n.resolvedLanguage);
 
   return (
-    <Screen refreshing={refreshing} onRefresh={handleRefresh}>
-      <ScreenHeader title={t('plan.title')} subtitle={plan.summary.message} />
-
+    <Screen refreshing={refreshing} onRefresh={handleRefresh} topSafeArea={false}>
       {safetyMessage ? (
         <ContextNoteCard title={t('today.safetyNote')} message={safetyMessage} tone="warning" />
       ) : null}

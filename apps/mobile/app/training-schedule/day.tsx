@@ -23,7 +23,6 @@ import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
 import { BodyMapSelector } from '@/features/body-map/BodyMapSelector';
 import { ORDERED_DAYS, createEmptyDraft, toDraft } from '@/features/training-schedule/weekly-schedule';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import {
   enumOptions,
   getDayOfWeekLabel,
@@ -64,14 +63,13 @@ export default function TrainingScheduleDayScreen() {
   }, [initialDay]);
 
   const dirty = Boolean(value && initialDay && isDraftDirty(value, initialDay));
-  useUnsavedChangesGuard(dirty);
 
   if (!dayOfWeek || !ORDERED_DAYS.includes(dayOfWeek) || !value) {
-    return <Screen><StateBlock title={t('schedule.dayUnavailable')} message={t('errors.unableLoad')} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('schedule.dayUnavailable')} message={t('errors.unableLoad')} /></Screen>;
   }
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <Text variant="heading">{getDayOfWeekLabel(t, dayOfWeek)}</Text>
       <Text variant="muted">{t('schedule.dayEditorHelp')}</Text>
       {returnToGenerate === '1' ? <Text variant="muted">{t('schedule.usualRoutineUpdateHelp')}</Text> : null}

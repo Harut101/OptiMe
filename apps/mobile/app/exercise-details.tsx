@@ -38,9 +38,9 @@ export default function ExerciseDetailsScreen() {
     retry: 1
   });
 
-  if (today.isLoading) return <ScreenSkeleton variant="detail" cardCount={3} />;
+  if (today.isLoading) return <ScreenSkeleton variant="detail" cardCount={3} topSafeArea={false} />;
   if (!exercise?.exerciseSnapshot) {
-    return <Screen><StateBlock title={t('plan.exerciseUnavailable')} message={t('plan.exerciseUnavailableMessage')} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('plan.exerciseUnavailable')} message={t('plan.exerciseUnavailableMessage')} /></Screen>;
   }
 
   const snapshot = exercise.exerciseSnapshot;
@@ -49,7 +49,7 @@ export default function ExerciseDetailsScreen() {
   const equipment = snapshot.equipment.map((item) => getExerciseEquipmentLabel(t, item));
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       {detail.isLoading ? (
         <View style={styles.mediaLoading} accessibilityLabel={t('plan.imageLoading')}>
           <Text variant="muted">{t('plan.imageLoading')}</Text>

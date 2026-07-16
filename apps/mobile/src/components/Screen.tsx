@@ -8,13 +8,23 @@ interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
+  topSafeArea?: boolean;
 }
 
-export function Screen({ children, scroll = true, refreshing = false, onRefresh }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = true,
+  refreshing = false,
+  onRefresh,
+  topSafeArea = true
+}: ScreenProps) {
   const content = <View style={styles.content}>{children}</View>;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      edges={topSafeArea ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom']}
+      style={styles.safeArea}
+    >
       {scroll ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
