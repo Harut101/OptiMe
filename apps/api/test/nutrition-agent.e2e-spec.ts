@@ -7,7 +7,10 @@ import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/c
 import { FoodPlanCatalogFeasibilityService } from '../src/modules/nutrition-agent/food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
 import { normalizeFoodPlanNutrition } from '../src/modules/nutrition-agent/food-plan-nutrition-normalizer';
-import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
+import {
+  calculateFoodPlanPortionScore,
+  FoodPlanPortionSolverService
+} from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/food-plan-recipe-template.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import {
@@ -411,8 +414,10 @@ describe('Specialized Nutrition Agent food plans', () => {
 
   it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
     const service = ctx.app.get(CatalogFallbackFoodPlanService);
-    await ctx.prisma.foodCatalogItem.create({
-      data: {
+    await ctx.prisma.foodCatalogItem.upsert({
+      where: { slug: 'usda-fdc-323505' },
+      update: { isActive: true },
+      create: {
         slug: 'usda-fdc-323505',
         source: FoodCatalogSource.USDA_FDC,
         sourceFoodId: '323505',
@@ -431,7 +436,7 @@ describe('Specialized Nutrition Agent food plans', () => {
       }
     });
 
-    const fallback = await service.create({
+    const input = {
       planLocalDate: '2026-07-16',
       locale: 'en-US',
       planQualityMode: 'BASIC',
@@ -471,10 +476,16 @@ describe('Specialized Nutrition Agent food plans', () => {
       },
       goalSummary: null,
       resolvedTrainingDay: { isTrainingDay: false }
-    } as unknown as NutritionAgentInput, ['NUTRITION_AGENT_OPENAI_FAILED']);
+    } as unknown as NutritionAgentInput;
+    const fallback = await service.create(input, ['NUTRITION_AGENT_OPENAI_FAILED']);
+    const firstCandidate = await service.compose(input, [], 'NUTRITION_AGENT', {
+      candidateVariants: 1
+    });
 
     expect(fallback).not.toBeNull();
     if (!fallback) throw new Error('Expected a catalog-backed fallback food plan.');
+    expect(firstCandidate).not.toBeNull();
+    if (!firstCandidate) throw new Error('Expected an initial catalog food plan candidate.');
     expect(dailyFoodPlanSchema.safeParse(fallback).success).toBe(true);
     expect(fallback.source).toBe('DETERMINISTIC_FALLBACK');
     expect(fallback.meals).toHaveLength(3);
@@ -484,9 +495,15 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (
       ['greek-yogurt-plain', 'salmon-cooked', 'firm-tofu', 'almonds'].includes(ingredient.catalogFoodSlug ?? '')
     ))).toBe(false);
-    expect(fallback.meals.flatMap((meal) => meal.ingredients).some((ingredient) => (
-      ingredient.catalogFoodSlug === 'usda-fdc-323505'
-    ))).toBe(true);
+    const allowedCandidates = await ctx.app.get(FoodCatalogService).listAllowedCandidates({
+      locale: 'en-US',
+      dietType: 'OMNIVORE',
+      restrictions: {
+        allergies: ['milk', 'fish', 'soy', 'tree nuts'],
+        excludedFoods: ['avocado']
+      }
+    });
+    expect(allowedCandidates.some((candidate) => candidate.slug === 'usda-fdc-323505')).toBe(true);
 
     const ingredientTotals = fallback.meals.flatMap((meal) => meal.ingredients).reduce(
       (totals, ingredient) => ({
@@ -501,6 +518,10 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(fallback.totals.proteinGrams).toBeCloseTo(ingredientTotals.proteinGrams, 1);
     expect(fallback.totals.carbsGrams).toBeCloseTo(ingredientTotals.carbsGrams, 1);
     expect(fallback.totals.fatGrams).toBeCloseTo(ingredientTotals.fatGrams, 1);
+    const target = { caloriesKcal: 2200, proteinGrams: 130, carbsGrams: 250, fatGrams: 70 };
+    expect(calculateFoodPlanPortionScore(fallback.totals, target)).toBeLessThanOrEqual(
+      calculateFoodPlanPortionScore(firstCandidate.totals, target) + 0.0001
+    );
     await ctx.prisma.foodCatalogItem.delete({ where: { slug: 'usda-fdc-323505' } });
   });
 

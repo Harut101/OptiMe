@@ -12,7 +12,11 @@ import type {
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
 import type { FoodCatalogCandidate, FoodCatalogSelectionRole } from '../food-catalog/food-catalog.types';
-import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
+import {
+  calculateFoodPlanPortionScore,
+  FoodPlanPortionSolverService,
+  type FoodPlanPortionSolverTarget
+} from './food-plan-portion-solver.service';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import {
   FoodPlanRecipeTemplateService,
@@ -30,13 +34,22 @@ type ResolvedRecipeTemplate = Omit<FoodPlanRecipeTemplate, 'ingredients'> & {
   ingredients: ResolvedRecipeIngredient[];
 };
 
+type ComposedFoodPlanCandidate = {
+  foodPlan: DailyFoodPlan;
+  score: number;
+};
+
 export type CatalogFoodPlanComposeOptions = {
   /**
    * A stable variation key changes catalog ranking without changing the plan's
    * real local date. Regeneration uses it to select the next safe menu.
    */
   selectionSeed?: string;
+  /** Internal/test seam. Production composition evaluates six safe variants. */
+  candidateVariants?: number;
 };
+
+const DEFAULT_CANDIDATE_VARIANTS = 6;
 
 @Injectable()
 export class CatalogFallbackFoodPlanService {
@@ -79,7 +92,46 @@ export class CatalogFallbackFoodPlanService {
       dietType: input.nutritionPreference?.dietType,
       mealsPerDay: input.nutritionPreference?.mealsPerDay
     });
-    const resolvedRecipes = resolveRecipes(recipes, catalogSelection.byRole);
+    const candidateVariants = Math.min(
+      Math.max(Math.trunc(options.candidateVariants ?? DEFAULT_CANDIDATE_VARIANTS), 1),
+      8
+    );
+    const target = this.portionSolverTarget(input);
+    const candidates = Array.from({ length: candidateVariants }, (_, variationOffset) => (
+      this.composeCandidate({
+        input,
+        reasons,
+        source,
+        recipes,
+        catalogCandidates: catalogSelection.candidates,
+        candidatesByRole: catalogSelection.byRole,
+        target,
+        variationOffset
+      })
+    )).filter((candidate): candidate is ComposedFoodPlanCandidate => candidate !== null);
+
+    if (!candidates.length) return null;
+
+    return candidates.reduce((best, candidate) => (
+      candidate.score + 0.0001 < best.score ? candidate : best
+    )).foodPlan;
+  }
+
+  private composeCandidate(input: {
+    input: NutritionAgentInput;
+    reasons: string[];
+    source: DailyFoodPlanSource;
+    recipes: FoodPlanRecipeTemplate[];
+    catalogCandidates: FoodCatalogCandidate[];
+    candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>;
+    target: FoodPlanPortionSolverTarget;
+    variationOffset: number;
+  }): ComposedFoodPlanCandidate | null {
+    const resolvedRecipes = resolveRecipes(
+      input.recipes,
+      input.candidatesByRole,
+      input.variationOffset
+    );
     const baseCalories = resolvedRecipes.reduce(
       (sum, recipe) => sum + recipe.ingredients.reduce(
         (mealSum, ingredient) => mealSum + (ingredient.candidate.caloriesPer100g * ingredient.grams / 100),
@@ -88,32 +140,28 @@ export class CatalogFallbackFoodPlanService {
       0
     );
 
-    if (baseCalories <= 0) {
-      return null;
-    }
+    if (baseCalories <= 0) return null;
 
-    const scale = clamp(input.nutritionTarget.calories.targetKcal / baseCalories, 0.6, 2.4);
+    const scale = clamp(input.input.nutritionTarget.calories.targetKcal / baseCalories, 0.6, 2.4);
     const meals = resolvedRecipes.map((recipe, index) => this.createMeal(
       recipe,
       index,
       scale,
-      input.locale
+      input.input.locale
     ));
 
-    if (meals.some((meal) => meal.ingredients.length === 0)) {
-      return null;
-    }
+    if (meals.some((meal) => meal.ingredients.length === 0)) return null;
 
     const totals = sumNutrition(meals);
     const fallbackPlan: DailyFoodPlan = {
-      source,
-      localDate: input.planLocalDate,
-      locale: input.locale,
-      nutritionTargetSnapshot: input.nutritionTargetSnapshot,
+      source: input.source,
+      localDate: input.input.planLocalDate,
+      locale: input.input.locale,
+      nutritionTargetSnapshot: input.input.nutritionTargetSnapshot,
       totals,
       validation: {
-        status: source === 'DETERMINISTIC_FALLBACK' ? 'FALLBACK' : 'VALID',
-        reasons,
+        status: input.source === 'DETERMINISTIC_FALLBACK' ? 'FALLBACK' : 'VALID',
+        reasons: input.reasons,
         tolerances: {
           caloriesPercent: FOOD_PLAN_VALIDATION_TOLERANCES.caloriesPercent,
           proteinGrams: FOOD_PLAN_VALIDATION_TOLERANCES.proteinGrams,
@@ -123,9 +171,14 @@ export class CatalogFallbackFoodPlanService {
       },
       meals
     };
-    return normalizeFoodPlanNutrition(
-      this.solveFallbackPortions(fallbackPlan, input, catalogSelection.candidates)
+    const foodPlan = normalizeFoodPlanNutrition(
+      this.solveFallbackPortions(fallbackPlan, input.input, input.catalogCandidates)
     );
+
+    return {
+      foodPlan,
+      score: calculateFoodPlanPortionScore(foodPlan.totals, input.target)
+    };
   }
 
   private solveFallbackPortions(
@@ -147,6 +200,15 @@ export class CatalogFallbackFoodPlanService {
       catalogCandidates
     });
     return result.adjusted ? result.foodPlan : foodPlan;
+  }
+
+  private portionSolverTarget(input: NutritionAgentInput): FoodPlanPortionSolverTarget {
+    return {
+      caloriesKcal: input.nutritionTarget.calories.targetKcal,
+      proteinGrams: input.nutritionTarget.macros.proteinGrams,
+      carbsGrams: input.nutritionTarget.macros.carbsGrams,
+      fatGrams: input.nutritionTarget.macros.fatGrams
+    };
   }
 
   private createMeal(
@@ -202,9 +264,12 @@ export class CatalogFallbackFoodPlanService {
 
 function resolveRecipes(
   recipes: FoodPlanRecipeTemplate[],
-  candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>
+  candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>,
+  variationOffset = 0
 ): ResolvedRecipeTemplate[] {
-  const roleCursors: Partial<Record<FoodCatalogSelectionRole, number>> = {};
+  const roleCursors = Object.fromEntries(
+    Object.keys(candidatesByRole).map((role) => [role, variationOffset])
+  ) as Partial<Record<FoodCatalogSelectionRole, number>>;
 
   return recipes.map((recipe) => {
     const usedSlugs = new Set<string>();
