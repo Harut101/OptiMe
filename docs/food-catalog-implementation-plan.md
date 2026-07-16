@@ -93,6 +93,7 @@ Exit criteria: a temporary OpenAI copy failure cannot prevent a user from receiv
 - Added a bounded portion-solver mode that may adjust quantities only in explicitly selected meal IDs.
 - Meal regeneration composes a catalog-backed alternative using a stable seed derived from the selected stored meal.
 - The replacement is merged with the current food plan before validation; every unselected meal, its ID, and its tracking association remain unchanged.
+- When OpenAI mode is enabled, AI receives only the selected meal ID, type, and already-approved ingredient names to improve its user-facing copy; it cannot regenerate the full day or alter nutrition values.
 - If the replacement cannot meet the saved target safely, regeneration fails without writing any replacement and the current plan remains intact.
 
 Exit criteria: a user can replace one meal with a different safe catalog meal without changing the rest of the day. Met with e2e coverage.

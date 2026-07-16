@@ -5684,6 +5684,62 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
+  it('uses OpenAI copy only for the selected regenerated meal', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const customCtx = await createOpenAiModeTestApp({
+      responses: [
+        () => ({
+          output_text: JSON.stringify(
+            createMockDailyPlan({
+              planLocalDate: getUtcLocalDate(),
+              planTimezone: 'UTC',
+              firstName: 'SingleMealCopy',
+              isMinor: false
+            })
+          )
+        })
+      ],
+      requests
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'openai-single-meal-copy@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'SingleMealCopy');
+
+      const generated = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+      const beforeFoodPlan = generated.body.plan.nutrition.foodPlan;
+      const selectedMealId = beforeFoodPlan.meals[0].id;
+
+      const regenerated = await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${generated.body.id}/food/meals/${selectedMealId}/regenerate`)
+        .set(authHeader(user.accessToken))
+        .send({ reason: 'Please offer another safe option.' })
+        .expect(201);
+
+      const copyRequests = filterOpenAiRequestsBySchema(requests, 'daily_food_plan_copy');
+      expect(copyRequests).toHaveLength(2);
+      const singleMealInput = copyRequests[1].input as Array<{ content?: string }>;
+      const singleMealContext = JSON.parse(singleMealInput[1].content ?? '{}') as {
+        composedMeals?: Array<{ id?: string }>;
+      };
+      expect(singleMealContext.composedMeals).toHaveLength(1);
+      expect(singleMealContext.composedMeals?.[0]).toMatchObject({ id: selectedMealId });
+      expect(filterOpenAiRequestsBySchema(requests, 'daily_plan_json')).toHaveLength(1);
+      expect(regenerated.body.plan.nutrition.foodPlan.meals.slice(1)).toEqual(
+        beforeFoodPlan.meals.slice(1)
+      );
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreOpenAiEnv(undefined, undefined, undefined);
+    }
+  });
+
   it('OpenAI generation consumes AI usage', async () => {
     const requests: Array<Record<string, unknown>> = [];
     const customCtx = await createOpenAiModeTestApp({

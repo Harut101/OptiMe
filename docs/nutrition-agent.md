@@ -109,6 +109,8 @@ The Nutrition Agent also supports two focused regeneration modes:
 - `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`. The backend derives a stable variation seed from the stored meal ingredients, composes the next safe catalog option, solves and rebalances portions deterministically, then requests optional AI copy only.
 - `MEAL_REGENERATION`: compose a different safe catalog option for the selected meal, then run a bounded portion solve that may change only that meal's ingredient quantities. Every other saved meal is retained exactly so food tracking remains attached to the correct meal IDs.
 
+With `AI_PROVIDER=openai`, a successful single-meal replacement makes one optional `daily_food_plan_copy` request containing only that selected meal's ID, type, and approved ingredient names. AI may improve the title, description, serving summary, preparation time, and preparation steps for that meal only. It never receives authority to change ingredients, quantities, nutrition values, or any other meal.
+
 Regeneration does not call the Nutrition Engine and does not calculate new calorie or macro targets. It reuses the selected Daily Plan's stored `nutritionTargetSnapshot`, current preferences, allergies, excluded foods, disliked foods, locale, and training-day context.
 
 If regeneration fails validation or returns deterministic fallback output, the existing plan is kept unchanged. The backend does not partially write invalid food plans.

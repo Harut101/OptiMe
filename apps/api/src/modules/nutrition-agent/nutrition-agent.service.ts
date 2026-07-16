@@ -68,9 +68,18 @@ export class NutritionAgentService {
     if (input.regeneration?.mode === 'MEAL_REGENERATION') {
       const regeneratedMealPlan = await this.composeSingleMealRegeneration(input);
       if (regeneratedMealPlan) {
-        this.logResult(input, regeneratedMealPlan, 0, []);
+        const selectedMealId = input.regeneration.selectedMealId;
+        const foodPlan = this.getProviderName() === 'openai' && selectedMealId
+          ? await this.requestOpenAiSingleMealCopy(
+              input,
+              regeneratedMealPlan,
+              selectedMealId,
+              this.getModel()
+            )
+          : regeneratedMealPlan;
+        this.logResult(input, foodPlan, 0, []);
         return {
-          foodPlan: regeneratedMealPlan,
+          foodPlan,
           retryCount: 0,
           fallbackUsed: false,
           validationReasonCodes: []
@@ -516,10 +525,81 @@ export class NutritionAgentService {
     };
   }
 
+  private async requestOpenAiSingleMealCopy(
+    input: NutritionAgentInput,
+    foodPlan: DailyFoodPlan,
+    selectedMealId: string,
+    model: string
+  ): Promise<DailyFoodPlan> {
+    const selectedMeal = foodPlan.meals.find((meal) => meal.id === selectedMealId);
+    if (!selectedMeal) return foodPlan;
+
+    try {
+      this.logger.log(`nutrition agent OpenAI single-meal copy request started; mealId=${selectedMealId}; model=${model}`);
+      const response = await this.getClient().responses.create(
+        {
+          model,
+          max_output_tokens: this.getMaxOutputTokens(),
+          input: [
+            { role: 'system', content: this.buildMealCopySystemInstructions() },
+            {
+              role: 'user',
+              content: JSON.stringify(this.buildMealCopyPlanningContext(input, {
+                ...foodPlan,
+                meals: [selectedMeal],
+                totals: mealTotals(selectedMeal)
+              }))
+            }
+          ],
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'daily_food_plan_copy',
+              strict: true,
+              schema: nutritionAgentMealCopyOpenAiSchema
+            }
+          }
+        },
+        { timeout: this.getRequestTimeoutMs() }
+      );
+
+      const copiedMealPlan = this.applyMealCopy(
+        response,
+        input,
+        {
+          ...foodPlan,
+          meals: [selectedMeal],
+          totals: mealTotals(selectedMeal)
+        },
+        false
+      );
+      const copiedMeal = copiedMealPlan?.meals[0];
+      if (!copiedMeal) return foodPlan;
+
+      const mergedPlan = {
+        ...foodPlan,
+        meals: foodPlan.meals.map((meal) => meal.id === selectedMealId ? copiedMeal : meal)
+      };
+      if (!this.validator.validate(mergedPlan, this.validationContext(input)).passed) {
+        return foodPlan;
+      }
+
+      this.logger.log(`nutrition agent OpenAI single-meal copy applied; mealId=${selectedMealId}`);
+      return mergedPlan;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'nutrition_agent_single_meal_copy_failed';
+      this.logger.warn(
+        `nutrition agent single-meal copy request failed; reason=${message.slice(0, 120)}; using deterministic meal`
+      );
+      return foodPlan;
+    }
+  }
+
   private applyMealCopy(
     response: OpenAiResponse,
     input: NutritionAgentInput,
-    composedPlan: DailyFoodPlan
+    composedPlan: DailyFoodPlan,
+    validateTarget = true
   ): DailyFoodPlan | null {
     const outputText = this.extractOutputText(response);
     if (!outputText) return null;
@@ -536,7 +616,9 @@ export class NutritionAgentService {
 
     const copiedPlan = mergeMealCopy(composedPlan, schemaResult.data);
     if (!copiedPlan) return null;
-    return this.validator.validate(copiedPlan, this.validationContext(input)).passed ? copiedPlan : null;
+    return !validateTarget || this.validator.validate(copiedPlan, this.validationContext(input)).passed
+      ? copiedPlan
+      : null;
   }
 
   private parseAndValidateResponse(
@@ -960,6 +1042,15 @@ function sameMealIngredients(
   const rightIngredients = right.ingredients.map((ingredient) => ingredient.catalogFoodSlug ?? ingredient.name);
   return leftIngredients.length === rightIngredients.length
     && leftIngredients.every((ingredient, index) => ingredient === rightIngredients[index]);
+}
+
+function mealTotals(meal: DailyFoodPlan['meals'][number]) {
+  return {
+    caloriesKcal: meal.caloriesKcal,
+    proteinGrams: meal.proteinGrams,
+    carbsGrams: meal.carbsGrams,
+    fatGrams: meal.fatGrams
+  };
 }
 
 function mergeMealCopy(
