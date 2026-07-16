@@ -1,5 +1,6 @@
 import { FoodCatalogCoverageService } from '../src/modules/food-catalog/food-catalog-coverage.service';
 import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
+import { FoodCatalogSelectionService } from '../src/modules/food-catalog/food-catalog-selection.service';
 import { FoodPreparationLevel } from '@prisma/client';
 import { cleanupDatabase } from './helpers/cleanup';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
@@ -98,6 +99,24 @@ describe('Food catalog coverage audit', () => {
     ))).toBe(true);
     expect(candidates.find((candidate) => candidate.slug === 'rolled-oats')?.preparationLevel).toBe(
       FoodPreparationLevel.COOK_REQUIRED
+    );
+  });
+
+  it('softly prioritizes practical catalog foods for an indicated meal role', async () => {
+    const service = ctx.app.get(FoodCatalogSelectionService);
+    const selection = await service.selectForDailyPlan({
+      locale: 'en-US',
+      dietType: 'OMNIVORE',
+      planLocalDate: '2026-07-17',
+      prioritizePreparationForRoles: ['CARBOHYDRATE'],
+      maxPerRole: 8
+    });
+
+    expect(selection.byRole.CARBOHYDRATE[0]?.preparationLevel).toBe(
+      FoodPreparationLevel.READY_TO_EAT
+    );
+    expect(selection.byRole.CARBOHYDRATE.map((candidate) => candidate.slug)).toContain(
+      'whole-grain-bread'
     );
   });
 

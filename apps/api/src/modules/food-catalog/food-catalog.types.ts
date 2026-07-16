@@ -50,6 +50,8 @@ export type FoodCatalogSelectionRole = (typeof FOOD_CATALOG_SELECTION_ROLES)[num
 export interface SelectDailyFoodCatalogInput extends Omit<ListFoodCatalogCandidatesInput, 'limit'> {
   planLocalDate: string;
   preferredFoods?: string[];
+  /** Soft ranking only. Restrictions and food preferences still take priority. */
+  prioritizePreparationForRoles?: FoodCatalogSelectionRole[];
   maxPerRole?: number;
 }
 

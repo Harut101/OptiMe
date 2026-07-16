@@ -42,11 +42,18 @@ export class FoodCatalogSelectionService {
       limit: 160
     });
     const preferredFoods = normalizePreferenceTerms(input.preferredFoods ?? []);
+    const preparationPriorityRoles = new Set(input.prioritizePreparationForRoles ?? []);
     const candidatesByRole = groupFoodCatalogCandidatesByRole(allCandidates);
     const byRole = {} as DailyFoodCatalogSelection['byRole'];
 
     for (const role of FOOD_CATALOG_SELECTION_ROLES) {
-      byRole[role] = rankCandidates(candidatesByRole[role], role, input.planLocalDate, preferredFoods).slice(0, maxPerRole);
+      byRole[role] = rankCandidates(
+        candidatesByRole[role],
+        role,
+        input.planLocalDate,
+        preferredFoods,
+        preparationPriorityRoles.has(role)
+      ).slice(0, maxPerRole);
     }
 
     const candidates = deduplicateCandidates(FOOD_CATALOG_SELECTION_ROLES.flatMap((role) => byRole[role]));
@@ -66,17 +73,29 @@ function rankCandidates(
   candidates: FoodCatalogCandidate[],
   role: FoodCatalogSelectionRole,
   planLocalDate: string,
-  preferredFoods: string[]
+  preferredFoods: string[],
+  prioritizePreparation: boolean
 ) {
   return [...candidates].sort((left, right) => {
     const preferenceDelta = Number(matchesPreference(right, preferredFoods)) - Number(matchesPreference(left, preferredFoods));
     if (preferenceDelta !== 0) return preferenceDelta;
+
+    if (prioritizePreparation) {
+      const preparationDelta = preparationRank(left.preparationLevel) - preparationRank(right.preparationLevel);
+      if (preparationDelta !== 0) return preparationDelta;
+    }
 
     const leftScore = stableScore(`${planLocalDate}:${role}:${left.slug}`);
     const rightScore = stableScore(`${planLocalDate}:${role}:${right.slug}`);
     if (leftScore !== rightScore) return leftScore - rightScore;
     return left.slug.localeCompare(right.slug);
   });
+}
+
+function preparationRank(level: FoodCatalogCandidate['preparationLevel']) {
+  if (level === 'READY_TO_EAT') return 0;
+  if (level === 'QUICK_ASSEMBLY') return 1;
+  return 2;
 }
 
 function matchesPreference(candidate: FoodCatalogCandidate, preferredFoods: string[]) {

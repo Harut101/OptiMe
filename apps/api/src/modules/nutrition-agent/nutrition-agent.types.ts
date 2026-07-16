@@ -36,6 +36,15 @@ export interface NutritionAgentInput {
     goalType: string | null;
   } | null;
   resolvedTrainingDay: ResolvedTrainingDayContext;
+  // Aggregate-only signal. It contains no meal names, notes, ingredients, or nutrition data.
+  foodAdherenceSummary?: {
+    daysWithTrackedMeals: number;
+    markedMealCount: number;
+    completedMealCount: number;
+    partialMealCount: number;
+    skippedMealCount: number;
+    commonSkippedMealTypes: string[];
+  };
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;

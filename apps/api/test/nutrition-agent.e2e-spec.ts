@@ -1,6 +1,6 @@
 import request from 'supertest';
 import type { DailyFoodPlan } from '@optime/shared-types';
-import { FoodCatalogSource } from '@prisma/client';
+import { FoodCatalogSource, FoodPreparationLevel } from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
@@ -560,6 +560,71 @@ describe('Specialized Nutrition Agent food plans', () => {
       calculateFoodPlanPortionScore(firstCandidate.totals, target) + 0.0001
     );
     await ctx.prisma.foodCatalogItem.delete({ where: { slug: 'usda-fdc-323505' } });
+  });
+
+  it('uses practical catalog ingredients for a frequently skipped personalized breakfast', async () => {
+    const service = ctx.app.get(CatalogFallbackFoodPlanService);
+    const input = {
+      planLocalDate: '2026-07-17',
+      locale: 'en-US',
+      planQualityMode: 'PERSONALIZED',
+      appMode: 'NUTRITION_ONLY',
+      safeMode: false,
+      isMinor: false,
+      nutritionTarget: {
+        safety: { status: 'OK' },
+        calories: { targetKcal: 2200 },
+        macros: { proteinGrams: 130, carbsGrams: 250, fatGrams: 70 }
+      },
+      nutritionTargetSnapshot: {
+        engineVersion: 1,
+        localDate: '2026-07-17',
+        dayType: 'REST_DAY',
+        appMode: 'NUTRITION_ONLY',
+        primaryGoal: 'HEALTHY_EATING',
+        targetKcal: 2200,
+        minKcal: 2000,
+        maxKcal: 2400,
+        maintenanceEstimateKcal: 2200,
+        proteinGrams: 130,
+        carbsGrams: 250,
+        fatGrams: 70,
+        safetyStatus: 'OK',
+        safetyReasons: [],
+        explanation: { titleCode: 'TODAY_TARGET', reasonCodes: [] }
+      },
+      nutritionPreference: {
+        dietType: 'OMNIVORE',
+        mealsPerDay: 3,
+        notes: null,
+        allergies: [],
+        excludedFoods: [],
+        dislikedFoods: [],
+        preferredFoods: []
+      },
+      goalSummary: null,
+      resolvedTrainingDay: { isTrainingDay: false },
+      foodAdherenceSummary: {
+        daysWithTrackedMeals: 3,
+        markedMealCount: 6,
+        completedMealCount: 3,
+        partialMealCount: 1,
+        skippedMealCount: 2,
+        commonSkippedMealTypes: ['BREAKFAST']
+      }
+    } as unknown as NutritionAgentInput;
+    const plan = await service.compose(input, [], 'NUTRITION_AGENT', { candidateVariants: 1 });
+    const levelsBySlug = new Map((await ctx.app.get(FoodCatalogService).listAllowedCandidates({
+      locale: 'en-US',
+      dietType: 'OMNIVORE'
+    })).map((candidate) => [candidate.slug, candidate.preparationLevel]));
+    const breakfast = plan?.meals.find((meal) => meal.mealType === 'BREAKFAST');
+
+    expect(breakfast).toBeDefined();
+    expect(breakfast?.ingredients).not.toHaveLength(0);
+    expect(breakfast?.ingredients.every((ingredient) => (
+      levelsBySlug.get(ingredient.catalogFoodSlug ?? '') === FoodPreparationLevel.READY_TO_EAT
+    ))).toBe(true);
   });
 
   it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {

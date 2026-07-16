@@ -277,6 +277,7 @@ export class DailyPlansService {
               goalType: user.goal.goalType
             }
           : null,
+        foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
         resolvedTrainingDay
       });
       let finalFoodPlan = foodPlanResult.foodPlan;
@@ -375,6 +376,7 @@ export class DailyPlansService {
                 goalType: user.goal.goalType
               }
             : null,
+          foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
           resolvedTrainingDay
         });
         finalFoodPlan = retryFoodPlanResult.foodPlan;
@@ -1073,6 +1075,7 @@ export class DailyPlansService {
             goalType: context.user.goal.goalType
           }
         : null,
+      foodAdherenceSummary: context.personalizationContext.foodAdherenceSummary,
       resolvedTrainingDay: context.resolvedTrainingDay,
       regeneration: {
         ...regeneration,

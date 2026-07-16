@@ -33,7 +33,9 @@ Catalog-backed meals use their actual selected ingredient names for the meal tit
 
 Recipe templates also define a small presentation layer for catalog-backed meals: a bowl, plate, or snack assembly style and an expected preparation time. The backend turns that metadata and the selected safe ingredient names into two short preparation steps. These instructions are intentionally practical and conservative; they never change ingredients, portions, nutrition totals, allergy filters, or the deterministic safety boundary.
 
-Preparation metadata is deliberately conservative. `READY_TO_EAT` means the catalog item can be used without cooking, `QUICK_ASSEMBLY` means it can be combined or reheated without a full cook, and `COOK_REQUIRED` is the default for anything that needs preparation. This batch stores the metadata only. A later practical-menu batch can use it to make frequently skipped meal types easier without changing nutrition targets or relaxing any restriction checks.
+Preparation metadata is deliberately conservative. `READY_TO_EAT` means the catalog item can be used without cooking, `QUICK_ASSEMBLY` means it can be combined or reheated without a full cook, and `COOK_REQUIRED` is the default for anything that needs preparation. Curated foods are explicitly classified; unknown and newly imported foods keep the conservative default until reviewed.
+
+For Personalized and Adaptive plans only, two or more tracked skipped meals can softly prioritize ready-to-eat or quick-assembly catalog foods for the most frequently skipped meal type. This is not a hard filter: user preferences and food restrictions still rank first, and the normal safe catalog selection remains available when no practical option exists. It never lowers calorie or macro targets, changes portions to compensate, or exposes an adherence score in the mobile app. Basic plans retain their existing selection behavior.
 
 ## Current generation behavior
 
