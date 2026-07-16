@@ -21,7 +21,6 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { AppToast } from '@/components/AppToast';
 import { Screen } from '@/components/Screen';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { Text } from '@/components/Text';
@@ -32,7 +31,6 @@ import {
   WorkoutProgressHeader
 } from '@/features/training-dashboard/TrainingDashboardWidgets';
 import {
-  formatWorkoutDate,
   formatWorkoutExerciseCount,
   formatWorkoutFocus,
   formatWorkoutSetCount,
@@ -158,11 +156,6 @@ export default function WorkoutSessionScreen() {
 
   return (
     <Screen topSafeArea={false}>
-      <ScreenHeader
-        title={completed ? t('workout.workoutCompleted') : t('workout.title')}
-        subtitle={formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}
-      />
-
       <WorkoutProgressHeader
         title={formatWorkoutFocus(data.summary, t)}
         subtitle={data.completedAt

@@ -21,7 +21,6 @@ import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { HealthMetricWidget } from '@/components/HealthMetricWidget';
 import { ProviderConnectionCard } from '@/components/ProviderConnectionCard';
 import { Screen } from '@/components/Screen';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
@@ -143,10 +142,7 @@ export default function HealthDataScreen() {
 
   return (
     <Screen topSafeArea={false}>
-      <ScreenHeader
-        title={t('health.connectionsTitle')}
-        subtitle={`${t('health.connectionsIntro')} ${t('health.optional')}`}
-      />
+      <Text variant="muted">{`${t('health.connectionsIntro')} ${t('health.optional')}`}</Text>
 
       {FOUNDATION_SOURCES.map((source) => (
         <ConnectionCard

@@ -174,7 +174,7 @@ for (const [name, source] of [
 }
 
 const health = read('app/health-data.tsx');
-assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", 'ScreenHeader', 'StatusPill', 'HealthMetricWidget', 'ProviderConnectionCard'], 'Connections');
+assertIncludes(health, ["t('health.sync')", "t('health.disconnect')", "t('health.deleteData')", "t('health.connectionsIntro')", 'StatusPill', 'HealthMetricWidget', 'ProviderConnectionCard'], 'Connections');
 assertIncludes(health, [
   "result.messageCode === 'UNAVAILABLE'",
   'getAppleHealthUnavailableMessage',
@@ -380,7 +380,7 @@ assertIncludes(workoutSession, [
 ], 'Workout Session Training Load Agent guidance');
 assert(!workoutSession.includes('Alert.alert'), 'Workout Session must use unified feedback sheets instead of raw alerts.');
 const workoutHistory = read('app/workout-history.tsx');
-assertIncludes(workoutHistory, ['WorkoutHistoryCard', "t('workout.workoutHistory')"], 'Workout History redesign');
+assertIncludes(workoutHistory, ['WorkoutHistoryCard', "t('workout.historyIntro')", 'topSafeArea={false}'], 'Workout History redesign');
 assertIncludes(planContent, [
   'TrainingLoadInsightCard',
   'SafetyDecisionCard',

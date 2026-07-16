@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import { getWorkoutHistory } from '@/api/workout-sessions';
 import { Screen } from '@/components/Screen';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
+import { Text } from '@/components/Text';
 import { WorkoutHistoryCard } from '@/features/training-dashboard/TrainingDashboardWidgets';
 import {
   formatWorkoutDate,
@@ -49,7 +49,7 @@ export default function WorkoutHistoryScreen() {
 
   return (
     <Screen refreshing={history.isRefetching} onRefresh={() => history.refetch()} topSafeArea={false}>
-      <ScreenHeader title={t('workout.workoutHistory')} subtitle={t('workout.historyIntro')} />
+      <Text variant="muted">{t('workout.historyIntro')}</Text>
 
       {items.length === 0 ? (
         <StateBlock
