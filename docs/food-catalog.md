@@ -37,6 +37,8 @@ Preparation metadata is deliberately conservative. `READY_TO_EAT` means the cata
 
 For Personalized and Adaptive plans only, two or more tracked skipped meals can softly prioritize ready-to-eat or quick-assembly catalog foods for the most frequently skipped meal type. This is not a hard filter: user preferences and food restrictions still rank first, and the normal safe catalog selection remains available when no practical option exists. It never lowers calorie or macro targets, changes portions to compensate, or exposes an adherence score in the mobile app. Basic plans retain their existing selection behavior.
 
+Meal preparation time is also catalog-derived. A meal composed entirely of ready-to-eat ingredients is shown as five minutes with assembly guidance; a meal made of quick-assembly ingredients is capped at ten minutes and may say to warm already-cooked items. Any meal containing a `COOK_REQUIRED` ingredient keeps its template preparation time and preparation guidance.
+
 ## Current generation behavior
 
 When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names or nutrition values.

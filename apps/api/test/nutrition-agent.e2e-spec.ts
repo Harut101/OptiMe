@@ -625,6 +625,8 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(breakfast?.ingredients.every((ingredient) => (
       levelsBySlug.get(ingredient.catalogFoodSlug ?? '') === FoodPreparationLevel.READY_TO_EAT
     ))).toBe(true);
+    expect(breakfast?.prepTimeMinutes).toBe(5);
+    expect(breakfast?.preparationSteps[1]).toBe('Combine the ready-to-eat ingredients and serve.');
   });
 
   it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {

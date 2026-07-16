@@ -237,6 +237,7 @@ export class CatalogFallbackFoodPlanService {
     });
     const totals = sumNutrition(ingredients);
     const title = mealTitle(recipe.mealType, ingredients, locale);
+    const practicalPreparation = practicalPreparationFor(recipe);
 
     return {
       id: `${recipe.mealType.toLowerCase()}-${index + 1}`,
@@ -244,10 +245,15 @@ export class CatalogFallbackFoodPlanService {
       title,
       shortDescription: mealDescription(locale),
       ...totals,
-      prepTimeMinutes: recipe.prepTimeMinutes,
+      prepTimeMinutes: practicalPreparation.prepTimeMinutes,
       servingSummary: servingSummary(locale),
       ingredients,
-      preparationSteps: preparationSteps(recipe.preparationStyle, ingredients, locale),
+      preparationSteps: preparationSteps(
+        recipe.preparationStyle,
+        ingredients,
+        locale,
+        practicalPreparation.mode
+      ),
       substitutions: ingredients.length
         ? [{
             originalItem: ingredients[0].name,
@@ -288,6 +294,17 @@ function resolveRecipes(
     });
     return { ...recipe, ingredients };
   });
+}
+
+function practicalPreparationFor(recipe: ResolvedRecipeTemplate) {
+  const levels = recipe.ingredients.map((ingredient) => ingredient.candidate.preparationLevel);
+  if (levels.length && levels.every((level) => level === 'READY_TO_EAT')) {
+    return { prepTimeMinutes: 5, mode: 'READY_TO_EAT' as const };
+  }
+  if (levels.length && levels.every((level) => level !== 'COOK_REQUIRED')) {
+    return { prepTimeMinutes: Math.min(recipe.prepTimeMinutes, 10), mode: 'QUICK_ASSEMBLY' as const };
+  }
+  return { prepTimeMinutes: recipe.prepTimeMinutes, mode: undefined };
 }
 
 function sumNutrition(items: Array<FoodNutritionTotals>) {
@@ -369,7 +386,8 @@ function servingSummary(locale: NutritionAgentInput['locale']) {
 function preparationSteps(
   style: FoodPlanRecipePreparationStyle,
   ingredients: FoodIngredient[],
-  locale: NutritionAgentInput['locale']
+  locale: NutritionAgentInput['locale'],
+  practicalMode?: 'READY_TO_EAT' | 'QUICK_ASSEMBLY'
 ) {
   const ingredientNames = joinIngredientNames(
     ingredients
@@ -381,8 +399,33 @@ function preparationSteps(
   const copy = preparationCopy(locale);
   return [
     `${copy.measure} ${ingredientNames}.`,
-    copy[style]
+    practicalMode ? practicalPreparationStep(locale, practicalMode) : copy[style]
   ];
+}
+
+function practicalPreparationStep(
+  locale: NutritionAgentInput['locale'],
+  mode: 'READY_TO_EAT' | 'QUICK_ASSEMBLY'
+) {
+  const copy: Record<NutritionAgentInput['locale'], Record<typeof mode, string>> = {
+    'en-US': {
+      READY_TO_EAT: 'Combine the ready-to-eat ingredients and serve.',
+      QUICK_ASSEMBLY: 'Warm any cooked items if needed, then combine and serve.'
+    },
+    'ru-RU': {
+      READY_TO_EAT: '\u0421\u043e\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u043e\u0442\u043e\u0432\u044b\u0435 \u043a \u0443\u043f\u043e\u0442\u0440\u0435\u0431\u043b\u0435\u043d\u0438\u044e \u0438\u043d\u0433\u0440\u0435\u0434\u0438\u0435\u043d\u0442\u044b \u0438 \u043f\u043e\u0434\u0430\u0432\u0430\u0439\u0442\u0435.',
+      QUICK_ASSEMBLY: '\u041f\u0440\u0438 \u043d\u0435\u043e\u0431\u0445\u043e\u0434\u0438\u043c\u043e\u0441\u0442\u0438 \u043f\u043e\u0434\u043e\u0433\u0440\u0435\u0439\u0442\u0435 \u0433\u043e\u0442\u043e\u0432\u044b\u0435 \u0438\u043d\u0433\u0440\u0435\u0434\u0438\u0435\u043d\u0442\u044b, \u0437\u0430\u0442\u0435\u043c \u0441\u043e\u0431\u0435\u0440\u0438\u0442\u0435 \u0438 \u043f\u043e\u0434\u0430\u0432\u0430\u0439\u0442\u0435.'
+    },
+    'fr-FR': {
+      READY_TO_EAT: 'Assemblez les ingr\u00e9dients pr\u00eats \u00e0 consommer et servez.',
+      QUICK_ASSEMBLY: 'R\u00e9chauffez les \u00e9l\u00e9ments d\u00e9j\u00e0 cuits si besoin, puis assemblez et servez.'
+    },
+    'zh-CN': {
+      READY_TO_EAT: '\u7ec4\u5408\u53ef\u76f4\u63a5\u98df\u7528\u7684\u98df\u6750\u540e\u5373\u53ef\u4e0a\u684c\u3002',
+      QUICK_ASSEMBLY: '\u5982\u6709\u9700\u8981\u53ef\u52a0\u70ed\u5df2\u70f9\u996a\u98df\u6750\uff0c\u7136\u540e\u7ec4\u5408\u5e76\u4e0a\u684c\u3002'
+    }
+  };
+  return copy[locale][mode];
 }
 
 function preparationCopy(locale: NutritionAgentInput['locale']) {
