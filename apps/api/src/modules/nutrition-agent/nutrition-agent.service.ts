@@ -23,7 +23,7 @@ import {
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
-import { foodAdherencePracticalityRoles } from './food-adherence-practicality';
+import { foodPracticalityRoles } from './food-adherence-practicality';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FoodPlanRecipeComposerService } from './food-plan-recipe-composer.service';
 import {
@@ -442,7 +442,7 @@ export class NutritionAgentService {
         ? `${input.planLocalDate}:${selectionSeed}`
         : input.planLocalDate,
       preferredFoods: input.nutritionPreference?.preferredFoods,
-      prioritizePreparationForRoles: foodAdherencePracticalityRoles(input),
+      prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,
       restrictions: {
         allergies: input.nutritionPreference?.allergies,

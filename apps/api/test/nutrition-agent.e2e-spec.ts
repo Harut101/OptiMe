@@ -14,6 +14,7 @@ import {
 import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/food-plan-recipe-template.service';
 import { FoodPlanTargetedMealRepairService } from '../src/modules/nutrition-agent/food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
+import { foodPracticalityRoles } from '../src/modules/nutrition-agent/food-adherence-practicality';
 import {
   FOOD_CATALOG_SELECTION_ROLES,
   type DailyFoodCatalogSelection,
@@ -627,6 +628,24 @@ describe('Specialized Nutrition Agent food plans', () => {
     ))).toBe(true);
     expect(breakfast?.prepTimeMinutes).toBe(5);
     expect(breakfast?.preparationSteps[1]).toBe('Combine the ready-to-eat ingredients and serve.');
+  });
+
+  it('prioritizes practical catalog roles from an explicit very-quick cooking preference', () => {
+    const roles = foodPracticalityRoles({
+      planQualityMode: 'BASIC',
+      mealPracticalityPreference: { cookingTime: 'VERY_QUICK' }
+    } as NutritionAgentInput);
+
+    expect(roles).toEqual(FOOD_CATALOG_SELECTION_ROLES);
+  });
+
+  it('keeps standard catalog ranking for flexible cooking-time preferences', () => {
+    const roles = foodPracticalityRoles({
+      planQualityMode: 'BASIC',
+      mealPracticalityPreference: { cookingTime: 'FIFTEEN_TO_THIRTY' }
+    } as NutritionAgentInput);
+
+    expect(roles).toEqual([]);
   });
 
   it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {

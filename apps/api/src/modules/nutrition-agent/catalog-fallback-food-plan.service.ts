@@ -18,7 +18,7 @@ import {
   type FoodPlanPortionSolverTarget
 } from './food-plan-portion-solver.service';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
-import { foodAdherencePracticalityRoles } from './food-adherence-practicality';
+import { foodPracticalityRoles } from './food-adherence-practicality';
 import {
   FoodPlanRecipeTemplateService,
   selectRecipeCandidateForRole,
@@ -82,7 +82,7 @@ export class CatalogFallbackFoodPlanService {
         ? `${input.planLocalDate}:${options.selectionSeed}`
         : input.planLocalDate,
       preferredFoods: input.nutritionPreference?.preferredFoods,
-      prioritizePreparationForRoles: foodAdherencePracticalityRoles(input),
+      prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,
       restrictions: {
         allergies: input.nutritionPreference?.allergies,

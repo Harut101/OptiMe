@@ -37,6 +37,8 @@ Preparation metadata is deliberately conservative. `READY_TO_EAT` means the cata
 
 For Personalized and Adaptive plans only, two or more tracked skipped meals can softly prioritize ready-to-eat or quick-assembly catalog foods for the most frequently skipped meal type. This is not a hard filter: user preferences and food restrictions still rank first, and the normal safe catalog selection remains available when no practical option exists. It never lowers calorie or macro targets, changes portions to compensate, or exposes an adherence score in the mobile app. Basic plans retain their existing selection behavior.
 
+An explicit progressive-profile answer of `Very quick` also applies the same soft practical ranking across every meal role for all tiers. This makes the stated preference real without paywalling practicality. The `15-30 minutes` and `I can cook longer` answers retain the normal balanced ranking because the current catalog does not yet model a person's pre-cooked batch inventory.
+
 Meal preparation time is also catalog-derived. A meal composed entirely of ready-to-eat ingredients is shown as five minutes with assembly guidance; a meal made of quick-assembly ingredients is capped at ten minutes and may say to warm already-cooked items. Any meal containing a `COOK_REQUIRED` ingredient keeps its template preparation time and preparation guidance.
 
 ## Current generation behavior

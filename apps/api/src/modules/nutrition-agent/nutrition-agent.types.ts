@@ -45,6 +45,11 @@ export interface NutritionAgentInput {
     skippedMealCount: number;
     commonSkippedMealTypes: string[];
   };
+  // An explicit, non-sensitive preference answered through the progressive profile.
+  // It only adjusts catalog ranking; it never changes targets, portions, or safety rules.
+  mealPracticalityPreference?: {
+    cookingTime?: 'VERY_QUICK' | 'FIFTEEN_TO_THIRTY' | 'LONGER';
+  };
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;

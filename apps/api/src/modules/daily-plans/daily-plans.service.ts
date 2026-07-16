@@ -18,6 +18,8 @@ import {
   PlanStatus,
   Prisma,
   PreferredLocale,
+  ProgressiveProfilePromptKey,
+  ProgressiveProfilePromptStatus,
   TargetMuscleGroup,
   TrainingLevel,
   UsageFeature,
@@ -278,6 +280,7 @@ export class DailyPlansService {
             }
           : null,
         foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
+        mealPracticalityPreference: this.toMealPracticalityPreference(user),
         resolvedTrainingDay
       });
       let finalFoodPlan = foodPlanResult.foodPlan;
@@ -377,6 +380,7 @@ export class DailyPlansService {
               }
             : null,
           foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
+          mealPracticalityPreference: this.toMealPracticalityPreference(user),
           resolvedTrainingDay
         });
         finalFoodPlan = retryFoodPlanResult.foodPlan;
@@ -1076,6 +1080,7 @@ export class DailyPlansService {
           }
         : null,
       foodAdherenceSummary: context.personalizationContext.foodAdherenceSummary,
+      mealPracticalityPreference: this.toMealPracticalityPreference(context.user),
       resolvedTrainingDay: context.resolvedTrainingDay,
       regeneration: {
         ...regeneration,
@@ -1133,6 +1138,22 @@ export class DailyPlansService {
           preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
         }
       : null;
+  }
+
+  private toMealPracticalityPreference(
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>
+  ): { cookingTime: 'VERY_QUICK' | 'FIFTEEN_TO_THIRTY' | 'LONGER' } | undefined {
+    const answer = user.progressiveProfilePrompts[0]?.answerJson;
+
+    if (
+      answer === 'VERY_QUICK' ||
+      answer === 'FIFTEEN_TO_THIRTY' ||
+      answer === 'LONGER'
+    ) {
+      return { cookingTime: answer };
+    }
+
+    return undefined;
   }
 
   private nutritionTargetFromSnapshot(snapshot: NutritionTargetSnapshot): NutritionTarget {
@@ -1320,6 +1341,15 @@ export class DailyPlansService {
             trainingLevel: true,
             limitationsOrPainAreas: true,
             preferredTrainingDays: true
+          }
+        },
+        progressiveProfilePrompts: {
+          where: {
+            promptKey: ProgressiveProfilePromptKey.COOKING_TIME,
+            status: ProgressiveProfilePromptStatus.ANSWERED
+          },
+          select: {
+            answerJson: true
           }
         }
       }

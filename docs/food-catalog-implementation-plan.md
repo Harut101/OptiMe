@@ -106,6 +106,15 @@ Exit criteria: a user can replace one meal with a different safe catalog meal wi
 
 Exit criteria: a standard mock-generated plan persists catalog-backed ingredient slugs and validates against the same food-plan contract. Met with e2e coverage.
 
+## Phase 11: Practicality preferences - complete
+
+- A saved progressive-profile `Very quick` cooking-time answer is passed into every Nutrition Agent generation and food regeneration path.
+- It softly prioritizes ready-to-eat and quick-assembly catalog candidates across meal roles for every tier.
+- Preference matches, dietary restrictions, allergy blocks, nutrition targets, and portion solving remain authoritative.
+- Other cooking-time answers keep the normal balanced ranking until OptiMe can model an actual batch-prepared inventory instead of assuming one exists.
+
+Exit criteria: the app's explicit cooking-time question changes catalog selection without weakening safety or fabricating preparation state. Met with focused E2E coverage.
+
 ## Deferred
 
 - Branded products and barcode lookup.
