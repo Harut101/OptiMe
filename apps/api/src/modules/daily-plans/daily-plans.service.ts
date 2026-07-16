@@ -281,6 +281,7 @@ export class DailyPlansService {
           : null,
         foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
         mealPracticalityPreference: this.toMealPracticalityPreference(user),
+        mealTimingPreference: this.toMealTimingPreference(user),
         resolvedTrainingDay
       });
       let finalFoodPlan = foodPlanResult.foodPlan;
@@ -381,6 +382,7 @@ export class DailyPlansService {
             : null,
           foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
           mealPracticalityPreference: this.toMealPracticalityPreference(user),
+          mealTimingPreference: this.toMealTimingPreference(user),
           resolvedTrainingDay
         });
         finalFoodPlan = retryFoodPlanResult.foodPlan;
@@ -1081,6 +1083,7 @@ export class DailyPlansService {
         : null,
       foodAdherenceSummary: context.personalizationContext.foodAdherenceSummary,
       mealPracticalityPreference: this.toMealPracticalityPreference(context.user),
+      mealTimingPreference: this.toMealTimingPreference(context.user),
       resolvedTrainingDay: context.resolvedTrainingDay,
       regeneration: {
         ...regeneration,
@@ -1143,7 +1146,9 @@ export class DailyPlansService {
   private toMealPracticalityPreference(
     user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>
   ): { cookingTime: 'VERY_QUICK' | 'FIFTEEN_TO_THIRTY' | 'LONGER' } | undefined {
-    const answer = user.progressiveProfilePrompts[0]?.answerJson;
+    const answer = user.progressiveProfilePrompts.find(
+      (prompt) => prompt.promptKey === ProgressiveProfilePromptKey.COOKING_TIME
+    )?.answerJson;
 
     if (
       answer === 'VERY_QUICK' ||
@@ -1151,6 +1156,25 @@ export class DailyPlansService {
       answer === 'LONGER'
     ) {
       return { cookingTime: answer };
+    }
+
+    return undefined;
+  }
+
+  private toMealTimingPreference(
+    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>
+  ): 'EARLIER' | 'EVENLY_SPACED' | 'LATER' | 'FLEXIBLE' | undefined {
+    const answer = user.progressiveProfilePrompts.find(
+      (prompt) => prompt.promptKey === ProgressiveProfilePromptKey.MEAL_TIMING
+    )?.answerJson;
+
+    if (
+      answer === 'EARLIER' ||
+      answer === 'EVENLY_SPACED' ||
+      answer === 'LATER' ||
+      answer === 'FLEXIBLE'
+    ) {
+      return answer;
     }
 
     return undefined;
@@ -1345,10 +1369,16 @@ export class DailyPlansService {
         },
         progressiveProfilePrompts: {
           where: {
-            promptKey: ProgressiveProfilePromptKey.COOKING_TIME,
+            promptKey: {
+              in: [
+                ProgressiveProfilePromptKey.COOKING_TIME,
+                ProgressiveProfilePromptKey.MEAL_TIMING
+              ]
+            },
             status: ProgressiveProfilePromptStatus.ANSWERED
           },
           select: {
+            promptKey: true,
             answerJson: true
           }
         }

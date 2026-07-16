@@ -15,6 +15,7 @@ import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/fo
 import { FoodPlanTargetedMealRepairService } from '../src/modules/nutrition-agent/food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import { foodPracticalityRoles } from '../src/modules/nutrition-agent/food-adherence-practicality';
+import { mealTimingMultiplier } from '../src/modules/nutrition-agent/food-meal-timing';
 import {
   FOOD_CATALOG_SELECTION_ROLES,
   type DailyFoodCatalogSelection,
@@ -646,6 +647,15 @@ describe('Specialized Nutrition Agent food plans', () => {
     } as NutritionAgentInput);
 
     expect(roles).toEqual([]);
+  });
+
+  it('uses a modest earlier-or-later portion distribution without changing meal types', () => {
+    expect(mealTimingMultiplier('BREAKFAST', 'EARLIER')).toBeGreaterThan(1);
+    expect(mealTimingMultiplier('DINNER', 'EARLIER')).toBeLessThan(1);
+    expect(mealTimingMultiplier('BREAKFAST', 'LATER')).toBeLessThan(1);
+    expect(mealTimingMultiplier('DINNER', 'LATER')).toBeGreaterThan(1);
+    expect(mealTimingMultiplier('LUNCH', 'EVENLY_SPACED')).toBe(1);
+    expect(mealTimingMultiplier('SNACK', 'FLEXIBLE')).toBe(1);
   });
 
   it('filters catalog candidates by multilingual allergy synonyms before AI generation', async () => {

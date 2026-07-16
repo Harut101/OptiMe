@@ -19,6 +19,7 @@ import {
 } from './food-plan-portion-solver.service';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import { foodPracticalityRoles } from './food-adherence-practicality';
+import { mealTimingMultiplier } from './food-meal-timing';
 import {
   FoodPlanRecipeTemplateService,
   selectRecipeCandidateForRole,
@@ -136,7 +137,12 @@ export class CatalogFallbackFoodPlanService {
     );
     const baseCalories = resolvedRecipes.reduce(
       (sum, recipe) => sum + recipe.ingredients.reduce(
-        (mealSum, ingredient) => mealSum + (ingredient.candidate.caloriesPer100g * ingredient.grams / 100),
+        (mealSum, ingredient) => mealSum + (
+          ingredient.candidate.caloriesPer100g *
+          ingredient.grams *
+          mealTimingMultiplier(recipe.mealType, input.input.mealTimingPreference) /
+          100
+        ),
         0
       ),
       0
@@ -149,7 +155,8 @@ export class CatalogFallbackFoodPlanService {
       recipe,
       index,
       scale,
-      input.input.locale
+      input.input.locale,
+      input.input.mealTimingPreference
     ));
 
     if (meals.some((meal) => meal.ingredients.length === 0)) return null;
@@ -217,11 +224,14 @@ export class CatalogFallbackFoodPlanService {
     recipe: ResolvedRecipeTemplate,
     index: number,
     scale: number,
-    locale: NutritionAgentInput['locale']
+    locale: NutritionAgentInput['locale'],
+    mealTimingPreference: NutritionAgentInput['mealTimingPreference']
   ): FoodMeal {
     const ingredients = recipe.ingredients.map((template) => {
       const { candidate } = template;
-      const quantity = roundToFive(template.grams * scale);
+      const quantity = roundToFive(
+        template.grams * scale * mealTimingMultiplier(recipe.mealType, mealTimingPreference)
+      );
       const nutrition = this.foodCatalog.calculateNutrition(candidate, quantity);
       return {
         catalogFoodSlug: candidate.slug,

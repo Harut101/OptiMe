@@ -50,6 +50,9 @@ export interface NutritionAgentInput {
   mealPracticalityPreference?: {
     cookingTime?: 'VERY_QUICK' | 'FIFTEEN_TO_THIRTY' | 'LONGER';
   };
+  // A broad preference for distributing food energy through the day. It is not
+  // an eating schedule and does not change the daily nutrition target.
+  mealTimingPreference?: 'EARLIER' | 'EVENLY_SPACED' | 'LATER' | 'FLEXIBLE';
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;

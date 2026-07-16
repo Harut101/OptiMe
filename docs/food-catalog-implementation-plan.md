@@ -115,6 +115,15 @@ Exit criteria: a standard mock-generated plan persists catalog-backed ingredient
 
 Exit criteria: the app's explicit cooking-time question changes catalog selection without weakening safety or fabricating preparation state. Met with focused E2E coverage.
 
+## Phase 12: Meal-timing preference - complete
+
+- A saved `Earlier meals` or `Later meals` progressive-profile answer reaches initial generation and both food-regeneration paths.
+- The deterministic composer modestly weights the starting breakfast/lunch/dinner portions earlier or later, then the existing portion solver restores the exact daily target.
+- This is a broad distribution preference, not a time-of-day prescription or a replacement for workout-fueling rules.
+- `Evenly spaced` and `Flexible` retain the neutral meal distribution.
+
+Exit criteria: meal timing changes the composition starting point while daily nutrition targets, safety, and catalog restrictions remain fixed. Met with focused E2E coverage.
+
 ## Deferred
 
 - Branded products and barcode lookup.

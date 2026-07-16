@@ -39,6 +39,8 @@ For Personalized and Adaptive plans only, two or more tracked skipped meals can 
 
 An explicit progressive-profile answer of `Very quick` also applies the same soft practical ranking across every meal role for all tiers. This makes the stated preference real without paywalling practicality. The `15-30 minutes` and `I can cook longer` answers retain the normal balanced ranking because the current catalog does not yet model a person's pre-cooked batch inventory.
 
+An explicit `Earlier meals` or `Later meals` answer modestly shifts the starting portions toward breakfast or dinner before the existing solver restores the same daily calorie and macro target. It is not an exact eating schedule, does not change training timing, and leaves `Evenly spaced` and `Flexible` neutral. This keeps a timing preference useful without inventing a medical or rigid meal-timing rule.
+
 Meal preparation time is also catalog-derived. A meal composed entirely of ready-to-eat ingredients is shown as five minutes with assembly guidance; a meal made of quick-assembly ingredients is capped at ten minutes and may say to warm already-cooked items. Any meal containing a `COOK_REQUIRED` ingredient keeps its template preparation time and preparation guidance.
 
 ## Current generation behavior
