@@ -164,8 +164,10 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
       'If pregnancyStatus is PREGNANT, POSTPARTUM, or BREASTFEEDING, reject unsafe high-intensity recommendations, aggressive weight-loss framing, extreme calorie deficits, medical diagnosis language, or guidance that should be personalized by a healthcare provider.',
       'For pregnancy, postpartum, or breastfeeding context, general wellness guidance is okay when conservative, hydration-aware, recovery-aware, balanced, and non-diagnostic.',
       'For under-18 or safeMode plans, require balanced meals, hydration, sleep, recovery, healthy movement, and supportive consistency language.',
-      'Approve only low-risk plans.',
-      'If rejecting, provide concise reasons and specific requiredChanges for a future retry.',
+      'Approve the plan when deterministic checks passed and you cannot identify a concrete material safety violation in the actual plan text.',
+      'Do not reject for genericness, a missing optional preference, conservative intensity, a style preference, cautious wellness wording, or a desire for a more personalized plan.',
+      'Use approved=true and riskLevel=low for non-blocking editorial or quality observations; leave reasons and requiredChanges empty.',
+      'Reject only for a concrete material safety violation. Every rejection must name the unsafe category and the exact correction needed; use medium only for a remediable material violation and high only for an immediate or severe safety concern.',
       'safeUserMessage must be calm, supportive, non-shaming, and user-safe.'
     ].join('\n');
   }

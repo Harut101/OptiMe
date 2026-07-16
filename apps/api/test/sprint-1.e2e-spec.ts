@@ -5031,8 +5031,8 @@ describe('Sprint 1 backend vertical slice', () => {
       async () => ({
         approved: false,
         riskLevel: 'medium',
-        reasons: ['Plan tone needs semantic review.'],
-        requiredChanges: ['Use safer wording.']
+        reasons: ['Plan encourages training through pain.'],
+        requiredChanges: ['Remove the instruction to train through pain.']
       }),
       'safety_agent_rejected',
       { approved: false, riskLevel: 'medium' }
@@ -5087,6 +5087,51 @@ describe('Sprint 1 backend vertical slice', () => {
         enabled: true,
         provider: 'mock',
         ...expectedDebug
+      });
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+      restoreSafetyAgentEnv(previousEnabled, process.env.SAFETY_AGENT_PROVIDER);
+    }
+  });
+
+  it('keeps a deterministic-safe plan when SafetyAgent returns non-blocking editorial feedback', async () => {
+    const previousEnabled = process.env.SAFETY_AGENT_ENABLED;
+    process.env.SAFETY_AGENT_ENABLED = 'true';
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: SAFETY_AGENT,
+          value: {
+            reviewDailyPlan: async () => ({
+              approved: false,
+              riskLevel: 'medium',
+              reasons: ['The plan tone could be more concise.'],
+              requiredChanges: ['Use a shorter introduction.']
+            })
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app, 'safety-editorial-feedback@example.com');
+      await completeRequiredOnboarding(customCtx.app, user.accessToken, 'SafetyEditorial');
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      expect(plan.body.status).toBe('READY');
+      expect(plan.body.plan.debug.fallbackReason).toBeUndefined();
+      expect(plan.body.plan.debug.safetyAgent).toMatchObject({
+        enabled: true,
+        provider: 'mock',
+        approved: true,
+        riskLevel: 'low'
       });
     } finally {
       await cleanupDatabase(customCtx.prisma);
@@ -5438,8 +5483,8 @@ describe('Sprint 1 backend vertical slice', () => {
           output_text: JSON.stringify({
             approved: false,
             riskLevel: 'medium',
-            reasons: ['Tone is too forceful.'],
-            requiredChanges: ['Use softer tone.'],
+            reasons: ['The workout guidance tells the user to train through pain.'],
+            requiredChanges: ['Remove the instruction to train through pain.'],
             safeUserMessage: 'Choose a safer plan today.'
           })
         }),
@@ -5448,8 +5493,8 @@ describe('Sprint 1 backend vertical slice', () => {
           output_text: JSON.stringify({
             approved: false,
             riskLevel: 'medium',
-            reasons: ['Tone is still too forceful.'],
-            requiredChanges: ['Use softer tone.'],
+            reasons: ['The workout guidance still tells the user to train through pain.'],
+            requiredChanges: ['Remove the instruction to train through pain.'],
             safeUserMessage: 'Choose a safer plan today.'
           })
         })
@@ -5503,8 +5548,8 @@ describe('Sprint 1 backend vertical slice', () => {
           output_text: JSON.stringify({
             approved: false,
             riskLevel: 'medium',
-            reasons: ['Plan needs safer wording.'],
-            requiredChanges: ['Use safer wording.'],
+            reasons: ['Plan instructs the user to train through pain.'],
+            requiredChanges: ['Remove the instruction to train through pain.'],
             safeUserMessage: 'Choose a safer plan today.'
           })
         }),
@@ -5559,8 +5604,8 @@ describe('Sprint 1 backend vertical slice', () => {
           output_text: JSON.stringify({
             approved: false,
             riskLevel: 'medium',
-            reasons: ['Plan needs safer wording.'],
-            requiredChanges: ['Use safer wording.'],
+            reasons: ['Plan instructs the user to train through pain.'],
+            requiredChanges: ['Remove the instruction to train through pain.'],
             safeUserMessage: 'Choose a safer plan today.'
           })
         }),

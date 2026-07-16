@@ -61,7 +61,10 @@ import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
 import { SafetyAgentError } from '../safety-agent/safety-agent.error';
-import { safetyAgentReviewSchema } from '../safety-agent/safety-agent-review.schema';
+import {
+  safetyAgentReviewSchema,
+  type SafetyAgentReview
+} from '../safety-agent/safety-agent-review.schema';
 import {
   SAFETY_AGENT,
   SAFETY_AGENT_CONFIG,
@@ -96,6 +99,15 @@ interface DailyPlanValidationResult {
   planJson: DailyPlanJson;
   safetyRetryRequest?: GenerateDailyPlanSafetyFeedback;
 }
+
+const MATERIAL_SAFETY_REVIEW_PATTERNS: Array<{ category: string; pattern: RegExp }> = [
+  { category: 'unsafe_diet', pattern: /starv|fasting|detox|extreme calor|severe (?:calorie|diet)|skip meals|punish(?:ment)? exercise/i },
+  { category: 'body_shaming', pattern: /body.?sham|shame|guilt|disgust|lazy|punish/i },
+  { category: 'medical_claim', pattern: /medical diagnos|diagnos|treat(?:ment)?|medical claim|supplement/i },
+  { category: 'unsafe_training', pattern: /unsafe (?:training|exercise|workout)|train through|push through|pain|dizz|illness|exhaust|injur|maximum effort|max effort|overtrain|aggress(?:ive|ively)/i },
+  { category: 'sensitive_context', pattern: /under.?18|minor|safe mode|pregnan|postpartum|breastfeed/i },
+  { category: 'food_restriction', pattern: /allerg|excluded food|restricted food/i }
+];
 
 @Injectable()
 export class DailyPlansService {
@@ -1749,6 +1761,37 @@ export class DailyPlansService {
       );
 
       if (!parsedReview.data.approved) {
+        const rejection = this.classifySafetyAgentRejection(parsedReview.data);
+        if (!rejection.isBlocking) {
+          this.logger.warn(
+            [
+              'SafetyAgent non-blocking review accepted',
+              `provider=${this.safetyAgentConfig.provider}`,
+              `riskLevel=${parsedReview.data.riskLevel}`,
+              `reasonCount=${parsedReview.data.reasons.length}`,
+              'categories=none'
+            ].join('; ')
+          );
+          return {
+            status: PlanStatus.READY,
+            planJson: this.withSafetyAgentDebug(input.planJson, {
+              approved: true,
+              riskLevel: 'low',
+              retryUsed: input.retryUsed,
+              retryResult: input.retryUsed ? 'approved' : 'not_used'
+            })
+          };
+        }
+
+        this.logger.warn(
+          [
+            'SafetyAgent blocking review',
+            `provider=${this.safetyAgentConfig.provider}`,
+            `riskLevel=${parsedReview.data.riskLevel}`,
+            `reasonCount=${parsedReview.data.reasons.length}`,
+            `categories=${rejection.categories.join(',')}`
+          ].join('; ')
+        );
         if (
           input.allowSafetyRetry &&
           parsedReview.data.requiredChanges.some((change) => change.trim().length > 0)
@@ -1877,6 +1920,20 @@ export class DailyPlansService {
           retryResult: input.retryResult
         }
       )
+    };
+  }
+
+  private classifySafetyAgentRejection(review: SafetyAgentReview) {
+    const reviewText = [...review.reasons, ...review.requiredChanges].join(' ');
+    const categories = MATERIAL_SAFETY_REVIEW_PATTERNS
+      .filter(({ pattern }) => pattern.test(reviewText))
+      .map(({ category }) => category);
+
+    return {
+      categories,
+      // A high-risk verdict remains fail-closed. Medium findings must identify
+      // a material safety category; editorial feedback is not a reason to lose a plan.
+      isBlocking: review.riskLevel === 'high' || categories.length > 0
     };
   }
 
