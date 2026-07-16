@@ -1,4 +1,4 @@
-import { FoodCatalogSource, PreferredLocale, PrismaClient } from '@prisma/client';
+import { FoodCatalogSource, FoodPreparationLevel, PreferredLocale, PrismaClient } from '@prisma/client';
 import type { SupportedLocale } from '@optime/shared-types';
 
 import { foodCatalog } from './catalog';
@@ -21,6 +21,7 @@ export async function seedFoodCatalog(prisma: PrismaClient) {
         slug: definition.slug,
         source: FoodCatalogSource.CURATED,
         category: definition.category,
+        preparationLevel: definition.preparationLevel ?? FoodPreparationLevel.COOK_REQUIRED,
         caloriesPer100g: definition.caloriesPer100g,
         proteinPer100g: definition.proteinPer100g,
         carbsPer100g: definition.carbsPer100g,
@@ -33,6 +34,7 @@ export async function seedFoodCatalog(prisma: PrismaClient) {
       },
       update: {
         category: definition.category,
+        preparationLevel: definition.preparationLevel ?? FoodPreparationLevel.COOK_REQUIRED,
         caloriesPer100g: definition.caloriesPer100g,
         proteinPer100g: definition.proteinPer100g,
         carbsPer100g: definition.carbsPer100g,

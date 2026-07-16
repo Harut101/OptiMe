@@ -1,5 +1,6 @@
 import { FoodCatalogCoverageService } from '../src/modules/food-catalog/food-catalog-coverage.service';
 import { FoodCatalogService } from '../src/modules/food-catalog/food-catalog.service';
+import { FoodPreparationLevel } from '@prisma/client';
 import { cleanupDatabase } from './helpers/cleanup';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -85,6 +86,19 @@ describe('Food catalog coverage audit', () => {
     expect(keto.some((candidate) => candidate.slug === 'chicken-breast-cooked')).toBe(true);
     expect(keto.every((candidate) => candidate.carbsPer100g <= 10)).toBe(true);
     expect(lowCarb.every((candidate) => candidate.carbsPer100g <= 15)).toBe(true);
+  });
+
+  it('exposes conservative preparation metadata for planning without changing restriction filtering', async () => {
+    const service = ctx.app.get(FoodCatalogService);
+    const candidates = await service.listAllowedCandidates({ locale: 'en-US', dietType: 'OMNIVORE' });
+
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.every((candidate) => Object.values(FoodPreparationLevel).includes(
+      candidate.preparationLevel
+    ))).toBe(true);
+    expect(candidates.find((candidate) => candidate.slug === 'rolled-oats')?.preparationLevel).toBe(
+      FoodPreparationLevel.COOK_REQUIRED
+    );
   });
 
   it('uses the same restriction filters as planning for coverage bundles', async () => {

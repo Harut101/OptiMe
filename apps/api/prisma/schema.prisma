@@ -358,6 +358,14 @@ enum FoodCatalogCategory {
   OTHER
 }
 
+// Catalog metadata used to select genuinely practical meal variants.
+// It never changes nutrition values or restriction filtering.
+enum FoodPreparationLevel {
+  READY_TO_EAT
+  QUICK_ASSEMBLY
+  COOK_REQUIRED
+}
+
 enum FoodRestrictionTag {
   DAIRY
   EGG
@@ -1091,6 +1099,7 @@ model FoodCatalogItem {
   source          FoodCatalogSource   @default(CURATED)
   sourceFoodId    String?
   category        FoodCatalogCategory
+  preparationLevel FoodPreparationLevel @default(COOK_REQUIRED)
   caloriesPer100g Int
   proteinPer100g  Decimal             @db.Decimal(7, 2)
   carbsPer100g    Decimal             @db.Decimal(7, 2)

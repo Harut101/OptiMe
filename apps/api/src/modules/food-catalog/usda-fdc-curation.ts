@@ -1,6 +1,7 @@
 import {
   DietType,
   FoodCatalogCategory,
+  FoodPreparationLevel,
   FoodCatalogSource,
   FoodRestrictionTag,
   PreferredLocale,
@@ -18,6 +19,7 @@ const translationSchema = z.object({
 const foodCurationSchema = z.object({
   sourceFoodId: z.string().trim().regex(/^\d+$/),
   category: z.nativeEnum(FoodCatalogCategory),
+  preparationLevel: z.nativeEnum(FoodPreparationLevel).default(FoodPreparationLevel.COOK_REQUIRED),
   dietTypes: z.array(z.nativeEnum(DietType)).min(1).max(8),
   restrictionTags: z.array(z.nativeEnum(FoodRestrictionTag)).max(10),
   translations: z.object({
@@ -82,6 +84,7 @@ export async function applyUsdaFdcCuration(
       where: { id: record.id },
       data: {
         category: food.category,
+        preparationLevel: food.preparationLevel,
         dietTypes: food.dietTypes,
         restrictionTags: food.restrictionTags,
         isActive: true

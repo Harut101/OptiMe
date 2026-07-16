@@ -89,6 +89,7 @@ export class FoodCatalogService {
       slug: record.slug,
       name: translation.name,
       category: record.category,
+      preparationLevel: record.preparationLevel,
       caloriesPer100g: record.caloriesPer100g,
       proteinPer100g: record.proteinPer100g.toNumber(),
       carbsPer100g: record.carbsPer100g.toNumber(),

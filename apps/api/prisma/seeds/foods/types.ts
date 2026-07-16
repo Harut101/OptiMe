@@ -1,4 +1,9 @@
-import type { DietType, FoodCatalogCategory, FoodRestrictionTag } from '@prisma/client';
+import type {
+  DietType,
+  FoodCatalogCategory,
+  FoodPreparationLevel,
+  FoodRestrictionTag
+} from '@prisma/client';
 import type { SupportedLocale } from '@optime/shared-types';
 
 export interface SeedFoodTranslation {
@@ -10,6 +15,7 @@ export interface SeedFoodTranslation {
 export interface SeedFoodCatalogItem {
   slug: string;
   category: FoodCatalogCategory;
+  preparationLevel?: FoodPreparationLevel;
   caloriesPer100g: number;
   proteinPer100g: number;
   carbsPer100g: number;

@@ -15,6 +15,7 @@ It includes:
 - canonical slug and localized names/aliases;
 - calories, protein, carbohydrates, fat, and optional fiber per 100 g;
 - broad category and diet suitability metadata;
+- preparation metadata (`READY_TO_EAT`, `QUICK_ASSEMBLY`, or `COOK_REQUIRED`) for future practical-menu selection;
 - a service to list candidates after applying exact allergy, excluded-food, and disliked-food filters;
 - a service to calculate nutrition from a catalog item and a gram amount.
 
@@ -31,6 +32,8 @@ The catalog is currently used for Nutrition Agent ingredient selection and deter
 Catalog-backed meals use their actual selected ingredient names for the meal title, while `Breakfast`, `Lunch`, `Dinner`, and `Snack` remain structured meal-type labels. This gives Food and Meal Details a useful dish name without letting a model invent ingredients or hiding the products that were selected.
 
 Recipe templates also define a small presentation layer for catalog-backed meals: a bowl, plate, or snack assembly style and an expected preparation time. The backend turns that metadata and the selected safe ingredient names into two short preparation steps. These instructions are intentionally practical and conservative; they never change ingredients, portions, nutrition totals, allergy filters, or the deterministic safety boundary.
+
+Preparation metadata is deliberately conservative. `READY_TO_EAT` means the catalog item can be used without cooking, `QUICK_ASSEMBLY` means it can be combined or reheated without a full cook, and `COOK_REQUIRED` is the default for anything that needs preparation. This batch stores the metadata only. A later practical-menu batch can use it to make frequently skipped meal types easier without changing nutrition targets or relaxing any restriction checks.
 
 ## Current generation behavior
 
