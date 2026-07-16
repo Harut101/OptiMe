@@ -16,6 +16,7 @@ import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service
 import {
   FoodPlanRecipeTemplateService,
   selectRecipeCandidateForRole,
+  type FoodPlanRecipePreparationStyle,
   type FoodPlanRecipeTemplate,
   type RecipeTemplateIngredient
 } from './food-plan-recipe-template.service';
@@ -176,10 +177,10 @@ export class CatalogFallbackFoodPlanService {
       title,
       shortDescription: mealDescription(locale),
       ...totals,
-      prepTimeMinutes: recipe.mealType === 'BREAKFAST' ? 10 : 20,
+      prepTimeMinutes: recipe.prepTimeMinutes,
       servingSummary: servingSummary(locale),
       ingredients,
-      preparationSteps: [preparationStep(locale)],
+      preparationSteps: preparationSteps(recipe.preparationStyle, ingredients, locale),
       substitutions: ingredients.length
         ? [{
             originalItem: ingredients[0].name,
@@ -295,8 +296,52 @@ function servingSummary(locale: NutritionAgentInput['locale']) {
   return { 'en-US': 'Portion shown below', 'ru-RU': 'Порция указана ниже', 'fr-FR': 'Portion indiquée ci-dessous', 'zh-CN': '份量如下' }[locale];
 }
 
-function preparationStep(locale: NutritionAgentInput['locale']) {
-  return { 'en-US': 'Prepare the listed ingredients in a simple way that fits your routine.', 'ru-RU': 'Приготовьте указанные продукты простым способом, подходящим вашему распорядку.', 'fr-FR': 'Préparez les ingrédients indiqués simplement, selon votre routine.', 'zh-CN': '以适合自己日常节奏的简单方式准备列出的食材。' }[locale];
+function preparationSteps(
+  style: FoodPlanRecipePreparationStyle,
+  ingredients: FoodIngredient[],
+  locale: NutritionAgentInput['locale']
+) {
+  const ingredientNames = joinIngredientNames(
+    ingredients
+      .map((ingredient) => ingredient.name.trim())
+      .filter(Boolean)
+      .slice(0, 3),
+    locale
+  );
+  const copy = preparationCopy(locale);
+  return [
+    `${copy.measure} ${ingredientNames}.`,
+    copy[style]
+  ];
+}
+
+function preparationCopy(locale: NutritionAgentInput['locale']) {
+  return {
+    'en-US': {
+      measure: 'Measure the portions shown for',
+      BOWL: 'Combine in a bowl. Heat ingredients only when their product guidance calls for it.',
+      PLATE: 'Prepare each ingredient as appropriate, then serve everything together on one plate.',
+      SNACK: 'Assemble the ingredients and serve when ready.'
+    },
+    'ru-RU': {
+      measure: 'Подготовьте ингредиенты в указанных порциях:',
+      BOWL: 'Соберите ингредиенты в миске. Нагревайте их только если это указано для конкретного продукта.',
+      PLATE: 'Приготовьте каждый ингредиент подходящим способом и подайте всё вместе на одной тарелке.',
+      SNACK: 'Соберите ингредиенты и подавайте, когда всё готово.'
+    },
+    'fr-FR': {
+      measure: 'Préparez les ingrédients dans les portions indiquées :',
+      BOWL: 'Assemblez-les dans un bol. Chauffez un ingrédient uniquement si les indications du produit le prévoient.',
+      PLATE: 'Préparez chaque ingrédient de façon adaptée, puis servez le tout dans une seule assiette.',
+      SNACK: 'Assemblez les ingrédients et servez lorsque tout est prêt.'
+    },
+    'zh-CN': {
+      measure: '按标示份量准备：',
+      BOWL: '在碗中组合食材。仅在食品说明需要时加热食材。',
+      PLATE: '按各食材的适当方式准备，然后一起装盘。',
+      SNACK: '组合食材，准备好后即可食用。'
+    }
+  }[locale];
 }
 
 function replacementText(locale: NutritionAgentInput['locale']) {

@@ -13,10 +13,14 @@ export type RecipeTemplateIngredient = {
   grams: number;
 };
 
+export type FoodPlanRecipePreparationStyle = 'BOWL' | 'PLATE' | 'SNACK';
+
 export type FoodPlanRecipeTemplate = {
   id: string;
   mealType: FoodMealType;
   titleHint: string;
+  preparationStyle: FoodPlanRecipePreparationStyle;
+  prepTimeMinutes: number;
   ingredients: RecipeTemplateIngredient[];
 };
 
@@ -24,6 +28,8 @@ export type FoodPlanRecipeTemplateGuidance = {
   id: string;
   mealType: FoodMealType;
   titleHint: string;
+  preparationStyle: FoodPlanRecipePreparationStyle;
+  prepTimeMinutes: number;
   ingredientRoles: FoodCatalogSelectionRole[];
 };
 
@@ -71,6 +77,8 @@ export class FoodPlanRecipeTemplateService {
       id: template.id,
       mealType: template.mealType,
       titleHint: template.titleHint,
+      preparationStyle: template.preparationStyle,
+      prepTimeMinutes: template.prepTimeMinutes,
       ingredientRoles: template.ingredients.map((ingredient) => ingredient.role)
     }));
   }
@@ -99,6 +107,8 @@ function withMealCount(
       id: `${templatePrefix}-full-day-plate`,
       mealType: 'LUNCH',
       titleHint: 'Complete balanced plate',
+      preparationStyle: 'PLATE',
+      prepTimeMinutes: 20,
       ingredients: templates.flatMap((template) => template.ingredients)
     }];
   }
@@ -110,6 +120,8 @@ function withMealCount(
         id: `${templatePrefix}-combined-main-plate`,
         mealType: 'DINNER',
         titleHint: 'Balanced main meal',
+        preparationStyle: 'PLATE',
+        prepTimeMinutes: 20,
         ingredients: [...templates[1].ingredients, ...templates[2].ingredients]
       }
     ];
@@ -120,6 +132,8 @@ function withMealCount(
     id: `${templatePrefix}-simple-snack-${index + 1}`,
     mealType: 'SNACK',
     titleHint: 'Simple fruit snack',
+    preparationStyle: 'SNACK',
+    prepTimeMinutes: 5,
     ingredients: [
       { role: 'FRUIT', grams: 110 },
       { role: snackProteinRole, grams: 90 }
@@ -240,6 +254,24 @@ function template(
     id,
     mealType,
     titleHint,
+    preparationStyle: preparationStyleForMealType(mealType),
+    prepTimeMinutes: prepTimeForMealType(mealType),
     ingredients: ingredients.map(([role, grams]) => ({ role, grams }))
   };
+}
+
+function preparationStyleForMealType(mealType: FoodMealType): FoodPlanRecipePreparationStyle {
+  if (mealType === 'BREAKFAST') return 'BOWL';
+  if (mealType === 'SNACK' || mealType === 'PRE_WORKOUT' || mealType === 'POST_WORKOUT') {
+    return 'SNACK';
+  }
+  return 'PLATE';
+}
+
+function prepTimeForMealType(mealType: FoodMealType) {
+  if (mealType === 'BREAKFAST') return 10;
+  if (mealType === 'SNACK' || mealType === 'PRE_WORKOUT' || mealType === 'POST_WORKOUT') {
+    return 5;
+  }
+  return 20;
 }

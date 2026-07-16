@@ -30,6 +30,8 @@ The catalog is currently used for Nutrition Agent ingredient selection and deter
 
 Catalog-backed meals use their actual selected ingredient names for the meal title, while `Breakfast`, `Lunch`, `Dinner`, and `Snack` remain structured meal-type labels. This gives Food and Meal Details a useful dish name without letting a model invent ingredients or hiding the products that were selected.
 
+Recipe templates also define a small presentation layer for catalog-backed meals: a bowl, plate, or snack assembly style and an expected preparation time. The backend turns that metadata and the selected safe ingredient names into two short preparation steps. These instructions are intentionally practical and conservative; they never change ingredients, portions, nutrition totals, allergy filters, or the deterministic safety boundary.
+
 ## Current generation behavior
 
 When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names or nutrition values.

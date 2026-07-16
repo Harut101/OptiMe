@@ -131,6 +131,8 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(recipeTemplates.toPlanningGuidance(veganTemplates)[0]).toMatchObject({
       id: 'vegan-protein-breakfast',
       mealType: 'BREAKFAST',
+      preparationStyle: 'BOWL',
+      prepTimeMinutes: 10,
       ingredientRoles: ['BREAKFAST_BASE', 'MAIN_PROTEIN', 'FRUIT']
     });
   });
@@ -385,6 +387,11 @@ describe('Specialized Nutrition Agent food plans', () => {
     });
     expect(foodPlan.meals[0].title).not.toBe('Breakfast');
     expect(foodPlan.meals[0].title).toContain(foodPlan.meals[0].ingredients[0].name);
+    expect(foodPlan.meals[0].prepTimeMinutes).toBe(10);
+    expect(foodPlan.meals[0].preparationSteps).toHaveLength(2);
+    expect(foodPlan.meals[0].preparationSteps[0]).toContain(
+      foodPlan.meals[0].ingredients[0].name
+    );
     expect(foodPlan.meals[0].substitutions[0].reasonCode).toBe('SIMILAR_MACROS');
 
     const persistedPlan = await ctx.prisma.dailyPlan.findUniqueOrThrow({
