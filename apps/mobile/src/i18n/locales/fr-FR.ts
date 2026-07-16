@@ -271,6 +271,8 @@ export const frFR = createLocaleResource({
   today: {
     trainingTodayPromptTitle: "Vous vous entraînez aujourd'hui ?",
     trainingTodayPromptMessage: "Aujourd'hui est actuellement un jour de repos dans votre Routine hebdomadaire. Le repos est utile aussi, choisissez ce qui convient aujourd'hui.",
+    trainingPlannedPromptMessage: "Une séance est prévue aujourd'hui. Préférez-vous un plan d'entraînement ou un plan de repos ?",
+    generateTrainingPlan: "Créer un plan d'entraînement",
     generateRestDayPlan: 'Non, créer un plan de repos',
     setUpTodaysWorkout: "Oui, m'entraîner aujourd'hui seulement",
     trainingRoutineUpdated: 'Routine hebdomadaire mise à jour',

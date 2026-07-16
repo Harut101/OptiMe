@@ -271,6 +271,8 @@ export const ruRU = createLocaleResource({
   today: {
     trainingTodayPromptTitle: 'Вы тренируетесь сегодня?',
     trainingTodayPromptMessage: 'Сегодня в вашей Недельной рутине стоит день отдыха. Отдых тоже полезен, выберите то, что подходит сегодня.',
+    trainingPlannedPromptMessage: 'На сегодня запланирована тренировка. Создать тренировочный план или план дня отдыха?',
+    generateTrainingPlan: 'Создать тренировочный план',
     generateRestDayPlan: 'Нет, создать план дня отдыха',
     setUpTodaysWorkout: 'Да, тренировка только сегодня',
     trainingRoutineUpdated: 'Недельная рутина обновлена',

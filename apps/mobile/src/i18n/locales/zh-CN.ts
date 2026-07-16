@@ -271,6 +271,8 @@ export const zhCN = createLocaleResource({
   today: {
     trainingTodayPromptTitle: '今天训练吗？',
     trainingTodayPromptMessage: '今天在你的每周训练例程中目前是休息日。休息也有价值，请选择今天适合你的方式。',
+    trainingPlannedPromptMessage: '今天安排了训练。你想生成训练计划还是休息日计划？',
+    generateTrainingPlan: '生成训练计划',
     generateRestDayPlan: '不，生成休息日计划',
     setUpTodaysWorkout: '是，仅今天训练',
     trainingRoutineUpdated: '每周训练例程已更新',

@@ -539,7 +539,21 @@ export default function TodayScreen() {
         : Boolean(schedule.isActive && todayRoutineDay?.isTrainingDay);
 
       if (isTrainingDay) {
-        await continueThroughHealthReadiness(false);
+        Alert.alert(
+          t('today.trainingTodayPromptTitle'),
+          t('today.trainingPlannedPromptMessage'),
+          [
+            {
+              text: t('today.generateTrainingPlan'),
+              onPress: () => void continueThroughHealthReadiness(false)
+            },
+            {
+              text: t('trainingOverrides.restTodayOnly'),
+              onPress: () => void generateRestDayPlan()
+            },
+            { text: t('common.cancel'), style: 'cancel' }
+          ]
+        );
         return;
       }
 
@@ -628,6 +642,20 @@ export default function TodayScreen() {
         }
       ]
     );
+  }
+
+  async function generateRestDayPlan() {
+    try {
+      const saved = await saveTrainingOverride(todayLocalDate, {
+        overrideType: 'REST_DAY',
+        source: 'USER_SELECTED_REST_TODAY'
+      });
+      queryClient.setQueryData(['training-override', todayLocalDate], saved);
+      await queryClient.invalidateQueries({ queryKey: ['training-override', todayLocalDate] });
+      await continueThroughHealthReadiness(false);
+    } catch {
+      Alert.alert(t('trainingOverrides.saveFailed'), t('errors.unableSave'));
+    }
   }
 
   async function continueThroughHealthReadiness(forceRegenerate: boolean) {
