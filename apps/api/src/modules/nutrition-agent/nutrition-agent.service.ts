@@ -441,6 +441,7 @@ export class NutritionAgentService {
       planLocalDate: selectionSeed
         ? `${input.planLocalDate}:${selectionSeed}`
         : input.planLocalDate,
+      availableFoodSlugs: input.availableFoodSlugs,
       preferredFoods: input.nutritionPreference?.preferredFoods,
       prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,

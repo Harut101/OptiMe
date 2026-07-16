@@ -120,6 +120,19 @@ describe('Food catalog coverage audit', () => {
     );
   });
 
+  it('prioritizes user-confirmed available foods only after catalog safety filtering', async () => {
+    const service = ctx.app.get(FoodCatalogSelectionService);
+    const selection = await service.selectForDailyPlan({
+      locale: 'en-US',
+      dietType: 'OMNIVORE',
+      planLocalDate: '2026-07-17',
+      availableFoodSlugs: ['whole-grain-bread'],
+      maxPerRole: 8
+    });
+
+    expect(selection.byRole.CARBOHYDRATE[0]?.slug).toBe('whole-grain-bread');
+  });
+
   it('uses the same restriction filters as planning for coverage bundles', async () => {
     const service = ctx.app.get(FoodCatalogService);
     const vegan = await service.listAllowedCandidates({

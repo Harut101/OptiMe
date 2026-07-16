@@ -54,6 +54,7 @@ import {
 import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { FoodLogsService } from '../food-logs/food-logs.service';
+import { FoodAvailabilityService } from '../food-availability/food-availability.service';
 import { HealthService } from '../health/health.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
@@ -126,6 +127,7 @@ export class DailyPlansService {
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
     private readonly foodLogsService: FoodLogsService,
+    private readonly foodAvailabilityService: FoodAvailabilityService,
     private readonly healthService: HealthService,
     private readonly nutritionAgent: NutritionAgentService,
     private readonly nutritionTargetsService: NutritionTargetsService,
@@ -197,6 +199,10 @@ export class DailyPlansService {
       );
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
+      const availableFoodSlugs = await this.foodAvailabilityService.getAvailableFoodSlugs(
+        userId,
+        planLocalDate
+      );
       const appMode = this.resolveAppMode(user);
       const trainingEnabled = appMode === GoalImpactMode.NUTRITION_AND_TRAINING;
       const resolvedTrainingDay = await this.trainingScheduleResolver.resolveForUser({
@@ -282,6 +288,7 @@ export class DailyPlansService {
         foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
         mealPracticalityPreference: this.toMealPracticalityPreference(user),
         mealTimingPreference: this.toMealTimingPreference(user),
+        availableFoodSlugs,
         resolvedTrainingDay
       });
       let finalFoodPlan = foodPlanResult.foodPlan;
@@ -383,6 +390,7 @@ export class DailyPlansService {
           foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
           mealPracticalityPreference: this.toMealPracticalityPreference(user),
           mealTimingPreference: this.toMealTimingPreference(user),
+          availableFoodSlugs,
           resolvedTrainingDay
         });
         finalFoodPlan = retryFoodPlanResult.foodPlan;
@@ -1064,6 +1072,10 @@ export class DailyPlansService {
       selectedMealId?: string;
     }
   ) {
+    const availableFoodSlugs = await this.foodAvailabilityService.getAvailableFoodSlugs(
+      context.user.id,
+      context.plan.planLocalDate
+    );
     const result = await this.nutritionAgent.generateDailyFoodPlan({
       planLocalDate: context.plan.planLocalDate,
       locale: this.resolvePlanningLocale(context.user),
@@ -1084,6 +1096,7 @@ export class DailyPlansService {
       foodAdherenceSummary: context.personalizationContext.foodAdherenceSummary,
       mealPracticalityPreference: this.toMealPracticalityPreference(context.user),
       mealTimingPreference: this.toMealTimingPreference(context.user),
+      availableFoodSlugs,
       resolvedTrainingDay: context.resolvedTrainingDay,
       regeneration: {
         ...regeneration,

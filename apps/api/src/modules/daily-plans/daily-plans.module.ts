@@ -6,6 +6,7 @@ import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-chec
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { ExerciseSelectionModule } from '../exercise-selection/exercise-selection.module';
 import { FoodLogsModule } from '../food-logs/food-logs.module';
+import { FoodAvailabilityModule } from '../food-availability/food-availability.module';
 import { HealthModule } from '../health/health.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
@@ -28,6 +29,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     EntitlementsModule,
     ExerciseSelectionModule,
     FoodLogsModule,
+    FoodAvailabilityModule,
     HealthModule,
     NutritionAgentModule,
     NutritionTargetsModule,

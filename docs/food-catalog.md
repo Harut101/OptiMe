@@ -41,6 +41,10 @@ An explicit progressive-profile answer of `Very quick` also applies the same sof
 
 An explicit `Earlier meals` or `Later meals` answer modestly shifts the starting portions toward breakfast or dinner before the existing solver restores the same daily calorie and macro target. It is not an exact eating schedule, does not change training timing, and leaves `Evenly spaced` and `Flexible` neutral. This keeps a timing preference useful without inventing a medical or rigid meal-timing rule.
 
+## Confirmed available foods
+
+The backend supports a small daily availability list through `GET` and `PUT /v1/food-availability/today`. It records only active catalog foods that already pass the user's diet, allergy, excluded-food, and disliked-food filters. Availability is scoped to the user's local date, has no quantities or storage claims, and is a soft ranking signal for menu composition only. It never bypasses food safety or guarantees that a listed food will appear in a plan.
+
 Meal preparation time is also catalog-derived. A meal composed entirely of ready-to-eat ingredients is shown as five minutes with assembly guidance; a meal made of quick-assembly ingredients is capped at ten minutes and may say to warm already-cooked items. Any meal containing a `COOK_REQUIRED` ingredient keeps its template preparation time and preparation guidance.
 
 ## Current generation behavior

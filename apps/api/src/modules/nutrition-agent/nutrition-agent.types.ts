@@ -53,6 +53,9 @@ export interface NutritionAgentInput {
   // A broad preference for distributing food energy through the day. It is not
   // an eating schedule and does not change the daily nutrition target.
   mealTimingPreference?: 'EARLIER' | 'EVENLY_SPACED' | 'LATER' | 'FLEXIBLE';
+  // User-confirmed catalog foods that are available on the plan's local date.
+  // They are safe ranking hints only, never an inventory or nutrition source.
+  availableFoodSlugs?: string[];
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;

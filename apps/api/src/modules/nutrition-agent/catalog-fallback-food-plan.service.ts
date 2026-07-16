@@ -82,6 +82,7 @@ export class CatalogFallbackFoodPlanService {
       planLocalDate: options.selectionSeed
         ? `${input.planLocalDate}:${options.selectionSeed}`
         : input.planLocalDate,
+      availableFoodSlugs: input.availableFoodSlugs,
       preferredFoods: input.nutritionPreference?.preferredFoods,
       prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,

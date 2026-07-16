@@ -451,6 +451,28 @@ describe('Specialized Nutrition Agent food plans', () => {
     ).toBe(true);
   });
 
+  it('stores only catalog-safe foods confirmed as available today', async () => {
+    const user = await registerTestUser(ctx.app, 'nutrition-agent-available-food@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {
+      allergies: ['milk']
+    });
+
+    const saved = await request(ctx.app.getHttpServer())
+      .put('/v1/food-availability/today')
+      .set(authHeader(user.accessToken))
+      .send({ catalogFoodSlugs: ['whole-grain-bread'] })
+      .expect(200);
+
+    expect(saved.body.items).toHaveLength(1);
+    expect(saved.body.items[0]).toMatchObject({ slug: 'whole-grain-bread' });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/food-availability/today')
+      .set(authHeader(user.accessToken))
+      .send({ catalogFoodSlugs: ['greek-yogurt'] })
+      .expect(400);
+  });
+
   it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
     const service = ctx.app.get(CatalogFallbackFoodPlanService);
     await ctx.prisma.foodCatalogItem.upsert({

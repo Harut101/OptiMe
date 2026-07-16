@@ -7,6 +7,7 @@ import { DailyPlansModule } from './modules/daily-plans/daily-plans.module';
 import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 import { ExercisesModule } from './modules/exercises/exercises.module';
 import { FoodCatalogModule } from './modules/food-catalog/food-catalog.module';
+import { FoodAvailabilityModule } from './modules/food-availability/food-availability.module';
 import { FoodLogsModule } from './modules/food-logs/food-logs.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { HealthModule } from './modules/health/health.module';
@@ -39,6 +40,7 @@ import { PrismaModule } from './prisma/prisma.module';
     EntitlementsModule,
     ExercisesModule,
     FoodCatalogModule,
+    FoodAvailabilityModule,
     ProfilesModule,
     GoalsModule,
     HealthModule,

@@ -480,6 +480,7 @@ model User {
   healthConnections HealthConnection[]
   healthDailySummaries HealthDailySummary[]
   wearableDailySnapshots WearableDailySnapshot[]
+  availableFoods UserAvailableFood[]
   weightLogs WeightLog[]
   settings UserSettings?
 
@@ -1112,10 +1113,27 @@ model FoodCatalogItem {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   translations    FoodCatalogTranslation[]
+  availableForUsers UserAvailableFood[]
 
   @@unique([source, sourceFoodId])
   @@index([isActive, sortOrder, slug])
   @@index([category, isActive])
+}
+
+model UserAvailableFood {
+  id                String          @id @default(cuid())
+  userId            String
+  foodCatalogItemId String
+  localDate         String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodCatalogItem FoodCatalogItem @relation(fields: [foodCatalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, foodCatalogItemId, localDate])
+  @@index([userId, localDate])
+  @@index([foodCatalogItemId])
 }
 
 model FoodCatalogTranslation {

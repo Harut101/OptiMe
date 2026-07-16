@@ -42,6 +42,7 @@ export class FoodCatalogSelectionService {
       limit: 160
     });
     const preferredFoods = normalizePreferenceTerms(input.preferredFoods ?? []);
+    const availableFoodSlugs = new Set(input.availableFoodSlugs ?? []);
     const preparationPriorityRoles = new Set(input.prioritizePreparationForRoles ?? []);
     const candidatesByRole = groupFoodCatalogCandidatesByRole(allCandidates);
     const byRole = {} as DailyFoodCatalogSelection['byRole'];
@@ -51,6 +52,7 @@ export class FoodCatalogSelectionService {
         candidatesByRole[role],
         role,
         input.planLocalDate,
+        availableFoodSlugs,
         preferredFoods,
         preparationPriorityRoles.has(role)
       ).slice(0, maxPerRole);
@@ -73,10 +75,14 @@ function rankCandidates(
   candidates: FoodCatalogCandidate[],
   role: FoodCatalogSelectionRole,
   planLocalDate: string,
+  availableFoodSlugs: Set<string>,
   preferredFoods: string[],
   prioritizePreparation: boolean
 ) {
   return [...candidates].sort((left, right) => {
+    const availabilityDelta = Number(availableFoodSlugs.has(right.slug)) - Number(availableFoodSlugs.has(left.slug));
+    if (availabilityDelta !== 0) return availabilityDelta;
+
     const preferenceDelta = Number(matchesPreference(right, preferredFoods)) - Number(matchesPreference(left, preferredFoods));
     if (preferenceDelta !== 0) return preferenceDelta;
 
