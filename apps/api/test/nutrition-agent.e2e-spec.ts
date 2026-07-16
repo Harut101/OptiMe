@@ -383,6 +383,8 @@ describe('Specialized Nutrition Agent food plans', () => {
       unit: 'g',
       isOptional: false
     });
+    expect(foodPlan.meals[0].title).not.toBe('Breakfast');
+    expect(foodPlan.meals[0].title).toContain(foodPlan.meals[0].ingredients[0].name);
     expect(foodPlan.meals[0].substitutions[0].reasonCode).toBe('SIMILAR_MACROS');
 
     const persistedPlan = await ctx.prisma.dailyPlan.findUniqueOrThrow({

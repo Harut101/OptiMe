@@ -168,7 +168,7 @@ export class CatalogFallbackFoodPlanService {
       } satisfies FoodIngredient;
     });
     const totals = sumNutrition(ingredients);
-    const title = mealTitle(recipe.mealType, locale);
+    const title = mealTitle(recipe.mealType, ingredients, locale);
 
     return {
       id: `${recipe.mealType.toLowerCase()}-${index + 1}`,
@@ -239,7 +239,40 @@ function roundToFive(value: number) {
   return Math.max(5, Math.round(value / 5) * 5);
 }
 
-function mealTitle(type: FoodMealType, locale: NutritionAgentInput['locale']) {
+function mealTitle(
+  type: FoodMealType,
+  ingredients: FoodIngredient[],
+  locale: NutritionAgentInput['locale']
+) {
+  const ingredientNames = ingredients
+    .map((ingredient) => ingredient.name.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  if (!ingredientNames.length) return mealTypeLabel(type, locale);
+  if (ingredientNames.length === 1) return ingredientNames[0];
+
+  const [primaryIngredient, ...supportingIngredients] = ingredientNames;
+  return `${primaryIngredient} ${mealTitleWords(locale).with} ${joinIngredientNames(supportingIngredients, locale)}`;
+}
+
+function mealTitleWords(locale: NutritionAgentInput['locale']) {
+  return {
+    'en-US': { with: 'with', and: 'and' },
+    'ru-RU': { with: '\u0441', and: '\u0438' },
+    'fr-FR': { with: 'avec', and: 'et' },
+    'zh-CN': { with: '\u914d', and: '\u548c' }
+  }[locale];
+}
+
+function joinIngredientNames(names: string[], locale: NutritionAgentInput['locale']) {
+  if (names.length <= 1) return names[0] ?? '';
+
+  const { and } = mealTitleWords(locale);
+  if (names.length === 2) return `${names[0]} ${and} ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} ${and} ${names[names.length - 1]}`;
+}
+
+function mealTypeLabel(type: FoodMealType, locale: NutritionAgentInput['locale']) {
   const titles: Record<NutritionAgentInput['locale'], Record<FoodMealType, string>> = {
     'en-US': { BREAKFAST: 'Breakfast', LUNCH: 'Lunch', DINNER: 'Dinner', SNACK: 'Snack', PRE_WORKOUT: 'Pre-workout snack', POST_WORKOUT: 'Post-workout meal' },
     'ru-RU': { BREAKFAST: 'Завтрак', LUNCH: 'Обед', DINNER: 'Ужин', SNACK: 'Перекус', PRE_WORKOUT: 'Перекус перед тренировкой', POST_WORKOUT: 'Приём пищи после тренировки' },

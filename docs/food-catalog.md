@@ -28,6 +28,8 @@ This is an additional hard filter; deterministic SafetyService still remains the
 
 The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. The fallback templates rotate allowed proteins, grains, vegetables, fruits, and fats deterministically by local date, so they provide practical variation without relying on model arithmetic. Existing legacy plans remain readable because `catalogFoodSlug` is optional in the shared plan contract.
 
+Catalog-backed meals use their actual selected ingredient names for the meal title, while `Breakfast`, `Lunch`, `Dinner`, and `Snack` remain structured meal-type labels. This gives Food and Meal Details a useful dish name without letting a model invent ingredients or hiding the products that were selected.
+
 ## Current generation behavior
 
 When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names or nutrition values.
