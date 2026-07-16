@@ -6,6 +6,7 @@ import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
 import { FoodPlanCatalogFeasibilityService } from '../src/modules/nutrition-agent/food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
+import { normalizeFoodPlanNutrition } from '../src/modules/nutrition-agent/food-plan-nutrition-normalizer';
 import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
 import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/food-plan-recipe-template.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
@@ -628,6 +629,54 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(result.passed).toBe(false);
     expect(result.reasons).toEqual(
       expect.arrayContaining(['DAILY_TOTALS_DO_NOT_MATCH_MEALS', 'CALORIES_OUTSIDE_TARGET_TOLERANCE'])
+    );
+  });
+
+  it('normalizes calculated ingredient totals before food-plan validation', async () => {
+    const user = await registerTestUser(ctx.app, 'nutrition-agent-totals-normalizer@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const foodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const inconsistent: DailyFoodPlan = {
+      ...foodPlan,
+      totals: { caloriesKcal: 1, proteinGrams: 1, carbsGrams: 1, fatGrams: 1 },
+      meals: foodPlan.meals.map((meal) => ({
+        ...meal,
+        caloriesKcal: 1,
+        proteinGrams: 1,
+        carbsGrams: 1,
+        fatGrams: 1
+      }))
+    };
+
+    const normalized = normalizeFoodPlanNutrition(inconsistent);
+    const validator = new FoodPlanValidationService();
+    const result = validator.validate(normalized, {
+      nutritionTarget: await getNutritionTarget(user.accessToken),
+      nutritionTargetSnapshot: generated.body.plan.nutritionTargetSnapshot,
+      allergies: [],
+      excludedFoods: [],
+      safeMode: false,
+      isMinor: false
+    });
+
+    const ingredientTotals = sumFoodTotals(normalized.meals.flatMap((meal) => meal.ingredients));
+    expect(normalized.totals.caloriesKcal).toBe(ingredientTotals.caloriesKcal);
+    expect(normalized.totals.proteinGrams).toBeCloseTo(ingredientTotals.proteinGrams, 6);
+    expect(normalized.totals.carbsGrams).toBeCloseTo(ingredientTotals.carbsGrams, 6);
+    expect(normalized.totals.fatGrams).toBeCloseTo(ingredientTotals.fatGrams, 6);
+    expect(result.reasons).not.toEqual(
+      expect.arrayContaining([
+        'DAILY_TOTALS_DO_NOT_MATCH_MEALS',
+        'DAILY_MACROS_DO_NOT_MATCH_MEALS',
+        'MEAL_TOTALS_DO_NOT_MATCH_INGREDIENTS',
+        'MEAL_MACROS_DO_NOT_MATCH_INGREDIENTS'
+      ])
     );
   });
 

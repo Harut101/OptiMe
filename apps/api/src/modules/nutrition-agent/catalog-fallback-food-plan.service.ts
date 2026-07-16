@@ -13,6 +13,7 @@ import { FoodCatalogService } from '../food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
 import type { FoodCatalogCandidate, FoodCatalogSelectionRole } from '../food-catalog/food-catalog.types';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
+import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import {
   FoodPlanRecipeTemplateService,
   selectRecipeCandidateForRole,
@@ -122,7 +123,9 @@ export class CatalogFallbackFoodPlanService {
       },
       meals
     };
-    return this.solveFallbackPortions(fallbackPlan, input, catalogSelection.candidates);
+    return normalizeFoodPlanNutrition(
+      this.solveFallbackPortions(fallbackPlan, input, catalogSelection.candidates)
+    );
   }
 
   private solveFallbackPortions(

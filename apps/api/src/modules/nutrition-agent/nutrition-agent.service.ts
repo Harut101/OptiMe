@@ -22,6 +22,7 @@ import {
 } from './food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
+import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
 import { FoodPlanRecipeComposerService } from './food-plan-recipe-composer.service';
 import {
@@ -386,7 +387,7 @@ export class NutritionAgentService {
       catalogCandidates: catalogSelection.candidates,
       allowedMealIds: [selectedMealId]
     });
-    let foodPlan = solved.foodPlan;
+    let foodPlan = normalizeFoodPlanNutrition(solved.foodPlan);
     let validation = this.validator.validate(foodPlan, this.validationContext(input));
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
       const rebalanced = this.catalogRebalancer.rebalance({
@@ -395,12 +396,13 @@ export class NutritionAgentService {
         catalogCandidates: catalogSelection.candidates,
         allowedMealIds: [selectedMealId]
       });
+      const rebalancedFoodPlan = normalizeFoodPlanNutrition(rebalanced.foodPlan);
       const rebalancedValidation = this.validator.validate(
-        rebalanced.foodPlan,
+        rebalancedFoodPlan,
         this.validationContext(input)
       );
       if (rebalanced.rebalanced && rebalancedValidation.passed) {
-        foodPlan = rebalanced.foodPlan;
+        foodPlan = rebalancedFoodPlan;
         validation = rebalancedValidation;
         this.logger.log(
           `nutrition agent deterministic meal rebalanced; mealId=${selectedMealId}; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
@@ -451,7 +453,7 @@ export class NutritionAgentService {
     input: NutritionAgentInput,
     catalogCandidates: FoodCatalogCandidate[]
   ) {
-    let foodPlan = composedPlan;
+    let foodPlan = normalizeFoodPlanNutrition(composedPlan);
     let validation = this.validator.validate(foodPlan, this.validationContext(input));
 
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
@@ -461,12 +463,13 @@ export class NutritionAgentService {
         catalogCandidates
       });
       if (rebalanced.rebalanced) {
+        const rebalancedFoodPlan = normalizeFoodPlanNutrition(rebalanced.foodPlan);
         const rebalancedValidation = this.validator.validate(
-          rebalanced.foodPlan,
+          rebalancedFoodPlan,
           this.validationContext(input)
         );
         if (rebalancedValidation.passed) {
-          foodPlan = rebalanced.foodPlan;
+          foodPlan = rebalancedFoodPlan;
           validation = rebalancedValidation;
           this.logger.log(
             `nutrition agent deterministic menu rebalanced; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
@@ -686,7 +689,7 @@ export class NutritionAgentService {
       );
     }
 
-    let resolvedFoodPlan = portionSolveResult.foodPlan;
+    let resolvedFoodPlan = normalizeFoodPlanNutrition(portionSolveResult.foodPlan);
     let validation = this.validator.validate(resolvedFoodPlan, this.validationContext(input));
 
     if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
@@ -696,9 +699,10 @@ export class NutritionAgentService {
         catalogCandidates
       });
       if (rebalanced.rebalanced) {
-        const rebalancedValidation = this.validator.validate(rebalanced.foodPlan, this.validationContext(input));
+        const rebalancedFoodPlan = normalizeFoodPlanNutrition(rebalanced.foodPlan);
+        const rebalancedValidation = this.validator.validate(rebalancedFoodPlan, this.validationContext(input));
         if (rebalancedValidation.passed) {
-          resolvedFoodPlan = rebalanced.foodPlan;
+          resolvedFoodPlan = rebalancedFoodPlan;
           validation = rebalancedValidation;
           this.logger.log(
             `nutrition agent catalog rebalancer applied one safe substitution; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
@@ -895,7 +899,7 @@ export class NutritionAgentService {
       meals.push({ ...normalizedMeal, ...totals, ingredients });
     }
     const totals = sumFoodNutrition(meals);
-    return {
+    return normalizeFoodPlanNutrition({
       source: 'NUTRITION_AGENT',
       localDate: input.planLocalDate,
       locale: input.locale,
@@ -912,7 +916,7 @@ export class NutritionAgentService {
         }
       },
       meals
-    };
+    });
   }
 
   private validationContext(input: NutritionAgentInput) {
