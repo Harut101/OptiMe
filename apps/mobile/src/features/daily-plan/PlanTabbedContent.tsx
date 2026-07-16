@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   },
   mealsSectionTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 27
   },
   mealSection: {
@@ -640,17 +640,17 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     flex: 1,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 21
   },
   mealPreviewPortion: {
     color: colors.textSecondary,
-    fontWeight: '800'
+    fontWeight: '600'
   },
   mealPreviewMore: {
     color: colors.textSecondary,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     paddingLeft: 16
   },
   trainingSection: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   },
   trainingSectionTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 27
   },
   preWorkoutEmbedded: {
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
   },
   foodName: {
     color: colors.textPrimary,
-    fontWeight: '900'
+    fontWeight: '600'
   },
   foodNotes: {
     color: colors.textSecondary

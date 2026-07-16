@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 30,
     color: colors.textPrimary
   }

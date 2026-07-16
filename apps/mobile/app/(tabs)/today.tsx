@@ -1133,7 +1133,7 @@ const styles = StyleSheet.create({
   promptTriggerAction: {
     color: colors.primary,
     fontSize: 14,
-    fontWeight: '900'
+    fontWeight: '600'
   },
   embeddedPrompt: {
     gap: 14

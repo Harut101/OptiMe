@@ -194,7 +194,7 @@ function UpdateButton({
 const styles = StyleSheet.create({
   loadingTitle: {
     color: colors.success,
-    fontWeight: '900',
+    fontWeight: '600',
     textTransform: 'uppercase'
   },
   widget: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   title: {
     flexShrink: 1,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: 0.2,
     textTransform: 'uppercase'
   },
@@ -233,13 +233,13 @@ const styles = StyleSheet.create({
   },
   heroValue: {
     fontSize: 54,
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: -2.8,
     lineHeight: 58
   },
   heroUnit: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '600',
     paddingBottom: 8
   },
   targetArrow: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   supportingText: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 19
   },
   updateButton: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   updateButtonText: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: 0.2
   }
 });

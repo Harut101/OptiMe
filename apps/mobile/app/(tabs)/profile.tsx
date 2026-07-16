@@ -882,8 +882,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: colors.textSecondary,
-    fontWeight: '800',
-    textTransform: 'uppercase'
+    fontWeight: '600'
   },
   accountName: {
     color: colors.textPrimary

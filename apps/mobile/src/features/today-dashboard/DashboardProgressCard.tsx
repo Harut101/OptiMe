@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.2
   },
   subtitle: {

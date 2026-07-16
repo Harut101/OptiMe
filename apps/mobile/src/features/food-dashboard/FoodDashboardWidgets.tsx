@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   kcalUnit: {
     color: colors.textSecondary,
-    fontWeight: '800',
+    fontWeight: '600',
     paddingBottom: 6
   },
   macroGrid: {
@@ -318,10 +318,10 @@ const styles = StyleSheet.create({
     width: 8
   },
   macroLabel: {
-    fontWeight: '800'
+    fontWeight: '600'
   },
   macroValue: {
-    fontWeight: '900'
+    fontWeight: '600'
   },
   whyButton: {
     alignItems: 'center',
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     flexShrink: 1,
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: -0.4,
     lineHeight: 27
   },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   progressPercent: {
     fontSize: 22,
-    fontWeight: '900'
+    fontWeight: '600'
   },
   progressTrack: {
     backgroundColor: colors.nutritionMuted,
@@ -417,12 +417,12 @@ const styles = StyleSheet.create({
   mealType: {
     color: colors.nutrition,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '600',
     letterSpacing: 0.1
   },
   mealTitle: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 24
   },
   mealMeta: {
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   statusChipText: {
     color: colors.textSecondary,
-    fontWeight: '800'
+    fontWeight: '600'
   },
   statusChipTextSelected: {
     color: colors.textInverse

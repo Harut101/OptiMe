@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   },
   mealPlanTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 27
   },
   mealPlanInlineStatus: {

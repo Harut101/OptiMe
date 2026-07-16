@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.training,
-    fontWeight: '800'
+    fontWeight: '600'
   },
   title: {
     fontSize: 22,

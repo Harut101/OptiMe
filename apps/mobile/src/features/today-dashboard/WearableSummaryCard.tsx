@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '600',
     lineHeight: 27
   },
   metricGrid: {

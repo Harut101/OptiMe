@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
   },
   type: {
     color: colors.nutrition,
-    fontWeight: '800'
+    fontWeight: '600'
   },
   title: {
-    fontWeight: '800'
+    fontWeight: '600'
   },
   trailing: {
     alignItems: 'flex-end',
