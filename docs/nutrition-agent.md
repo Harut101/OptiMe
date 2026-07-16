@@ -107,7 +107,7 @@ If retry fails, the backend stores a deterministic fallback food plan. The fallb
 The Nutrition Agent also supports two focused regeneration modes:
 
 - `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`. The backend derives a stable variation seed from the stored meal ingredients, composes the next safe catalog option, solves and rebalances portions deterministically, then requests optional AI copy only.
-- `MEAL_REGENERATION`: regenerate the selected meal and return a complete adjusted food plan so the validator can re-check the whole day.
+- `MEAL_REGENERATION`: compose a different safe catalog option for the selected meal, then run a bounded portion solve that may change only that meal's ingredient quantities. Every other saved meal is retained exactly so food tracking remains attached to the correct meal IDs.
 
 Regeneration does not call the Nutrition Engine and does not calculate new calorie or macro targets. It reuses the selected Daily Plan's stored `nutritionTargetSnapshot`, current preferences, allergies, excluded foods, disliked foods, locale, and training-day context.
 

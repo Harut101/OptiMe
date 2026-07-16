@@ -807,6 +807,11 @@ describe('Specialized Nutrition Agent food plans', () => {
     const foodPlan = regenerated.body.plan.nutrition.foodPlan as DailyFoodPlan;
     expect(foodPlan.nutritionTargetSnapshot).toEqual(beforeFoodPlan.nutritionTargetSnapshot);
     expect(foodPlan.meals.find((meal) => meal.id === selectedMealId)?.shortDescription).toContain('Meal refreshed');
+    expect(
+      foodPlan.meals.find((meal) => meal.id === selectedMealId)?.ingredients.map((ingredient) => ingredient.name)
+    ).not.toEqual(
+      beforeFoodPlan.meals.find((meal) => meal.id === selectedMealId)?.ingredients.map((ingredient) => ingredient.name)
+    );
     expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
   });
 

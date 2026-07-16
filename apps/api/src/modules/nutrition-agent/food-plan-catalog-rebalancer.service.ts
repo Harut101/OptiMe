@@ -13,6 +13,8 @@ export interface FoodPlanCatalogRebalancerInput {
   foodPlan: DailyFoodPlan;
   target: FoodPlanPortionSolverTarget;
   catalogCandidates: FoodCatalogCandidate[];
+  /** Limits substitutions and portion changes to focused meal regeneration. */
+  allowedMealIds?: string[];
 }
 
 export interface FoodPlanCatalogRebalancerResult {
@@ -44,6 +46,7 @@ export class FoodPlanCatalogRebalancerService {
     let bestScore = beforeScore;
 
     initial.foodPlan.meals.forEach((meal, mealIndex) => {
+      if (input.allowedMealIds?.length && !input.allowedMealIds.includes(meal.id)) return;
       meal.ingredients.forEach((ingredient, ingredientIndex) => {
         const currentCandidate = ingredient.catalogFoodSlug ? bySlug.get(ingredient.catalogFoodSlug) : null;
         if (!currentCandidate || mealMentionsIngredient(meal, currentCandidate)) return;
@@ -63,7 +66,8 @@ export class FoodPlanCatalogRebalancerService {
           const solved = this.portionSolver.solve({
             foodPlan: candidatePlan,
             target: input.target,
-            catalogCandidates: input.catalogCandidates
+            catalogCandidates: input.catalogCandidates,
+            allowedMealIds: input.allowedMealIds
           });
           const score = calculateFoodPlanPortionScore(solved.foodPlan.totals, input.target);
           if (score + 0.0001 < bestScore) {

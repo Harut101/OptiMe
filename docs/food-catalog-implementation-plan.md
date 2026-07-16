@@ -88,6 +88,15 @@ Exit criteria: AI generation and deterministic fallback use the same meal-role p
 
 Exit criteria: a temporary OpenAI copy failure cannot prevent a user from receiving a complete, safe, target-aligned primary food plan. Met.
 
+## Phase 9: Deterministic focused meal regeneration - complete
+
+- Added a bounded portion-solver mode that may adjust quantities only in explicitly selected meal IDs.
+- Meal regeneration composes a catalog-backed alternative using a stable seed derived from the selected stored meal.
+- The replacement is merged with the current food plan before validation; every unselected meal, its ID, and its tracking association remain unchanged.
+- If the replacement cannot meet the saved target safely, regeneration fails without writing any replacement and the current plan remains intact.
+
+Exit criteria: a user can replace one meal with a different safe catalog meal without changing the rest of the day. Met with e2e coverage.
+
 ## Deferred
 
 - Branded products and barcode lookup.

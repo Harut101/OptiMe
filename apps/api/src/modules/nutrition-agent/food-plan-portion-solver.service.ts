@@ -9,6 +9,8 @@ export interface FoodPlanPortionSolverInput {
   foodPlan: DailyFoodPlan;
   target: FoodPlanPortionSolverTarget;
   catalogCandidates: FoodCatalogCandidate[];
+  /** Limits quantity changes to selected meals during focused meal regeneration. */
+  allowedMealIds?: string[];
 }
 
 export interface FoodPlanPortionSolverTarget extends FoodNutritionTotals {}
@@ -51,7 +53,7 @@ export class FoodPlanPortionSolverService {
     }
 
     const bySlug = new Map(input.catalogCandidates.map((candidate) => [candidate.slug, candidate]));
-    const variables = this.createVariables(input.foodPlan, bySlug);
+    const variables = this.createVariables(input.foodPlan, bySlug, input.allowedMealIds);
     const initialPlan = this.rebuildPlan(input.foodPlan, variables);
 
     if (!initialPlan || variables.length === 0) {
@@ -111,11 +113,14 @@ export class FoodPlanPortionSolverService {
 
   private createVariables(
     foodPlan: DailyFoodPlan,
-    bySlug: Map<string, FoodCatalogCandidate>
+    bySlug: Map<string, FoodCatalogCandidate>,
+    allowedMealIds?: string[]
   ): PortionVariable[] {
     const variables: PortionVariable[] = [];
+    const allowedIds = allowedMealIds?.length ? new Set(allowedMealIds) : null;
 
     foodPlan.meals.forEach((meal, mealIndex) => {
+      if (allowedIds && !allowedIds.has(meal.id)) return;
       meal.ingredients.forEach((ingredient, ingredientIndex) => {
         const candidate = ingredient.catalogFoodSlug ? bySlug.get(ingredient.catalogFoodSlug) : null;
         if (!candidate || ingredient.unit !== 'g' || !Number.isFinite(ingredient.quantity)) return;

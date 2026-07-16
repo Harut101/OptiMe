@@ -65,6 +65,29 @@ export class NutritionAgentService {
   ) {}
 
   async generateDailyFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
+    if (input.regeneration?.mode === 'MEAL_REGENERATION') {
+      const regeneratedMealPlan = await this.composeSingleMealRegeneration(input);
+      if (regeneratedMealPlan) {
+        this.logResult(input, regeneratedMealPlan, 0, []);
+        return {
+          foodPlan: regeneratedMealPlan,
+          retryCount: 0,
+          fallbackUsed: false,
+          validationReasonCodes: []
+        };
+      }
+      const fallbackReasons = ['MEAL_REGENERATION_UNAVAILABLE'];
+      const fallback = await this.createFallbackFoodPlan(input, fallbackReasons);
+      this.logger.warn('nutrition agent deterministic meal composition unavailable; current plan will be kept');
+      this.logResult(input, fallback, 0, fallbackReasons);
+      return {
+        foodPlan: fallback,
+        retryCount: 0,
+        fallbackUsed: true,
+        validationReasonCodes: fallbackReasons
+      };
+    }
+
     if (this.getProviderName() !== 'openai') {
       return this.generateMockFoodPlan(input);
     }
@@ -304,6 +327,96 @@ export class NutritionAgentService {
       .map((meal) => `${meal.id}:${meal.ingredients.map((ingredient) => ingredient.catalogFoodSlug).join(',')}`)
       .join('|');
     return `menu-refresh-${stableHash(fingerprint).toString(36)}`;
+  }
+
+  private async composeSingleMealRegeneration(
+    input: NutritionAgentInput
+  ): Promise<DailyFoodPlan | null> {
+    const currentPlan = input.regeneration?.existingFoodPlan;
+    const selectedMealId = input.regeneration?.selectedMealId;
+    if (!currentPlan || !selectedMealId) return null;
+
+    const currentMeal = currentPlan.meals.find((meal) => meal.id === selectedMealId);
+    if (!currentMeal) return null;
+
+    const selectionSeed = this.mealRegenerationSelectionSeed(currentMeal);
+    const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
+    const composedCandidate = await this.recipeComposer.compose(input, { selectionSeed });
+    if (!composedCandidate) return null;
+
+    const replacement = composedCandidate.meals.find((meal) => (
+      meal.id === selectedMealId || meal.mealType === currentMeal.mealType
+    ));
+    if (!replacement || sameMealIngredients(currentMeal, replacement)) return null;
+
+    const mergedPlan: DailyFoodPlan = {
+      ...currentPlan,
+      source: 'NUTRITION_AGENT',
+      localDate: input.planLocalDate,
+      locale: input.locale,
+      nutritionTargetSnapshot: input.nutritionTargetSnapshot,
+      validation: {
+        ...composedCandidate.validation,
+        status: 'VALID',
+        reasons: []
+      },
+      meals: currentPlan.meals.map((meal) => (
+        meal.id === selectedMealId
+          ? { ...replacement, id: selectedMealId, mealType: currentMeal.mealType }
+          : meal
+      )),
+      totals: sumFoodNutrition(currentPlan.meals.map((meal) => (
+        meal.id === selectedMealId ? replacement : meal
+      )))
+    };
+
+    const solved = this.portionSolver.solve({
+      foodPlan: mergedPlan,
+      target: this.portionSolverTarget(input),
+      catalogCandidates: catalogSelection.candidates,
+      allowedMealIds: [selectedMealId]
+    });
+    let foodPlan = solved.foodPlan;
+    let validation = this.validator.validate(foodPlan, this.validationContext(input));
+    if (!validation.passed && canAttemptCatalogRebalance(validation.reasons)) {
+      const rebalanced = this.catalogRebalancer.rebalance({
+        foodPlan,
+        target: this.portionSolverTarget(input),
+        catalogCandidates: catalogSelection.candidates,
+        allowedMealIds: [selectedMealId]
+      });
+      const rebalancedValidation = this.validator.validate(
+        rebalanced.foodPlan,
+        this.validationContext(input)
+      );
+      if (rebalanced.rebalanced && rebalancedValidation.passed) {
+        foodPlan = rebalanced.foodPlan;
+        validation = rebalancedValidation;
+        this.logger.log(
+          `nutrition agent deterministic meal rebalanced; mealId=${selectedMealId}; beforeScore=${rebalanced.beforeScore.toFixed(3)}; afterScore=${rebalanced.afterScore.toFixed(3)}`
+        );
+      }
+    }
+    if (!validation.passed) return null;
+
+    this.logger.log(
+      `nutrition agent deterministic meal composition passed; mealId=${selectedMealId}; portionAdjusted=${solved.adjusted}`
+    );
+    return {
+      ...foodPlan,
+      validation: {
+        ...foodPlan.validation,
+        status: 'VALID',
+        reasons: []
+      }
+    };
+  }
+
+  private mealRegenerationSelectionSeed(meal: DailyFoodPlan['meals'][number]) {
+    const fingerprint = `${meal.id}:${meal.ingredients
+      .map((ingredient) => ingredient.catalogFoodSlug ?? ingredient.name)
+      .join(',')}`;
+    return `meal-refresh-${stableHash(fingerprint).toString(36)}`;
   }
 
   private async selectCatalogForComposition(input: NutritionAgentInput, selectionSeed?: string) {
@@ -837,6 +950,16 @@ function stableHash(value: string) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+function sameMealIngredients(
+  left: DailyFoodPlan['meals'][number],
+  right: DailyFoodPlan['meals'][number]
+) {
+  const leftIngredients = left.ingredients.map((ingredient) => ingredient.catalogFoodSlug ?? ingredient.name);
+  const rightIngredients = right.ingredients.map((ingredient) => ingredient.catalogFoodSlug ?? ingredient.name);
+  return leftIngredients.length === rightIngredients.length
+    && leftIngredients.every((ingredient, index) => ingredient === rightIngredients[index]);
 }
 
 function mergeMealCopy(
