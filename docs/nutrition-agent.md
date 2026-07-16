@@ -72,7 +72,15 @@ Before an OpenAI request, `FoodPlanCatalogFeasibilityService` classifies the saf
 
 For an OpenAI request, the backend sends only templates whose required catalog roles have a safe candidate after diet, allergy, exclusion, and dislike filtering. Each model meal must return one allowed `recipeTemplateId`; the backend verifies the ID and meal type, then removes this internal field before storing the public `DailyFoodPlan`. Template IDs are therefore a generation constraint, not mobile UI data.
 
-The template layer does not own food names, quantities, nutrition calculations, or safety. The model still selects only allowed catalog slugs and gram quantities, and the backend still calculates totals, solves portions, validates restrictions, and falls back safely when needed.
+The template layer does not own food names, quantities, nutrition calculations, or safety. For focused regeneration, the model selects only allowed catalog slugs and gram quantities; the backend still calculates totals, solves portions, validates restrictions, and falls back safely when needed.
+
+## Deterministic recipe composition
+
+For a new daily plan, `FoodPlanRecipeComposerService` first composes ingredients and gram quantities from the restriction-filtered catalog and the shared recipe templates. The existing portion solver then verifies the deterministic candidate against the fixed target. When it is valid, OpenAI no longer selects ingredients, quantities, calories, or macros.
+
+Instead, OpenAI receives the locked meal IDs and the safe ingredient names for each composed meal through the `daily_food_plan_copy` structured-output contract. It may return only localized meal titles, short descriptions, serving summaries, preparation time, and preparation steps. The backend merges this copy onto the composed plan and runs the same deterministic food-safety validation again.
+
+If this copy request is unavailable, malformed, or unsafe, OptiMe keeps the complete deterministic plan rather than downgrading the user to an incomplete plan or a user-visible fallback state. Focused food/menu regeneration retains the previous ingredient-selection flow for now so it can still offer a changed menu; it remains protected by the catalog, template, solver, and validator boundaries.
 
 Current tolerances:
 

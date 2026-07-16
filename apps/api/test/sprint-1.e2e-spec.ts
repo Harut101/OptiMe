@@ -5386,9 +5386,9 @@ describe('Sprint 1 backend vertical slice', () => {
         retryUsed: true,
         retryResult: 'approved'
       });
-      expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(2);
+      expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_copy')).toHaveLength(2);
       expect(filterOpenAiRequestsBySchema(requests, 'training_load_agent_snapshot')).toHaveLength(2);
-      expect(filterOutOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(6);
+      expect(filterOutOpenAiRequestsBySchema(requests, 'daily_food_plan_copy')).toHaveLength(6);
       const retryRequestInput = filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[1]
         .input as Array<{ content?: string }>;
       const retryContext = JSON.parse(retryRequestInput[1].content ?? '{}') as {
@@ -7133,6 +7133,27 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
   };
 }
 
+function createMockDailyFoodPlanCopyResponse(input: Record<string, unknown>): MockOpenAiResponse {
+  const messages = input.input as Array<{ content?: string }> | undefined;
+  const context = parseJsonRecord(messages?.[1]?.content);
+  const composedMeals = Array.isArray(context.composedMeals)
+    ? context.composedMeals.filter(isRecord)
+    : [];
+
+  return {
+    output_text: JSON.stringify({
+      meals: composedMeals.map((meal, index) => ({
+        id: String(meal.id),
+        title: `Balanced meal ${index + 1}`,
+        shortDescription: 'A practical meal built from your selected ingredients.',
+        prepTimeMinutes: index === 0 ? 10 : 20,
+        servingSummary: 'One balanced serving',
+        preparationSteps: ['Prepare the listed ingredients simply and serve when ready.']
+      }))
+    })
+  };
+}
+
 function createMockCatalogIngredients(
   context: Record<string, unknown>,
   targetProtein: number,
@@ -7201,6 +7222,9 @@ function getOpenAiMockResponse(
   callIndex: number
 ) {
   const schemaName = getOpenAiRequestSchemaName(input);
+  if (schemaName === 'daily_food_plan_copy') {
+    return createMockDailyFoodPlanCopyResponse(input);
+  }
   if (schemaName === 'daily_food_plan_content') {
     return createMockDailyFoodPlanContentResponse(input);
   }
@@ -7216,7 +7240,9 @@ function getOpenAiMockResponse(
 
 function shouldAdvanceOpenAiResponseIndex(input: Record<string, unknown>) {
   const schemaName = getOpenAiRequestSchemaName(input);
-  return schemaName !== 'daily_food_plan_content' && schemaName !== 'training_load_agent_snapshot';
+  return schemaName !== 'daily_food_plan_content'
+    && schemaName !== 'daily_food_plan_copy'
+    && schemaName !== 'training_load_agent_snapshot';
 }
 
 function createMockTrainingLoadAgentResponse(): MockOpenAiResponse {

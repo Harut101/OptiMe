@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
   DailyFoodPlan,
+  DailyFoodPlanSource,
   FoodIngredient,
   FoodMeal,
   FoodMealType,
@@ -37,6 +38,14 @@ export class CatalogFallbackFoodPlanService {
   ) {}
 
   async create(input: NutritionAgentInput, reasons: string[]): Promise<DailyFoodPlan | null> {
+    return this.compose(input, reasons, 'DETERMINISTIC_FALLBACK');
+  }
+
+  async compose(
+    input: NutritionAgentInput,
+    reasons: string[],
+    source: DailyFoodPlanSource
+  ): Promise<DailyFoodPlan | null> {
     if (input.nutritionTarget.safety.status === 'NEEDS_MORE_INFO') {
       return null;
     }
@@ -84,13 +93,13 @@ export class CatalogFallbackFoodPlanService {
 
     const totals = sumNutrition(meals);
     const fallbackPlan: DailyFoodPlan = {
-      source: 'DETERMINISTIC_FALLBACK',
+      source,
       localDate: input.planLocalDate,
       locale: input.locale,
       nutritionTargetSnapshot: input.nutritionTargetSnapshot,
       totals,
       validation: {
-        status: 'FALLBACK',
+        status: source === 'DETERMINISTIC_FALLBACK' ? 'FALLBACK' : 'VALID',
         reasons,
         tolerances: {
           caloriesPercent: FOOD_PLAN_VALIDATION_TOLERANCES.caloriesPercent,

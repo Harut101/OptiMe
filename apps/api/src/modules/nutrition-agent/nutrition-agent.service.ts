@@ -23,11 +23,17 @@ import {
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
+import { FoodPlanRecipeComposerService } from './food-plan-recipe-composer.service';
 import {
   FoodPlanRecipeTemplateService,
   type FoodPlanRecipeTemplate
 } from './food-plan-recipe-template.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
+import {
+  nutritionAgentMealCopyDraftSchema,
+  nutritionAgentMealCopyOpenAiSchema,
+  type NutritionAgentMealCopyDraft
+} from './nutrition-agent-meal-copy.openai-schema';
 import {
   nutritionAgentFoodPlanDraftSchema,
   nutritionAgentFoodPlanOpenAiSchema,
@@ -53,6 +59,7 @@ export class NutritionAgentService {
     private readonly catalogFeasibility: FoodPlanCatalogFeasibilityService,
     private readonly catalogRebalancer: FoodPlanCatalogRebalancerService,
     private readonly portionSolver: FoodPlanPortionSolverService,
+    private readonly recipeComposer: FoodPlanRecipeComposerService,
     private readonly recipeTemplates: FoodPlanRecipeTemplateService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
@@ -188,6 +195,20 @@ export class NutritionAgentService {
       };
     }
 
+    if (!input.regeneration) {
+      const composedPlan = await this.recipeComposer.compose(input);
+      if (composedPlan) {
+        const composedValidation = this.validator.validate(composedPlan, this.validationContext(input));
+        if (composedValidation.passed) {
+          this.logger.log('nutrition agent deterministic recipe composition passed; requesting AI meal copy only');
+          return this.requestOpenAiMealCopy(input, composedPlan, model);
+        }
+        this.logger.warn(
+          `nutrition agent deterministic recipe composition did not meet target; using ingredient-selection path; reasons=${composedValidation.reasons.join(',')}`
+        );
+      }
+    }
+
     try {
       this.logger.log(
         `nutrition agent OpenAI request started; retry=${previousValidationReasons.length > 0}; model=${model}`
@@ -246,6 +267,77 @@ export class NutritionAgentService {
   private async createFallbackFoodPlan(input: NutritionAgentInput, reasons: string[]) {
     return (await this.catalogFallbackFoodPlan.create(input, reasons))
       ?? createDeterministicFoodPlan(input, 'DETERMINISTIC_FALLBACK', reasons);
+  }
+
+  private async requestOpenAiMealCopy(
+    input: NutritionAgentInput,
+    composedPlan: DailyFoodPlan,
+    model: string
+  ): Promise<NutritionAgentAttemptResult> {
+    try {
+      this.logger.log(`nutrition agent OpenAI meal-copy request started; model=${model}`);
+      const response = await this.getClient().responses.create(
+        {
+          model,
+          max_output_tokens: this.getMaxOutputTokens(),
+          input: [
+            { role: 'system', content: this.buildMealCopySystemInstructions() },
+            {
+              role: 'user',
+              content: JSON.stringify(this.buildMealCopyPlanningContext(input, composedPlan))
+            }
+          ],
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'daily_food_plan_copy',
+              strict: true,
+              schema: nutritionAgentMealCopyOpenAiSchema
+            }
+          }
+        },
+        { timeout: this.getRequestTimeoutMs() }
+      );
+
+      const foodPlan = this.applyMealCopy(response, input, composedPlan);
+      if (foodPlan) {
+        this.logger.log('nutrition agent OpenAI meal copy applied');
+        return { ok: true, foodPlan, validationReasons: [] };
+      }
+      this.logger.warn('nutrition agent meal copy was invalid or unsafe; using deterministic recipe plan');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'nutrition_agent_meal_copy_failed';
+      this.logger.warn(`nutrition agent meal-copy request failed; reason=${message.slice(0, 120)}; using deterministic recipe plan`);
+    }
+
+    return {
+      ok: true,
+      foodPlan: composedPlan,
+      validationReasons: ['AI_MEAL_COPY_UNAVAILABLE']
+    };
+  }
+
+  private applyMealCopy(
+    response: OpenAiResponse,
+    input: NutritionAgentInput,
+    composedPlan: DailyFoodPlan
+  ): DailyFoodPlan | null {
+    const outputText = this.extractOutputText(response);
+    if (!outputText) return null;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(outputText);
+    } catch {
+      return null;
+    }
+
+    const schemaResult = nutritionAgentMealCopyDraftSchema.safeParse(parsed);
+    if (!schemaResult.success) return null;
+
+    const copiedPlan = mergeMealCopy(composedPlan, schemaResult.data);
+    if (!copiedPlan) return null;
+    return this.validator.validate(copiedPlan, this.validationContext(input)).passed ? copiedPlan : null;
   }
 
   private parseAndValidateResponse(
@@ -381,6 +473,36 @@ export class NutritionAgentService {
         ? `This is a retry. Fix these validation errors: ${previousValidationReasons.join(', ')}. Return a complete corrected food plan, not partial edits.`
         : 'Create one complete daily food plan.'
     ].join('\n');
+  }
+
+  private buildMealCopySystemInstructions() {
+    return [
+      'You are the OptiMe Specialized Nutrition Agent.',
+      'Return only structured JSON matching the provided daily food plan copy schema.',
+      'The meals, ingredients, portions, calories, and macros are already fixed by the backend. Do not change or repeat them.',
+      'Return exactly one copy object for every supplied composed meal ID. Keep every ID unchanged.',
+      'Use only ingredient names supplied for that meal. Do not introduce any other food in titles, summaries, or preparation steps.',
+      'Never mention allergies, excluded foods, or disliked foods unless the supplied meal ingredients already contain them.',
+      'Keep copy localized to the requested locale, practical, supportive, concise, and non-shaming.',
+      'Do not include medical advice, detox claims, fasting protocols, starvation messaging, or aggressive weight-loss language.',
+      'For minors, safeMode, pregnancy, postpartum, or breastfeeding context, use balanced and conservative wording.'
+    ].join('\n');
+  }
+
+  private buildMealCopyPlanningContext(input: NutritionAgentInput, composedPlan: DailyFoodPlan) {
+    return {
+      locale: input.locale,
+      safetyContext: {
+        safeMode: input.safeMode,
+        isMinor: input.isMinor,
+        pregnancyStatus: input.pregnancyStatus ?? 'UNKNOWN'
+      },
+      composedMeals: composedPlan.meals.map((meal) => ({
+        id: meal.id,
+        mealType: meal.mealType,
+        ingredientNames: meal.ingredients.map((ingredient) => ingredient.name)
+      }))
+    };
   }
 
   private buildPlanningContext(
@@ -620,6 +742,31 @@ function canAttemptCatalogRebalance(reasons: string[]) {
 function isCatalogAvailabilityError(errorReason: string) {
   return errorReason === 'CATALOG_TARGET_UNAVAILABLE'
     || errorReason === 'CATALOG_RECIPE_TEMPLATES_UNAVAILABLE';
+}
+
+function mergeMealCopy(
+  composedPlan: DailyFoodPlan,
+  copy: NutritionAgentMealCopyDraft
+): DailyFoodPlan | null {
+  if (copy.meals.length !== composedPlan.meals.length) return null;
+  const copyById = new Map(copy.meals.map((meal) => [meal.id, meal]));
+  if (copyById.size !== composedPlan.meals.length) return null;
+
+  const meals = composedPlan.meals.map((meal) => {
+    const mealCopy = copyById.get(meal.id);
+    if (!mealCopy) return null;
+    return {
+      ...meal,
+      title: mealCopy.title,
+      shortDescription: mealCopy.shortDescription,
+      prepTimeMinutes: mealCopy.prepTimeMinutes,
+      servingSummary: mealCopy.servingSummary,
+      preparationSteps: mealCopy.preparationSteps
+    };
+  });
+  if (meals.some((meal) => meal === null)) return null;
+
+  return { ...composedPlan, meals: meals as DailyFoodPlan['meals'] };
 }
 
 function sumFoodNutrition(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {

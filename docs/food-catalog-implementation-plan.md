@@ -77,6 +77,16 @@ Exit criteria: USDA data can be evaluated, reviewed, and stored locally without 
 
 Exit criteria: AI generation and deterministic fallback use the same meal-role patterns, so a future template change cannot silently make the two paths diverge. Met.
 
+## Phase 8: Deterministic recipe composition - complete
+
+- Added `FoodPlanRecipeComposerService` as the primary catalog-backed ingredient and portion composition path for new daily plans.
+- The composer runs before OpenAI and is used only when its fixed-target plan passes deterministic validation.
+- Added a separate structured-output contract for AI meal copy: titles, summaries, preparation time, and preparation steps only.
+- If AI copy fails or introduces unsafe language, the validated deterministic meal plan remains available without changing its nutrition values.
+- Existing full-menu and individual-meal regeneration retain their current controlled ingredient-selection path until they receive a dedicated variation strategy.
+
+Exit criteria: a temporary OpenAI copy failure cannot prevent a user from receiving a complete, safe, target-aligned primary food plan. Met.
+
 ## Deferred
 
 - Branded products and barcode lookup.
