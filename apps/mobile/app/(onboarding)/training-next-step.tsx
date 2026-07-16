@@ -9,7 +9,7 @@ export default function TrainingNextStepScreen() {
   const { t } = useTranslation();
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <OnboardingStepShell
         eyebrow={t('onboarding.trainingOptionalTitle')}
         title={t('onboarding.trainingEnabledTitle')}

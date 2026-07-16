@@ -41,7 +41,7 @@ export default function GoalsOnboardingStep() {
   };
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <OnboardingStepShell
         eyebrow={t('onboarding.stepGoal')}
         title={t('onboarding.directionTitle')}

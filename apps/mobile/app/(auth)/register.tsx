@@ -47,7 +47,7 @@ export default function RegisterScreen() {
   });
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <View style={styles.hero}>
         <View style={styles.logo}><Sparkles size={22} color={colors.textInverse} /></View>
         <Text variant="label" style={styles.brand}>OptiMe</Text>

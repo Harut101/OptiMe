@@ -70,13 +70,13 @@ export default function TrainingSetupScreen() {
     onError: () => setPlanImpactError(t('today.updateFailed'))
   });
 
-  if (preferences.isLoading) return <ScreenSkeleton variant="detail" cardCount={3} />;
+  if (preferences.isLoading) return <ScreenSkeleton variant="detail" cardCount={3} topSafeArea={false} />;
   if (preferences.isError) {
-    return <Screen><StateBlock title={t('training.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => preferences.refetch()} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('training.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => preferences.refetch()} /></Screen>;
   }
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <TrainingSetupForm value={value} onChange={setValue} />
       {save.isError ? <Text style={styles.error}>{t('errors.unableSave')}</Text> : null}
       <Button title={save.isPending ? t('common.saving') : t('common.save')} disabled={save.isPending || !dirty} onPress={() => save.mutate(toTrainingPreferenceRequest(value))} />

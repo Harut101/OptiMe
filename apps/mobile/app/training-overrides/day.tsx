@@ -126,19 +126,19 @@ export default function DailyTrainingOverrideDayScreen() {
   }, [initialValue, override.isLoading, schedule.isLoading]);
 
   if (schedule.isLoading || override.isLoading || !value) {
-    return <ScreenSkeleton variant="detail" cardCount={4} />;
+    return <ScreenSkeleton variant="detail" cardCount={4} topSafeArea={false} />;
   }
 
   if (schedule.isError || override.isError) {
     return (
-      <Screen>
+      <Screen topSafeArea={false}>
         <StateBlock title={t('schedule.unavailable')} message={t('errors.unableLoad')} />
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <Text variant="label">{t('trainingOverrides.todayOnly')}</Text>
       <Text variant="heading">{getDayOfWeekLabel(t, effectiveDayOfWeek)}</Text>
       <Text variant="muted">{t('trainingOverrides.todayOnlyHelp')}</Text>

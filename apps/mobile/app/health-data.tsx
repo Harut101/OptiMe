@@ -142,7 +142,7 @@ export default function HealthDataScreen() {
   }
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <ScreenHeader
         title={t('health.connectionsTitle')}
         subtitle={`${t('health.connectionsIntro')} ${t('health.optional')}`}
@@ -246,7 +246,7 @@ export default function HealthDataScreen() {
 
 function HealthConnectionsSkeleton() {
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <View style={styles.skeletonHeader}>
         <View style={[styles.skeletonLine, styles.skeletonTitle]} />
         <View style={[styles.skeletonLine, styles.skeletonIntroWide]} />

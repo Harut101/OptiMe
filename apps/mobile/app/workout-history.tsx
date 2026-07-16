@@ -29,12 +29,12 @@ export default function WorkoutHistoryScreen() {
   });
 
   if (history.isLoading) {
-    return <ScreenSkeleton variant="list" cardCount={5} />;
+    return <ScreenSkeleton variant="list" cardCount={5} topSafeArea={false} />;
   }
 
   if (history.isError) {
     return (
-      <Screen>
+      <Screen topSafeArea={false}>
         <StateBlock
           title={t('workout.historyUnavailable')}
           message={t('errors.unableLoad')}
@@ -48,7 +48,7 @@ export default function WorkoutHistoryScreen() {
   const items = history.data?.items ?? [];
 
   return (
-    <Screen refreshing={history.isRefetching} onRefresh={() => history.refetch()}>
+    <Screen refreshing={history.isRefetching} onRefresh={() => history.refetch()} topSafeArea={false}>
       <ScreenHeader title={t('workout.workoutHistory')} subtitle={t('workout.historyIntro')} />
 
       {items.length === 0 ? (

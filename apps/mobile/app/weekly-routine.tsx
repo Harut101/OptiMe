@@ -75,10 +75,10 @@ export default function WeeklyRoutineScreen() {
     onError: () => setPlanImpactError(t('today.updateFailed'))
   });
 
-  if (schedule.isLoading) return <ScreenSkeleton variant="list" cardCount={3} />;
+  if (schedule.isLoading) return <ScreenSkeleton variant="list" cardCount={3} topSafeArea={false} />;
   if (schedule.isError || !schedule.data) {
     return (
-      <Screen>
+      <Screen topSafeArea={false}>
         <StateBlock title={t('schedule.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => schedule.refetch()} />
       </Screen>
     );
@@ -99,7 +99,7 @@ export default function WeeklyRoutineScreen() {
   });
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <Card variant="elevated">
         <SectionHeader title={t('schedule.weeklySchedule')} subtitle={t('schedule.weeklyScheduleHelp')} />
         <Text variant="metric" style={styles.frequency}>{schedule.data.isActive ? schedule.data.derivedWeeklyFrequency : 0}</Text>

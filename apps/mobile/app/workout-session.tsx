@@ -132,16 +132,16 @@ export default function WorkoutSessionScreen() {
   });
 
   if (!sessionId) {
-    return <Screen><StateBlock title={t('workout.unavailable')} message={t('workout.unavailableMessage')} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('workout.unavailable')} message={t('workout.unavailableMessage')} /></Screen>;
   }
 
   if (session.isLoading) {
-    return <ScreenSkeleton variant="list" cardCount={5} />;
+    return <ScreenSkeleton variant="list" cardCount={5} topSafeArea={false} />;
   }
 
   if (session.isError || !session.data) {
     return (
-      <Screen>
+      <Screen topSafeArea={false}>
         <StateBlock
           title={t('workout.unavailable')}
           message={t('errors.unableLoad')}
@@ -157,7 +157,7 @@ export default function WorkoutSessionScreen() {
   const isPartial = data.summary.isPartial;
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <ScreenHeader
         title={completed ? t('workout.workoutCompleted') : t('workout.title')}
         subtitle={formatWorkoutDate(data.summary.localDate, i18n.resolvedLanguage)}

@@ -45,7 +45,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <OnboardingStepShell
         eyebrow={t('onboarding.stepProfile')}
         title={t('onboarding.foundationTitle')}

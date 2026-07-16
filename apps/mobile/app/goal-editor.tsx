@@ -102,11 +102,11 @@ export default function GoalEditorScreen() {
   });
 
   if (goal.isLoading) {
-    return <ScreenSkeleton variant="detail" cardCount={3} />;
+    return <ScreenSkeleton variant="detail" cardCount={3} topSafeArea={false} />;
   }
 
   if (goal.isError) {
-    return <Screen><StateBlock title={t('goals.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => goal.refetch()} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('goals.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => goal.refetch()} /></Screen>;
   }
 
   const save = () => {
@@ -138,7 +138,7 @@ export default function GoalEditorScreen() {
   };
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <Text variant="heading">{t('goals.title')}</Text>
       <Text variant="muted">{t('goals.intro')}</Text>
 

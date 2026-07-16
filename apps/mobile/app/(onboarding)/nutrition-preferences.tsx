@@ -51,7 +51,7 @@ export default function NutritionPreferencesOnboardingStep() {
   };
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <OnboardingStepShell
         eyebrow={t('onboarding.stepFood')}
         title={t('onboarding.foodTitle')}

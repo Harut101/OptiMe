@@ -37,7 +37,7 @@ export function TrainingScheduleForm({
   const form = useForm<TrainingScheduleFormValues>({ defaultValues });
 
   return (
-    <Screen>
+    <Screen topSafeArea={false}>
       <Text variant="heading">{title}</Text>
       <Text variant="muted">{t('schedule.weeklyHelp')}</Text>
 
