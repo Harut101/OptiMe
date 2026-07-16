@@ -6471,9 +6471,22 @@ describe('Sprint 1 backend vertical slice', () => {
         .expect(201);
 
       expect(plan.body.status).toBe('READY');
-      expect(plan.body.plan.nutrition.meals[0].foods[0].name).toBe('Mixed salad');
-      expect(plan.body.plan.nutrition.meals[0].foods[0].notes).toContain(
-        'Prepared without avocado and broccoli.'
+      const foodPlan = plan.body.plan.nutrition.foodPlan;
+      expect(foodPlan).toBeDefined();
+      expect(plan.body.plan.nutrition.meals).toEqual(
+        foodPlan.meals.map((meal: {
+          title: string;
+          shortDescription?: string;
+          servingSummary: string;
+          ingredients: Array<{ name: string; quantity: number; unit: string }>;
+        }) => ({
+          name: meal.title,
+          purpose: meal.shortDescription ?? meal.servingSummary,
+          foods: meal.ingredients.map((ingredient) => ({
+            name: ingredient.name,
+            portion: `${ingredient.quantity} ${ingredient.unit}`
+          }))
+        }))
       );
     } finally {
       await cleanupDatabase(customCtx.prisma);

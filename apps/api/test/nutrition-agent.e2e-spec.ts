@@ -405,6 +405,14 @@ describe('Specialized Nutrition Agent food plans', () => {
     const foodPlan = response.body.plan.nutrition.foodPlan as DailyFoodPlan;
 
     expect(dailyFoodPlanSchema.safeParse(foodPlan).success).toBe(true);
+    expect(response.body.plan.nutrition.meals).toEqual(foodPlan.meals.map((meal) => ({
+      name: meal.title,
+      purpose: meal.shortDescription ?? meal.servingSummary,
+      foods: meal.ingredients.map((ingredient) => ({
+        name: ingredient.name,
+        portion: `${ingredient.quantity} ${ingredient.unit}`
+      }))
+    })));
     expect(foodPlan.source).toBe('NUTRITION_AGENT');
     expect(foodPlan.meals).toHaveLength(4);
     expect(foodPlan.nutritionTargetSnapshot.targetKcal).toBe(

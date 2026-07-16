@@ -2200,10 +2200,22 @@ export class DailyPlansService {
   }
 
   private withFoodPlan(planJson: DailyPlanJson, foodPlan: DailyPlanJson['nutrition']['foodPlan']): DailyPlanJson {
+    if (!foodPlan) return planJson;
+
     return {
       ...planJson,
       nutrition: {
         ...planJson.nutrition,
+        // Keep legacy rendering fields aligned with the catalog-backed plan so
+        // safety and clients never see two different daily menus.
+        meals: foodPlan.meals.map((meal) => ({
+          name: meal.title,
+          purpose: meal.shortDescription ?? meal.servingSummary,
+          foods: meal.ingredients.map((ingredient) => ({
+            name: ingredient.name,
+            portion: `${ingredient.quantity} ${ingredient.unit}`
+          }))
+        })),
         foodPlan
       }
     };
