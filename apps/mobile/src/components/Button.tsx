@@ -30,7 +30,7 @@ export function Button({ title, variant = 'primary', loading = false, disabled, 
         {loading ? (
           <ActivityIndicator color={variant === 'primary' ? colors.textInverse : colors.textPrimary} />
         ) : null}
-        <Text style={[
+        <Text variant="button" style={[
           styles.text,
           variant === 'primary' ? styles.primaryText : null,
           variant === 'secondary' || variant === 'ghost' ? styles.darkText : null
@@ -44,17 +44,12 @@ export function Button({ title, variant = 'primary', loading = false, disabled, 
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
-    borderRadius: 20,
+    minHeight: 48,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.13,
-    shadowRadius: 18,
-    elevation: 2
+    paddingHorizontal: 22,
+    borderWidth: 1
   },
   content: {
     alignItems: 'center',
@@ -91,9 +86,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.textInverse,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: -0.1
+    textAlign: 'center'
   },
   primaryText: {
     color: colors.textInverse

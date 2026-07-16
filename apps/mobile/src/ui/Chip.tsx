@@ -15,7 +15,7 @@ export function Chip({
       accessibilityState={{ selected }}
       style={[styles.chip, selected ? styles.selected : null]}
     >
-      <AppText style={[styles.text, selected ? styles.selectedText : null]}>{label}</AppText>
+      <AppText variant="label" style={[styles.text, selected ? styles.selectedText : null]}>{label}</AppText>
     </Pressable>
   );
 }
@@ -31,6 +31,6 @@ const styles = StyleSheet.create({
     backgroundColor: lightTheme.colors.surface
   },
   selected: { borderColor: lightTheme.colors.primaryAction, backgroundColor: lightTheme.colors.brandSoft },
-  text: { fontWeight: '700' },
+  text: {},
   selectedText: { color: lightTheme.colors.primaryAction }
 });

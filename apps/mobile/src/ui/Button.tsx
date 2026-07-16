@@ -38,7 +38,12 @@ export function UIButton({
       <View style={styles.content}>
         {loading ? <ActivityIndicator color={variant === 'primary' ? lightTheme.colors.textInverse : lightTheme.colors.textPrimary} /> : null}
         {!loading && icon ? <AppIcon name={icon} color={variant === 'primary' ? lightTheme.colors.textInverse : lightTheme.colors.textPrimary} /> : null}
-        <AppText style={[styles.text, variant === 'primary' || variant === 'danger' ? styles.lightText : null]}>{title}</AppText>
+        <AppText
+          variant="button"
+          style={[styles.text, variant === 'primary' || variant === 'danger' ? styles.lightText : null]}
+        >
+          {title}
+        </AppText>
       </View>
     </Pressable>
   );
@@ -60,6 +65,6 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: lightTheme.colors.error, borderColor: lightTheme.colors.error },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.5 },
-  text: { fontWeight: '800', textAlign: 'center' },
+  text: { textAlign: 'center' },
   lightText: { color: lightTheme.colors.textInverse }
 });

@@ -27,11 +27,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
+    letterSpacing: -0.1,
     maxWidth: '100%',
-    overflow: 'hidden',
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: 6,
+    flexShrink: 1
   },
   neutral: {
     backgroundColor: colors.surfaceMuted,

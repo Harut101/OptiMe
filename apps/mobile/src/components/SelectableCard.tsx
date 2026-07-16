@@ -38,7 +38,7 @@ export function SelectableCard({
         {icon}
       </View>
       <View style={styles.copy}>
-        <Text variant="body" style={styles.title}>{title}</Text>
+        <Text variant="bodyStrong" style={styles.title}>{title}</Text>
         <Text variant="caption">{subtitle}</Text>
       </View>
       {selected ? <CheckCircle2 size={22} color={colors.primaryDark} /> : null}
@@ -88,7 +88,5 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3
   },
-  title: {
-    fontWeight: '900'
-  }
+  title: {}
 });

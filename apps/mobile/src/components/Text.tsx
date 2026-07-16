@@ -1,11 +1,17 @@
 import { PropsWithChildren } from 'react';
-import { StyleSheet, Text as RNText, TextProps as RNTextProps } from 'react-native';
+import { Platform, StyleSheet, Text as RNText, TextProps as RNTextProps } from 'react-native';
 
 import { colors } from '@/theme/colors';
 
 interface TextProps extends RNTextProps, PropsWithChildren {
-  variant?: 'largeTitle' | 'title' | 'heading' | 'metric' | 'body' | 'muted' | 'caption' | 'label';
+  variant?: 'largeTitle' | 'title' | 'heading' | 'metric' | 'bodyStrong' | 'body' | 'muted' | 'caption' | 'label' | 'button' | 'finePrint';
 }
+
+const systemFontFamily = Platform.select({
+  ios: 'System',
+  android: 'sans-serif',
+  default: 'system-ui'
+});
 
 export function Text({ variant = 'body', style, children, ...props }: TextProps) {
   return (
@@ -18,52 +24,75 @@ export function Text({ variant = 'body', style, children, ...props }: TextProps)
 const styles = StyleSheet.create({
   base: {
     color: colors.textPrimary,
-    letterSpacing: 0
+    fontFamily: systemFontFamily
   },
   largeTitle: {
     fontSize: 40,
-    lineHeight: 45,
-    fontWeight: '900',
-    letterSpacing: -0.8
+    lineHeight: 44,
+    fontWeight: '600',
+    letterSpacing: -0.4
   },
   title: {
     fontSize: 34,
-    lineHeight: 39,
-    fontWeight: '900',
-    letterSpacing: -0.55
+    lineHeight: 38,
+    fontWeight: '600',
+    letterSpacing: -0.35
   },
   heading: {
     fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '800',
+    lineHeight: 29,
+    fontWeight: '600',
     letterSpacing: -0.25
   },
   metric: {
     fontSize: 36,
     lineHeight: 40,
-    fontWeight: '900',
-    letterSpacing: -0.7
+    fontWeight: '600',
+    letterSpacing: -0.45
+  },
+  bodyStrong: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '600',
+    letterSpacing: -0.25
   },
   body: {
-    fontSize: 16,
-    lineHeight: 23,
-    fontWeight: '500'
+    fontSize: 17,
+    lineHeight: 25,
+    fontWeight: '400',
+    letterSpacing: -0.25
   },
   muted: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textSecondary
+    fontSize: 17,
+    lineHeight: 25,
+    color: colors.textSecondary,
+    letterSpacing: -0.25
   },
   caption: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.textMuted,
-    fontWeight: '500'
+    fontWeight: '400',
+    letterSpacing: -0.2
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
     color: colors.textMuted,
-    fontWeight: '700'
+    fontWeight: '600',
+    letterSpacing: -0.2
+  },
+  button: {
+    fontSize: 17,
+    lineHeight: 20,
+    fontWeight: '600',
+    letterSpacing: -0.25
+  },
+  finePrint: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textMuted,
+    fontWeight: '400',
+    letterSpacing: -0.1
   }
 });
