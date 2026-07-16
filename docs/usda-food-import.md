@@ -80,6 +80,25 @@ The curation script refuses unknown FDC IDs. It also does not let a raw import o
 
 The repository includes reviewed fresh-produce, mushroom/almond-milk, berry/snack, and legume/nut manifests under `apps/api/prisma/seeds/foods/usda-curation/`. They activate only explicitly reviewed foods; all other imported source records remain inactive until separately reviewed.
 
+### Apply the repository-reviewed manifests
+
+After importing the matching USDA Foundation records into a new local or deployment database, dry-run every repository-reviewed manifest before applying it. This activates only foods that already have complete product-localized names, diet suitability, and restriction tags.
+
+```powershell
+# Dry-run every reviewed manifest. No database writes.
+$manifests = Get-ChildItem "apps/api/prisma/seeds/foods/usda-curation" -Filter "*.json"
+foreach ($manifest in $manifests) {
+  & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:curate -- --input $manifest.FullName
+}
+
+# Apply the same reviewed set only after the dry-run succeeds.
+foreach ($manifest in $manifests) {
+  & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api food-catalog:usda:curate -- --input $manifest.FullName --apply
+}
+```
+
+The current reviewed set activates 19 Foundation Foods. Running the apply command again is safe: it updates the same USDA records and their translations rather than creating duplicates.
+
 ### Review imported records
 
 List imported USDA records before creating a manifest. This command is read-only and helps reviewers check the source name, provisional category, active state, and nutrition values without opening Prisma Studio.
