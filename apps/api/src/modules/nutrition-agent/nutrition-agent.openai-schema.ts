@@ -47,6 +47,7 @@ const mealSchema = {
   additionalProperties: false,
   required: [
     'id',
+    'recipeTemplateId',
     'mealType',
     'title',
     'shortDescription',
@@ -59,6 +60,10 @@ const mealSchema = {
   ],
   properties: {
     id: { type: 'string', description: 'Stable kebab-case or snake_case ID within this plan.' },
+    recipeTemplateId: {
+      type: 'string',
+      description: 'One allowed recipe template ID from the planning context.'
+    },
     mealType: {
       type: 'string',
       enum: ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'PRE_WORKOUT', 'POST_WORKOUT']
@@ -140,6 +145,7 @@ const draftSubstitutionSchema = z.object({
 
 const draftMealSchema = z.object({
   id: z.string().trim().min(1).max(80),
+  recipeTemplateId: z.string().trim().min(1).max(120),
   mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'PRE_WORKOUT', 'POST_WORKOUT']),
   title: z.string().trim().min(1).max(120),
   shortDescription: z.string().trim().max(240).nullable(),

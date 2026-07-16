@@ -7,6 +7,7 @@ import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/c
 import { FoodPlanCatalogFeasibilityService } from '../src/modules/nutrition-agent/food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
 import { FoodPlanPortionSolverService } from '../src/modules/nutrition-agent/food-plan-portion-solver.service';
+import { FoodPlanRecipeTemplateService } from '../src/modules/nutrition-agent/food-plan-recipe-template.service';
 import { FoodPlanValidationService } from '../src/modules/nutrition-agent/food-plan-validation.service';
 import {
   FOOD_CATALOG_SELECTION_ROLES,
@@ -55,6 +56,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     const draft = {
       meals: [{
         id: 'breakfast-1',
+        recipeTemplateId: 'omnivore-balanced-breakfast',
         mealType: 'BREAKFAST',
         title: 'Breakfast',
         shortDescription: null,
@@ -95,6 +97,42 @@ describe('Specialized Nutrition Agent food plans', () => {
       'unit',
       'isOptional'
     ]);
+    expect(nutritionAgentFoodPlanOpenAiSchema.properties.meals.items.required).toContain('recipeTemplateId');
+  });
+
+  it('shares diet-aware recipe templates between the AI planning context and deterministic fallback', async () => {
+    const recipeTemplates = ctx.app.get(FoodPlanRecipeTemplateService);
+    const selectionService = ctx.app.get(FoodCatalogSelectionService);
+    const selection = await selectionService.selectForDailyPlan({
+      locale: 'en-US',
+      dietType: 'VEGAN',
+      planLocalDate: '2026-07-16'
+    });
+
+    const veganTemplates = recipeTemplates.listAvailableForSelection({
+      dietType: 'VEGAN',
+      mealsPerDay: 3,
+      catalogSelection: selection
+    });
+    const lowCarbTemplates = recipeTemplates.listForDailyPlan({
+      dietType: 'LOW_CARB',
+      mealsPerDay: 3
+    });
+
+    expect(veganTemplates).toHaveLength(3);
+    expect(veganTemplates.map((template) => template.id)).toEqual([
+      'vegan-protein-breakfast',
+      'vegan-protein-grain-lunch',
+      'vegan-balanced-dinner'
+    ]);
+    expect(lowCarbTemplates.every((template) => (
+      !template.ingredients.some((ingredient) => ingredient.role === 'CARBOHYDRATE')
+    ))).toBe(true);
+    expect(recipeTemplates.toPlanningGuidance(veganTemplates)[0]).toMatchObject({
+      id: 'vegan-protein-breakfast',
+      mealType: 'BREAKFAST',
+      ingredientRoles: ['BREAKFAST_BASE', 'MAIN_PROTEIN', 'FRUIT']
+    });
   });
 
   it('classifies catalog feasibility conservatively before OpenAI generation', async () => {

@@ -7083,11 +7083,22 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
   const fatGrams = numberOrDefault(fixedTarget.fatGrams, 65);
   const requestedMealsPerDay = Math.max(1, Math.min(5, numberOrDefault(context.requestedMealsPerDay, 3)));
   const catalogIngredients = createMockCatalogIngredients(context, proteinGrams, carbsGrams, fatGrams);
+  const recipeTemplates = Array.isArray(context.recipeTemplates)
+    ? context.recipeTemplates.filter(isRecord)
+    : [];
   const mealTypes = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'POST_WORKOUT'];
   const meals = Array.from({ length: requestedMealsPerDay }, (_, index) => {
+    const recipeTemplate = recipeTemplates[index];
+    const recipeTemplateId = typeof recipeTemplate?.id === 'string'
+      ? recipeTemplate.id
+      : `mock-template-${index + 1}`;
+    const mealType = typeof recipeTemplate?.mealType === 'string'
+      ? recipeTemplate.mealType
+      : mealTypes[index] ?? 'SNACK';
     return {
       id: `meal-${index + 1}`,
-      mealType: mealTypes[index] ?? 'SNACK',
+      recipeTemplateId,
+      mealType,
       title: `Balanced meal ${index + 1}`,
       shortDescription: 'A simple meal built around the fixed nutrition target.',
       prepTimeMinutes: 15,

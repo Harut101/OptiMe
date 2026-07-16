@@ -66,6 +66,14 @@ The deterministic fallback menu uses separate templates for omnivore, vegetarian
 
 Before an OpenAI request, `FoodPlanCatalogFeasibilityService` classifies the safe shortlist as `FEASIBLE`, `LIMITED`, or `UNAVAILABLE`. It uses `UNAVAILABLE` only for objective catalog failures such as no usable foods, calories, or a required macro source; in that case the request skips OpenAI and returns the safe fallback directly. `LIMITED` remains an AI planning hint rather than a rejection, preventing conservative diagnostics from unnecessarily reducing plan quality.
 
+## Recipe template layer
+
+`FoodPlanRecipeTemplateService` provides the same deterministic meal structures to both the OpenAI planning context and `CatalogFallbackFoodPlanService`. The current set contains diet-aware breakfast, lunch, and dinner patterns for omnivore, vegetarian, vegan, pescatarian, Mediterranean, and low-carb/keto plans, plus deterministic one-, two-, and snack-based meal-count variants.
+
+For an OpenAI request, the backend sends only templates whose required catalog roles have a safe candidate after diet, allergy, exclusion, and dislike filtering. Each model meal must return one allowed `recipeTemplateId`; the backend verifies the ID and meal type, then removes this internal field before storing the public `DailyFoodPlan`. Template IDs are therefore a generation constraint, not mobile UI data.
+
+The template layer does not own food names, quantities, nutrition calculations, or safety. The model still selects only allowed catalog slugs and gram quantities, and the backend still calculates totals, solves portions, validates restrictions, and falls back safely when needed.
+
 Current tolerances:
 
 - calories: within 5% or 100 kcal, whichever is larger

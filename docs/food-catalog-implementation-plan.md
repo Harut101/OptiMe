@@ -68,6 +68,15 @@ Exit criteria: safe fallback plans can use a broader catalog without random choi
 
 Exit criteria: USDA data can be evaluated, reviewed, and stored locally without making unreviewed data available to users. Met.
 
+## Phase 7: Recipe template guidance - complete
+
+- Added one shared deterministic recipe-template source for the Nutrition Agent and catalog-backed fallback.
+- OpenAI receives only usable diet-aware meal patterns after catalog restriction filtering.
+- Each AI meal selects an allowed internal template ID; the backend verifies it before resolving catalog ingredients.
+- Template guidance improves meal structure without trusting AI for nutrition arithmetic or exposing implementation details to mobile.
+
+Exit criteria: AI generation and deterministic fallback use the same meal-role patterns, so a future template change cannot silently make the two paths diverge. Met.
+
 ## Deferred
 
 - Branded products and barcode lookup.

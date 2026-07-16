@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { DietType } from '@prisma/client';
 import type {
   DailyFoodPlan,
   FoodIngredient,
@@ -13,22 +12,18 @@ import { FoodCatalogService } from '../food-catalog/food-catalog.service';
 import { FoodCatalogSelectionService } from '../food-catalog/food-catalog-selection.service';
 import type { FoodCatalogCandidate, FoodCatalogSelectionRole } from '../food-catalog/food-catalog.types';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
+import {
+  FoodPlanRecipeTemplateService,
+  selectRecipeCandidateForRole,
+  type FoodPlanRecipeTemplate,
+  type RecipeTemplateIngredient
+} from './food-plan-recipe-template.service';
 import { FOOD_PLAN_VALIDATION_TOLERANCES } from './food-plan-validation.constants';
 import type { NutritionAgentInput } from './nutrition-agent.types';
 
-type RecipeIngredient = {
-  role: FoodCatalogSelectionRole;
-  grams: number;
-};
+type ResolvedRecipeIngredient = RecipeTemplateIngredient & { candidate: FoodCatalogCandidate };
 
-type RecipeTemplate = {
-  mealType: FoodMealType;
-  ingredients: RecipeIngredient[];
-};
-
-type ResolvedRecipeIngredient = RecipeIngredient & { candidate: FoodCatalogCandidate };
-
-type ResolvedRecipeTemplate = Omit<RecipeTemplate, 'ingredients'> & {
+type ResolvedRecipeTemplate = Omit<FoodPlanRecipeTemplate, 'ingredients'> & {
   ingredients: ResolvedRecipeIngredient[];
 };
 
@@ -37,7 +32,8 @@ export class CatalogFallbackFoodPlanService {
   constructor(
     private readonly foodCatalog: FoodCatalogService,
     private readonly foodCatalogSelection: FoodCatalogSelectionService,
-    private readonly portionSolver: FoodPlanPortionSolverService
+    private readonly portionSolver: FoodPlanPortionSolverService,
+    private readonly recipeTemplates: FoodPlanRecipeTemplateService
   ) {}
 
   async create(input: NutritionAgentInput, reasons: string[]): Promise<DailyFoodPlan | null> {
@@ -57,11 +53,10 @@ export class CatalogFallbackFoodPlanService {
         dislikedFoods: input.nutritionPreference?.dislikedFoods
       }
     });
-    const recipes = withMealCount(
-      getRecipes(input.nutritionPreference?.dietType),
-      input.nutritionPreference?.mealsPerDay,
-      input.nutritionPreference?.dietType
-    );
+    const recipes = this.recipeTemplates.listForDailyPlan({
+      dietType: input.nutritionPreference?.dietType,
+      mealsPerDay: input.nutritionPreference?.mealsPerDay
+    });
     const resolvedRecipes = resolveRecipes(recipes, catalogSelection.byRole);
     const baseCalories = resolvedRecipes.reduce(
       (sum, recipe) => sum + recipe.ingredients.reduce(
@@ -181,164 +176,8 @@ export class CatalogFallbackFoodPlanService {
   }
 }
 
-function getRecipes(dietType?: DietType | null): RecipeTemplate[] {
-  if (dietType === DietType.KETO || dietType === DietType.LOW_CARB) return lowCarbRecipes;
-  if (dietType === DietType.VEGAN) return veganRecipes;
-  if (dietType === DietType.VEGETARIAN) return vegetarianRecipes;
-  if (dietType === DietType.PESCATARIAN) return pescatarianRecipes;
-  if (dietType === DietType.MEDITERRANEAN) return mediterraneanRecipes;
-  return omnivoreRecipes;
-}
-
-function withMealCount(
-  recipes: RecipeTemplate[],
-  mealsPerDay?: number,
-  dietType?: DietType | null
-): RecipeTemplate[] {
-  const count = Math.min(Math.max(Math.trunc(mealsPerDay ?? 3), 1), 6);
-  if (count === 3) return recipes;
-  if (count === 1) return [{
-    mealType: 'LUNCH',
-    ingredients: recipes.flatMap((recipe) => recipe.ingredients)
-  }];
-  if (count === 2) return [
-    recipes[0],
-    { mealType: 'DINNER' as const, ingredients: [...recipes[1].ingredients, ...recipes[2].ingredients] }
-  ];
-
-  const snack: RecipeTemplate = {
-    mealType: 'SNACK',
-    ingredients: [
-      { role: 'FRUIT', grams: 110 },
-      { role: dietType === DietType.VEGAN ? 'MAIN_PROTEIN' : 'DAIRY_OR_ALTERNATIVE', grams: 90 }
-    ]
-  };
-  return [...recipes, ...Array.from({ length: count - 3 }, () => snack)];
-}
-
-const omnivoreRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'BREAKFAST_BASE', grams: 70 },
-    { role: 'DAIRY_OR_ALTERNATIVE', grams: 200 },
-    { role: 'FRUIT', grams: 120 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 190 },
-    { role: 'CARBOHYDRATE', grams: 220 },
-    { role: 'VEGETABLE', grams: 150 },
-    { role: 'FAT', grams: 12 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 170 },
-    { role: 'CARBOHYDRATE', grams: 190 },
-    { role: 'VEGETABLE', grams: 120 },
-    { role: 'VEGETABLE', grams: 100 },
-    { role: 'FAT', grams: 10 }
-  ] }
-];
-
-const vegetarianRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'BREAKFAST_BASE', grams: 70 },
-    { role: 'MAIN_PROTEIN', grams: 150 },
-    { role: 'FRUIT', grams: 120 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 210 },
-    { role: 'CARBOHYDRATE', grams: 210 },
-    { role: 'VEGETABLE', grams: 160 },
-    { role: 'FAT', grams: 12 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 190 },
-    { role: 'CARBOHYDRATE', grams: 180 },
-    { role: 'VEGETABLE', grams: 220 },
-    { role: 'FAT', grams: 10 }
-  ] }
-];
-
-const pescatarianRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'BREAKFAST_BASE', grams: 65 },
-    { role: 'DAIRY_OR_ALTERNATIVE', grams: 200 },
-    { role: 'FRUIT', grams: 120 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 200 },
-    { role: 'CARBOHYDRATE', grams: 210 },
-    { role: 'VEGETABLE', grams: 180 },
-    { role: 'FAT', grams: 12 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 180 },
-    { role: 'CARBOHYDRATE', grams: 170 },
-    { role: 'VEGETABLE', grams: 230 },
-    { role: 'FAT', grams: 10 }
-  ] }
-];
-
-const mediterraneanRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'BREAKFAST_BASE', grams: 65 },
-    { role: 'DAIRY_OR_ALTERNATIVE', grams: 180 },
-    { role: 'FRUIT', grams: 140 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 190 },
-    { role: 'CARBOHYDRATE', grams: 190 },
-    { role: 'VEGETABLE', grams: 220 },
-    { role: 'FAT', grams: 15 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 170 },
-    { role: 'CARBOHYDRATE', grams: 160 },
-    { role: 'VEGETABLE', grams: 250 },
-    { role: 'FAT', grams: 12 }
-  ] }
-];
-
-const veganRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'BREAKFAST_BASE', grams: 75 },
-    { role: 'MAIN_PROTEIN', grams: 170 },
-    { role: 'FRUIT', grams: 130 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 230 },
-    { role: 'CARBOHYDRATE', grams: 200 },
-    { role: 'VEGETABLE', grams: 160 },
-    { role: 'FAT', grams: 12 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 210 },
-    { role: 'CARBOHYDRATE', grams: 180 },
-    { role: 'VEGETABLE', grams: 130 },
-    { role: 'VEGETABLE', grams: 100 },
-    { role: 'FAT', grams: 10 }
-  ] }
-];
-
-const lowCarbRecipes: RecipeTemplate[] = [
-  { mealType: 'BREAKFAST', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 150 },
-    { role: 'DAIRY_OR_ALTERNATIVE', grams: 180 },
-    { role: 'FAT', grams: 70 }
-  ] },
-  { mealType: 'LUNCH', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 210 },
-    { role: 'VEGETABLE', grams: 220 },
-    { role: 'FAT', grams: 20 }
-  ] },
-  { mealType: 'DINNER', ingredients: [
-    { role: 'MAIN_PROTEIN', grams: 200 },
-    { role: 'VEGETABLE', grams: 180 },
-    { role: 'VEGETABLE', grams: 100 },
-    { role: 'FAT', grams: 18 }
-  ] }
-];
-
 function resolveRecipes(
-  recipes: RecipeTemplate[],
+  recipes: FoodPlanRecipeTemplate[],
   candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>
 ): ResolvedRecipeTemplate[] {
   const roleCursors: Partial<Record<FoodCatalogSelectionRole, number>> = {};
@@ -346,7 +185,12 @@ function resolveRecipes(
   return recipes.map((recipe) => {
     const usedSlugs = new Set<string>();
     const ingredients = recipe.ingredients.flatMap((ingredient) => {
-      const candidate = selectCandidateForRole(ingredient.role, candidatesByRole, roleCursors, usedSlugs);
+      const candidate = selectRecipeCandidateForRole(
+        ingredient.role,
+        candidatesByRole,
+        roleCursors,
+        usedSlugs
+      );
       if (!candidate) return [];
       usedSlugs.add(candidate.slug);
       return [{ ...ingredient, candidate }];
@@ -354,37 +198,6 @@ function resolveRecipes(
     return { ...recipe, ingredients };
   });
 }
-
-function selectCandidateForRole(
-  role: FoodCatalogSelectionRole,
-  candidatesByRole: Record<FoodCatalogSelectionRole, FoodCatalogCandidate[]>,
-  roleCursors: Partial<Record<FoodCatalogSelectionRole, number>>,
-  usedSlugs: Set<string>
-) {
-  for (const candidateRole of [role, ...ROLE_FALLBACKS[role]]) {
-    const candidates = candidatesByRole[candidateRole];
-    const cursor = roleCursors[candidateRole] ?? 0;
-    for (let offset = 0; offset < candidates.length; offset += 1) {
-      const index = (cursor + offset) % candidates.length;
-      const candidate = candidates[index];
-      if (usedSlugs.has(candidate.slug)) continue;
-      roleCursors[candidateRole] = index + 1;
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
-const ROLE_FALLBACKS: Record<FoodCatalogSelectionRole, FoodCatalogSelectionRole[]> = {
-  BREAKFAST_BASE: ['CARBOHYDRATE'],
-  MAIN_PROTEIN: [],
-  CARBOHYDRATE: ['BREAKFAST_BASE'],
-  VEGETABLE: [],
-  FRUIT: [],
-  FAT: [],
-  DAIRY_OR_ALTERNATIVE: ['MAIN_PROTEIN', 'BREAKFAST_BASE']
-};
 
 function sumNutrition(items: Array<FoodNutritionTotals>) {
   return items.reduce<FoodNutritionTotals>(

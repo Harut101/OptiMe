@@ -23,6 +23,10 @@ import {
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
+import {
+  FoodPlanRecipeTemplateService,
+  type FoodPlanRecipeTemplate
+} from './food-plan-recipe-template.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
 import {
   nutritionAgentFoodPlanDraftSchema,
@@ -49,6 +53,7 @@ export class NutritionAgentService {
     private readonly catalogFeasibility: FoodPlanCatalogFeasibilityService,
     private readonly catalogRebalancer: FoodPlanCatalogRebalancerService,
     private readonly portionSolver: FoodPlanPortionSolverService,
+    private readonly recipeTemplates: FoodPlanRecipeTemplateService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -69,7 +74,7 @@ export class NutritionAgentService {
       };
     }
 
-    if (firstAttempt.errorReason === 'CATALOG_TARGET_UNAVAILABLE') {
+    if (isCatalogAvailabilityError(firstAttempt.errorReason)) {
       const fallbackReasons = firstAttempt.validationReasons.length
         ? firstAttempt.validationReasons
         : [firstAttempt.errorReason];
@@ -169,6 +174,20 @@ export class NutritionAgentService {
       };
     }
 
+    const recipeTemplates = this.recipeTemplates.listAvailableForSelection({
+      dietType: input.nutritionPreference?.dietType,
+      mealsPerDay: input.nutritionPreference?.mealsPerDay,
+      catalogSelection
+    });
+    this.logger.log(`nutrition agent recipe templates available=${recipeTemplates.length}`);
+    if (!recipeTemplates.length) {
+      return {
+        ok: false,
+        validationReasons: ['CATALOG_RECIPE_TEMPLATES_UNAVAILABLE'],
+        errorReason: 'CATALOG_RECIPE_TEMPLATES_UNAVAILABLE'
+      };
+    }
+
     try {
       this.logger.log(
         `nutrition agent OpenAI request started; retry=${previousValidationReasons.length > 0}; model=${model}`
@@ -188,7 +207,8 @@ export class NutritionAgentService {
                 input,
                 previousValidationReasons,
                 catalogSelection,
-                catalogFeasibility
+                catalogFeasibility,
+                recipeTemplates
               ))
             }
           ],
@@ -205,7 +225,12 @@ export class NutritionAgentService {
       );
 
       this.logger.log('nutrition agent OpenAI response received');
-      return this.parseAndValidateResponse(response, input, catalogSelection.candidates);
+      return this.parseAndValidateResponse(
+        response,
+        input,
+        catalogSelection.candidates,
+        recipeTemplates
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'nutrition_agent_openai_error';
       this.logger.warn(`nutrition agent OpenAI request failed; reason=${message.slice(0, 120)}`);
@@ -226,7 +251,8 @@ export class NutritionAgentService {
   private parseAndValidateResponse(
     response: OpenAiResponse,
     input: NutritionAgentInput,
-    catalogCandidates: FoodCatalogCandidate[]
+    catalogCandidates: FoodCatalogCandidate[],
+    recipeTemplates: FoodPlanRecipeTemplate[]
   ): NutritionAgentAttemptResult {
     const outputText = this.extractOutputText(response);
 
@@ -259,12 +285,17 @@ export class NutritionAgentService {
       };
     }
 
-    const normalizedCatalogPlan = this.normalizeCatalogFoodPlan(schemaResult.data, input, catalogCandidates);
+    const normalizedCatalogPlan = this.normalizeCatalogFoodPlan(
+      schemaResult.data,
+      input,
+      catalogCandidates,
+      recipeTemplates
+    );
     if (!normalizedCatalogPlan) {
       return {
         ok: false,
-        validationReasons: ['UNKNOWN_OR_INVALID_CATALOG_FOOD'],
-        errorReason: 'UNKNOWN_OR_INVALID_CATALOG_FOOD'
+        validationReasons: ['UNKNOWN_OR_INVALID_CATALOG_FOOD_OR_TEMPLATE'],
+        errorReason: 'UNKNOWN_OR_INVALID_CATALOG_FOOD_OR_TEMPLATE'
       };
     }
 
@@ -332,6 +363,7 @@ export class NutritionAgentService {
       'The calorie and macro targets are fixed backend constraints. Do not change them. Create meals that fit them.',
       'Do not calculate a new daily target. Use the target calories, protein, carbs, and fat from the context.',
       'Use only catalogFoodSlug values supplied in allowedCatalogFoods. Never invent an ingredient or a slug.',
+      'Every meal must use exactly one recipeTemplateId from recipeTemplates. Keep its meal type and ingredient role structure.',
       'Use selectionRoles as meal-building guidance: choose proteins, carbohydrate bases, vegetables, fruit, and fats that fit each meal.',
       'Every ingredient quantity must be in grams. Return only catalogFoodSlug, quantity, unit, and isOptional for ingredients.',
       'Do not return ingredient names, calories, protein, carbs, fat, meal totals, or daily totals. Backend owns and calculates all of those values.',
@@ -355,7 +387,8 @@ export class NutritionAgentService {
     input: NutritionAgentInput,
     previousValidationReasons: string[],
     catalogSelection: DailyFoodCatalogSelection,
-    catalogFeasibility: FoodPlanCatalogFeasibilityResult
+    catalogFeasibility: FoodPlanCatalogFeasibilityResult,
+    recipeTemplates: FoodPlanRecipeTemplate[]
   ) {
     return {
       localDate: input.planLocalDate,
@@ -400,6 +433,7 @@ export class NutritionAgentService {
         status: catalogFeasibility.status,
         reasonCodes: catalogFeasibility.reasonCodes
       },
+      recipeTemplates: this.recipeTemplates.toPlanningGuidance(recipeTemplates),
       allowedCatalogFoods: catalogSelection.candidates.map((candidate) => ({
         slug: candidate.slug,
         name: candidate.name,
@@ -427,12 +461,16 @@ export class NutritionAgentService {
   private normalizeCatalogFoodPlan(
     plan: NutritionAgentFoodPlanDraft,
     input: NutritionAgentInput,
-    catalogCandidates: FoodCatalogCandidate[]
+    catalogCandidates: FoodCatalogCandidate[],
+    recipeTemplates: FoodPlanRecipeTemplate[]
   ): DailyFoodPlan | null {
     const bySlug = new Map(catalogCandidates.map((candidate) => [candidate.slug, candidate]));
+    const templatesById = new Map(recipeTemplates.map((template) => [template.id, template]));
     const meals: DailyFoodPlan['meals'] = [];
 
     for (const meal of plan.meals) {
+      const template = templatesById.get(meal.recipeTemplateId);
+      if (!template || template.mealType !== meal.mealType) return null;
       const ingredients: DailyFoodPlan['meals'][number]['ingredients'] = [];
       for (const ingredient of meal.ingredients) {
         if (!ingredient.catalogFoodSlug || ingredient.unit !== 'g') return null;
@@ -449,7 +487,8 @@ export class NutritionAgentService {
         });
       }
       const totals = sumFoodNutrition(ingredients);
-      meals.push({ ...meal, ...totals, ingredients });
+      const { recipeTemplateId: _recipeTemplateId, ...normalizedMeal } = meal;
+      meals.push({ ...normalizedMeal, ...totals, ingredients });
     }
     const totals = sumFoodNutrition(meals);
     return {
@@ -576,6 +615,11 @@ const CATALOG_REBALANCEABLE_VALIDATION_REASONS = new Set([
 
 function canAttemptCatalogRebalance(reasons: string[]) {
   return reasons.length > 0 && reasons.every((reason) => CATALOG_REBALANCEABLE_VALIDATION_REASONS.has(reason));
+}
+
+function isCatalogAvailabilityError(errorReason: string) {
+  return errorReason === 'CATALOG_TARGET_UNAVAILABLE'
+    || errorReason === 'CATALOG_RECIPE_TEMPLATES_UNAVAILABLE';
 }
 
 function sumFoodNutrition(items: Array<Pick<DailyFoodPlan['totals'], 'caloriesKcal' | 'proteinGrams' | 'carbsGrams' | 'fatGrams'>>) {
