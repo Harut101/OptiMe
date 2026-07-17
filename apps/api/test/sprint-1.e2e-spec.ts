@@ -1163,7 +1163,7 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(JSON.stringify(response.body)).not.toContain('secret');
   });
 
-  it('updates foundation connection status and rejects invalid source values', async () => {
+  it('updates native connection status and prevents the client from forging OAuth provider connections', async () => {
     const user = await registerTestUser(ctx.app, 'health-foundation-status@example.com');
 
     await request(ctx.app.getHttpServer())
@@ -1176,14 +1176,11 @@ describe('Sprint 1 backend vertical slice', () => {
       .patch(`/v1/health/connections/${HealthProvider.WHOOP}/status`)
       .set(authHeader(user.accessToken))
       .send({ status: 'CONNECTED' })
-      .expect(200)
+      .expect(400)
       .expect(({ body }) => {
         expect(body).toMatchObject({
-          source: HealthProvider.WHOOP,
-          status: 'CONNECTED',
-          errorCode: null
+          code: 'HEALTH_PROVIDER_OAUTH_REQUIRED'
         });
-        expect(body.connectedAt).toEqual(expect.any(String));
       });
 
     await request(ctx.app.getHttpServer())
@@ -1196,6 +1193,17 @@ describe('Sprint 1 backend vertical slice', () => {
           source: HealthProvider.WHOOP,
           status: 'NEEDS_REAUTH',
           errorCode: 'needs_refresh'
+        });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/connect')
+      .set(authHeader(user.accessToken))
+      .send({ provider: HealthProvider.GARMIN })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          code: 'HEALTH_PROVIDER_OAUTH_REQUIRED'
         });
       });
   });

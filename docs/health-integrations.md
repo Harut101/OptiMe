@@ -282,7 +282,7 @@ Provider scope remains unchanged:
 - Apple Health is the only real provider path in this sprint.
 - Health Connect remains represented for Android but deferred.
 - WHOOP remains represented but deferred.
-- Garmin remains represented as a future source only; OAuth, provider API calls, background sync, and token storage are deferred.
+- Garmin remains represented as a future source only; OAuth, provider API calls, background sync, and token storage are deferred. The public mobile API cannot mark Garmin as `CONNECTED`: it returns `HEALTH_PROVIDER_OAUTH_REQUIRED` until a server-side Garmin authorization callback exists.
 - No background sync, provider tokens, OAuth, or automatic app-launch sync is added.
 
 ## Health Screen Boundary

@@ -16,6 +16,10 @@ import {
 } from './health-planning.types';
 import { TrainingLoadContextResolver } from './training-load-context.resolver';
 import { WearablePlanningContextResolver } from './wearable-planning-context.resolver';
+import {
+  canClientMarkHealthProviderConnected,
+  getHealthProviderConnectionError
+} from './health-provider-capabilities';
 
 const HEALTH_PROVIDERS = [HealthProvider.APPLE_HEALTH, HealthProvider.HEALTH_CONNECT] as const;
 const HEALTH_SOURCES = [
@@ -85,6 +89,13 @@ export class HealthService {
     source: HealthProvider,
     dto: UpdateHealthConnectionStatusDto
   ) {
+    if (
+      dto.status === HealthConnectionStatus.CONNECTED &&
+      !canClientMarkHealthProviderConnected(source)
+    ) {
+      throw new BadRequestException(getHealthProviderConnectionError(source));
+    }
+
     const now = new Date();
     const status = this.toPersistedConnectionStatus(dto.status);
     const connection = await this.prisma.healthConnection.upsert({
@@ -122,6 +133,10 @@ export class HealthService {
   }
 
   async connect(userId: string, dto: ConnectHealthDto) {
+    if (!canClientMarkHealthProviderConnected(dto.provider)) {
+      throw new BadRequestException(getHealthProviderConnectionError(dto.provider));
+    }
+
     const connected = await this.prisma.healthConnection.upsert({
       where: {
         userId_provider: {
