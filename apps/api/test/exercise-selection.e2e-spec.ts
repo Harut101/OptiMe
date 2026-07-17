@@ -229,6 +229,40 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     )).toBe(true);
   });
 
+  it('rejects an underfilled long workout and returns a bounded timing repair brief', async () => {
+    const selection = await service.selectCandidates(baseContext({
+      workoutDurationMinutes: 60,
+      availableEquipment: allExerciseEquipment(),
+      trainingLevel: TrainingLevel.INTERMEDIATE,
+      targetMuscles: []
+    }));
+    const plan = createMockDailyPlan({ planLocalDate: '2026-06-20', planTimezone: 'UTC', isMinor: false });
+    plan.training.exercises = selection.candidates.slice(0, selection.requestedExerciseCount).map((candidate) => ({
+      exerciseId: candidate.exerciseId,
+      slug: candidate.slug,
+      name: candidate.name,
+      targetMuscles: candidate.targetMuscles,
+      equipment: candidate.equipment,
+      sets: '1',
+      reps: '1',
+      rest: '15 seconds'
+    }));
+
+    const invalid = validateAndNormalizePlannedExercises(plan, selection);
+    expect(invalid).toMatchObject({ valid: false });
+    if (!invalid.valid) {
+      expect(invalid.reasonCodes).toContain('SESSION_DURATION_TOO_SHORT');
+      expect(invalid.repairFeedback.sessionTiming).toMatchObject({
+        targetMinutes: 60,
+        suggestedSetsPerExercise: 3,
+        suggestedRestSeconds: 75
+      });
+      expect(invalid.repairFeedback.instructions).toEqual(
+        expect.arrayContaining([expect.stringContaining('full session')])
+      );
+    }
+  });
+
   it('stores library identities and immutable localized snapshots for a gym beginner leg plan', async () => {
     const user = await setupUser('selection-gym@example.com');
     await saveTrainingPreference(user.accessToken, {

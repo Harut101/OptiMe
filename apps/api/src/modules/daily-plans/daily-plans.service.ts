@@ -1799,7 +1799,10 @@ export class DailyPlansService {
         planQualityMode: input.planQualityMode,
         personalizationContext: input.personalizationContext,
         exerciseSelection: input.exerciseSelection,
-        exerciseFeedback: { reasonCodes: validation.reasonCodes }
+        exerciseFeedback: {
+          reasonCodes: validation.reasonCodes,
+          ...validation.repairFeedback
+        }
       });
       if (retry.status === PlanStatus.READY) {
         const retryParsed = dailyPlanJsonSchema.safeParse(retry.planJson);

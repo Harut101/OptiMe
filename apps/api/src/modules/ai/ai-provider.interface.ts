@@ -28,6 +28,19 @@ export interface GenerateDailyPlanSafetyFeedback {
 
 export interface GenerateDailyPlanExerciseFeedback {
   reasonCodes: string[];
+  affectedExerciseIds?: string[];
+  sessionTiming?: {
+    targetMinutes: number;
+    estimatedMinutes: number | null;
+    minMinutes: number;
+    maxMinutes: number;
+    warmupMinutes: number;
+    cooldownMinutes: number;
+    transitionSecondsPerExercise: number;
+    suggestedSetsPerExercise: number;
+    suggestedRestSeconds: number;
+  };
+  instructions?: string[];
 }
 
 export interface GenerateDailyPlanExerciseSelection {

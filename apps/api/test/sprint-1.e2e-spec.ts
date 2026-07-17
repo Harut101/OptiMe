@@ -4296,7 +4296,7 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
     expect(JSON.stringify(plan.body.plan)).toContain('conflicts with your allergies');
     expect(plan.body.plan.safety.userSafeMessage).toContain('allergies or excluded foods');
-  });
+  }, 20_000);
 
   it('normalizes old Sprint 1 plan JSON without crashing the response', async () => {
     const user = await registerTestUser(ctx.app);

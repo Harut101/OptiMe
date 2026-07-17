@@ -245,6 +245,8 @@ export class OpenAiProviderService implements AiProvider {
       'Duration is a hard planning constraint: longer workouts should use the requested fuller exercise count unless workoutVolumePlan.volumeReasonCodes show a safety or candidate-pool reduction.',
       'Respect workoutVolumePlan.suggestedSetsPerExercise and workoutVolumePlan.suggestedRestSeconds for strength prescriptions.',
       'Use workoutVolumePlan.warmupMinutes, cooldownMinutes, and transitionSecondsPerExercise as planning context only; do not add timer UI or timer instructions.',
+      'Use workoutSessionTimingBudget as a hard session-length constraint. Your complete exercise prescription must fit between its minimum and maximum estimated minutes; do not underfill a longer planned session with only a few brief exercises.',
+      'When pain, limitations, fatigue, illness-like check-ins, safeMode, or pregnancy-sensitive context require conservative training, reduce exercise count or intensity only within the deterministic budget and never fill time by adding unsafe volume.',
       'If workoutDurationMinutes is 60 or more and requestedExerciseCount is 5 or more, do not return only 2 or 3 exercises.',
       'Provide only plan-specific order, sets, reps, rest, duration, intensityCue, and notes.',
       'Strength sets must be an integer string from 1 to 5; reps must be a number or safe numeric range up to 30; rest must be 15-300 seconds.',
@@ -343,6 +345,7 @@ export class OpenAiProviderService implements AiProvider {
       maxExerciseCount: input.exerciseSelection.maxExerciseCount,
       workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes,
       workoutVolumePlan: input.exerciseSelection.volumePlan,
+      workoutSessionTimingBudget: buildWorkoutSessionTimingBudget(input.exerciseSelection),
       safetyConstraints: {
         noBodyShaming: true,
         noExtremeDietAdvice: true,
@@ -375,7 +378,10 @@ export class OpenAiProviderService implements AiProvider {
       exerciseFeedback: input.exerciseFeedback
         ? {
             reasonCodes: input.exerciseFeedback.reasonCodes,
-            instruction: 'Regenerate the complete plan using only allowed exercise IDs and valid conservative prescriptions.'
+            affectedExerciseIds: input.exerciseFeedback.affectedExerciseIds ?? [],
+            sessionTiming: input.exerciseFeedback.sessionTiming,
+            instructions: input.exerciseFeedback.instructions ?? [],
+            instruction: 'Regenerate the complete plan using only allowed exercise IDs, valid conservative prescriptions, and the required session timing budget.'
           }
         : undefined
     };
@@ -545,4 +551,32 @@ export class OpenAiProviderService implements AiProvider {
   private messageForFallbackReason(reason: OpenAiFallbackReason) {
     return reason;
   }
+}
+
+function buildWorkoutSessionTimingBudget(selection: GenerateDailyPlanInput['exerciseSelection']) {
+  const volume = selection.volumePlan;
+  const safetyReduced = volume.volumeReasonCodes.some((reason) => (
+    reason.endsWith('_REDUCTION') || reason === 'RECOVERY_PROTOCOL_REDUCTION'
+  ));
+  const minMinutes = Math.max(
+    8,
+    Math.floor(volume.estimatedSessionMinutes * 0.75),
+    safetyReduced ? 0 : Math.floor(selection.workoutDurationMinutes * 0.65)
+  );
+
+  return {
+    targetMinutes: selection.workoutDurationMinutes,
+    estimatedMinutes: volume.estimatedSessionMinutes,
+    minMinutes,
+    maxMinutes: Math.max(
+      selection.workoutDurationMinutes,
+      Math.ceil(selection.workoutDurationMinutes * 1.2)
+    ),
+    warmupMinutes: volume.warmupMinutes,
+    cooldownMinutes: volume.cooldownMinutes,
+    transitionSecondsPerExercise: volume.transitionSecondsPerExercise,
+    suggestedSetsPerExercise: volume.suggestedSetsPerExercise,
+    suggestedRestSeconds: volume.suggestedRestSeconds,
+    instruction: 'The exercise list must occupy this full session budget without unsafe extra volume.'
+  };
 }
