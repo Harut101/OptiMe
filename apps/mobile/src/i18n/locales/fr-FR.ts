@@ -429,7 +429,13 @@ export const frFR = createLocaleResource({
   },
   settings: {
     languagePlanHelp: 'Les nouveaux plans AI utilisent cette langue. Les plans deja crees gardent leur langue d origine.',
-    languagePlanNotice: 'Langue mise a jour. Les nouveaux plans AI utiliseront cette langue; les plans deja crees gardent leur langue d origine.'
+    languagePlanNotice: 'Langue mise a jour. Les nouveaux plans AI utiliseront cette langue; les plans deja crees gardent leur langue d origine.',
+    languagePlanRecreateTitle: 'Recreer le plan du jour ?',
+    languagePlanRecreateMessage: 'Votre plan actuel utilise la langue precedente. Vous pouvez le garder ou le recreer dans la langue choisie.',
+    languagePlanRecreateAction: 'Recreer le plan',
+    languagePlanKeepCurrentAction: 'Garder le plan actuel',
+    languagePlanRecreated: 'Le plan du jour a ete recree dans la langue choisie.',
+    languagePlanRecreateFailed: 'Impossible de recreer le plan du jour. Votre plan actuel reste disponible.'
   },
   food: {
       swapIngredient: 'Remplacer',

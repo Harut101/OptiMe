@@ -181,6 +181,7 @@ export class DailyPlansService {
   async generateTodayPlan(userId: string, dto: GenerateDailyPlanDto) {
     const user = await this.getPlanningUser(userId);
     const { planLocalDate, planTimezone } = this.getLocalPlanDate(user.timezone);
+    const targetLocale = this.resolvePlanningLocale(user);
 
     const existingPlan = await this.prisma.dailyPlan.findUnique({
       where: {
@@ -192,7 +193,24 @@ export class DailyPlansService {
       }
     });
 
-    if (existingPlan && !dto.forceRegenerate) {
+    const recreateForCurrentLanguage = Boolean(dto.recreateForCurrentLanguage);
+
+    if (recreateForCurrentLanguage && !existingPlan) {
+      throw new BadRequestException('A current daily plan is required before it can be recreated in another language.');
+    }
+
+    const existingPlanParsed = existingPlan
+      ? dailyPlanJsonSchema.safeParse(existingPlan.planJson)
+      : null;
+    const existingPlanLocale = existingPlanParsed?.success
+      ? existingPlanParsed.data.contentLocale
+      : undefined;
+
+    if (existingPlan && existingPlanLocale === targetLocale && recreateForCurrentLanguage) {
+      return this.toResponse(existingPlan);
+    }
+
+    if (existingPlan && !dto.forceRegenerate && !recreateForCurrentLanguage) {
       return this.toResponse(existingPlan);
     }
 
@@ -202,9 +220,13 @@ export class DailyPlansService {
     const consumedUsage: Array<{ id: string; amount: number }> = [];
 
     try {
-      consumedUsage.push(
-        ...(await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate)))
-      );
+      if (!recreateForCurrentLanguage) {
+        consumedUsage.push(
+          ...(await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate)))
+        );
+      } else {
+        this.logger.log(`daily plan language recreation started; targetLocale=${targetLocale}`);
+      }
       this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
       const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
       const availableFoodSlugs = await this.foodAvailabilityService.getAvailableFoodSlugs(
@@ -522,6 +544,17 @@ export class DailyPlansService {
       this.logger.log(
         `daily plan generation completed; safe replacement used: ${safePlanResult.status === PlanStatus.FALLBACK}; persisted status=${status}`
       );
+
+      if (recreateForCurrentLanguage && existingPlan && safePlanResult.status === PlanStatus.FALLBACK) {
+        this.logger.warn('daily plan language recreation did not produce a ready plan; existing plan preserved');
+        await this.recordDailyPlanAiOperation({
+          userId,
+          status,
+          planJson: safePlanResult.planJson,
+          latencyMs: Date.now() - operationStartedAt
+        });
+        return this.toResponse(existingPlan);
+      }
 
       const plan = existingPlan
         ? await this.prisma.dailyPlan.update({

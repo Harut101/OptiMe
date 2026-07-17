@@ -257,6 +257,41 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(after).toEqual(before);
   });
 
+  it('recreates an existing daily plan in the selected language only when requested', async () => {
+    const user = await registerTestUser(ctx.app, 'recreate-language@example.com');
+    await completeRequiredOnboarding(ctx.app, user.accessToken, 'LocaleRecreate');
+
+    const initial = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: false })
+      .expect(201);
+
+    expect(initial.body.plan.contentLocale).toBe('en-US');
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ preferredLocale: 'ru-RU' })
+      .expect(200);
+
+    const unchanged = await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/today')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(unchanged.body.plan.contentLocale).toBe('en-US');
+
+    const recreated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ recreateForCurrentLanguage: true })
+      .expect(201);
+
+    expect(recreated.body.plan.contentLocale).toBe('ru-RU');
+    expect(recreated.body.plan.summary.title).toBe('Спокойный план на сегодня');
+  });
+
   it('requires auth for entitlement summary', async () => {
     await request(ctx.app.getHttpServer()).get('/v1/me/entitlements').expect(401);
   });

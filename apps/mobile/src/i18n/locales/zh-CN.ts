@@ -429,7 +429,13 @@ export const zhCN = createLocaleResource({
   },
   settings: {
     languagePlanHelp: '新的 AI 计划将使用此语言。已生成的计划会保留原来的语言。',
-    languagePlanNotice: '语言已更新。新的 AI 计划将使用此语言；已生成的计划会保留原来的语言。'
+    languagePlanNotice: '语言已更新。新的 AI 计划将使用此语言；已生成的计划会保留原来的语言。',
+    languagePlanRecreateTitle: '重新创建今天的计划？',
+    languagePlanRecreateMessage: '当前计划使用之前的语言。您可以保留它，或使用刚选择的语言重新创建。',
+    languagePlanRecreateAction: '重新创建计划',
+    languagePlanKeepCurrentAction: '保留当前计划',
+    languagePlanRecreated: '今天的计划已按所选语言重新创建。',
+    languagePlanRecreateFailed: '无法重新创建今天的计划。当前计划仍可使用。'
   },
   food: {
       swapIngredient: '替换',

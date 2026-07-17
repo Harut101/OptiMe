@@ -23,7 +23,7 @@ import {
 } from 'lucide-react-native';
 
 import { getEntitlements } from '@/api/account';
-import { generateTodayPlan } from '@/api/daily-plans';
+import { generateTodayPlan, getTodayPlan, recreateTodayPlanForCurrentLanguage } from '@/api/daily-plans';
 import { getGoal, saveGoal } from '@/api/goals';
 import { getHealthStatus } from '@/api/health';
 import { evaluatePlanImpact } from '@/api/plan-impact';
@@ -689,11 +689,14 @@ function SettingsSection() {
   const currentMeasurementSystem = useSettingsStore((state) => state.measurementSystem);
   const entitlements = useQuery({ queryKey: ['entitlements'], queryFn: getEntitlements });
   const settings = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const todayPlan = useQuery({ queryKey: ['today-plan'], queryFn: getTodayPlan });
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [measurementSystem, setMeasurementSystem] = useState<MeasurementSystem>(currentMeasurementSystem);
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-  const [savedMessage, setSavedMessage] = useState<'settings' | 'language' | null>(null);
+  const [savedMessage, setSavedMessage] = useState<'settings' | 'language' | 'languageRecreated' | null>(null);
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
+  const [languageRecreateVisible, setLanguageRecreateVisible] = useState(false);
+  const [languageRecreateErrorVisible, setLanguageRecreateErrorVisible] = useState(false);
 
   useEffect(() => {
     if (!settings.data) return;
@@ -706,14 +709,29 @@ function SettingsSection() {
   const mutation = useMutation({
     mutationFn: updateSettings,
     onSuccess: (saved, request) => {
+      const languageChanged = Boolean(
+        request.preferredLocale && request.preferredLocale !== currentLocale
+      );
       applySettings(saved.preferredLocale, saved.measurementSystem, true);
       queryClient.setQueryData(['settings'], saved);
       setSettingsSheetVisible(false);
-      setSavedMessage(
-        request.preferredLocale && request.preferredLocale !== currentLocale ? 'language' : 'settings'
-      );
+      const shouldOfferLanguageRecreate =
+        languageChanged &&
+          Boolean(todayPlan.data) &&
+          todayPlan.data?.plan.contentLocale !== saved.preferredLocale;
+      setLanguageRecreateVisible(shouldOfferLanguageRecreate);
+      setSavedMessage(languageChanged && shouldOfferLanguageRecreate ? null : languageChanged ? 'language' : 'settings');
     },
     onError: () => setErrorSheetVisible(true)
+  });
+  const recreateLanguagePlan = useMutation({
+    mutationFn: recreateTodayPlanForCurrentLanguage,
+    onSuccess: (plan) => {
+      queryClient.setQueryData(['today-plan'], plan);
+      setLanguageRecreateVisible(false);
+      setSavedMessage('languageRecreated');
+    },
+    onError: () => setLanguageRecreateErrorVisible(true)
   });
 
   const closeSettingsSheet = () => {
@@ -780,6 +798,30 @@ function SettingsSection() {
           />
         ) : null}
       </Card>
+      <AppFeedbackSheet
+        visible={languageRecreateVisible}
+        title={t('settings.languagePlanRecreateTitle')}
+        message={t('settings.languagePlanRecreateMessage')}
+        tone="info"
+        onClose={() => {
+          if (!recreateLanguagePlan.isPending) setLanguageRecreateVisible(false);
+        }}
+        actions={[
+          {
+            label: recreateLanguagePlan.isPending
+              ? t('common.loading')
+              : t('settings.languagePlanRecreateAction'),
+            onPress: () => recreateLanguagePlan.mutate(),
+            disabled: recreateLanguagePlan.isPending
+          },
+          {
+            label: t('settings.languagePlanKeepCurrentAction'),
+            variant: 'secondary',
+            disabled: recreateLanguagePlan.isPending,
+            onPress: () => setLanguageRecreateVisible(false)
+          }
+        ]}
+      />
       <BottomSheet
         visible={settingsSheetVisible}
         title={t('settings.application')}
@@ -821,7 +863,13 @@ function SettingsSection() {
       {savedMessage ? (
         <AppToast
           title={t('feedback.savedSuccessfully')}
-          message={t(savedMessage === 'language' ? 'settings.languagePlanNotice' : 'settings.saved')}
+          message={t(
+            savedMessage === 'languageRecreated'
+              ? 'settings.languagePlanRecreated'
+              : savedMessage === 'language'
+                ? 'settings.languagePlanNotice'
+                : 'settings.saved'
+          )}
           tone="success"
           onDismiss={() => setSavedMessage(null)}
         />
@@ -833,6 +881,14 @@ function SettingsSection() {
         tone="danger"
         onClose={() => setErrorSheetVisible(false)}
         actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setErrorSheetVisible(false) }]}
+      />
+      <AppFeedbackSheet
+        visible={languageRecreateErrorVisible}
+        title={t('settings.languagePlanRecreateFailed')}
+        message={t('errors.unableLoad')}
+        tone="warning"
+        onClose={() => setLanguageRecreateErrorVisible(false)}
+        actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setLanguageRecreateErrorVisible(false) }]}
       />
     </View>
   );

@@ -29,6 +29,13 @@ export function generateTodayPlan(forceRegenerate = false) {
   });
 }
 
+export function recreateTodayPlanForCurrentLanguage() {
+  return apiRequest<DailyPlanResponse>('/daily-plans/generate', {
+    method: 'POST',
+    body: JSON.stringify({ forceRegenerate: true, recreateForCurrentLanguage: true })
+  });
+}
+
 export function getPlanHistory(limit = 10) {
   return apiRequest<{ items: DailyPlanResponse[] }>(`/daily-plans/history?limit=${limit}`);
 }

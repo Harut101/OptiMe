@@ -4,4 +4,8 @@ export class GenerateDailyPlanDto {
   @IsOptional()
   @IsBoolean()
   forceRegenerate?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recreateForCurrentLanguage?: boolean;
 }

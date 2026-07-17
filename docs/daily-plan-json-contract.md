@@ -322,6 +322,8 @@ Write this instead:
 
 New OpenAI and mock plans record the locale used for their generated user-facing copy in `contentLocale`. Safe fallback plans and the deterministic nutrition-only training state also use the selected locale. Existing plans keep their original copy; changing the application language does not claim that an existing plan has been translated.
 
+When a user explicitly changes their application language, mobile can offer to recreate the existing plan with `POST /v1/daily-plans/generate` and `recreateForCurrentLanguage: true`. This runs only when the stored plan locale differs from the selected locale. It does not consume the normal daily generation or refresh allowance. If generation does not produce a ready plan, the current stored plan is returned unchanged rather than being replaced by a fallback.
+
 Backend normalization can clean safe avoidance qualifiers before safety checks, but providers should still treat clean food names as the contract. Actual restricted foods in food names, such as `Avocado toast`, `Chicken with avocado`, or `Pork rice bowl`, remain safety failures.
 
 Deterministic safety checks rely on structured fields. Future AI Safety Agent review can add semantic review, but hard rules for allergies and excluded foods stay backend-owned and deterministic.
