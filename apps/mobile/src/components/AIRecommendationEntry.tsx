@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Text } from './Text';
 
 interface AIRecommendationEntryProps {
@@ -12,6 +13,8 @@ interface AIRecommendationEntryProps {
 }
 
 export function AIRecommendationEntry({ title, summary, badge, onPress }: AIRecommendationEntryProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Pressable
       accessibilityRole="button"
@@ -33,7 +36,7 @@ export function AIRecommendationEntry({ title, summary, badge, onPress }: AIReco
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     alignItems: 'center',
     backgroundColor: colors.card,

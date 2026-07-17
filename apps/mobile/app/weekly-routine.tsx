@@ -23,12 +23,15 @@ import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDayOfWeekLabel, getMuscleGroupLabel } from '@/i18n/enum-labels';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import type { EvaluatePlanImpactResponse } from '@/types/api';
 
 /** A future-facing routine editor, intentionally separate from today's workout. */
 export default function WeeklyRoutineScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const schedule = useQuery({ queryKey: ['training-schedule'], queryFn: getTrainingSchedule });
   const draft = useTrainingScheduleDraftStore((state) => state.draft);
@@ -151,7 +154,7 @@ export default function WeeklyRoutineScreen() {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actions: { gap: 10 },
   frequency: { color: colors.training }
 });

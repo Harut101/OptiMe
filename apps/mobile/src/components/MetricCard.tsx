@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Text } from './Text';
 
 type MetricCardTone = 'neutral' | 'nutrition' | 'training' | 'recovery' | 'health' | 'info';
@@ -17,6 +18,9 @@ interface MetricCardProps {
 }
 
 export function MetricCard({ label, value, unit, hint, tone = 'neutral', icon, comparison }: MetricCardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const toneStyles = createToneStyles(colors);
   const displayValue = value === null ? '-' : String(value);
 
   return (
@@ -39,7 +43,7 @@ export function MetricCard({ label, value, unit, hint, tone = 'neutral', icon, c
   );
 }
 
-const toneStyles = StyleSheet.create({
+const createToneStyles = (colors: ThemeColors) => StyleSheet.create({
   neutral: { backgroundColor: colors.textMuted },
   nutrition: { backgroundColor: colors.nutrition },
   training: { backgroundColor: colors.training },
@@ -48,7 +52,7 @@ const toneStyles = StyleSheet.create({
   info: { backgroundColor: colors.info }
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     borderColor: 'rgba(209, 209, 214, 0.72)',
     borderRadius: 22,

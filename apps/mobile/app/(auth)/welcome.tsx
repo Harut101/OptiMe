@@ -8,10 +8,13 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Screen>
       <View style={styles.hero}>
@@ -40,6 +43,8 @@ export default function WelcomeScreen() {
 }
 
 function ValueItem({ icon, title }: { icon: ReactNode; title: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.valueItem}>
       <View style={styles.valueIcon}>{icon}</View>
@@ -48,25 +53,25 @@ function ValueItem({ icon, title }: { icon: ReactNode; title: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   hero: {
     gap: 12,
     paddingTop: 34
   },
   logo: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.health,
     borderRadius: 26,
     height: 60,
     justifyContent: 'center',
-    shadowColor: colors.primaryDark,
+    shadowColor: colors.health,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.18,
     shadowRadius: 22,
     width: 60
   },
   brand: {
-    color: colors.primaryDark,
+    color: colors.health,
     fontWeight: '900'
   },
   valueList: {

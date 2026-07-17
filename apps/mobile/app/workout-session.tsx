@@ -36,7 +36,8 @@ import {
   formatWorkoutSetCount,
   formatWorkoutTime
 } from '@/features/workout/workout-summary';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Field } from '@/components/Field';
 import { MultiSelectChips } from '@/components/MultiSelectChips';
 import { SelectChips } from '@/components/SelectChips';
@@ -45,6 +46,8 @@ import { WORKOUT_PAIN_AREAS } from '@optime/shared-types';
 
 export default function WorkoutSessionScreen() {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
@@ -267,6 +270,8 @@ function WorkoutExerciseCard({
   onOpenExercise?: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const hasSets = typeof progress.plannedSets === 'number' && progress.plannedSets > 0;
   const imageUrl = thumbnailUrl ? getExerciseMediaDisplayUrl(thumbnailUrl) : null;
   const prescription = formatPrescription(progress, {
@@ -341,6 +346,8 @@ function PostWorkoutCheckInCard({
   onSubmit: (body: { feeling: PostWorkoutFeeling; painAreas: WorkoutPainArea[]; note?: string | null }) => void;
   t: TFunction;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [visible, setVisible] = useState(false);
   const [feeling, setFeeling] = useState<PostWorkoutFeeling>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
@@ -556,7 +563,7 @@ function formatTrainingLoadSessionMessage(
   return `${snapshot.userFacingSummary}${restGuidance}`;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   postWorkoutActions: { gap: 8 },
   postWorkoutPrompt: { gap: 12 },
   postWorkoutSheetContent: { gap: 14 },
@@ -573,8 +580,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12
   },
   setButtonChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
+    backgroundColor: colors.health,
+    borderColor: colors.health
   },
   setText: { color: colors.textPrimary, fontWeight: '700' },
   setTextChecked: { color: colors.textInverse, fontWeight: '700' },

@@ -32,13 +32,16 @@ import {
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { formatWeight } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
 import type { EvaluatePlanImpactResponse, PlanImpactChangeType } from '@/types/api';
 
 export default function GoalEditorScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const queryClient = useQueryClient();
@@ -247,7 +250,7 @@ export default function GoalEditorScreen() {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' }
 });

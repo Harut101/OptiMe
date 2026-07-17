@@ -2,7 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import type { DailyPlanJson } from '@/types/api';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { BottomSheet } from './BottomSheet';
 import { Card } from './Card';
 import { Text } from './Text';
@@ -15,6 +16,8 @@ interface AICoachBottomSheetProps {
 
 export function AICoachBottomSheet({ visible, plan, onClose }: AICoachBottomSheetProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   return (
     <BottomSheet
@@ -44,6 +47,8 @@ export function AICoachBottomSheet({ visible, plan, onClose }: AICoachBottomShee
 }
 
 function CoachSection({ title, body, helper }: { title: string; body: string; helper?: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.section}>
       <Text variant="label" style={styles.label}>{title}</Text>
@@ -53,7 +58,7 @@ function CoachSection({ title, body, helper }: { title: string; body: string; he
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   section: {
     borderBottomColor: colors.divider,
     borderBottomWidth: 1,

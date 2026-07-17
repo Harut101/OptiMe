@@ -18,12 +18,15 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuthStore } from '@/store/auth-store';
 import { detectDeviceLocale } from '@/i18n/locale-detection';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const setSession = useAuthStore((state) => state.setSession);
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
   const form = useForm<RegisterForm>({
@@ -129,25 +132,25 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   hero: {
     gap: 10,
     paddingTop: 30
   },
   logo: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.health,
     borderRadius: 22,
     height: 52,
     justifyContent: 'center',
-    shadowColor: colors.primaryDark,
+    shadowColor: colors.health,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.16,
     shadowRadius: 18,
     width: 52
   },
   brand: {
-    color: colors.primaryDark,
+    color: colors.health,
     fontWeight: '900'
   },
   formHeader: {
@@ -179,8 +182,8 @@ const styles = StyleSheet.create({
     width: 24
   },
   checkboxSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
+    backgroundColor: colors.health,
+    borderColor: colors.health
   },
   consentCopy: {
     flex: 1,

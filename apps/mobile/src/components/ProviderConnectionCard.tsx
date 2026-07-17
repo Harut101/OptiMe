@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Card } from './Card';
 import { StatusPill } from './StatusPill';
 import { Text } from './Text';
@@ -27,6 +28,8 @@ export function ProviderConnectionCard({
   lastSync,
   children
 }: ProviderConnectionCardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card>
       <View style={styles.header}>
@@ -46,7 +49,7 @@ export function ProviderConnectionCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   header: {
     alignItems: 'flex-start',
     flexDirection: 'row',

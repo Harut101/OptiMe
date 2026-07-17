@@ -3,7 +3,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2, Info, TriangleAlert } from 'lucide-react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Text } from './Text';
 
 interface AppToastProps {
@@ -15,6 +16,9 @@ interface AppToastProps {
 
 export function AppToast({ title, message, tone = 'info', onDismiss }: AppToastProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const toneStyles = createToneStyles(colors);
   const Icon = tone === 'success' ? CheckCircle2 : tone === 'warning' || tone === 'danger' ? TriangleAlert : Info;
   const toneStyle = toneStyles[tone];
 
@@ -46,7 +50,7 @@ export function AppToast({ title, message, tone = 'info', onDismiss }: AppToastP
   );
 }
 
-const toneStyles = {
+const createToneStyles = (colors: ThemeColors) => ({
   success: {
     container: { borderColor: 'rgba(103, 206, 103, 0.35)' },
     iconWrap: { backgroundColor: colors.nutritionMuted },
@@ -67,9 +71,9 @@ const toneStyles = {
     iconWrap: { backgroundColor: colors.dangerMuted },
     iconColor: colors.danger
   }
-} as const;
+}) as const;
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   root: {
     alignItems: 'center',
     ...StyleSheet.absoluteFillObject,

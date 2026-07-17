@@ -20,10 +20,13 @@ import {
   getMovementPatternLabel,
   getMuscleGroupLabel
 } from '@/i18n/enum-labels';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 
 export default function ExerciseDetailsScreen() {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { planId, exerciseId } = useLocalSearchParams<{ planId?: string; exerciseId?: string }>();
   const locale = resolveSupportedLocale(i18n.resolvedLanguage);
   const today = useQuery({ queryKey: ['today-plan'], queryFn: getTodayPlan });
@@ -101,13 +104,13 @@ function ListSection({ title, items, subtle = false }: { title: string; items: s
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   mediaLoading: {
     width: '100%',
     aspectRatio: 4 / 5,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.border,
     backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',

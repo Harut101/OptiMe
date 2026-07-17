@@ -39,11 +39,14 @@ import {
 } from '@/features/entitlements/usage-limit-message';
 import { formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import type { FoodMealProgressStatus } from '@/types/api';
 
 export default function MealDetailsScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const [message, setMessage] = useState<string | null>(null);
@@ -238,7 +241,7 @@ export default function MealDetailsScreen() {
                   accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: ingredient.name })}
                   onPress={() => setIngredientToSwap({ name: ingredient.name, slug: ingredient.catalogFoodSlug! })}
                 >
-                  <RefreshCw size={15} color={colors.primaryDark} />
+                <RefreshCw size={15} color={colors.health} />
                 </Pressable>
               ) : null}
               <Pressable
@@ -373,7 +376,7 @@ export default function MealDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   heroCard: {
     borderColor: 'rgba(103, 206, 103, 0.32)'
   },
@@ -384,7 +387,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   prepBadge: {
-    color: colors.primaryDark,
+    color: colors.health,
     fontWeight: '800'
   },
   ingredientRow: {

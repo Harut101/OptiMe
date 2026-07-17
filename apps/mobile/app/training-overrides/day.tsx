@@ -31,7 +31,8 @@ import {
   getExerciseEquipmentLabel,
   getTrainingEnvironmentLabel
 } from '@/i18n/enum-labels';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 
 const ENVIRONMENTS: TrainingEnvironment[] = ['HOME', 'GYM', 'OUTDOOR'];
 const EQUIPMENT: ExerciseEquipment[] = [
@@ -58,6 +59,8 @@ type EditorValue = {
 
 export default function DailyTrainingOverrideDayScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const { localDate, dayOfWeek, returnToGenerate } = useLocalSearchParams<{
     localDate?: string;
@@ -237,12 +240,12 @@ function getTodayDayOfWeek() {
   return ORDERED_DAYS[(jsDay + 6) % 7];
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actions: {
     gap: 10
   },
   note: {
-    color: colors.muted,
+    color: colors.textSecondary,
     fontSize: 13
   }
 });

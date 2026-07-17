@@ -34,7 +34,8 @@ import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCar
 import { getHealthProviderLabel } from '@/i18n/enum-labels';
 import { formatNumber, formatTime } from '@/i18n/formatters';
 import { useSettingsStore } from '@/store/settings-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import type {
   EvaluatePlanImpactResponse,
   HealthConnectionFoundation,
@@ -46,6 +47,8 @@ const FOUNDATION_SOURCES: HealthProvider[] = ['APPLE_HEALTH', 'HEALTH_CONNECT', 
 
 export default function HealthDataScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -249,6 +252,9 @@ export default function HealthDataScreen() {
 }
 
 function HealthConnectionsSkeleton() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Screen topSafeArea={false}>
       <View style={styles.skeletonHeader}>
@@ -296,13 +302,15 @@ function ConnectionCard({
   isActionPending?: boolean;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const status = connection?.status ?? 'NOT_CONNECTED';
   const isConnected = status === 'CONNECTED';
   const needsAttention = status === 'NEEDS_REAUTH' || status === 'ERROR';
 
   return (
     <ProviderConnectionCard
-      icon={getProviderIcon(source)}
+      icon={getProviderIcon(source, colors)}
       name={getProviderName(source, t)}
       statusLabel={getConnectionStatusLabel(status, t)}
       statusTone={isConnected ? 'success' : needsAttention ? 'danger' : 'neutral'}
@@ -376,6 +384,8 @@ function WearableSnapshotCard({
   locale: string;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   if (isUnavailable) {
     return (
@@ -471,7 +481,7 @@ function getProviderName(source: HealthProvider, t: TFunction) {
   return getHealthProviderLabel(t, source);
 }
 
-function getProviderIcon(source: HealthProvider) {
+function getProviderIcon(source: HealthProvider, colors: ThemeColors) {
   const color = source === 'APPLE_HEALTH'
     ? colors.health
     : source === 'HEALTH_CONNECT'
@@ -672,7 +682,7 @@ function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
   return t('health.providerUnavailable');
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

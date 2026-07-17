@@ -31,7 +31,8 @@ import {
 } from '@/i18n/enum-labels';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 
 const ENVIRONMENTS: TrainingEnvironment[] = ['HOME', 'GYM', 'OUTDOOR'];
 const EQUIPMENT: ExerciseEquipment[] = [
@@ -49,6 +50,8 @@ const EQUIPMENT: ExerciseEquipment[] = [
 
 export default function TrainingScheduleDayScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const { dayOfWeek, returnToGenerate } = useLocalSearchParams<{ dayOfWeek?: DayOfWeek; returnToGenerate?: string }>();
   const draft = useTrainingScheduleDraftStore((state) => state.draft);
@@ -225,7 +228,7 @@ function OverrideMode({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actions: { gap: 10 },
-  note: { color: colors.muted, fontSize: 13 }
+  note: { color: colors.textSecondary, fontSize: 13 }
 });

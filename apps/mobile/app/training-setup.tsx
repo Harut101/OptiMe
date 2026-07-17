@@ -23,12 +23,15 @@ import {
 } from '@/features/training-preferences/TrainingSetupForm';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import type { EvaluatePlanImpactResponse } from '@/types/api';
 
 /** Persistent training preferences, reached from Profile rather than the daily workout tab. */
 export default function TrainingSetupScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: ['training-preferences'], queryFn: getTrainingPreferences });
   const [value, setValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
@@ -114,4 +117,4 @@ function buildImpactChangeTypes(next: TrainingSetupFormValue, previous: Training
   return changed.size ? [...changed] : ['TRAINING_ROUTINE_CHANGED'];
 }
 
-const styles = StyleSheet.create({ error: { color: colors.danger, fontWeight: '700' } });
+const createStyles = (colors: ThemeColors) => StyleSheet.create({ error: { color: colors.danger, fontWeight: '700' } });

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { Card } from './Card';
 import { Text } from './Text';
 
@@ -13,6 +14,8 @@ interface ContextNoteCardProps {
 }
 
 export function ContextNoteCard({ title, message, tone = 'neutral' }: ContextNoteCardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card>
       <View style={[styles.accent, styles[tone]]} />
@@ -24,7 +27,7 @@ export function ContextNoteCard({ title, message, tone = 'neutral' }: ContextNot
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   accent: {
     borderRadius: 999,
     height: 5,

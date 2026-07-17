@@ -19,7 +19,8 @@ import { Text } from '@/components/Text';
 import { getPlanSafetyMessage } from '@/features/safety/safety-copy';
 import { DailyTrainingPlanContent } from '@/features/daily-plan/PlanTabbedContent';
 import { getContextNoteMessage, getContextNoteTitle } from '@/features/daily-plan/context-note-copy';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import type {
   PlanFeedbackRating,
   PlanFeedbackTag
@@ -27,6 +28,8 @@ import type {
 
 export default function PlanDetailsScreen() {
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [rating, setRating] = useState<PlanFeedbackRating | null>(null);
   const [selectedTags, setSelectedTags] = useState<PlanFeedbackTag[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -194,6 +197,9 @@ function FeedbackTrigger({
   message: string | null;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -240,7 +246,7 @@ function toggleTag(
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   feedbackTrigger: {
     alignItems: 'center',
     backgroundColor: colors.card,
@@ -267,7 +273,7 @@ const styles = StyleSheet.create({
     gap: 3
   },
   feedbackTriggerAction: {
-    color: colors.primary,
+    color: colors.health,
     fontSize: 14,
     fontWeight: '900'
   },
