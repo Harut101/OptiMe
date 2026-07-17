@@ -125,7 +125,10 @@ If `painOrDiscomfort=true`, mobile shows:
 
 "Thanks for letting us know. We'll use this to keep future training guidance more conservative."
 
-Evening reflection UI can be added later if the Today screen still feels clean.
+Today includes an optional `Reflect on today` action. It opens a bottom sheet rather than
+adding a permanent dashboard card. A user can record energy, tiredness, soreness, and an
+optional note. Saving shows a short confirmation toast; editing later upserts the same
+evening reflection for that plan.
 
 ## Out Of Scope
 

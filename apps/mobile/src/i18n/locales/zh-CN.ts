@@ -400,7 +400,25 @@ export const zhCN = createLocaleResource({
     saveFailed: '无法保存可用食物，请重试。'
   }
 }, {
-    food: {
+  eveningReflection: {
+    open: '记录今日感受',
+    title: '今天感觉如何？',
+    subtitle: '可选，仅用于你的计划。',
+    help: '简短记录可帮助未来计划更贴合实际，并更重视恢复。',
+    energy: '精力',
+    tiredness: '疲劳',
+    soreness: '酸痛',
+    level3: '低',
+    level6: '一般',
+    level9: '高',
+    noteOptional: '可选备注',
+    notePlaceholder: '有什么值得记录的吗？',
+    chooseDetail: '请至少选择一项，或暂时关闭此窗口。',
+    save: '保存记录',
+    saved: '记录已保存',
+    saveFailed: '无法保存记录'
+  },
+  food: {
       swapIngredient: '替换',
       swapIngredientAccessibility: '为 {{ingredient}} 查找安全替代品',
       swapAlternativesTitle: '选择替代品',

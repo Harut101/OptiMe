@@ -400,7 +400,25 @@ export const frFR = createLocaleResource({
     saveFailed: 'Impossible d’enregistrer les aliments disponibles. Réessayez.'
   }
 }, {
-    food: {
+  eveningReflection: {
+    open: 'Faire le point sur la journée',
+    title: 'Comment s’est passée votre journée ?',
+    subtitle: 'Facultatif et lié uniquement à votre plan.',
+    help: 'Un court bilan aide les prochains plans à rester pratiques et attentifs à la récupération.',
+    energy: 'Énergie',
+    tiredness: 'Fatigue',
+    soreness: 'Courbatures',
+    level3: 'Faible',
+    level6: 'Stable',
+    level9: 'Élevée',
+    noteOptional: 'Note facultative',
+    notePlaceholder: 'Quelque chose d’utile à retenir ?',
+    chooseDetail: 'Choisissez au moins un élément ou fermez cette fenêtre pour le moment.',
+    save: 'Enregistrer le bilan',
+    saved: 'Bilan enregistré',
+    saveFailed: 'Impossible d’enregistrer le bilan'
+  },
+  food: {
       swapIngredient: 'Remplacer',
       swapIngredientAccessibility: 'Trouver des alternatives sûres pour {{ingredient}}',
       swapAlternativesTitle: 'Choisir une alternative',

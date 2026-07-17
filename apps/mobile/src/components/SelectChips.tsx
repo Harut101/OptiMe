@@ -5,7 +5,7 @@ import { colors } from '@/theme/colors';
 
 interface SelectChipsProps<T extends string> {
   label: string;
-  value: T;
+  value: T | null;
   options: Array<{ label: string; value: T }>;
   onChange: (value: T) => void;
 }

@@ -40,6 +40,7 @@ import { DashboardProgressCard } from '@/features/today-dashboard/DashboardProgr
 import { WearableSummaryCard } from '@/features/today-dashboard/WearableSummaryCard';
 import { WeightProgressCard } from '@/features/weight/WeightProgressCard';
 import { WeightUpdateModal } from '@/features/weight/WeightUpdateModal';
+import { EveningReflectionSheet } from '@/features/daily-plan-check-ins/EveningReflectionSheet';
 import {
   resolveNutritionProgress,
   resolveTrainingProgress
@@ -84,6 +85,7 @@ export default function TodayScreen() {
   const [weightModalVisible, setWeightModalVisible] = useState(false);
   const [weightError, setWeightError] = useState<string | null>(null);
   const [coachVisible, setCoachVisible] = useState(false);
+  const [eveningReflectionVisible, setEveningReflectionVisible] = useState(false);
   const [progressivePromptVisible, setProgressivePromptVisible] = useState(false);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
@@ -449,6 +451,12 @@ export default function TodayScreen() {
               onPress={handleRestTodayOnly}
             />
           ) : null}
+          <Button
+            title={t('eveningReflection.open')}
+            variant="ghost"
+            disabled={generate.isPending}
+            onPress={() => setEveningReflectionVisible(true)}
+          />
         </>
       )}
       <WeightUpdateModal
@@ -467,6 +475,15 @@ export default function TodayScreen() {
         visible={coachVisible}
         plan={plan}
         onClose={() => setCoachVisible(false)}
+      />
+      <EveningReflectionSheet
+        visible={eveningReflectionVisible}
+        dailyPlanId={today.data?.id ?? null}
+        onClose={() => setEveningReflectionVisible(false)}
+        onSaved={() => {
+          setEveningReflectionVisible(false);
+          setRefreshMessage(t('eveningReflection.saved'));
+        }}
       />
       <BottomSheet
         visible={progressivePromptVisible}
