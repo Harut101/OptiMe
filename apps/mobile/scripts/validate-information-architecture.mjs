@@ -66,7 +66,8 @@ for (const section of ['PersonalSection', 'GoalNutritionSection', 'TrainingHubSe
 assert(!profile.includes("t('profile.ageSafety')"), 'Profile must not expose backend-derived safety implementation copy.');
 assert(profile.includes("t('profile.hubIntro')"), 'Profile must use the settings hub header.');
 assert(profile.includes("router.push('/(tabs)/food')"), 'Profile must route nutrition ownership to Food.');
-assert(profile.includes("router.push('/training-setup' as never)"), 'Profile must route training preferences to profile settings.');
+assert(profile.includes('TrainingSetupForm') && profile.includes('saveTrainingPreferences'), 'Profile must edit training preferences in the profile settings sheet.');
+assert(!profile.includes("router.push('/training-setup' as never)"), 'Profile must not navigate away to edit training preferences.');
 assert(profile.includes("router.push('/weekly-routine' as never)"), 'Profile must route Weekly Routine to profile settings.');
 assert(profile.includes('PlanImpactPromptCard'), 'Profile must expose plan-impact prompts for planning-sensitive changes.');
 

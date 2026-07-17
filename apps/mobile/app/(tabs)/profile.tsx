@@ -29,6 +29,7 @@ import { getHealthStatus } from '@/api/health';
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { getProfile, saveProfile } from '@/api/profile';
 import { getSettings, updateSettings } from '@/api/settings';
+import { getTrainingPreferences, saveTrainingPreferences } from '@/api/training-preferences';
 import { createWeightLog, getWeightSummary } from '@/api/weight';
 import { Button } from '@/components/Button';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -69,6 +70,13 @@ import {
   toGoalRequest
 } from '@/features/goals/GoalsForm';
 import { getFriendlyGoalErrorMessage } from '@/features/safety/safety-copy';
+import {
+  EMPTY_TRAINING_SETUP,
+  fromTrainingPreference,
+  toTrainingPreferenceRequest,
+  TrainingSetupForm,
+  type TrainingSetupFormValue
+} from '@/features/training-preferences/TrainingSetupForm';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme/colors';
@@ -507,39 +515,145 @@ function GoalNutritionSection() {
 
 function TrainingHubSection() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const preferences = useQuery({ queryKey: ['training-preferences'], queryFn: getTrainingPreferences });
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
+  const [savedValue, setSavedValue] = useState<TrainingSetupFormValue>(EMPTY_TRAINING_SETUP);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
+  const [planImpactError, setPlanImpactError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!preferences.data) return;
+    const next = fromTrainingPreference(preferences.data);
+    setValue(next);
+    setSavedValue(next);
+  }, [preferences.data]);
+
+  const dirty = isDraftDirty(value, savedValue);
+  useUnsavedChangesGuard(editing && dirty);
+
+  const save = useMutation({
+    mutationFn: saveTrainingPreferences,
+    onSuccess: async (saved) => {
+      const next = fromTrainingPreference(saved);
+      const changeTypes = buildTrainingPreferenceImpactTypes(value, savedValue);
+      setValue(next);
+      setSavedValue(next);
+      queryClient.setQueryData(['training-preferences'], saved);
+      setToastMessage(t('training.savedMessage'));
+      try {
+        const impact = await evaluatePlanImpact({ changeTypes });
+        setPlanImpact(impact.prompt ? impact : null);
+        setPlanImpactError(null);
+      } catch {
+        setPlanImpact(null);
+      }
+    }
+  });
+  const regenerateTodayPlan = useMutation({
+    mutationFn: () => generateTodayPlan(true),
+    onSuccess: (plan) => {
+      queryClient.setQueryData(['today-plan'], plan);
+      setPlanImpact(null);
+      setPlanImpactError(null);
+      setToastMessage(t('today.refreshed'));
+    },
+    onError: () => setPlanImpactError(t('today.updateFailed'))
+  });
+
+  const openEditor = () => {
+    setToastMessage(null);
+    setEditing(true);
+  };
+  const closeEditor = () => {
+    if (save.isPending) return;
+    setValue(savedValue);
+    setEditing(false);
+  };
+
   return (
-    <Card>
-      <SectionHeader title={t('tabs.training')} subtitle={t('profile.trainingHubHelp')} />
-      <SettingsListItem
-        icon={<Dumbbell size={18} color={colors.training} />}
-        tone="training"
+    <View style={styles.section}>
+      <Card>
+        <SectionHeader title={t('tabs.training')} subtitle={t('profile.trainingHubHelp')} />
+        <SettingsListItem
+          icon={<Dumbbell size={18} color={colors.training} />}
+          tone="training"
+          title={t('training.current')}
+          subtitle={t('training.setupSummaryHelp')}
+          onPress={openEditor}
+        />
+        <SettingsListItem
+          icon={<CalendarDays size={18} color={colors.training} />}
+          tone="training"
+          title={t('schedule.weeklySchedule')}
+          subtitle={t('schedule.weeklyScheduleHelp')}
+          onPress={() => router.push('/weekly-routine' as never)}
+        />
+        <SettingsListItem
+          icon={<History size={18} color={colors.training} />}
+          tone="training"
+          title={t('workout.workoutHistory')}
+          subtitle={t('workout.historyHelp')}
+          onPress={() => router.push('/workout-history')}
+        />
+        <SettingsListItem
+          icon={<CalendarDays size={18} color={colors.recovery} />}
+          tone="training"
+          title={t('weeklySummary.title')}
+          subtitle={t('weeklySummary.subtitle')}
+          onPress={() => router.push('/weekly-summary' as never)}
+        />
+      </Card>
+      <BottomSheet
+        visible={editing}
         title={t('training.current')}
         subtitle={t('training.setupSummaryHelp')}
-        onPress={() => router.push('/training-setup' as never)}
-      />
-      <SettingsListItem
-        icon={<CalendarDays size={18} color={colors.training} />}
-        tone="training"
-        title={t('schedule.weeklySchedule')}
-        subtitle={t('schedule.weeklyScheduleHelp')}
-        onPress={() => router.push('/weekly-routine' as never)}
-      />
-      <SettingsListItem
-        icon={<History size={18} color={colors.training} />}
-        tone="training"
-        title={t('workout.workoutHistory')}
-        subtitle={t('workout.historyHelp')}
-        onPress={() => router.push('/workout-history')}
-      />
-      <SettingsListItem
-        icon={<CalendarDays size={18} color={colors.recovery} />}
-        tone="training"
-        title={t('weeklySummary.title')}
-        subtitle={t('weeklySummary.subtitle')}
-        onPress={() => router.push('/weekly-summary' as never)}
-      />
-    </Card>
+        onClose={closeEditor}
+      >
+        {preferences.isLoading ? <Text variant="muted">{t('common.loading')}</Text> : null}
+        {preferences.isError ? <Text style={styles.error}>{t('errors.unableLoad')}</Text> : null}
+        {!preferences.isLoading && !preferences.isError ? (
+          <>
+            <TrainingSetupForm value={value} onChange={setValue} />
+            {save.isError ? <Text style={styles.error}>{t('errors.unableSave')}</Text> : null}
+            <View style={styles.actions}>
+              <Button
+                title={save.isPending ? t('common.saving') : t('common.save')}
+                disabled={save.isPending || !dirty}
+                onPress={() => save.mutate(toTrainingPreferenceRequest(value))}
+              />
+              <Button title={t('common.cancel')} variant="secondary" disabled={save.isPending} onPress={closeEditor} />
+            </View>
+            <PlanImpactPromptCard
+              impact={planImpact}
+              isUpdating={regenerateTodayPlan.isPending}
+              errorMessage={planImpactError}
+              onUpdateToday={() => regenerateTodayPlan.mutate()}
+              onFutureOnly={() => {
+                setPlanImpact(null);
+                setPlanImpactError(null);
+                setToastMessage(t('planImpact.futureOnlySaved'));
+              }}
+            />
+          </>
+        ) : null}
+      </BottomSheet>
+      {toastMessage ? <AppToast title={t('feedback.savedSuccessfully')} message={toastMessage} tone="success" onDismiss={() => setToastMessage(null)} /> : null}
+    </View>
   );
+}
+
+function buildTrainingPreferenceImpactTypes(
+  next: TrainingSetupFormValue,
+  previous: TrainingSetupFormValue
+): PlanImpactChangeType[] {
+  const changed = new Set<PlanImpactChangeType>();
+  if (JSON.stringify([...next.targetMuscleGroups].sort()) !== JSON.stringify([...previous.targetMuscleGroups].sort())) changed.add('TRAINING_MUSCLES_CHANGED');
+  if (JSON.stringify([...next.equipment].sort()) !== JSON.stringify([...previous.equipment].sort())) changed.add('TRAINING_EQUIPMENT_CHANGED');
+  if (next.trainingLevel !== previous.trainingLevel || next.trainingOutcome !== previous.trainingOutcome) changed.add('TRAINING_ROUTINE_CHANGED');
+  return changed.size ? [...changed] : ['TRAINING_ROUTINE_CHANGED'];
 }
 
 function WeightSection() {

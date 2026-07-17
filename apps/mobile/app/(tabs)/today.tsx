@@ -354,7 +354,6 @@ export default function TodayScreen() {
                 value={trainingProgress.value}
                 centerLabel={trainingProgress.centerLabel}
                 subtitle={trainingProgress.subtitle}
-                hint={trainingProgress.hint}
                 tone="training"
                 accessibilityLabel={trainingProgress.accessibilityLabel}
                 style={styles.dashboardProgressCard}

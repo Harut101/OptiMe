@@ -72,7 +72,8 @@ export function DashboardProgressCard({
 
 const styles = StyleSheet.create({
   cardShell: {
-    flex: 1
+    flex: 1,
+    minHeight: 248
   },
   card: {
     alignItems: 'center',

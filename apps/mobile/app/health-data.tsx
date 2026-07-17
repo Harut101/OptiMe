@@ -16,6 +16,7 @@ import {
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { AppToast } from '@/components/AppToast';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { HealthMetricWidget } from '@/components/HealthMetricWidget';
@@ -161,7 +162,14 @@ export default function HealthDataScreen() {
         />
       ))}
 
-      {actionMessage ? <ContextNoteCard title={t('health.status')} message={actionMessage} /> : null}
+      {actionMessage ? (
+        <AppToast
+          title={t('health.status')}
+          message={actionMessage}
+          tone={appleHealthSync.isError || appleHealthDisconnect.isError || deleteSyncedData.isError ? 'warning' : 'success'}
+          onDismiss={() => setActionMessage(null)}
+        />
+      ) : null}
 
       <WearableSnapshotCard
         snapshot={snapshot.data}
