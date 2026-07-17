@@ -130,6 +130,7 @@ Exit criteria: meal timing changes the composition starting point while daily nu
 - Validate every saved item against active catalog status plus current diet and restriction filtering.
 - Softly rank confirmed items during deterministic composition without treating them as quantities, storage guidance, or a guaranteed menu inclusion.
 - Food now has a compact localized Bottom Sheet that loads only safe candidates and saves the user's current local-date choices.
+- When a confirmed list is present, initial generation and explicit full-menu regeneration begin with the availability-ranked composition. Other safe catalog foods remain available only to cover missing roles or keep the menu target-aligned.
 
 ## Deferred
 

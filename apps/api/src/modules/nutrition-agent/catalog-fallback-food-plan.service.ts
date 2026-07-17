@@ -96,10 +96,15 @@ export class CatalogFallbackFoodPlanService {
       dietType: input.nutritionPreference?.dietType,
       mealsPerDay: input.nutritionPreference?.mealsPerDay
     });
-    const candidateVariants = Math.min(
-      Math.max(Math.trunc(options.candidateVariants ?? DEFAULT_CANDIDATE_VARIANTS), 1),
-      8
-    );
+    // Confirmed foods are the user's practical input for today. Start from the
+    // availability-ranked composition instead of letting a later variation win
+    // only because it is marginally closer to the nutrition target.
+    const candidateVariants = input.availableFoodSlugs?.length
+      ? 1
+      : Math.min(
+        Math.max(Math.trunc(options.candidateVariants ?? DEFAULT_CANDIDATE_VARIANTS), 1),
+        8
+      );
     const target = this.portionSolverTarget(input);
     const candidates = Array.from({ length: candidateVariants }, (_, variationOffset) => (
       this.composeCandidate({

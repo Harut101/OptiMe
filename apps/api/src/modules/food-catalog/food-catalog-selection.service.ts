@@ -80,6 +80,9 @@ function rankCandidates(
   prioritizePreparation: boolean
 ) {
   return [...candidates].sort((left, right) => {
+    const categoryDelta = roleCategoryRank(role, left.category) - roleCategoryRank(role, right.category);
+    if (categoryDelta !== 0) return categoryDelta;
+
     const availabilityDelta = Number(availableFoodSlugs.has(right.slug)) - Number(availableFoodSlugs.has(left.slug));
     if (availabilityDelta !== 0) return availabilityDelta;
 
@@ -96,6 +99,11 @@ function rankCandidates(
     if (leftScore !== rightScore) return leftScore - rightScore;
     return left.slug.localeCompare(right.slug);
   });
+}
+
+function roleCategoryRank(role: FoodCatalogSelectionRole, category: FoodCatalogCategory) {
+  const rank = FOOD_CATALOG_ROLE_CATEGORIES[role].indexOf(category);
+  return rank === -1 ? Number.MAX_SAFE_INTEGER : rank;
 }
 
 function preparationRank(level: FoodCatalogCandidate['preparationLevel']) {
