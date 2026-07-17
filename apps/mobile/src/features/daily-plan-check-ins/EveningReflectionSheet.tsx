@@ -111,10 +111,10 @@ export function EveningReflectionSheet({
               <Text key={item.planLocalDate} variant="caption">
                 {t('eveningReflection.trendValue', {
                   date: item.planLocalDate,
-                  energy: item.energyLevel ?? '-',
-                  tiredness: item.tirednessLevel ?? '-',
-                  soreness: item.sorenessLevel ?? '-'
-                })}
+                  energy: String(item.energyLevel ?? '-'),
+                  tiredness: String(item.tirednessLevel ?? '-'),
+                  soreness: String(item.sorenessLevel ?? '-')
+                } as never) as unknown as string}
               </Text>
             ))}
           </View>

@@ -130,6 +130,10 @@ adding a permanent dashboard card. A user can record energy, tiredness, soreness
 optional note. Saving shows a short confirmation toast; editing later upserts the same
 evening reflection for that plan.
 
+When two or more evening reflections exist, the same sheet shows the most recent seven
+date-level energy, tiredness, and soreness values. It never shows free-text notes or adds
+a permanent analytics card to Today.
+
 ## Out Of Scope
 
 - Notifications

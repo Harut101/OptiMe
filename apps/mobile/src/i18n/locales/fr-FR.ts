@@ -412,6 +412,8 @@ export const frFR = createLocaleResource({
     level6: 'Stable',
     level9: 'Élevée',
     noteOptional: 'Note facultative',
+    recent: 'Bilans récents',
+    trendValue: '{{date}} · Énergie {{energy}} · Fatigue {{tiredness}} · Courbatures {{soreness}}',
     notePlaceholder: 'Quelque chose d’utile à retenir ?',
     chooseDetail: 'Choisissez au moins un élément ou fermez cette fenêtre pour le moment.',
     save: 'Enregistrer le bilan',

@@ -412,6 +412,8 @@ export const zhCN = createLocaleResource({
     level6: '一般',
     level9: '高',
     noteOptional: '可选备注',
+    recent: '近期记录',
+    trendValue: '{{date}} · 精力 {{energy}} · 疲劳 {{tiredness}} · 酸痛 {{soreness}}',
     notePlaceholder: '有什么值得记录的吗？',
     chooseDetail: '请至少选择一项，或暂时关闭此窗口。',
     save: '保存记录',
