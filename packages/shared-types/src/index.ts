@@ -1141,6 +1141,8 @@ export interface DailyPlanJson {
   schemaVersion: 'sprint-2.v1';
   generatedAt: string;
   mockVersion: number;
+  /** The language used for newly generated AI content. Older plans may not have it. */
+  contentLocale?: SupportedLocale;
   safety: {
     safeMode: boolean;
     adjustedForSafety: boolean;

@@ -390,6 +390,7 @@ export const dailyPlanJsonSchema = z.object({
   schemaVersion: z.literal('sprint-2.v1'),
   generatedAt: z.string().datetime(),
   mockVersion: z.number().int().min(0),
+  contentLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN']).optional(),
   safety: z.object({
     safeMode: z.boolean(),
     adjustedForSafety: z.boolean(),

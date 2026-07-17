@@ -692,7 +692,7 @@ function SettingsSection() {
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [measurementSystem, setMeasurementSystem] = useState<MeasurementSystem>(currentMeasurementSystem);
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-  const [savedMessage, setSavedMessage] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<'settings' | 'language' | null>(null);
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
 
   useEffect(() => {
@@ -705,11 +705,13 @@ function SettingsSection() {
   useUnsavedChangesGuard(dirty);
   const mutation = useMutation({
     mutationFn: updateSettings,
-    onSuccess: (saved) => {
+    onSuccess: (saved, request) => {
       applySettings(saved.preferredLocale, saved.measurementSystem, true);
       queryClient.setQueryData(['settings'], saved);
       setSettingsSheetVisible(false);
-      setSavedMessage(true);
+      setSavedMessage(
+        request.preferredLocale && request.preferredLocale !== currentLocale ? 'language' : 'settings'
+      );
     },
     onError: () => setErrorSheetVisible(true)
   });
@@ -763,7 +765,7 @@ function SettingsSection() {
             onPress={() => {
               setPreferredLocale(currentLocale);
               setMeasurementSystem(currentMeasurementSystem);
-              setSavedMessage(false);
+              setSavedMessage(null);
               setSettingsSheetVisible(true);
             }}
           />
@@ -788,14 +790,14 @@ function SettingsSection() {
           label={t('settings.language')}
           value={preferredLocale}
           options={LANGUAGE_OPTIONS}
-          onChange={(value) => { setPreferredLocale(value); setSavedMessage(false); }}
+          onChange={(value) => { setPreferredLocale(value); setSavedMessage(null); }}
         />
-        <Text variant="muted">{t('settings.languageHelp')}</Text>
+        <Text variant="muted">{t('settings.languagePlanHelp')}</Text>
         <SelectChips
           label={t('settings.measurementSystem')}
           value={measurementSystem}
           options={measurementOptions}
-          onChange={(value) => { setMeasurementSystem(value); setSavedMessage(false); }}
+          onChange={(value) => { setMeasurementSystem(value); setSavedMessage(null); }}
         />
         <Text variant="muted">{t('settings.measurementHelp')}</Text>
         <View style={styles.actions}>
@@ -816,7 +818,14 @@ function SettingsSection() {
           subtitle={t('settings.privacyCopy')}
         />
       </Card>
-      {savedMessage ? <AppToast title={t('feedback.savedSuccessfully')} message={t('settings.saved')} tone="success" onDismiss={() => setSavedMessage(false)} /> : null}
+      {savedMessage ? (
+        <AppToast
+          title={t('feedback.savedSuccessfully')}
+          message={t(savedMessage === 'language' ? 'settings.languagePlanNotice' : 'settings.saved')}
+          tone="success"
+          onDismiss={() => setSavedMessage(null)}
+        />
+      ) : null}
       <AppFeedbackSheet
         visible={errorSheetVisible}
         title={t('settings.saveError')}

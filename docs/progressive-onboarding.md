@@ -272,3 +272,13 @@ Deterministic safety remains the authority for:
 - unsafe pain, illness, dizziness, or exhaustion language
 
 Progressive onboarding must never paywall or defer safety-critical guidance.
+
+## Language And Generated Content
+
+The first Profile onboarding step includes a required plan-language choice. It is saved to
+the user's settings before onboarding continues, so new AI plans receive an explicit output
+locale. The interface updates immediately after the setting is saved.
+
+Changing language later updates the application interface and future AI generations only.
+Existing plans are never silently rewritten, regenerated, or charged against a limit merely
+because the application language changed.

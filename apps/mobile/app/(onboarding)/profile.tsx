@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { profileSchema } from '@optime/shared-schemas';
 
 import { saveProfile } from '@/api/profile';
+import { updateSettings } from '@/api/settings';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { Screen } from '@/components/Screen';
+import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
 import { OnboardingStepShell } from '@/features/onboarding/OnboardingStepShell';
 import {
@@ -15,17 +17,29 @@ import {
   toProfileRequest
 } from '@/features/profile/PersonalProfileForm';
 import { useAuthStore } from '@/store/auth-store';
+import { useSettingsStore } from '@/store/settings-store';
+import { LANGUAGE_OPTIONS } from '@/i18n/language-options';
+import type { SupportedLocale } from '@optime/shared-types';
 
 export default function ProfileSetupScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
+  const currentLocale = useSettingsStore((state) => state.preferredLocale);
+  const applySettings = useSettingsStore((state) => state.applySettings);
   const [value, setValue] = useState(EMPTY_PERSONAL_PROFILE);
+  const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [errorSheet, setErrorSheet] = useState<{ title: string; message: string } | null>(null);
   const mutation = useMutation({
-    mutationFn: saveProfile,
-    onSuccess: async (data) => {
-      setUser(data.user);
+    mutationFn: async (payload: ReturnType<typeof toProfileRequest>) => {
+      const settings = await updateSettings({ preferredLocale });
+      const profile = await saveProfile(payload);
+      return { profile, settings };
+    },
+    onSuccess: async ({ profile, settings }) => {
+      setUser(profile.user);
+      applySettings(settings.preferredLocale, settings.measurementSystem, true);
+      queryClient.setQueryData(['settings'], settings);
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.push('/(onboarding)/goal');
     },
@@ -56,6 +70,13 @@ export default function ProfileSetupScreen() {
         primaryLoading={mutation.isPending}
         onPrimary={continueOnboarding}
       >
+        <SelectChips
+          label={t('onboarding.languageTitle')}
+          value={preferredLocale}
+          options={LANGUAGE_OPTIONS}
+          onChange={setPreferredLocale}
+        />
+        <Text variant="muted">{t('onboarding.languagePlanHelp')}</Text>
         <Text variant="label">{t('onboarding.safetyNote')}</Text>
         <Text variant="muted">{t('safety.disclaimer')}</Text>
         <PersonalProfileForm value={value} onChange={setValue} />

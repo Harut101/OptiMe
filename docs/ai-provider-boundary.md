@@ -112,6 +112,8 @@ The backend must:
 - preserve under-18 safe mode behavior
 - use `planLocalDate` for user-facing date references
 - keep `generatedAt` as backend metadata only
+- generate user-facing content in the requested `outputLanguage.locale`
+- allow the backend, not the model, to persist `contentLocale`
 
 If `OpenAiProviderService` throws `OpenAiProviderError`, `DailyPlansService` uses the existing safe fallback plan.
 

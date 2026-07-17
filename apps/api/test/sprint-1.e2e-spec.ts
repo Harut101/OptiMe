@@ -4853,6 +4853,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('READY');
       expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
+      expect(plan.body.plan.contentLocale).toBe('en-US');
       expect(plan.body.plan.safety.adjustedForSafety).toBe(true);
       expect(plan.body.plan.safety.userSafeMessage).toBe(
         'We used a reliable safe plan today because the generated plan could not be fully verified.'
@@ -5852,6 +5853,7 @@ describe('Sprint 1 backend vertical slice', () => {
         }
       });
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('usePlanLocalDateForTitleAndMessage');
+      expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('outputLanguage');
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Do not include schemaVersion');
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Never derive user-facing dates from generatedAt');
     } finally {

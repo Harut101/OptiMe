@@ -13,7 +13,7 @@ import {
   TrainingLevel,
   TrainingOutcome
 } from '@prisma/client';
-import type { NutritionTarget } from '@optime/shared-types';
+import type { NutritionTarget, SupportedLocale } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { HealthPlanningContext } from '../health/health-planning.types';
@@ -137,6 +137,7 @@ export interface GenerateDailyPlanInput {
     description: string | null;
   }>;
   safeMode: boolean;
+  locale: SupportedLocale;
   planLocalDate: string;
   planTimezone: string;
   planQualityMode: PlanQualityMode;

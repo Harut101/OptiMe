@@ -50,6 +50,7 @@ type DailyPlanJson = {
   schemaVersion: "sprint-2.v1";
   generatedAt: string;
   mockVersion: number;
+  contentLocale?: "en-US" | "ru-RU" | "fr-FR" | "zh-CN";
   safety: {
     safeMode: boolean;
     adjustedForSafety: boolean;
@@ -409,6 +410,15 @@ Fallback plans use the same schema and set:
 The full fallback still includes `summary`, `nutrition`, `training`, `recovery`, and `reminders`.
 
 ## Backward Compatibility
+
+`contentLocale` records the language used for new AI-generated user-facing content. It is
+backend-owned: the provider receives the requested locale but the backend writes the value
+after validating the response. Existing plans may not contain this field and must continue
+to render normally in the current interface language.
+
+Changing the application language never rewrites an existing plan automatically. New plans
+use the selected language; an explicit future regeneration action may create a new plan in
+that language.
 
 Old Sprint 1 `planJson` is normalized on read by `daily-plan-normalizer.ts`.
 

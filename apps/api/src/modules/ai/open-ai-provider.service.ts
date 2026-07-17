@@ -89,7 +89,7 @@ export class OpenAiProviderService implements AiProvider {
       );
 
       this.logger.log(`OpenAI response received; retryAttempt=${retry}; model=${model}`);
-      return this.parseAndValidateResponse(response, input.planQualityMode);
+      return this.parseAndValidateResponse(response, input.planQualityMode, input.locale);
     } catch (error) {
       if (error instanceof OpenAiProviderError) {
         this.logger.warn(
@@ -115,7 +115,8 @@ export class OpenAiProviderService implements AiProvider {
 
   private parseAndValidateResponse(
     response: OpenAiResponse,
-    planQualityMode: PlanQualityMode
+    planQualityMode: PlanQualityMode,
+    locale: GenerateDailyPlanInput['locale']
   ): OpenAiAttemptResult {
     const outputText = this.extractOutputText(response);
     this.logger.log(`OpenAI output_text present: ${Boolean(outputText)}`);
@@ -139,7 +140,7 @@ export class OpenAiProviderService implements AiProvider {
       });
     }
 
-    const normalizedJson = this.normalizeBackendOwnedMetadata(parsedJson, planQualityMode);
+    const normalizedJson = this.normalizeBackendOwnedMetadata(parsedJson, planQualityMode, locale);
     const parsedPlan = dailyPlanJsonSchema.safeParse(normalizedJson);
 
     if (!parsedPlan.success) {
@@ -187,8 +188,9 @@ export class OpenAiProviderService implements AiProvider {
     return [
       'You are a supportive AI wellness planning service.',
       'Return only JSON that matches the provided plan content schema.',
-      'The backend will set schemaVersion, generatedAt, mockVersion, and debug metadata.',
-      'Do not include schemaVersion, generatedAt, mockVersion, or debug.',
+      'Generate every user-facing string in the requested outputLanguage.locale from the user context.',
+      'The backend will set schemaVersion, generatedAt, mockVersion, contentLocale, and debug metadata.',
+      'Do not include schemaVersion, generatedAt, mockVersion, contentLocale, or debug.',
       'Use planLocalDate from the user context for any user-facing date reference in title or message.',
       'Never derive user-facing dates from generatedAt.',
       'personalizationContext.nutritionTarget is backend-owned and is the source of truth for calorie and macro targets.',
@@ -303,6 +305,10 @@ export class OpenAiProviderService implements AiProvider {
     return {
       planLocalDate: input.planLocalDate,
       planTimezone: input.planTimezone,
+      outputLanguage: {
+        locale: input.locale,
+        requirement: 'Generate every user-facing plan field in this locale.'
+      },
       planQualityMode: input.planQualityMode,
       personalizationContext: input.personalizationContext,
       deterministicNutritionTarget: input.personalizationContext.nutritionTarget,
@@ -375,7 +381,11 @@ export class OpenAiProviderService implements AiProvider {
     };
   }
 
-  private normalizeBackendOwnedMetadata(value: unknown, planQualityMode: PlanQualityMode) {
+  private normalizeBackendOwnedMetadata(
+    value: unknown,
+    planQualityMode: PlanQualityMode,
+    locale: GenerateDailyPlanInput['locale']
+  ) {
     const record = typeof value === 'object' && value !== null && !Array.isArray(value) ? value : {};
     this.logger.log('OpenAI metadata normalized');
 
@@ -384,6 +394,7 @@ export class OpenAiProviderService implements AiProvider {
       schemaVersion: 'sprint-2.v1',
       generatedAt: new Date().toISOString(),
       mockVersion: 0,
+      contentLocale: locale,
       debug: {
         provider: 'openai',
         generatedBy: 'OpenAiProviderService',

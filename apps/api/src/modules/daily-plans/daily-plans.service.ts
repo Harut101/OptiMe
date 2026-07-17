@@ -1684,6 +1684,7 @@ export class DailyPlansService {
           : null,
         trainingSchedule: input.user.schedules,
         safeMode: input.user.safeMode,
+        locale: this.resolvePlanningLocale(input.user),
         planLocalDate: input.planLocalDate,
         planTimezone: input.planTimezone,
         planQualityMode: input.planQualityMode,

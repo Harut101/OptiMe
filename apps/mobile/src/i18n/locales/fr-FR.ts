@@ -423,6 +423,14 @@ export const frFR = createLocaleResource({
   weeklySummary: {
     title: 'Resume hebdomadaire', subtitle: 'Un regard calme sur les signaux partages cette semaine.', loading: 'Chargement du resume', loadingMessage: 'Preparation des faits recents.', unavailable: 'Resume hebdomadaire indisponible', noDataTitle: 'Votre semaine prendra forme ici', noDataMessage: 'Generez un plan, terminez une seance ou ajoutez un court bilan pour commencer.', plans: 'Plans crees', workouts: 'Seances terminees', reflections: 'Bilans du soir', averageEnergy: 'Energie moyenne', averageTiredness: 'Fatigue moyenne', averageSoreness: 'Inconfort moyen', reflectionPrompt: 'Un court bilan du soir peut aider les futurs plans a mieux sadapter.', steadyTakeaway: 'Vous construisez une image utile de ce qui vous aide.', recoveryTakeaway: 'Cette semaine demandait plus de recuperation. Gardez un rythme doux les prochains jours.', noReflectionTakeaway: 'Ajoutez un court bilan quand cela vous convient.'
   },
+  onboarding: {
+    languageTitle: 'Langue du plan',
+    languagePlanHelp: 'Les nouveaux plans et conseils AI seront generes dans cette langue. Vous pourrez la changer plus tard; les plans deja crees gardent leur langue d origine.'
+  },
+  settings: {
+    languagePlanHelp: 'Les nouveaux plans AI utilisent cette langue. Les plans deja crees gardent leur langue d origine.',
+    languagePlanNotice: 'Langue mise a jour. Les nouveaux plans AI utiliseront cette langue; les plans deja crees gardent leur langue d origine.'
+  },
   food: {
       swapIngredient: 'Remplacer',
       swapIngredientAccessibility: 'Trouver des alternatives sûres pour {{ingredient}}',
