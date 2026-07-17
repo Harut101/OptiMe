@@ -4,7 +4,8 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface OnboardingStepShellProps {
   eyebrow: string;
@@ -35,6 +36,8 @@ export function OnboardingStepShell({
   onSecondary,
   onBack
 }: OnboardingStepShellProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const safeProgress = Math.max(0, Math.min(progressValue, 1));
 
   return (
@@ -72,7 +75,7 @@ export function OnboardingStepShell({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     gap: 18
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
     gap: 10
   },
   eyebrow: {
-    color: colors.primaryDark,
+    color: colors.health,
     fontWeight: '900',
     textTransform: 'uppercase'
   },
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   progressFill: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.health,
     borderRadius: 999,
     height: '100%'
   },

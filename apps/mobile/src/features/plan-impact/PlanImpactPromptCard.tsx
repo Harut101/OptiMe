@@ -6,7 +6,8 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type { EvaluatePlanImpactResponse } from '@/types/api';
 
 interface PlanImpactPromptCardProps {
@@ -29,6 +30,8 @@ export function PlanImpactPromptCard({
   onFutureOnly
 }: PlanImpactPromptCardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -85,9 +88,9 @@ export function PlanImpactPromptCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   copy: { gap: 8 },
-  eyebrow: { color: colors.primaryDark },
+  eyebrow: { color: colors.health },
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '700' }
 });

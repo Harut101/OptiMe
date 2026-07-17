@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type {
   NutritionPreferencesRequest,
   NutritionPreferencesResponse
@@ -46,6 +47,8 @@ export function FoodPreferencesForm({
   validationMode = 'standalone'
 }: FoodPreferencesFormProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const enteredAllergies = splitList(value.allergies);
   const update = <K extends keyof FoodPreferencesFormValue>(
     key: K,
@@ -175,7 +178,7 @@ function splitList(value: string) {
   return value.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   form: { gap: 16 },
   toggle: {
     flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16,

@@ -10,7 +10,7 @@ import { Text } from '@/components/Text';
 import type { GoalRequest, GoalResponse } from '@/types/api';
 import { enumOptions, getGoalImpactLabel, getGoalTypeLabel, getPrimaryGoalLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 export interface GoalsFormValue {
   goalType: GoalType;
@@ -38,6 +38,7 @@ export const PRIMARY_GOAL_VALUES: PrimaryGoal[] = ['WEIGHT_LOSS', 'WEIGHT_MAINTE
 
 export function GoalsForm({ value, onChange, validationMode = 'standalone' }: GoalsFormProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const primaryGoalSubtitles: Record<PrimaryGoal, string> = {
     HEALTHY_EATING: t('onboarding.goalHealthyEatingHelp'),
@@ -62,7 +63,7 @@ export function GoalsForm({ value, onChange, validationMode = 'standalone' }: Go
           {PRIMARY_GOAL_VALUES.map((item) => (
             <SelectableCard
               key={item}
-              icon={getPrimaryGoalIcon(item)}
+              icon={getPrimaryGoalIcon(item, colors.textInverse)}
               title={getPrimaryGoalLabel(t, item)}
               subtitle={primaryGoalSubtitles[item]}
               selected={value.primaryGoal === item}
@@ -122,11 +123,11 @@ export function GoalsForm({ value, onChange, validationMode = 'standalone' }: Go
 
 const IMPACT_VALUES: GoalImpactMode[] = ['NUTRITION_ONLY', 'NUTRITION_AND_TRAINING'];
 
-function getPrimaryGoalIcon(primaryGoal: PrimaryGoal) {
-  if (primaryGoal === 'WEIGHT_LOSS') return <Scale size={19} color={colors.textInverse} />;
-  if (primaryGoal === 'WEIGHT_GAIN') return <Dumbbell size={19} color={colors.textInverse} />;
-  if (primaryGoal === 'WEIGHT_MAINTENANCE') return <HeartPulse size={19} color={colors.textInverse} />;
-  return <Leaf size={19} color={colors.textInverse} />;
+function getPrimaryGoalIcon(primaryGoal: PrimaryGoal, color: string) {
+  if (primaryGoal === 'WEIGHT_LOSS') return <Scale size={19} color={color} />;
+  if (primaryGoal === 'WEIGHT_GAIN') return <Dumbbell size={19} color={color} />;
+  if (primaryGoal === 'WEIGHT_MAINTENANCE') return <HeartPulse size={19} color={color} />;
+  return <Leaf size={19} color={color} />;
 }
 
 export function fromGoalResponse(goal: GoalResponse): GoalsFormValue {

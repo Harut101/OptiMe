@@ -7,7 +7,8 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { getWeightUnit, getWeightUnitLabel, toDisplayWeight } from './weight-format';
 
 interface WeightUpdateModalProps {
@@ -30,6 +31,8 @@ export function WeightUpdateModal({
   onSave
 }: WeightUpdateModalProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const unitLabel = getWeightUnitLabel(measurementSystem);
   const unit = getWeightUnit(measurementSystem);
   const initialValue = useMemo(() => {
@@ -92,7 +95,7 @@ export function WeightUpdateModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     gap: 12
   },

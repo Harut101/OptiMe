@@ -14,7 +14,8 @@ import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type { EveningReflectionCheckInPayload } from '@/types/api';
 
 interface EveningReflectionSheetProps {
@@ -35,6 +36,8 @@ export function EveningReflectionSheet({
   onSaved
 }: EveningReflectionSheetProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [energyLevel, setEnergyLevel] = useState<ReflectionLevel | null>(null);
   const [tirednessLevel, setTirednessLevel] = useState<ReflectionLevel | null>(null);
   const [sorenessLevel, setSorenessLevel] = useState<ReflectionLevel | null>(null);
@@ -184,7 +187,7 @@ function toLevel(value: unknown): ReflectionLevel | null {
   return value === 3 || value === 6 || value === 9 ? String(value) as ReflectionLevel : null;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
     gap: 14
   },

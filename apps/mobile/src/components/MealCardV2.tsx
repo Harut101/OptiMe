@@ -2,7 +2,8 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { StatusPill } from './StatusPill';
 import { Text } from './Text';
 
@@ -29,6 +30,8 @@ export function MealCardV2({
   onPress,
   actions
 }: MealCardV2Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.card}>
       <Pressable
@@ -52,7 +55,7 @@ export function MealCardV2({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderColor: colors.divider,

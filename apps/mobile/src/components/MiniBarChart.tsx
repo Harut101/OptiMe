@@ -1,13 +1,15 @@
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface MiniBarChartProps {
   values: number[];
   color?: string;
 }
 
-export function MiniBarChart({ values, color = colors.health }: MiniBarChartProps) {
+export function MiniBarChart({ values, color: colorProp }: MiniBarChartProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.health;
   const max = Math.max(...values, 1);
 
   return (

@@ -8,7 +8,8 @@ import { Text } from '@/components/Text';
 import type { ProfileRequest, ProfileResponse } from '@/types/api';
 import { enumOptions, getActivityLevelLabel, getGenderLabel, getPregnancyStatusLabel, type GenderValue } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 export interface PersonalProfileFormValue {
   firstName: string;
@@ -39,6 +40,8 @@ export const EMPTY_PERSONAL_PROFILE: PersonalProfileFormValue = {
 
 export function PersonalProfileForm({ value, onChange }: PersonalProfileFormProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
   const update = <K extends keyof PersonalProfileFormValue>(
     key: K,
@@ -146,7 +149,7 @@ export function toProfileRequest(value: PersonalProfileFormValue): ProfileReques
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   form: { gap: 16 },
   healthContext: { gap: 12, padding: 16, borderRadius: 18, backgroundColor: colors.healthMuted }
 });

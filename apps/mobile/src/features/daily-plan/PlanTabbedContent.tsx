@@ -37,7 +37,8 @@ import {
   TrainingLoadInsightCard,
   WorkoutActionCard
 } from '@/features/training-dashboard/TrainingDashboardWidgets';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface PlanTabbedContentProps {
   planId: string;
@@ -203,6 +204,8 @@ function TrainingContent(props: PlanTabbedContentProps & {
   onOpenExercise: (exerciseId: string) => void;
 }) {
   const { plan, exercises = [], locale, t, summaryById } = props;
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <>
       <View style={styles.trainingSection}>
@@ -318,6 +321,8 @@ function PreWorkoutCheckCard({
   onContinueWithCaution: () => void;
   embedded?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [readinessStatus, setReadinessStatus] = useState<PreWorkoutReadinessStatus>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
   const [note, setNote] = useState('');
@@ -460,6 +465,8 @@ function ReplacementProposalReview({
   onRestToday: () => void;
   onContinueWithCaution: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const hasProposals = proposals.proposals.length > 0;
   const isPartial = proposals.status === 'PARTIAL_REPLACEMENTS_AVAILABLE';
   const isEmpty = proposals.status === 'NO_SAFE_REPLACEMENTS';
@@ -585,7 +592,7 @@ const getTrainingLoadReadinessLabel = (
   return t('trainingLoad.unknown');
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   mealsSection: {
     gap: 10
   },
@@ -600,7 +607,7 @@ const styles = StyleSheet.create({
   },
   mealSection: {
     backgroundColor: colors.card,
-    borderColor: 'rgba(209, 209, 214, 0.72)',
+    borderColor: colors.border,
     borderRadius: 24,
     borderWidth: 1,
     gap: 12,
