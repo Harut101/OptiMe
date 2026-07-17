@@ -203,6 +203,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1
   },
   mapStage: { position: 'relative' },
-  debugFrame: { borderColor: '#00A7E1', borderWidth: 1 },
+  debugFrame: { borderColor: '#00C0E8', borderWidth: 1 },
   debugText: { color: colors.textSecondary, fontSize: 12 }
 });

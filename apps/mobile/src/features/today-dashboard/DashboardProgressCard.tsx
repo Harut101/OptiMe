@@ -19,15 +19,9 @@ interface DashboardProgressCardProps {
 }
 
 export const dashboardRingGradients = {
-  nutrition: ['#7EF7D4', '#2FE6C3', '#00D1A5', '#B9FF6A'],
-  training: ['#6C7CFF', '#8B5CF6', '#D000D9', '#FF2D55'],
-  rest: ['#B8CCFF', '#8FAEFF']
-} as const;
-
-const ringTracks = {
-  nutrition: '#D9FFF4',
-  training: '#E4ECFF',
-  rest: '#E4ECFF'
+  nutrition: ['#00C8B3', '#34C759'],
+  training: ['#0088FF', '#6155F5', '#CB30E0'],
+  rest: ['#5CB8FF', '#0091FF']
 } as const;
 
 export function DashboardProgressCard({
@@ -43,6 +37,11 @@ export function DashboardProgressCard({
   const { colors } = useTheme();
   const isRestLikeState = value === null && centerLabel && centerLabel !== '-';
   const ringTone = isRestLikeState ? 'rest' : tone;
+  const trackColor = ringTone === 'nutrition'
+    ? colors.nutritionMuted
+    : ringTone === 'training'
+      ? colors.trainingMuted
+      : colors.infoMuted;
 
   return (
     <Card style={[styles.cardShell, style]}>
@@ -54,7 +53,7 @@ export function DashboardProgressCard({
             strokeWidth={16}
             label={centerLabel}
             gradientColors={dashboardRingGradients[ringTone]}
-            trackColor={ringTracks[ringTone]}
+            trackColor={trackColor}
             trackOpacity={0.92}
             endCapColor={dashboardRingGradients[ringTone][dashboardRingGradients[ringTone].length - 1]}
             emptyArcValue={isRestLikeState ? 18 : 0}

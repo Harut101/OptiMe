@@ -37,8 +37,8 @@ export function WeightProgressCard({
   const { colors: runtimeColors, mode } = useTheme();
   const palette = appearance ? themeColorsByMode[appearance] : runtimeColors;
   const isDark = appearance ? appearance === 'dark' : mode === 'dark';
-  const accent = isDark ? '#A7F20D' : palette.success;
-  const buttonColor = isDark ? '#9BE80E' : accent;
+  const accent = palette.success;
+  const buttonColor = accent;
 
   if (isLoading) {
     return (

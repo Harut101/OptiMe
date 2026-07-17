@@ -472,9 +472,9 @@ assertIncludes(circularProgressRing, [
 
 const dashboardProgressCard = read('src/features/today-dashboard/DashboardProgressCard.tsx');
 assertIncludes(dashboardProgressCard, [
-  '#7EF7D4', '#2FE6C3', '#00D1A5', '#B9FF6A',
-  '#6C7CFF', '#8B5CF6', '#D000D9', '#FF2D55',
-  '#E4ECFF', 'ringTone = isRestLikeState ?'
+  '#00C8B3', '#34C759',
+  '#0088FF', '#6155F5', '#CB30E0',
+  'colors.trainingMuted', 'ringTone = isRestLikeState ?'
 ], 'Electric dashboard progress rings');
 
 const metricCard = read('src/components/MetricCard.tsx');

@@ -60,8 +60,8 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     justifyContent: 'center'
   },
   primary: {
-    backgroundColor: colors.health,
-    borderColor: colors.health
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
   },
   secondary: {
     backgroundColor: colors.surfaceElevated,
