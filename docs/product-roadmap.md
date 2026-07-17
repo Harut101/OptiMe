@@ -228,11 +228,11 @@ Current micro-check-ins:
 - Meal completed, partially completed, skipped, or swapped.
 - Training completed, partially completed, skipped, or rested instead.
 - Pain/discomfort safety signal.
+- Optional evening reflection for energy, tiredness, soreness, and a private note.
+- A seven-entry reflection trend inside the reflection sheet, without free-text notes.
 
 Future micro-check-ins:
 
-- Evening reflection UI.
-- Energy, tiredness, and soreness trend UI.
 - Habit loop prompts.
 
 This should influence the next day's plan and future weekly summaries.
