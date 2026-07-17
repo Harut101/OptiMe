@@ -210,10 +210,14 @@ export default function MealDetailsScreen() {
       <Card>
         <SectionHeader title={t('food.approximateNutrition')} />
         <View style={styles.macroGrid}>
-          <MacroMetricWidget label={t('food.calories')} value={meal.caloriesKcal} unit="kcal" tone="nutrition" />
-          <MacroMetricWidget label={t('today.protein')} value={Math.round(meal.proteinGrams)} unit="g" tone="protein" />
-          <MacroMetricWidget label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="carbs" />
-          <MacroMetricWidget label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="fat" />
+          <View style={styles.macroRow}>
+            <MacroMetricWidget label={t('food.calories')} value={meal.caloriesKcal} unit="kcal" tone="nutrition" />
+            <MacroMetricWidget label={t('today.protein')} value={Math.round(meal.proteinGrams)} unit="g" tone="protein" />
+          </View>
+          <View style={styles.macroRow}>
+            <MacroMetricWidget label={t('today.carbs')} value={Math.round(meal.carbsGrams)} unit="g" tone="carbs" />
+            <MacroMetricWidget label={t('today.fat')} value={Math.round(meal.fatGrams)} unit="g" tone="fat" />
+          </View>
         </View>
       </Card>
 
@@ -235,7 +239,6 @@ export default function MealDetailsScreen() {
                   onPress={() => setIngredientToSwap({ name: ingredient.name, slug: ingredient.catalogFoodSlug! })}
                 >
                   <RefreshCw size={15} color={colors.primaryDark} />
-                  <Text style={styles.ingredientActionText}>{t('food.swapIngredient')}</Text>
                 </Pressable>
               ) : null}
               <Pressable
@@ -246,7 +249,6 @@ export default function MealDetailsScreen() {
                 onPress={() => setIngredientToExclude(ingredient.name)}
               >
                 <Ban size={15} color={colors.textSecondary} />
-                <Text style={styles.ingredientActionText}>{t('food.excludeIngredient')}</Text>
               </Pressable>
             </View>
           </View>
@@ -386,7 +388,7 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   ingredientRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderBottomColor: colors.divider,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
@@ -396,23 +398,20 @@ const styles = StyleSheet.create({
   },
   ingredientCopy: { flex: 1, gap: 2, minWidth: 0 },
   ingredientActions: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'flex-end'
+    flexShrink: 0,
+    gap: 8
   },
   ingredientAction: {
     alignItems: 'center',
     borderColor: colors.divider,
-    borderRadius: 999,
+    borderRadius: 12,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    minHeight: 34,
-    paddingHorizontal: 10
+    height: 40,
+    justifyContent: 'center',
+    width: 40
   },
-  ingredientActionText: { color: colors.textPrimary, fontSize: 12, fontWeight: '700', lineHeight: 16 },
   actionPressed: { opacity: 0.7 },
   swapOption: {
     alignItems: 'center',
@@ -427,9 +426,8 @@ const styles = StyleSheet.create({
   substitution: { gap: 3, paddingVertical: 5 },
   statusWrap: { gap: 8 },
   macroGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 10
   },
+  macroRow: { flexDirection: 'row', gap: 10 },
   warning: { color: colors.accent, fontWeight: '700' }
 });
