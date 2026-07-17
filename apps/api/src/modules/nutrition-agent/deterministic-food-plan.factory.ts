@@ -3,7 +3,8 @@ import type {
   FoodIngredientUnit,
   FoodMeal,
   FoodMealType,
-  FoodSubstitutionReasonCode
+  FoodSubstitutionReasonCode,
+  SupportedLocale
 } from '@optime/shared-types';
 
 import { FOOD_PLAN_VALIDATION_TOLERANCES } from './food-plan-validation.constants';
@@ -40,7 +41,8 @@ export function createDeterministicFoodPlan(
       totals,
       preferredFood: safePreferredFoods[index],
       restrictedFoods,
-      trainingDay: target.dayType === 'TRAINING_DAY'
+      trainingDay: target.dayType === 'TRAINING_DAY',
+      locale: input.locale
     })
   );
 
@@ -72,6 +74,7 @@ function createMeal(input: {
   preferredFood?: string;
   restrictedFoods: string[];
   trainingDay: boolean;
+  locale: SupportedLocale;
 }): FoodMeal {
   const mealType = getMealType(input.index, input.mealCount, input.trainingDay);
   const totals = roundTotals({
@@ -80,21 +83,23 @@ function createMeal(input: {
     carbsGrams: input.totals.carbsGrams * input.split,
     fatGrams: input.totals.fatGrams * input.split
   });
-  const title = getMealTitle(mealType);
+  const copy = getFoodPlanCopy(input.locale);
+  const title = copy.mealTitles[mealType];
   const ingredientName = getSafeFallbackIngredientName({
     preferredFood: input.preferredFood,
     title,
-    restrictedFoods: input.restrictedFoods
+    restrictedFoods: input.restrictedFoods,
+    copy
   });
 
   return {
     id: `${mealType.toLowerCase()}-${input.index + 1}`,
     mealType,
     title,
-    shortDescription: 'A simple meal built around today\'s target.',
+    shortDescription: copy.shortDescription,
     ...totals,
     prepTimeMinutes: input.index === 0 ? 10 : 15,
-    servingSummary: '1 balanced serving',
+    servingSummary: copy.servingSummary,
     ingredients: [
       {
         name: ingredientName,
@@ -105,16 +110,16 @@ function createMeal(input: {
       }
     ],
     preparationSteps: [
-      'Build the meal from familiar foods that fit your preferences.',
-      'Keep the portion close to the serving summary and adjust only for comfort.'
+      copy.preparationStepOne,
+      copy.preparationStepTwo
     ],
     substitutions: [
       {
         originalItem: ingredientName,
-        replacementItem: 'Similar preferred protein and carbohydrate option',
-        servingSummary: '1 comparable serving',
+        replacementItem: copy.substitution,
+        servingSummary: copy.comparableServing,
         reasonCode: 'SIMILAR_MACROS' as FoodSubstitutionReasonCode,
-        macroImpactNote: 'Aim to keep calories and macros close to the listed meal.'
+        macroImpactNote: copy.macroImpactNote
       }
     ],
     explanation: {
@@ -147,17 +152,82 @@ function getMealType(index: number, mealCount: number, trainingDay: boolean): Fo
   return sequence[index] ?? 'SNACK';
 }
 
-function getMealTitle(mealType: FoodMealType) {
-  const titles: Record<FoodMealType, string> = {
-    BREAKFAST: 'Breakfast',
-    LUNCH: 'Lunch',
-    DINNER: 'Dinner',
-    SNACK: 'Snack',
-    PRE_WORKOUT: 'Pre-workout snack',
-    POST_WORKOUT: 'Post-workout meal'
-  };
+interface DeterministicFoodPlanCopy {
+  mealTitles: Record<FoodMealType, string>;
+  shortDescription: string;
+  servingSummary: string;
+  preparationStepOne: string;
+  preparationStepTwo: string;
+  substitution: string;
+  comparableServing: string;
+  macroImpactNote: string;
+  preferredPlate: (food: string) => string;
+  balancedMeal: string;
+  mealComponents: string;
+  balancedPlateSuffix: string;
+}
 
-  return titles[mealType];
+const FOOD_PLAN_COPY: Record<SupportedLocale, DeterministicFoodPlanCopy> = {
+  'en-US': {
+    mealTitles: { BREAKFAST: 'Breakfast', LUNCH: 'Lunch', DINNER: 'Dinner', SNACK: 'Snack', PRE_WORKOUT: 'Pre-workout snack', POST_WORKOUT: 'Post-workout meal' },
+    shortDescription: "A simple meal built around today's target.",
+    servingSummary: '1 balanced serving',
+    preparationStepOne: 'Build the meal from familiar foods that fit your preferences.',
+    preparationStepTwo: 'Keep the portion close to the serving summary and adjust only for comfort.',
+    substitution: 'Similar preferred protein and carbohydrate option',
+    comparableServing: '1 comparable serving',
+    macroImpactNote: 'Aim to keep calories and macros close to the listed meal.',
+    preferredPlate: (food) => `Balanced ${food} plate`,
+    balancedMeal: 'Balanced meal',
+    mealComponents: 'Meal components',
+    balancedPlateSuffix: 'balanced plate'
+  },
+  'ru-RU': {
+    mealTitles: { BREAKFAST: 'Завтрак', LUNCH: 'Обед', DINNER: 'Ужин', SNACK: 'Перекус', PRE_WORKOUT: 'Перекус перед тренировкой', POST_WORKOUT: 'Приём пищи после тренировки' },
+    shortDescription: 'Простой приём пищи, составленный с учётом цели на сегодня.',
+    servingSummary: '1 сбалансированная порция',
+    preparationStepOne: 'Соберите приём пищи из привычных продуктов, подходящих вашим предпочтениям.',
+    preparationStepTwo: 'Ориентируйтесь на указанную порцию и меняйте её только для комфорта.',
+    substitution: 'Похожий предпочитаемый источник белка и углеводов',
+    comparableServing: '1 сопоставимая порция',
+    macroImpactNote: 'Старайтесь сохранять калории и макронутриенты близкими к указанной порции.',
+    preferredPlate: (food) => `Сбалансированная тарелка с ${food}`,
+    balancedMeal: 'Сбалансированный приём пищи',
+    mealComponents: 'Компоненты приёма пищи',
+    balancedPlateSuffix: 'сбалансированная тарелка'
+  },
+  'fr-FR': {
+    mealTitles: { BREAKFAST: 'Petit-déjeuner', LUNCH: 'Déjeuner', DINNER: 'Dîner', SNACK: 'Collation', PRE_WORKOUT: 'Collation avant l’entraînement', POST_WORKOUT: 'Repas après l’entraînement' },
+    shortDescription: 'Un repas simple construit autour de votre objectif du jour.',
+    servingSummary: '1 portion équilibrée',
+    preparationStepOne: 'Composez le repas avec des aliments familiers qui respectent vos préférences.',
+    preparationStepTwo: 'Restez proche de la portion indiquée et ajustez seulement pour votre confort.',
+    substitution: 'Option similaire avec protéines et glucides',
+    comparableServing: '1 portion comparable',
+    macroImpactNote: 'Essayez de garder les calories et macronutriments proches du repas indiqué.',
+    preferredPlate: (food) => `Assiette équilibrée avec ${food}`,
+    balancedMeal: 'Repas équilibré',
+    mealComponents: 'Composants du repas',
+    balancedPlateSuffix: 'assiette équilibrée'
+  },
+  'zh-CN': {
+    mealTitles: { BREAKFAST: '早餐', LUNCH: '午餐', DINNER: '晚餐', SNACK: '加餐', PRE_WORKOUT: '训练前加餐', POST_WORKOUT: '训练后餐' },
+    shortDescription: '围绕今日目标制定的一餐简单方案。',
+    servingSummary: '1 份均衡餐食',
+    preparationStepOne: '用符合您偏好的熟悉食材组合这一餐。',
+    preparationStepTwo: '尽量按照建议份量准备，仅为舒适度进行调整。',
+    substitution: '相近的蛋白质和碳水化合物选择',
+    comparableServing: '1 份相当的份量',
+    macroImpactNote: '尽量让热量和宏量营养素接近所列餐食。',
+    preferredPlate: (food) => `均衡${food}餐盘`,
+    balancedMeal: '均衡餐食',
+    mealComponents: '餐食组成',
+    balancedPlateSuffix: '均衡餐盘'
+  }
+};
+
+function getFoodPlanCopy(locale: SupportedLocale) {
+  return FOOD_PLAN_COPY[locale];
 }
 
 function roundTotals<T extends { caloriesKcal: number; proteinGrams: number; carbsGrams: number; fatGrams: number }>(
@@ -196,17 +266,18 @@ function getSafeFallbackIngredientName(input: {
   preferredFood?: string;
   title: string;
   restrictedFoods: string[];
+  copy: DeterministicFoodPlanCopy;
 }) {
   const preferred = input.preferredFood?.trim();
   const candidates = [
-    preferred ? `Balanced ${preferred} plate` : null,
-    `${input.title} balanced plate`,
-    'Balanced meal',
-    'Meal components'
+    preferred ? input.copy.preferredPlate(preferred) : null,
+    `${input.title} ${input.copy.balancedPlateSuffix}`,
+    input.copy.balancedMeal,
+    input.copy.mealComponents
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   return candidates.find((candidate) => !containsRestrictedFood(candidate, input.restrictedFoods))
-    ?? 'Meal components';
+    ?? input.copy.mealComponents;
 }
 
 function containsRestrictedFood(candidate: string, restrictedFoods: string[]) {

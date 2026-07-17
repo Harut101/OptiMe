@@ -320,7 +320,7 @@ Write this instead:
 
 ## Content Language
 
-New OpenAI and mock plans record the locale used for their generated user-facing copy in `contentLocale`. Safe fallback plans and the deterministic nutrition-only training state also use the selected locale. Existing plans keep their original copy; changing the application language does not claim that an existing plan has been translated.
+New OpenAI and mock plans record the locale used for their generated user-facing copy in `contentLocale`. Safe fallback plans, including the legacy deterministic food-plan fallback, and the deterministic nutrition-only training state also use the selected locale. Existing plans keep their original copy; changing the application language does not claim that an existing plan has been translated.
 
 When a user explicitly changes their application language, mobile can offer to recreate the existing plan with `POST /v1/daily-plans/generate` and `recreateForCurrentLanguage: true`. This runs only when the stored plan locale differs from the selected locale. It does not consume the normal daily generation or refresh allowance. If generation does not produce a ready plan, the current stored plan is returned unchanged rather than being replaced by a fallback.
 

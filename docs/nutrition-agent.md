@@ -101,6 +101,7 @@ If retry fails, the backend stores a deterministic fallback food plan. The fallb
 - uses the deterministic target when available
 - avoids complex recipes
 - avoids medical claims and restrictive language
+- uses the selected plan locale for meal labels, preparation guidance, serving summaries, and substitution copy
 - marks `source=DETERMINISTIC_FALLBACK`
 - includes safe validation reasons for UI and diagnostics
 

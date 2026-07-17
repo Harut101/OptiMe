@@ -6,6 +6,7 @@ import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
 import { FoodPlanCatalogFeasibilityService } from '../src/modules/nutrition-agent/food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from '../src/modules/nutrition-agent/food-plan-catalog-rebalancer.service';
+import { createDeterministicFoodPlan } from '../src/modules/nutrition-agent/deterministic-food-plan.factory';
 import { normalizeFoodPlanNutrition } from '../src/modules/nutrition-agent/food-plan-nutrition-normalizer';
 import {
   calculateFoodPlanPortionScore,
@@ -105,6 +106,53 @@ describe('Specialized Nutrition Agent food plans', () => {
       'isOptional'
     ]);
     expect(nutritionAgentFoodPlanOpenAiSchema.properties.meals.items.required).toContain('recipeTemplateId');
+  });
+
+  it('localizes legacy deterministic fallback food-plan copy', () => {
+    const plan = createDeterministicFoodPlan({
+      planLocalDate: '2026-07-17',
+      locale: 'ru-RU',
+      planQualityMode: 'BASIC',
+      appMode: 'NUTRITION_ONLY',
+      safeMode: false,
+      isMinor: false,
+      nutritionTarget: {
+        safety: { status: 'OK' },
+        calories: { targetKcal: 2200 },
+        macros: { proteinGrams: 130, carbsGrams: 250, fatGrams: 70 }
+      },
+      nutritionTargetSnapshot: {
+        engineVersion: 1,
+        localDate: '2026-07-17',
+        dayType: 'REST_DAY',
+        appMode: 'NUTRITION_ONLY',
+        primaryGoal: 'HEALTHY_EATING',
+        targetKcal: 2200,
+        minKcal: 2000,
+        maxKcal: 2400,
+        maintenanceEstimateKcal: 2200,
+        proteinGrams: 130,
+        carbsGrams: 250,
+        fatGrams: 70,
+        safetyStatus: 'OK',
+        safetyReasons: [],
+        explanation: { titleCode: 'TODAY_TARGET', reasonCodes: [] }
+      },
+      nutritionPreference: null,
+      goalSummary: null,
+      resolvedTrainingDay: { isTrainingDay: false }
+    } as unknown as NutritionAgentInput, 'DETERMINISTIC_FALLBACK');
+
+    expect(plan.locale).toBe('ru-RU');
+    expect(plan.meals[0]).toMatchObject({
+      title: 'Завтрак',
+      shortDescription: 'Простой приём пищи, составленный с учётом цели на сегодня.',
+      servingSummary: '1 сбалансированная порция'
+    });
+    expect(plan.meals[0].preparationSteps).toEqual([
+      'Соберите приём пищи из привычных продуктов, подходящих вашим предпочтениям.',
+      'Ориентируйтесь на указанную порцию и меняйте её только для комфорта.'
+    ]);
   });
 
   it('shares diet-aware recipe templates between the AI planning context and deterministic fallback', async () => {
