@@ -466,6 +466,18 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(saved.body.items).toHaveLength(1);
     expect(saved.body.items[0]).toMatchObject({ slug: 'whole-grain-bread' });
 
+    const candidates = await request(ctx.app.getHttpServer())
+      .get('/v1/food-availability/candidates')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(candidates.body.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: 'whole-grain-bread' })])
+    );
+    expect(candidates.body.items).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: 'greek-yogurt' })])
+    );
+
     await request(ctx.app.getHttpServer())
       .put('/v1/food-availability/today')
       .set(authHeader(user.accessToken))

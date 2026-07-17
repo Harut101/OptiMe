@@ -8,6 +8,11 @@ import type { DailyPlanMeal } from '@optime/shared-types';
 import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import {
+  getTodayFoodAvailability,
+  getTodayFoodAvailabilityCandidates,
+  replaceTodayFoodAvailability
+} from '@/api/food-availability';
+import {
   getNutritionPreferences,
   saveNutritionPreferences
 } from '@/api/nutrition-preferences';
@@ -26,6 +31,7 @@ import { ScreenSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
+import { MultiSelectChips } from '@/components/MultiSelectChips';
 import {
   EMPTY_FOOD_PREFERENCES,
   FoodPreferencesForm,
@@ -90,6 +96,18 @@ export default function FoodScreen() {
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const [menuConfirmVisible, setMenuConfirmVisible] = useState(false);
+  const [availableFoodsVisible, setAvailableFoodsVisible] = useState(false);
+  const [availableFoodSlugs, setAvailableFoodSlugs] = useState<string[]>([]);
+  const [availableFoodsError, setAvailableFoodsError] = useState<string | null>(null);
+  const availableFoods = useQuery({
+    queryKey: ['food-availability-today'],
+    queryFn: getTodayFoodAvailability
+  });
+  const availableFoodCandidates = useQuery({
+    queryKey: ['food-availability-candidates'],
+    queryFn: getTodayFoodAvailabilityCandidates,
+    enabled: availableFoodsVisible
+  });
 
   useEffect(() => {
     if (preferences.data) {
@@ -98,6 +116,13 @@ export default function FoodScreen() {
       setSavedValue(next);
     }
   }, [preferences.data]);
+
+  useEffect(() => {
+    if (!availableFoodsVisible) {
+      setAvailableFoodSlugs(availableFoods.data?.items.map((item) => item.slug) ?? []);
+      setAvailableFoodsError(null);
+    }
+  }, [availableFoods.data, availableFoodsVisible]);
 
   const dirty = isDraftDirty(value, savedValue);
   useUnsavedChangesGuard(editing && dirty);
@@ -174,6 +199,18 @@ export default function FoodScreen() {
       setValidationError(t('foodTracking.couldNotUpdateMealStatus'));
     }
   });
+  const saveAvailableFoods = useMutation({
+    mutationFn: (catalogFoodSlugs: string[]) => replaceTodayFoodAvailability(catalogFoodSlugs),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['food-availability-today'], data);
+      setAvailableFoodsVisible(false);
+      setAvailableFoodsError(null);
+      setSuccessMessage(t('foodAvailability.saved'));
+    },
+    onError: () => {
+      setAvailableFoodsError(t('foodAvailability.saveFailed'));
+    }
+  });
 
   if (preferences.isLoading) {
     return <ScreenSkeleton variant="list" cardCount={4} />;
@@ -201,6 +238,12 @@ export default function FoodScreen() {
     }
     setValidationError(null);
     mutation.mutate(toNutritionPreferencesRequest(value));
+  };
+
+  const openAvailableFoods = () => {
+    setAvailableFoodSlugs(availableFoods.data?.items.map((item) => item.slug) ?? []);
+    setAvailableFoodsError(null);
+    setAvailableFoodsVisible(true);
   };
 
   async function evaluateFoodPlanImpact(
@@ -235,6 +278,12 @@ export default function FoodScreen() {
           setPlanImpactError(null);
           setSuccessMessage(t('planImpact.futureOnlySaved'));
         }}
+      />
+
+      <AvailableFoodsPrompt
+        selectedCount={availableFoods.data?.items.length}
+        isUnavailable={availableFoods.isError}
+        onPress={openAvailableFoods}
       />
 
       {todayPlan.data?.plan.nutrition.foodPlan ? (
@@ -286,6 +335,52 @@ export default function FoodScreen() {
         ]}
       />
 
+      <BottomSheet
+        visible={availableFoodsVisible}
+        title={t('foodAvailability.title')}
+        subtitle={t('foodAvailability.description')}
+        onClose={() => {
+          if (saveAvailableFoods.isPending) return;
+          setAvailableFoodsVisible(false);
+          setAvailableFoodsError(null);
+        }}
+      >
+        {availableFoodCandidates.isLoading ? (
+          <Text variant="muted">{t('common.loading')}</Text>
+        ) : availableFoodCandidates.isError ? (
+          <Text style={styles.error}>{t('foodAvailability.unavailable')}</Text>
+        ) : availableFoodCandidates.data?.items.length ? (
+          <MultiSelectChips
+            label={t('foodAvailability.chooseLabel')}
+            value={availableFoodSlugs}
+            options={availableFoodCandidates.data.items.map((item) => ({
+              label: item.name,
+              value: item.slug
+            }))}
+            onChange={(next) => {
+              if (next.length <= 20) setAvailableFoodSlugs(next);
+            }}
+          />
+        ) : (
+          <Text variant="muted">{t('foodAvailability.empty')}</Text>
+        )}
+        {availableFoodsError ? <Text style={styles.error}>{availableFoodsError}</Text> : null}
+        <View style={styles.actions}>
+          <Button
+            title={saveAvailableFoods.isPending ? t('common.saving') : t('foodAvailability.save')}
+            loading={saveAvailableFoods.isPending}
+            disabled={availableFoodCandidates.isLoading || availableFoodCandidates.isError}
+            onPress={() => saveAvailableFoods.mutate(availableFoodSlugs)}
+          />
+          <Button
+            title={t('common.cancel')}
+            variant="secondary"
+            disabled={saveAvailableFoods.isPending}
+            onPress={() => setAvailableFoodsVisible(false)}
+          />
+        </View>
+      </BottomSheet>
+
       {validationError && !editing ? <Text style={styles.error}>{validationError}</Text> : null}
 
       {!preferences.data ? (
@@ -335,6 +430,33 @@ export default function FoodScreen() {
         <AppToast title={t('feedback.savedSuccessfully')} message={successMessage} tone="success" onDismiss={() => setSuccessMessage(null)} />
       ) : null}
     </Screen>
+  );
+}
+
+function AvailableFoodsPrompt({
+  selectedCount,
+  isUnavailable,
+  onPress
+}: {
+  selectedCount?: number;
+  isUnavailable: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const summary = isUnavailable
+    ? t('foodAvailability.unavailable')
+    : selectedCount
+      ? t('foodAvailability.selectedCount', { count: selectedCount })
+      : t('foodAvailability.noneSelected');
+
+  return (
+    <View style={styles.availableFoodsSection}>
+      <View style={styles.availableFoodsCopy}>
+        <Text variant="heading" style={styles.availableFoodsTitle}>{t('foodAvailability.title')}</Text>
+        <Text variant="muted">{summary}</Text>
+      </View>
+      <Button title={t('foodAvailability.choose')} variant="secondary" onPress={onPress} style={styles.availableFoodsButton} />
+    </View>
   );
 }
 
@@ -473,6 +595,25 @@ const styles = StyleSheet.create({
   },
   compactActionButton: {
     flex: 1
+  },
+  availableFoodsSection: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 14,
+    justifyContent: 'space-between',
+    paddingHorizontal: 2
+  },
+  availableFoodsCopy: {
+    flex: 1,
+    gap: 3
+  },
+  availableFoodsTitle: {
+    fontSize: 18,
+    lineHeight: 23
+  },
+  availableFoodsButton: {
+    minHeight: 42,
+    paddingHorizontal: 16
   },
   fallbackMealCard: {
     gap: 8

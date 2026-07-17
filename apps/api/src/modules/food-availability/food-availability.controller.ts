@@ -18,6 +18,11 @@ export class FoodAvailabilityController {
     return this.foodAvailabilityService.getToday(user.userId);
   }
 
+  @Get('candidates')
+  listCandidates(@CurrentUser() user: AuthenticatedUser) {
+    return this.foodAvailabilityService.listTodayCandidates(user.userId);
+  }
+
   @Put('today')
   replaceToday(
     @CurrentUser() user: AuthenticatedUser,

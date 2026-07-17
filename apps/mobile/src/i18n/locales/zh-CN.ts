@@ -373,5 +373,19 @@ export const zhCN = createLocaleResource({
       APPLY_TO_FUTURE_ONLY: '仅应用到未来计划',
       KEEP_CURRENT_PLAN: '保留当前计划'
     }
+  },
+  foodAvailability: {
+    title: '今天已有的食物',
+    description: '可选：选择你已经准备好的食物。更新后的菜单可能更常使用这些食物。',
+    choose: '选择食物',
+    chooseLabel: '今天可用',
+    noneSelected: '尚未选择食物',
+    selectedCount_one: '已标记 {{count}} 种可用食物',
+    selectedCount_other: '已标记 {{count}} 种可用食物',
+    save: '保存到今天',
+    saved: '今天可用的食物已保存。',
+    unavailable: '暂时无法获取可用食物。',
+    empty: '没有符合当前偏好的安全目录食物。',
+    saveFailed: '无法保存可用食物，请重试。'
   }
 });

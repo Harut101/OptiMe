@@ -124,12 +124,12 @@ Exit criteria: the app's explicit cooking-time question changes catalog selectio
 
 Exit criteria: meal timing changes the composition starting point while daily nutrition targets, safety, and catalog restrictions remain fixed. Met with focused E2E coverage.
 
-## Phase 13: Confirmed available foods foundation - in progress
+## Phase 13: Confirmed available foods foundation - complete
 
 - Add a user-owned, local-date-scoped list of catalog foods confirmed as available today.
 - Validate every saved item against active catalog status plus current diet and restriction filtering.
 - Softly rank confirmed items during deterministic composition without treating them as quantities, storage guidance, or a guaranteed menu inclusion.
-- A compact mobile Food sheet for choosing available foods is the next follow-up batch.
+- Food now has a compact localized Bottom Sheet that loads only safe candidates and saves the user's current local-date choices.
 
 ## Deferred
 

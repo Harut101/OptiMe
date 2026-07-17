@@ -252,6 +252,22 @@ export interface NutritionPreferencesResponse {
   preferredFoods: Array<{ id: string; name: string }>;
 }
 
+export interface FoodAvailabilityItem {
+  slug: string;
+  name: string;
+  category: string;
+  preparationLevel: string;
+}
+
+export interface FoodAvailabilityResponse {
+  localDate: string;
+  items: FoodAvailabilityItem[];
+}
+
+export interface FoodAvailabilityCandidatesResponse {
+  items: FoodAvailabilityItem[];
+}
+
 export interface TrainingPreferencesRequest {
   targetMuscleGroups?: TargetMuscleGroup[];
   trainingOutcome?: TrainingOutcome | null;

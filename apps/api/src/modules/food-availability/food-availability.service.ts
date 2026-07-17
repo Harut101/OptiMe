@@ -29,6 +29,20 @@ export class FoodAvailabilityService {
     return this.getForLocalDate(context, localDate);
   }
 
+  async listTodayCandidates(userId: string) {
+    const context = await this.getContext(userId);
+    const candidates = await this.allowedCandidates(context);
+
+    return {
+      items: candidates.map((item) => ({
+        slug: item.slug,
+        name: item.name,
+        category: item.category,
+        preparationLevel: item.preparationLevel
+      }))
+    };
+  }
+
   async replaceToday(userId: string, dto: ReplaceFoodAvailabilityDto) {
     const context = await this.getContext(userId);
     const localDate = this.localDate(context.timezone);

@@ -373,5 +373,19 @@ export const frFR = createLocaleResource({
       APPLY_TO_FUTURE_ONLY: 'Appliquer seulement aux prochains plans',
       KEEP_CURRENT_PLAN: 'Garder le plan actuel'
     }
+  },
+  foodAvailability: {
+    title: 'Aliments disponibles aujourd’hui',
+    description: 'Facultatif : choisissez les aliments déjà prêts. Un menu actualisé pourra les utiliser plus souvent.',
+    choose: 'Choisir des aliments',
+    chooseLabel: 'Disponibles aujourd’hui',
+    noneSelected: 'Aucun aliment sélectionné',
+    selectedCount_one: '{{count}} aliment disponible',
+    selectedCount_other: '{{count}} aliments disponibles',
+    save: 'Enregistrer pour aujourd’hui',
+    saved: 'Aliments disponibles enregistrés pour aujourd’hui.',
+    unavailable: 'Les aliments disponibles sont indisponibles pour le moment.',
+    empty: 'Aucun aliment sûr du catalogue ne correspond à vos préférences actuelles.',
+    saveFailed: 'Impossible d’enregistrer les aliments disponibles. Réessayez.'
   }
 });
