@@ -347,7 +347,7 @@ function ConnectionCard({
                   disabled={isActionPending}
                   accessibilityLabel={t('health.deleteData')}
                   onPress={onDelete}
-                  style={styles.actionButton}
+                  style={styles.deleteAction}
                 />
               </>
             ) : null}
@@ -682,13 +682,16 @@ const styles = StyleSheet.create({
     gap: 10
   },
   actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10
+    gap: 10,
+    width: '100%'
   },
   actionButton: {
-    flex: 1,
-    minWidth: 130
+    width: '100%'
+  },
+  deleteAction: {
+    alignSelf: 'center',
+    minHeight: 36,
+    paddingHorizontal: 8
   },
   skeletonHeader: {
     gap: 12,

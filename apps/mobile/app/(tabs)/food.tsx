@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Plus } from 'lucide-react-native';
 import type { DailyPlanMeal } from '@optime/shared-types';
 
 import { generateTodayPlan, getTodayPlan, regenerateDailyFoodPlan } from '@/api/daily-plans';
@@ -521,7 +522,14 @@ function AvailableFoodsPrompt({
         <Text variant="heading" style={styles.availableFoodsTitle}>{t('foodAvailability.title')}</Text>
         <Text variant="muted">{summary}</Text>
       </View>
-      <Button title={t('foodAvailability.choose')} variant="secondary" onPress={onPress} style={styles.availableFoodsButton} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('foodAvailability.choose')}
+        onPress={onPress}
+        style={({ pressed }) => [styles.availableFoodsButton, pressed ? styles.pressed : null]}
+      >
+        <Plus size={21} color={colors.textPrimary} strokeWidth={2.5} />
+      </Pressable>
     </View>
   );
 }
@@ -678,8 +686,14 @@ const styles = StyleSheet.create({
     lineHeight: 23
   },
   availableFoodsButton: {
-    minHeight: 42,
-    paddingHorizontal: 16
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderColor: colors.divider,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44
   },
   fallbackMealCard: {
     gap: 8

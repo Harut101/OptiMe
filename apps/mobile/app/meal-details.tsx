@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ban, RefreshCw } from 'lucide-react-native';
 
 import {
   applyDailyFoodIngredientSwap,
@@ -219,26 +220,35 @@ export default function MealDetailsScreen() {
       <Card>
         <SectionHeader title={t('food.ingredients')} />
         {meal.ingredients.map((ingredient) => (
-          <View key={`${ingredient.name}-${ingredient.quantity}`} style={styles.ingredient}>
-            <Text variant="body">
-              {ingredient.name}: {ingredient.quantity} {ingredient.unit}
-            </Text>
-            {ingredient.catalogFoodSlug ? (
-              <Button
-                title={t('food.swapIngredient')}
-                variant="ghost"
-                disabled={applyIngredientSwap.isPending}
-                accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: ingredient.name })}
-                onPress={() => setIngredientToSwap({ name: ingredient.name, slug: ingredient.catalogFoodSlug! })}
-              />
-            ) : null}
-            <Button
-              title={t('food.excludeIngredient')}
-              variant="ghost"
-              disabled={excludeIngredient.isPending}
-              accessibilityLabel={t('food.excludeIngredientAccessibility', { ingredient: ingredient.name })}
-              onPress={() => setIngredientToExclude(ingredient.name)}
-            />
+          <View key={`${ingredient.name}-${ingredient.quantity}`} style={styles.ingredientRow}>
+            <View style={styles.ingredientCopy}>
+              <Text variant="bodyStrong">{ingredient.name}</Text>
+              <Text variant="caption">{ingredient.quantity} {ingredient.unit}</Text>
+            </View>
+            <View style={styles.ingredientActions}>
+              {ingredient.catalogFoodSlug ? (
+                <Pressable
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.ingredientAction, pressed ? styles.actionPressed : null]}
+                  disabled={applyIngredientSwap.isPending}
+                  accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: ingredient.name })}
+                  onPress={() => setIngredientToSwap({ name: ingredient.name, slug: ingredient.catalogFoodSlug! })}
+                >
+                  <RefreshCw size={15} color={colors.primaryDark} />
+                  <Text style={styles.ingredientActionText}>{t('food.swapIngredient')}</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.ingredientAction, pressed ? styles.actionPressed : null]}
+                disabled={excludeIngredient.isPending}
+                accessibilityLabel={t('food.excludeIngredientAccessibility', { ingredient: ingredient.name })}
+                onPress={() => setIngredientToExclude(ingredient.name)}
+              >
+                <Ban size={15} color={colors.textSecondary} />
+                <Text style={styles.ingredientActionText}>{t('food.excludeIngredient')}</Text>
+              </Pressable>
+            </View>
           </View>
         ))}
       </Card>
@@ -375,7 +385,35 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontWeight: '800'
   },
-  ingredient: { gap: 8, paddingVertical: 8 },
+  ingredientRow: {
+    alignItems: 'center',
+    borderBottomColor: colors.divider,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 13
+  },
+  ingredientCopy: { flex: 1, gap: 2, minWidth: 0 },
+  ingredientActions: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'flex-end'
+  },
+  ingredientAction: {
+    alignItems: 'center',
+    borderColor: colors.divider,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    minHeight: 34,
+    paddingHorizontal: 10
+  },
+  ingredientActionText: { color: colors.textPrimary, fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  actionPressed: { opacity: 0.7 },
   swapOption: {
     alignItems: 'center',
     borderBottomColor: colors.divider,
