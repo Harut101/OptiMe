@@ -420,6 +420,9 @@ export const zhCN = createLocaleResource({
     saved: '记录已保存',
     saveFailed: '无法保存记录'
   },
+  weeklySummary: {
+    title: '本周总结', subtitle: '平静回顾您本周分享的信号。', loading: '正在加载本周总结', loadingMessage: '正在整理本周的近期记录。', unavailable: '本周总结暂不可用', noDataTitle: '您的本周记录将出现在这里', noDataMessage: '生成计划、完成一次训练或添加简短反馈后即可开始。', plans: '已生成计划', workouts: '已完成训练', reflections: '晚间反馈', averageEnergy: '平均精力', averageTiredness: '平均疲劳', averageSoreness: '平均不适', reflectionPrompt: '简短的晚间反馈可以帮助未来计划更好地调整。', steadyTakeaway: '您正在建立一份有助于了解自身需求的记录。', recoveryTakeaway: '本周需要更多恢复。接下来几天请保持稳定节奏。', noReflectionTakeaway: '在方便时添加简短反馈。'
+  },
   food: {
       swapIngredient: '替换',
       swapIngredientAccessibility: '为 {{ingredient}} 查找安全替代品',

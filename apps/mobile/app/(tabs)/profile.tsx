@@ -531,6 +531,13 @@ function TrainingHubSection() {
         subtitle={t('workout.historyHelp')}
         onPress={() => router.push('/workout-history')}
       />
+      <SettingsListItem
+        icon={<CalendarDays size={18} color={colors.recovery} />}
+        tone="training"
+        title={t('weeklySummary.title')}
+        subtitle={t('weeklySummary.subtitle')}
+        onPress={() => router.push('/weekly-summary' as never)}
+      />
     </Card>
   );
 }

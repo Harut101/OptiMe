@@ -420,6 +420,9 @@ export const frFR = createLocaleResource({
     saved: 'Bilan enregistré',
     saveFailed: 'Impossible d’enregistrer le bilan'
   },
+  weeklySummary: {
+    title: 'Resume hebdomadaire', subtitle: 'Un regard calme sur les signaux partages cette semaine.', loading: 'Chargement du resume', loadingMessage: 'Preparation des faits recents.', unavailable: 'Resume hebdomadaire indisponible', noDataTitle: 'Votre semaine prendra forme ici', noDataMessage: 'Generez un plan, terminez une seance ou ajoutez un court bilan pour commencer.', plans: 'Plans crees', workouts: 'Seances terminees', reflections: 'Bilans du soir', averageEnergy: 'Energie moyenne', averageTiredness: 'Fatigue moyenne', averageSoreness: 'Inconfort moyen', reflectionPrompt: 'Un court bilan du soir peut aider les futurs plans a mieux sadapter.', steadyTakeaway: 'Vous construisez une image utile de ce qui vous aide.', recoveryTakeaway: 'Cette semaine demandait plus de recuperation. Gardez un rythme doux les prochains jours.', noReflectionTakeaway: 'Ajoutez un court bilan quand cela vous convient.'
+  },
   food: {
       swapIngredient: 'Remplacer',
       swapIngredientAccessibility: 'Trouver des alternatives sûres pour {{ingredient}}',

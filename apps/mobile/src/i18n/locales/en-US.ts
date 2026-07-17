@@ -33,6 +33,25 @@
     saved: 'Reflection saved',
     saveFailed: 'Could not save your reflection'
   },
+  weeklySummary: {
+    title: 'Weekly summary',
+    subtitle: 'A calm look at the signals you have shared this week.',
+    loading: 'Loading weekly summary',
+    loadingMessage: 'Gathering your recent plan, workout, and reflection facts.',
+    unavailable: 'Weekly summary is unavailable',
+    noDataTitle: 'Your week will take shape here',
+    noDataMessage: 'Generate a plan, complete a workout, or add a short reflection to begin.',
+    plans: 'Plans created',
+    workouts: 'Workouts completed',
+    reflections: 'Evening reflections',
+    averageEnergy: 'Average energy',
+    averageTiredness: 'Average tiredness',
+    averageSoreness: 'Average soreness',
+    reflectionPrompt: 'A short evening reflection can help future plans adapt.',
+    steadyTakeaway: 'You are building a helpful picture of what supports you.',
+    recoveryTakeaway: 'This week called for more recovery. Keep the next few days steady.',
+    noReflectionTakeaway: 'Add a short reflection when it feels useful. It can make future guidance more practical.'
+  },
   feedback: {
     savedSuccessfully: 'Saved successfully',
     changesSaved: 'Changes saved',

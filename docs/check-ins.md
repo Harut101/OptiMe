@@ -134,6 +134,16 @@ When two or more evening reflections exist, the same sheet shows the most recent
 date-level energy, tiredness, and soreness values. It never shows free-text notes or adds
 a permanent analytics card to Today.
 
+## Weekly Summary MVP
+
+Profile links to a separate Weekly Summary screen. It provides a deterministic snapshot
+of the current calendar week: plans created, completed workouts, and aggregate evening
+reflection values. It deliberately excludes free-text notes and does not use AI.
+
+The screen is informational only: it does not change a plan, apply a score, diagnose a
+health condition, or replace the future AI weekly summary. The future summary can build on
+these verified facts with a supportive, safety-reviewed interpretation.
+
 ## Out Of Scope
 
 - Notifications

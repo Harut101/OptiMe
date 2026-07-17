@@ -239,6 +239,12 @@ This should influence the next day's plan and future weekly summaries.
 
 ### Habit Loops And Weekly Summary
 
+Current weekly summary MVP:
+
+- A Profile entry opens a separate Weekly Summary screen.
+- It shows current-week plan count, completed workout count, and aggregate evening reflection values.
+- It does not expose free-text notes, apply a score, or use AI.
+
 Future weekly AI summaries should include:
 
 - What went well.
