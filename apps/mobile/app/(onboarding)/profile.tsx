@@ -38,7 +38,7 @@ export default function ProfileSetupScreen() {
     },
     onSuccess: async ({ profile, settings }) => {
       setUser(profile.user);
-      applySettings(settings.preferredLocale, settings.measurementSystem, true);
+      applySettings(settings.preferredLocale, settings.measurementSystem, settings.themePreference, true);
       queryClient.setQueryData(['settings'], settings);
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       router.push('/(onboarding)/goal');

@@ -826,7 +826,7 @@ function SettingsSection() {
       const languageChanged = Boolean(
         request.preferredLocale && request.preferredLocale !== currentLocale
       );
-      applySettings(saved.preferredLocale, saved.measurementSystem, true);
+      applySettings(saved.preferredLocale, saved.measurementSystem, saved.themePreference, true);
       queryClient.setQueryData(['settings'], saved);
       setSettingsSheetVisible(false);
       const shouldOfferLanguageRecreate =

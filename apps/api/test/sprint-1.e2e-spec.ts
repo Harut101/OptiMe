@@ -180,6 +180,7 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(response.body).toEqual({
       preferredLocale: 'en-US',
       measurementSystem: 'METRIC',
+      themePreference: 'SYSTEM',
       initialized: false
     });
   });
@@ -193,7 +194,12 @@ describe('Sprint 1 backend vertical slice', () => {
       .send({ preferredLocale: 'ru-RU' })
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ preferredLocale: 'ru-RU', measurementSystem: 'METRIC', initialized: true });
+        expect(body).toMatchObject({
+          preferredLocale: 'ru-RU',
+          measurementSystem: 'METRIC',
+          themePreference: 'SYSTEM',
+          initialized: true
+        });
       });
 
     await request(ctx.app.getHttpServer())
@@ -202,7 +208,12 @@ describe('Sprint 1 backend vertical slice', () => {
       .send({ measurementSystem: 'IMPERIAL' })
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ preferredLocale: 'ru-RU', measurementSystem: 'IMPERIAL', initialized: true });
+        expect(body).toMatchObject({
+          preferredLocale: 'ru-RU',
+          measurementSystem: 'IMPERIAL',
+          themePreference: 'SYSTEM',
+          initialized: true
+        });
       });
 
     await request(ctx.app.getHttpServer())
@@ -211,7 +222,26 @@ describe('Sprint 1 backend vertical slice', () => {
       .send({ preferredLocale: 'fr-FR' })
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ preferredLocale: 'fr-FR', measurementSystem: 'IMPERIAL', initialized: true });
+        expect(body).toMatchObject({
+          preferredLocale: 'fr-FR',
+          measurementSystem: 'IMPERIAL',
+          themePreference: 'SYSTEM',
+          initialized: true
+        });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ themePreference: 'DARK' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          preferredLocale: 'fr-FR',
+          measurementSystem: 'IMPERIAL',
+          themePreference: 'DARK',
+          initialized: true
+        });
       });
   });
 
@@ -228,6 +258,12 @@ describe('Sprint 1 backend vertical slice', () => {
       .put('/v1/settings')
       .set(authHeader(user.accessToken))
       .send({ measurementSystem: 'US_CUSTOMARY' })
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/settings')
+      .set(authHeader(user.accessToken))
+      .send({ themePreference: 'AUTO' })
       .expect(400);
   });
 

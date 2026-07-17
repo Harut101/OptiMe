@@ -7,6 +7,9 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 export const MEASUREMENT_SYSTEMS = ['METRIC', 'IMPERIAL'] as const;
 export type MeasurementSystem = (typeof MEASUREMENT_SYSTEMS)[number];
 
+export const THEME_PREFERENCES = ['SYSTEM', 'LIGHT', 'DARK'] as const;
+export type ThemePreference = (typeof THEME_PREFERENCES)[number];
+
 export function isSupportedLocale(value: string): value is SupportedLocale {
   return SUPPORTED_LOCALES.includes(value as SupportedLocale);
 }

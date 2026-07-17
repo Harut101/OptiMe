@@ -68,7 +68,7 @@ import type {
   WorkoutSessionSummary,
   WorkoutSessionStatus
 } from '@optime/shared-types';
-import type { MeasurementSystem, SupportedLocale } from '@optime/shared-types';
+import type { MeasurementSystem, SupportedLocale, ThemePreference } from '@optime/shared-types';
 
 export type {
   DailyPlanJson,
@@ -155,12 +155,14 @@ export interface AuthResponse {
 export interface UserSettingsResponse {
   preferredLocale: SupportedLocale;
   measurementSystem: MeasurementSystem;
+  themePreference: ThemePreference;
   initialized: boolean;
 }
 
 export interface UpdateUserSettingsRequest {
   preferredLocale?: SupportedLocale;
   measurementSystem?: MeasurementSystem;
+  themePreference?: ThemePreference;
 }
 
 export interface OnboardingStatus {

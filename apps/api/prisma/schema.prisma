@@ -384,6 +384,12 @@ enum MeasurementSystem {
   IMPERIAL
 }
 
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
 enum ExerciseCategory {
   STRENGTH
   MOBILITY
@@ -511,6 +517,7 @@ model UserSettings {
   userId            String            @unique
   preferredLocale   PreferredLocale   @default(EN_US)
   measurementSystem MeasurementSystem @default(METRIC)
+  themePreference   ThemePreference   @default(SYSTEM)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

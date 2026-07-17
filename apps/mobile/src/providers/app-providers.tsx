@@ -6,6 +6,7 @@ import '@/i18n';
 import { detectDeviceLocale } from '@/i18n/locale-detection';
 import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
+import { ThemeProvider } from '@/theme/theme-provider';
 
 export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(
@@ -27,8 +28,10 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SettingsBootstrap />
-      {children}
+      <ThemeProvider>
+        <SettingsBootstrap />
+        {children}
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
@@ -58,6 +61,7 @@ function SettingsBootstrap() {
       applySettings(
         settings.data.preferredLocale,
         settings.data.measurementSystem,
+        settings.data.themePreference,
         true
       );
       return;
@@ -68,11 +72,12 @@ function SettingsBootstrap() {
     const preferredLocale = detectDeviceLocale();
     void updateSettings({
       preferredLocale,
-      measurementSystem: settings.data.measurementSystem
+      measurementSystem: settings.data.measurementSystem,
+      themePreference: settings.data.themePreference
     })
       .then((saved) => {
         queryClient.setQueryData(['settings'], saved);
-        applySettings(saved.preferredLocale, saved.measurementSystem, true);
+        applySettings(saved.preferredLocale, saved.measurementSystem, saved.themePreference, true);
       })
       .catch(() => undefined);
   }, [applySettings, queryClient, settings.data]);

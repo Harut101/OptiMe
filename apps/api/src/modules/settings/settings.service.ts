@@ -1,9 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { MeasurementSystem as PrismaMeasurementSystem, PreferredLocale } from '@prisma/client';
+import {
+  MeasurementSystem as PrismaMeasurementSystem,
+  PreferredLocale,
+  ThemePreference as PrismaThemePreference
+} from '@prisma/client';
 import {
   resolveSupportedLocale,
   type MeasurementSystem,
-  type SupportedLocale
+  type SupportedLocale,
+  type ThemePreference
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -37,6 +42,7 @@ export class SettingsService {
       return {
         preferredLocale: resolveSupportedLocale(user.locale),
         measurementSystem: 'METRIC' as const,
+        themePreference: 'SYSTEM' as const,
         initialized: false
       };
     }
@@ -45,7 +51,11 @@ export class SettingsService {
   }
 
   async updateForUser(userId: string, dto: UpdateSettingsDto) {
-    if (dto.preferredLocale === undefined && dto.measurementSystem === undefined) {
+    if (
+      dto.preferredLocale === undefined &&
+      dto.measurementSystem === undefined &&
+      dto.themePreference === undefined
+    ) {
       throw new BadRequestException('At least one setting must be provided.');
     }
 
@@ -62,18 +72,24 @@ export class SettingsService {
       dto.measurementSystem ??
       (current.settings?.measurementSystem as MeasurementSystem | undefined) ??
       'METRIC';
+    const themePreference =
+      dto.themePreference ??
+      (current.settings?.themePreference as ThemePreference | undefined) ??
+      'SYSTEM';
 
     const settings = await this.prisma.$transaction(async (tx) => {
       const saved = await tx.userSettings.upsert({
         where: { userId },
         update: {
           preferredLocale: TO_PRISMA_LOCALE[preferredLocale],
-          measurementSystem: measurementSystem as PrismaMeasurementSystem
+          measurementSystem: measurementSystem as PrismaMeasurementSystem,
+          themePreference: themePreference as PrismaThemePreference
         },
         create: {
           userId,
           preferredLocale: TO_PRISMA_LOCALE[preferredLocale],
-          measurementSystem: measurementSystem as PrismaMeasurementSystem
+          measurementSystem: measurementSystem as PrismaMeasurementSystem,
+          themePreference: themePreference as PrismaThemePreference
         }
       });
 
@@ -88,12 +104,17 @@ export class SettingsService {
   }
 
   private toResponse(
-    settings: { preferredLocale: PreferredLocale; measurementSystem: PrismaMeasurementSystem },
+    settings: {
+      preferredLocale: PreferredLocale;
+      measurementSystem: PrismaMeasurementSystem;
+      themePreference: PrismaThemePreference;
+    },
     initialized: boolean
   ) {
     return {
       preferredLocale: FROM_PRISMA_LOCALE[settings.preferredLocale],
       measurementSystem: settings.measurementSystem as MeasurementSystem,
+      themePreference: settings.themePreference as ThemePreference,
       initialized
     };
   }
