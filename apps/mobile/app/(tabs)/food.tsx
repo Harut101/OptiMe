@@ -53,10 +53,7 @@ import {
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
-import {
-  MealProgressWidget,
-  PremiumMealCard
-} from '@/features/food-dashboard/FoodDashboardWidgets';
+import { PremiumMealCard } from '@/features/food-dashboard/FoodDashboardWidgets';
 import type {
   DailyFoodPlan,
   EvaluatePlanImpactResponse,
@@ -305,7 +302,6 @@ export default function FoodScreen() {
           dailyPlanId={todayPlan.data.id}
           foodPlan={todayPlan.data.plan.nutrition.foodPlan}
           foodLog={foodLog.data}
-          trackingUnavailable={foodLog.isError}
           isRegenerating={regenerateMenu.isPending}
           isUpdatingStatus={updateMealStatus.isPending}
           onRegenerateMenu={() => setMenuConfirmVisible(true)}
@@ -538,7 +534,6 @@ function DailyFoodPlanCard({
   dailyPlanId: _dailyPlanId,
   foodPlan,
   foodLog,
-  trackingUnavailable,
   isRegenerating,
   isUpdatingStatus,
   onRegenerateMenu,
@@ -548,7 +543,6 @@ function DailyFoodPlanCard({
   dailyPlanId: string;
   foodPlan: DailyFoodPlan;
   foodLog?: FoodDayLogResponse;
-  trackingUnavailable: boolean;
   isRegenerating: boolean;
   isUpdatingStatus: boolean;
   onRegenerateMenu: () => void;
@@ -560,8 +554,6 @@ function DailyFoodPlanCard({
 
   return (
     <>
-      <MealProgressWidget foodLog={foodLog} trackingUnavailable={trackingUnavailable} />
-
       <View style={styles.mealPlanSection}>
         <View style={styles.mealPlanHeader}>
           <Text variant="heading" style={styles.mealPlanTitle}>{t('food.mealPlan')}</Text>

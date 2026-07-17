@@ -303,7 +303,6 @@ assertIncludes(today, [
 assertIncludes(food, [
   'ScreenHeader',
   'NutritionTargetSummaryCard',
-  'MealProgressWidget',
   'PremiumMealCard',
   'FallbackMealPlanCard',
   'AppFeedbackSheet',
@@ -313,6 +312,7 @@ assertIncludes(food, [
 ], 'Food polish');
 assert(!food.includes('Alert.alert'), 'Food screen must use unified feedback components instead of raw alerts.');
 assert(!food.includes('MealCardV2'), 'Food screen must use premium meal cards.');
+assert(!food.includes('MealProgressWidget'), 'Food screen must not duplicate meal status with a separate progress widget.');
 const mealDetails = read('app/meal-details.tsx');
 assertIncludes(mealDetails, [
   'topSafeArea={false}',
