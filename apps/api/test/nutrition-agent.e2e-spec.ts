@@ -1146,6 +1146,39 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
   });
 
+  it('uses confirmed available foods when regenerating one meal', async () => {
+    const user = await registerTestUser(ctx.app, 'meal-availability-regeneration@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+    const availableSlugs = ['whole-grain-bread', 'greek-yogurt-plain', 'apple'];
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforeFoodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const selectedMealId = beforeFoodPlan.meals[0].id;
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/food-availability/today')
+      .set(authHeader(user.accessToken))
+      .send({ catalogFoodSlugs: availableSlugs })
+      .expect(200);
+
+    const regenerated = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/${selectedMealId}/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Use foods I have available for this meal.' })
+      .expect(201);
+    const foodPlan = regenerated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const regeneratedMeal = foodPlan.meals.find((meal) => meal.id === selectedMealId)!;
+
+    expect(regeneratedMeal.ingredients.map((ingredient) => ingredient.catalogFoodSlug)).toEqual(
+      expect.arrayContaining(availableSlugs)
+    );
+    expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
+  });
+
   it('rejects invalid meal regeneration and old text-only plans without mutating the plan', async () => {
     const user = await registerTestUser(ctx.app, 'meal-regeneration-invalid@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});
