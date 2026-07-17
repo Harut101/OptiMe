@@ -55,6 +55,7 @@ import { ExerciseSelectionService } from '../exercise-selection/exercise-selecti
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { FoodLogsService } from '../food-logs/food-logs.service';
 import { FoodAvailabilityService } from '../food-availability/food-availability.service';
+import { FoodIngredientSwapService } from './food-ingredient-swap.service';
 import { HealthService } from '../health/health.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
@@ -128,6 +129,7 @@ export class DailyPlansService {
     private readonly checkInsService: DailyPlanCheckInsService,
     private readonly foodLogsService: FoodLogsService,
     private readonly foodAvailabilityService: FoodAvailabilityService,
+    private readonly foodIngredientSwapService: FoodIngredientSwapService,
     private readonly healthService: HealthService,
     private readonly nutritionAgent: NutritionAgentService,
     private readonly nutritionTargetsService: NutritionTargetsService,
@@ -579,6 +581,41 @@ export class DailyPlansService {
       await this.refundConsumedUsage([{ id: consumedUsage.id, amount: 1 }]);
       throw error;
     }
+  }
+
+  async getFoodIngredientSwapSuggestions(
+    userId: string,
+    dailyPlanId: string,
+    mealId: string,
+    ingredientSlug: string
+  ) {
+    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
+    const meal = context.currentFoodPlan.meals.find((item) => item.id === mealId);
+    if (!meal) throw new NotFoundException('Meal not found in this plan.');
+
+    const ingredient = meal.ingredients.find((item) => item.catalogFoodSlug === ingredientSlug);
+    if (!ingredient) throw new NotFoundException('Ingredient not found in this meal.');
+    if (!ingredient.catalogFoodSlug) {
+      throw new BadRequestException('This ingredient does not support catalog substitutions yet.');
+    }
+
+    const suggestions = await this.foodIngredientSwapService.getSuggestions({
+      ingredient,
+      locale: this.resolvePlanningLocale(context.user),
+      dietType: context.user.nutritionPref?.dietType ?? null,
+      restrictions: {
+        allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
+        excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
+        dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? []
+      }
+    });
+
+    return {
+      dailyPlanId,
+      mealId,
+      ingredientSlug,
+      suggestions
+    };
   }
 
   async regenerateFoodMeal(

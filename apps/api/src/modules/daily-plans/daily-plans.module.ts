@@ -7,6 +7,7 @@ import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { ExerciseSelectionModule } from '../exercise-selection/exercise-selection.module';
 import { FoodLogsModule } from '../food-logs/food-logs.module';
 import { FoodAvailabilityModule } from '../food-availability/food-availability.module';
+import { FoodCatalogModule } from '../food-catalog/food-catalog.module';
 import { HealthModule } from '../health/health.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
@@ -19,6 +20,7 @@ import { TrainingScheduleModule } from '../training-schedule/training-schedule.m
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlansController } from './daily-plans.controller';
 import { DailyPlansService } from './daily-plans.service';
+import { FoodIngredientSwapService } from './food-ingredient-swap.service';
 import { PainAwareExerciseReplacementService } from './pain-aware-exercise-replacement.service';
 
 @Module({
@@ -30,6 +32,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     ExerciseSelectionModule,
     FoodLogsModule,
     FoodAvailabilityModule,
+    FoodCatalogModule,
     HealthModule,
     NutritionAgentModule,
     NutritionTargetsModule,
@@ -42,7 +45,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     UsageModule
   ],
   controllers: [DailyPlansController],
-  providers: [DailyPlansService, PainAwareExerciseReplacementService],
+  providers: [DailyPlansService, PainAwareExerciseReplacementService, FoodIngredientSwapService],
   exports: [DailyPlansService]
 })
 export class DailyPlansModule {}

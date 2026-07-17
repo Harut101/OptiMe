@@ -1179,6 +1179,50 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
   });
 
+  it('lists safe catalog ingredient swap suggestions without mutating the plan', async () => {
+    const user = await registerTestUser(ctx.app, 'ingredient-swap-suggestions@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, { allergies: ['fish'] });
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/food-availability/today')
+      .set(authHeader(user.accessToken))
+      .send({ catalogFoodSlugs: ['chicken-breast-cooked'] })
+      .expect(200);
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const beforeFoodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const meal = beforeFoodPlan.meals.find((item) => (
+      item.ingredients.some((ingredient) => ingredient.catalogFoodSlug === 'chicken-breast-cooked')
+    ));
+    const ingredient = meal?.ingredients.find((item) => item.catalogFoodSlug === 'chicken-breast-cooked');
+
+    expect(meal).toBeDefined();
+    expect(ingredient).toBeDefined();
+
+    const suggestions = await request(ctx.app.getHttpServer())
+      .get(`/v1/daily-plans/${generated.body.id}/food/meals/${meal!.id}/ingredients/${ingredient!.catalogFoodSlug}/swap-suggestions`)
+      .set(authHeader(user.accessToken))
+      .expect(200);
+
+    expect(suggestions.body.suggestions).toHaveLength(3);
+    expect(suggestions.body.suggestions.map((item: { slug: string }) => item.slug)).toEqual(
+      expect.not.arrayContaining(['chicken-breast-cooked', 'salmon-cooked'])
+    );
+    expect(suggestions.body.suggestions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ unit: 'g' })
+    ]));
+
+    const today = await request(ctx.app.getHttpServer())
+      .get('/v1/daily-plans/today')
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(today.body.plan.nutrition.foodPlan).toEqual(beforeFoodPlan);
+  });
+
   it('rejects invalid meal regeneration and old text-only plans without mutating the plan', async () => {
     const user = await registerTestUser(ctx.app, 'meal-regeneration-invalid@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});

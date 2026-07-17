@@ -67,6 +67,21 @@ export class DailyPlansController {
     return this.dailyPlansService.regenerateFoodMeal(user.userId, dailyPlanId, mealId, dto);
   }
 
+  @Get(':id/food/meals/:mealId/ingredients/:ingredientSlug/swap-suggestions')
+  getFoodIngredientSwapSuggestions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Param('mealId') mealId: string,
+    @Param('ingredientSlug') ingredientSlug: string
+  ) {
+    return this.dailyPlansService.getFoodIngredientSwapSuggestions(
+      user.userId,
+      dailyPlanId,
+      mealId,
+      ingredientSlug
+    );
+  }
+
   @Post(':id/food/exclude-ingredient')
   excludeFoodIngredient(
     @CurrentUser() user: AuthenticatedUser,
