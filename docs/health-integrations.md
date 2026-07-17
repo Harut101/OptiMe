@@ -231,6 +231,8 @@ Planning remains optional:
 - Fresh snapshot: planning context receives compact activity/sleep/recovery/strain fields.
 - Stale snapshot: planning context marks it stale and avoids overfitting.
 
+When more than one provider has a snapshot for the same local day, OptiMe selects one source rather than mixing metrics. A snapshot captured more than six hours later takes precedence. When captures are within six hours, the deterministic priority is `WHOOP`, `GARMIN`, `APPLE_HEALTH`, `HEALTH_CONNECT`, `MANUAL`, then `MOCK`. Garmin is not connected yet; this rule only prepares consistent selection once its authorized sync exists.
+
 Safe observability:
 
 - Logs may include source, status, local date, stale/fresh, and whether wearable context was used.

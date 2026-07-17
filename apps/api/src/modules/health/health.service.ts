@@ -16,6 +16,7 @@ import {
 } from './health-planning.types';
 import { TrainingLoadContextResolver } from './training-load-context.resolver';
 import { WearablePlanningContextResolver } from './wearable-planning-context.resolver';
+import { selectPreferredWearableSnapshot } from './wearable-source-priority';
 import {
   canClientMarkHealthProviderConnected,
   getHealthProviderConnectionError
@@ -224,16 +225,13 @@ export class HealthService {
 
   async getWearableSnapshotByDate(userId: string, localDate: string, timezone?: string) {
     const resolvedTimezone = timezone ?? await this.getUserTimezone(userId);
-    const snapshot = await this.prisma.wearableDailySnapshot.findFirst({
+    const snapshots = await this.prisma.wearableDailySnapshot.findMany({
       where: {
         userId,
         localDate
-      },
-      orderBy: [
-        { capturedAt: 'desc' },
-        { updatedAt: 'desc' }
-      ]
+      }
     });
+    const snapshot = selectPreferredWearableSnapshot(snapshots);
 
     if (!snapshot) {
       return {
@@ -434,16 +432,13 @@ export class HealthService {
     userId: string,
     options: { planLocalDate: string; days?: number }
   ): Promise<HealthPlanningContext> {
-    const wearableSnapshot = await this.prisma.wearableDailySnapshot.findFirst({
+    const wearableSnapshots = await this.prisma.wearableDailySnapshot.findMany({
       where: {
         userId,
         localDate: options.planLocalDate
-      },
-      orderBy: [
-        { capturedAt: 'desc' },
-        { updatedAt: 'desc' }
-      ]
+      }
     });
+    const wearableSnapshot = selectPreferredWearableSnapshot(wearableSnapshots);
     const wearableContext = wearableSnapshot
       ? this.toWearablePlanningContext(wearableSnapshot, options.planLocalDate)
       : undefined;

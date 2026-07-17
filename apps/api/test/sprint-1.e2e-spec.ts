@@ -1163,6 +1163,57 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(JSON.stringify(response.body)).not.toContain('secret');
   });
 
+  it('selects one wearable source by freshness and deterministic provider priority', async () => {
+    const user = await registerTestUser(ctx.app, 'wearable-source-priority@example.com');
+    const localDate = getUtcLocalDate();
+    const now = new Date();
+
+    await ctx.prisma.wearableDailySnapshot.createMany({
+      data: [
+        {
+          userId: user.user.id,
+          source: HealthProvider.APPLE_HEALTH,
+          localDate,
+          timezone: 'UTC',
+          steps: 8000,
+          capturedAt: now
+        },
+        {
+          userId: user.user.id,
+          source: HealthProvider.GARMIN,
+          localDate,
+          timezone: 'UTC',
+          steps: 7000,
+          recoveryScore: 78,
+          capturedAt: new Date(now.getTime() - 5 * 60 * 1000)
+        }
+      ]
+    });
+
+    const prioritySelected = await request(ctx.app.getHttpServer())
+      .get(`/v1/health/wearable-snapshots?date=${localDate}`)
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(prioritySelected.body.snapshot.source).toBe(HealthProvider.GARMIN);
+
+    await ctx.prisma.wearableDailySnapshot.update({
+      where: {
+        userId_source_localDate: {
+          userId: user.user.id,
+          source: HealthProvider.GARMIN,
+          localDate
+        }
+      },
+      data: { capturedAt: new Date(now.getTime() - 7 * 60 * 60 * 1000) }
+    });
+
+    const freshestSelected = await request(ctx.app.getHttpServer())
+      .get(`/v1/health/wearable-snapshots?date=${localDate}`)
+      .set(authHeader(user.accessToken))
+      .expect(200);
+    expect(freshestSelected.body.snapshot.source).toBe(HealthProvider.APPLE_HEALTH);
+  });
+
   it('updates native connection status and prevents the client from forging OAuth provider connections', async () => {
     const user = await registerTestUser(ctx.app, 'health-foundation-status@example.com');
 
