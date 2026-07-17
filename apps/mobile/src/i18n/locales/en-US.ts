@@ -173,6 +173,11 @@
     selectedCount_other: '{{count}} foods marked available',
     save: 'Save for today',
     saved: 'Available foods saved for today.',
+    updateTodayTitle: "Update today's menu?",
+    updateTodayMessage: 'Your available foods can be used more often in a refreshed menu. Your nutrition target will stay the same.',
+    updateTodayLimitNote: 'Updating the menu may use one refresh from your plan limit.',
+    futureOnly: 'Use in future menus',
+    futureOnlySaved: 'Available foods will be considered in future menus.',
     unavailable: 'Prepared foods are unavailable right now.',
     empty: 'No safe catalog foods are available for your current preferences.',
     saveFailed: 'Could not save available foods. Please try again.'

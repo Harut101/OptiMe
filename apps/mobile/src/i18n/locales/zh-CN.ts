@@ -384,6 +384,11 @@ export const zhCN = createLocaleResource({
     selectedCount_other: '已标记 {{count}} 种可用食物',
     save: '保存到今天',
     saved: '今天可用的食物已保存。',
+    updateTodayTitle: '更新今天的菜单？',
+    updateTodayMessage: '更新后的菜单可能更常使用这些可用食物。营养目标保持不变。',
+    updateTodayLimitNote: '更新菜单可能会使用一次计划刷新额度。',
+    futureOnly: '用于未来菜单',
+    futureOnlySaved: '未来菜单将考虑今天可用的食物。',
     unavailable: '暂时无法获取可用食物。',
     empty: '没有符合当前偏好的安全目录食物。',
     saveFailed: '无法保存可用食物，请重试。'

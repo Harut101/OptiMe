@@ -384,6 +384,11 @@ export const frFR = createLocaleResource({
     selectedCount_other: '{{count}} aliments disponibles',
     save: 'Enregistrer pour aujourd’hui',
     saved: 'Aliments disponibles enregistrés pour aujourd’hui.',
+    updateTodayTitle: 'Actualiser le menu du jour ?',
+    updateTodayMessage: 'Les aliments disponibles peuvent être utilisés plus souvent dans le menu actualisé. Votre cible nutritionnelle restera la même.',
+    updateTodayLimitNote: 'L’actualisation du menu peut utiliser une actualisation de votre limite de plan.',
+    futureOnly: 'Utiliser dans les prochains menus',
+    futureOnlySaved: 'Les aliments disponibles seront pris en compte dans les prochains menus.',
     unavailable: 'Les aliments disponibles sont indisponibles pour le moment.',
     empty: 'Aucun aliment sûr du catalogue ne correspond à vos préférences actuelles.',
     saveFailed: 'Impossible d’enregistrer les aliments disponibles. Réessayez.'

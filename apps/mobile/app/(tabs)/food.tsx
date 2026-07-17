@@ -97,6 +97,7 @@ export default function FoodScreen() {
   const [planImpactError, setPlanImpactError] = useState<string | null>(null);
   const [menuConfirmVisible, setMenuConfirmVisible] = useState(false);
   const [availableFoodsVisible, setAvailableFoodsVisible] = useState(false);
+  const [availableFoodsImpactVisible, setAvailableFoodsImpactVisible] = useState(false);
   const [availableFoodSlugs, setAvailableFoodSlugs] = useState<string[]>([]);
   const [availableFoodsError, setAvailableFoodsError] = useState<string | null>(null);
   const availableFoods = useQuery({
@@ -205,7 +206,11 @@ export default function FoodScreen() {
       queryClient.setQueryData(['food-availability-today'], data);
       setAvailableFoodsVisible(false);
       setAvailableFoodsError(null);
-      setSuccessMessage(t('foodAvailability.saved'));
+      if (todayPlan.data?.plan.nutrition.foodPlan) {
+        setAvailableFoodsImpactVisible(true);
+      } else {
+        setSuccessMessage(t('foodAvailability.saved'));
+      }
     },
     onError: () => {
       setAvailableFoodsError(t('foodAvailability.saveFailed'));
@@ -377,6 +382,36 @@ export default function FoodScreen() {
             variant="secondary"
             disabled={saveAvailableFoods.isPending}
             onPress={() => setAvailableFoodsVisible(false)}
+          />
+        </View>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={availableFoodsImpactVisible}
+        title={t('foodAvailability.updateTodayTitle')}
+        onClose={() => setAvailableFoodsImpactVisible(false)}
+      >
+        <Text variant="body">{t('foodAvailability.updateTodayMessage')}</Text>
+        <Text variant="muted">{t('foodAvailability.updateTodayLimitNote')}</Text>
+        <View style={styles.actions}>
+          <Button
+            title={regenerateMenu.isPending ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
+            loading={regenerateMenu.isPending}
+            disabled={regenerateMenu.isPending || !todayPlan.data}
+            onPress={() => {
+              if (!todayPlan.data) return;
+              setAvailableFoodsImpactVisible(false);
+              regenerateMenu.mutate(todayPlan.data.id);
+            }}
+          />
+          <Button
+            title={t('foodAvailability.futureOnly')}
+            variant="secondary"
+            disabled={regenerateMenu.isPending}
+            onPress={() => {
+              setAvailableFoodsImpactVisible(false);
+              setSuccessMessage(t('foodAvailability.futureOnlySaved'));
+            }}
           />
         </View>
       </BottomSheet>
