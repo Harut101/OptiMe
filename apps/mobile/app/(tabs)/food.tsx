@@ -21,6 +21,7 @@ import { getNutritionTargetPreview } from '@/api/nutrition-targets';
 import { Button } from '@/components/Button';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Card } from '@/components/Card';
+import { Field } from '@/components/Field';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { AppToast } from '@/components/AppToast';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
@@ -65,6 +66,7 @@ import type {
 } from '@/types/api';
 
 const TODAY_PLAN_QUERY_KEY = ['today' + '-plan'] as const;
+const MAX_AVAILABLE_FOODS = 20;
 
 export default function FoodScreen() {
   const { t } = useTranslation();
@@ -99,6 +101,7 @@ export default function FoodScreen() {
   const [availableFoodsVisible, setAvailableFoodsVisible] = useState(false);
   const [availableFoodsImpactVisible, setAvailableFoodsImpactVisible] = useState(false);
   const [availableFoodSlugs, setAvailableFoodSlugs] = useState<string[]>([]);
+  const [availableFoodSearch, setAvailableFoodSearch] = useState('');
   const [availableFoodsError, setAvailableFoodsError] = useState<string | null>(null);
   const availableFoods = useQuery({
     queryKey: ['food-availability-today'],
@@ -121,9 +124,14 @@ export default function FoodScreen() {
   useEffect(() => {
     if (!availableFoodsVisible) {
       setAvailableFoodSlugs(availableFoods.data?.items.map((item) => item.slug) ?? []);
+      setAvailableFoodSearch('');
       setAvailableFoodsError(null);
     }
   }, [availableFoods.data, availableFoodsVisible]);
+
+  const filteredAvailableFoodCandidates = (availableFoodCandidates.data?.items ?? []).filter((item) => (
+    item.name.toLocaleLowerCase().includes(availableFoodSearch.trim().toLocaleLowerCase())
+  ));
 
   const dirty = isDraftDirty(value, savedValue);
   useUnsavedChangesGuard(editing && dirty);
@@ -355,17 +363,40 @@ export default function FoodScreen() {
         ) : availableFoodCandidates.isError ? (
           <Text style={styles.error}>{t('foodAvailability.unavailable')}</Text>
         ) : availableFoodCandidates.data?.items.length ? (
-          <MultiSelectChips
-            label={t('foodAvailability.chooseLabel')}
-            value={availableFoodSlugs}
-            options={availableFoodCandidates.data.items.map((item) => ({
-              label: item.name,
-              value: item.slug
-            }))}
-            onChange={(next) => {
-              if (next.length <= 20) setAvailableFoodSlugs(next);
-            }}
-          />
+          <>
+            <Field
+              label={t('foodAvailability.searchLabel')}
+              value={availableFoodSearch}
+              onChangeText={setAvailableFoodSearch}
+              placeholder={t('foodAvailability.searchPlaceholder')}
+              accessibilityLabel={t('foodAvailability.searchLabel')}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text variant="muted">
+              {t('foodAvailability.selectionCount', { count: availableFoodSlugs.length })}
+            </Text>
+            {filteredAvailableFoodCandidates.length ? (
+              <MultiSelectChips
+                label={t('foodAvailability.chooseLabel')}
+                value={availableFoodSlugs}
+                options={filteredAvailableFoodCandidates.map((item) => ({
+                  label: item.name,
+                  value: item.slug
+                }))}
+                onChange={(next) => {
+                  if (next.length <= MAX_AVAILABLE_FOODS) {
+                    setAvailableFoodSlugs(next);
+                    setAvailableFoodsError(null);
+                    return;
+                  }
+                  setAvailableFoodsError(t('foodAvailability.selectionLimitReached'));
+                }}
+              />
+            ) : (
+              <Text variant="muted">{t('foodAvailability.noSearchResults')}</Text>
+            )}
+          </>
         ) : (
           <Text variant="muted">{t('foodAvailability.empty')}</Text>
         )}
