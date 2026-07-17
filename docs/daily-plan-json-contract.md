@@ -320,7 +320,7 @@ Write this instead:
 
 ## Content Language
 
-New OpenAI plans record the locale used for their generated user-facing copy in `contentLocale`. Safe fallback plans and the deterministic nutrition-only training state also use the selected locale. Existing plans keep their original copy; changing the application language does not claim that an existing plan has been translated.
+New OpenAI and mock plans record the locale used for their generated user-facing copy in `contentLocale`. Safe fallback plans and the deterministic nutrition-only training state also use the selected locale. Existing plans keep their original copy; changing the application language does not claim that an existing plan has been translated.
 
 Backend normalization can clean safe avoidance qualifiers before safety checks, but providers should still treat clean food names as the contract. Actual restricted foods in food names, such as `Avocado toast`, `Chicken with avocado`, or `Pork rice bowl`, remain safety failures.
 

@@ -1,14 +1,17 @@
 import { DailyReadinessLevel, PlanQualityMode } from '@prisma/client';
-import type { NutritionTarget } from '@optime/shared-types';
+import type { NutritionTarget, SupportedLocale } from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plan-json.schema';
 import { buildDailyPlanContextNotes } from '../daily-plan-context-notes';
+import { getSafeFallbackCopy } from '../daily-plan-copy';
 import type { GenerateDailyPlanExerciseSelection } from '../../ai/ai-provider.interface';
 import type { HealthPlanningContext } from '../../health/health-planning.types';
+import { getMockDailyPlanCopy, type MockDailyPlanCopy } from './mock-daily-plan-copy';
 
 export interface MockDailyPlanInput {
   planLocalDate: string;
   planTimezone: string;
+  locale?: SupportedLocale;
   firstName?: string | null;
   isMinor: boolean;
   planQualityMode?: PlanQualityMode;
@@ -19,11 +22,14 @@ export interface MockDailyPlanInput {
 }
 
 export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
+  const locale = input.locale ?? 'en-US';
+  const copy = getMockDailyPlanCopy(locale);
+  const trainingOffCopy = getSafeFallbackCopy(locale);
   const greetingName = input.firstName ? `${input.firstName}, ` : '';
   const generatedAt = new Date().toISOString();
   const planQualityMode = input.planQualityMode ?? PlanQualityMode.BASIC;
-  const summaryByMode = getSummaryByMode(planQualityMode);
-  const primaryMeals = createPrimaryMeals();
+  const summaryByMode = copy.summaries[planQualityMode];
+  const primaryMeals = createPrimaryMeals(copy);
   const trainingEnabled = input.trainingEnabled ?? true;
   const contextNotes = buildDailyPlanContextNotes({
     healthPlanningContext: input.healthPlanningContext,
@@ -35,10 +41,11 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
     schemaVersion: 'sprint-2.v1',
     generatedAt,
     mockVersion: 2,
+    contentLocale: locale,
     safety: {
       safeMode: input.isMinor,
       adjustedForSafety: input.isMinor,
-      reasons: input.isMinor ? ['Safe mode is active for balanced, age-appropriate guidance.'] : []
+      reasons: input.isMinor ? [copy.safeModeReason] : []
     },
     summary: {
       title: summaryByMode.title,
@@ -48,49 +55,53 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
     nutrition: {
       calorieGuidance: {
         label: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
-          ? `${input.nutritionTarget.calories.targetKcal} kcal target`
-          : input.isMinor ? 'Balanced meals' : 'Steady energy target',
+          ? copy.calorieTarget(input.nutritionTarget.calories.targetKcal)
+          : input.isMinor ? copy.balancedMeals : copy.steadyEnergyTarget,
         notes: input.isMinor
-          ? 'Today focuses on balanced meals, hydration, rest, and healthy movement.'
-          : input.nutritionTarget?.calories.adjustmentReason ?? 'A balanced target for steady energy today.'
+          ? copy.balancedNutritionNotes
+          : locale === 'en-US'
+            ? input.nutritionTarget?.calories.adjustmentReason ?? copy.steadyEnergyTarget
+            : copy.steadyEnergyTarget
       },
       macroGuidance: {
         protein: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
           ? `${input.nutritionTarget.macros.proteinGrams}g`
-          : input.isMinor ? 'Include a protein food at meals' : 'Protein with each meal',
+          : copy.proteinWithEachMeal,
         carbs: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
           ? `${input.nutritionTarget.macros.carbsGrams}g`
-          : 'Choose steady-energy carbs around activity',
+          : copy.steadyCarbs,
         fat: input.nutritionTarget && input.nutritionTarget.safety.status !== 'NEEDS_MORE_INFO'
           ? `${input.nutritionTarget.macros.fatGrams}g`
-          : 'Include satisfying fats in moderate portions',
-        notes: 'Use this as practical direction, not a strict rule.'
+          : copy.satisfyingFats,
+        notes: copy.practicalDirection
       },
       meals: primaryMeals,
-      menuOptions: createMenuOptions(planQualityMode, primaryMeals),
+      menuOptions: createMenuOptions(planQualityMode, primaryMeals, copy),
       hydration: {
-        guidance: 'Sip regularly across the day, especially around training.',
-        notes: 'Hydration supports energy and recovery.'
+        guidance: copy.hydrationGuidance,
+        notes: copy.hydrationNotes
       }
     },
     training: {
       recommendation: trainingEnabled
-        ? getTrainingRecommendation(summaryByMode.trainingRecommendation, input.healthPlanningContext)
-        : 'Training is off for this plan.',
+        ? getTrainingRecommendation(summaryByMode.trainingRecommendation, input.healthPlanningContext, copy)
+        : trainingOffCopy.trainingOffRecommendation,
       intensity: trainingEnabled ? 'MODERATE' : 'REST',
       notes: trainingEnabled
-        ? input.healthPlanningContext?.trainingLoadContext.userFacingHint ??
-          'Adjust effort down if energy, sleep, or recovery feels off.'
-        : 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
+        ? (locale === 'en-US'
+            ? input.healthPlanningContext?.trainingLoadContext.userFacingHint
+            : undefined) ??
+          copy.trainingNotes
+        : trainingOffCopy.trainingOffNotes,
       exercises: !trainingEnabled
         ? []
         : input.exerciseSelection
-          ? createLibraryExercises(input.exerciseSelection)
-          : createExercises(planQualityMode)
+          ? createLibraryExercises(input.exerciseSelection, copy)
+          : createExercises(planQualityMode, copy)
     },
     ...(contextNotes ? { contextNotes } : {}),
-    recovery: getRecoveryGuidance(input.healthPlanningContext),
-    reminders: ['Hydrate regularly', 'Eat after training', 'Keep your evening routine calm'],
+    recovery: getRecoveryGuidance(input.healthPlanningContext, copy),
+    reminders: copy.reminders,
     debug: {
       provider: 'mock',
       generatedBy: 'MockAiProviderService',
@@ -101,7 +112,8 @@ export function createMockDailyPlan(input: MockDailyPlanInput): DailyPlanJson {
 
 function getTrainingRecommendation(
   baseRecommendation: string,
-  healthPlanningContext?: HealthPlanningContext
+  healthPlanningContext: HealthPlanningContext | undefined,
+  copy: MockDailyPlanCopy
 ) {
   const trainingLoad = healthPlanningContext?.trainingLoadContext;
   if (
@@ -109,14 +121,15 @@ function getTrainingRecommendation(
     trainingLoad.readinessHint !== 'NORMAL' &&
     trainingLoad.userFacingHint
   ) {
-    return `${baseRecommendation} Keep the session controlled today.`;
+    return `${baseRecommendation} ${copy.controlledSession}`;
   }
 
   return baseRecommendation;
 }
 
 function getRecoveryGuidance(
-  healthPlanningContext?: HealthPlanningContext
+  healthPlanningContext: HealthPlanningContext | undefined,
+  copy: MockDailyPlanCopy
 ): DailyPlanJson['recovery'] {
   const wearableContext = healthPlanningContext?.wearableContext;
   if (wearableContext?.hasRecentData) {
@@ -125,39 +138,23 @@ function getRecoveryGuidance(
       (wearableContext.recoveryScore ?? 100) < 40 ||
       (wearableContext.strainScore ?? 0) >= 15
     ) {
-      return {
-        recommendation:
-          'Recent wearable signals suggest keeping recovery simple and intensity conservative today.',
-        sleepTip: 'Aim for a calm wind-down and enough time in bed tonight.',
-        mobilityTip: 'Choose gentle mobility or an easy walk if it feels comfortable.'
-      };
+      return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
     }
 
-    return {
-      recommendation:
-        'Recent wearable signals are available, so today can stay steady while still respecting how you feel.',
-      sleepTip: 'Keep your evening routine predictable.',
-      mobilityTip: 'Add gentle mobility if it feels good.'
-    };
+    return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
   }
 
   if (wearableContext?.isStale) {
-    return {
-      recommendation:
-        'Wearable data is not recent, so recovery guidance uses your saved profile and schedule today.',
-      sleepTip: 'Give yourself a realistic wind-down window tonight.',
-      mobilityTip: 'Add gentle mobility if it feels good.'
-    };
+    return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
   }
 
-  return {
-    recommendation: 'Support recovery with regular meals, hydration, and a calm evening routine.',
-    sleepTip: 'Give yourself a realistic wind-down window tonight.',
-    mobilityTip: 'Add gentle mobility if it feels good.'
-  };
+  return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
 }
 
-function createLibraryExercises(selection: GenerateDailyPlanExerciseSelection): NonNullable<DailyPlanJson['training']['exercises']> {
+function createLibraryExercises(
+  selection: GenerateDailyPlanExerciseSelection,
+  copy: MockDailyPlanCopy
+): NonNullable<DailyPlanJson['training']['exercises']> {
   return selection.candidates.slice(0, selection.requestedExerciseCount).map((candidate) => {
     const sets = selection.volumePlan.suggestedSetsPerExercise || 2;
     const rest = selection.volumePlan.suggestedRestSeconds || 60;
@@ -167,37 +164,39 @@ function createLibraryExercises(selection: GenerateDailyPlanExerciseSelection): 
       name: candidate.name,
       targetMuscles: candidate.targetMuscles,
       equipment: candidate.equipment,
-      intensityCue: 'Keep the movement controlled and leave comfortable effort in reserve.',
+      intensityCue: copy.exercise.intensityCue,
       safetyNotes: candidate.safetyNotes.join(' ').slice(0, 220),
-      notes: `Planned for a ${selection.workoutDurationMinutes}-minute session with safe pacing.`
+      notes: copy.exercise.plannedSession(selection.workoutDurationMinutes)
     };
-    if (candidate.category === 'STRENGTH') return { ...common, sets: String(Math.max(1, Math.min(5, sets))), reps: '8-10', rest: `${rest} seconds` };
-    if (candidate.category === 'CARDIO') return { ...common, duration: `${Math.max(5, Math.min(15, Math.floor(selection.workoutDurationMinutes / 3)))} minutes` };
-    return { ...common, duration: '5 minutes' };
+    if (candidate.category === 'STRENGTH') return { ...common, sets: String(Math.max(1, Math.min(5, sets))), reps: '8-10', rest: copy.exercise.seconds(rest) };
+    if (candidate.category === 'CARDIO') return { ...common, duration: copy.exercise.minutes(Math.max(5, Math.min(15, Math.floor(selection.workoutDurationMinutes / 3)))) };
+    return { ...common, duration: copy.exercise.minutes(5) };
   });
 }
 
 function createExercises(
-  planQualityMode: PlanQualityMode
+  planQualityMode: PlanQualityMode,
+  copy: MockDailyPlanCopy
 ): NonNullable<DailyPlanJson['training']['exercises']> {
+  const exercise = copy.exercise;
   const basics = [
     {
-      name: 'Easy walk',
-      targetMuscles: ['full body'],
-      equipment: ['bodyweight'],
-      duration: '10-20 minutes',
-      intensityCue: 'Keep the pace comfortable.',
-      safetyNotes: 'Stop or reduce effort if anything feels uncomfortable.'
+      name: exercise.easyWalk.name,
+      targetMuscles: exercise.easyWalk.muscles,
+      equipment: exercise.easyWalk.equipment,
+      duration: exercise.easyWalk.duration,
+      intensityCue: exercise.easyWalk.cue,
+      safetyNotes: exercise.easyWalk.safety
     },
     {
-      name: 'Bodyweight squat',
-      targetMuscles: ['legs', 'glutes'],
-      equipment: ['bodyweight'],
+      name: exercise.squat.name,
+      targetMuscles: exercise.squat.muscles,
+      equipment: exercise.squat.equipment,
       sets: '2',
       reps: '8-10',
-      rest: '60-90 seconds',
-      intensityCue: 'Move with control and leave effort in reserve.',
-      safetyNotes: 'Use a pain-free range of motion.'
+      rest: exercise.squat.rest,
+      intensityCue: exercise.squat.cue,
+      safetyNotes: exercise.squat.safety
     }
   ];
 
@@ -208,24 +207,24 @@ function createExercises(
   const personalized = [
     ...basics,
     {
-      name: 'Incline push-up',
-      targetMuscles: ['chest', 'shoulders', 'arms'],
-      equipment: ['bench or sturdy surface'],
+      name: exercise.inclinePushUp.name,
+      targetMuscles: exercise.inclinePushUp.muscles,
+      equipment: exercise.inclinePushUp.equipment,
       sets: '2-3',
       reps: '6-10',
-      rest: '60-90 seconds',
-      intensityCue: 'Choose an incline that feels smooth and controlled.',
-      safetyNotes: 'Skip this if wrists or shoulders feel irritated.'
+      rest: exercise.inclinePushUp.rest,
+      intensityCue: exercise.inclinePushUp.cue,
+      safetyNotes: exercise.inclinePushUp.safety
     },
     {
-      name: 'Dead bug',
-      targetMuscles: ['core'],
-      equipment: ['bodyweight'],
+      name: exercise.deadBug.name,
+      targetMuscles: exercise.deadBug.muscles,
+      equipment: exercise.deadBug.equipment,
       sets: '2',
       reps: '6-8 per side',
-      rest: '45-60 seconds',
-      intensityCue: 'Move slowly and breathe steadily.',
-      safetyNotes: 'Keep the movement gentle and controlled.'
+      rest: exercise.deadBug.rest,
+      intensityCue: exercise.deadBug.cue,
+      safetyNotes: exercise.deadBug.safety
     }
   ];
 
@@ -236,39 +235,39 @@ function createExercises(
   return [
     ...personalized,
     {
-      name: 'Glute bridge',
-      targetMuscles: ['glutes', 'hamstrings'],
-      equipment: ['bodyweight'],
+      name: exercise.gluteBridge.name,
+      targetMuscles: exercise.gluteBridge.muscles,
+      equipment: exercise.gluteBridge.equipment,
       sets: '2-3',
       reps: '8-12',
-      rest: '60 seconds',
-      intensityCue: 'Use a steady pace and stop well before strain.',
-      safetyNotes: 'Keep it comfortable for hips and lower back.'
+      rest: exercise.gluteBridge.rest,
+      intensityCue: exercise.gluteBridge.cue,
+      safetyNotes: exercise.gluteBridge.safety
     }
   ];
 }
 
-function createPrimaryMeals(): DailyPlanJson['nutrition']['meals'] {
+function createPrimaryMeals(copy: MockDailyPlanCopy): DailyPlanJson['nutrition']['meals'] {
   return [
     {
-      name: 'Breakfast',
-      purpose: 'Start with something familiar, balanced, and easy to repeat.',
+      name: copy.breakfast.name,
+      purpose: copy.breakfast.purpose,
       foods: [
         {
-          name: 'Greek yogurt or a preferred protein option',
+          name: copy.breakfast.food,
           portion: '1 bowl',
-          notes: 'Add fruit or oats if that feels good today.'
+          notes: copy.breakfast.notes
         }
       ]
     },
     {
-      name: 'Lunch',
-      purpose: 'Midday energy',
+      name: copy.lunch.name,
+      purpose: copy.lunch.purpose,
       foods: [
         {
-          name: 'Protein, grains, and vegetables',
+          name: copy.lunch.food,
           portion: '1 balanced plate',
-          notes: 'Choose foods that match your preferences and allergies.'
+          notes: copy.lunch.notes
         }
       ]
     }
@@ -277,11 +276,12 @@ function createPrimaryMeals(): DailyPlanJson['nutrition']['meals'] {
 
 function createMenuOptions(
   planQualityMode: PlanQualityMode,
-  primaryMeals: DailyPlanJson['nutrition']['meals']
+  primaryMeals: DailyPlanJson['nutrition']['meals'],
+  copy: MockDailyPlanCopy
 ): NonNullable<DailyPlanJson['nutrition']['menuOptions']> {
   const balancedOption = {
-    label: 'Balanced standard day',
-    focus: 'Steady energy with familiar, practical meals.',
+    label: copy.options.balanced.label,
+    focus: copy.options.balanced.focus,
     meals: primaryMeals
   };
 
@@ -290,28 +290,28 @@ function createMenuOptions(
   }
 
   const quickOption = {
-    label: 'Quick simple prep',
-    focus: 'Easy meals with minimal prep while keeping nutrition steady.',
+    label: copy.options.quick.label,
+    focus: copy.options.quick.focus,
     meals: [
       {
-        name: 'Simple breakfast',
-        purpose: 'Quick start',
+        name: copy.options.quick.breakfast,
+        purpose: copy.options.quick.focus,
         foods: [
           {
-            name: 'Protein smoothie',
+            name: copy.options.quick.breakfastFood,
             portion: '1 serving',
-            notes: 'Use ingredients that fit your allergies and preferences.'
+            notes: copy.breakfast.notes
           }
         ]
       },
       {
-        name: 'Simple lunch',
-        purpose: 'Low-friction midday meal',
+        name: copy.options.quick.lunch,
+        purpose: copy.options.quick.focus,
         foods: [
           {
-            name: 'Rice bowl with lean protein',
+            name: copy.options.quick.lunchFood,
             portion: '1 bowl',
-            notes: 'Add vegetables that fit your preferences.'
+            notes: copy.lunch.notes
           }
         ]
       }
@@ -324,33 +324,33 @@ function createMenuOptions(
 
   return [
     {
-      label: 'Workout support',
-      focus: 'Meals that support scheduled training and steady recovery.',
+      label: copy.options.workout.label,
+      focus: copy.options.workout.focus,
       meals: primaryMeals
     },
     {
-      label: 'Recovery friendly',
-      focus: 'Gentle, practical meals for an easier recovery-focused day.',
+      label: copy.options.recovery.label,
+      focus: copy.options.recovery.focus,
       meals: [
         {
-          name: 'Recovery breakfast',
-          purpose: 'Gentle morning fuel',
+          name: copy.options.recovery.breakfast,
+          purpose: copy.options.recovery.focus,
           foods: [
             {
-              name: 'Oats with protein',
+              name: copy.options.recovery.breakfastFood,
               portion: '1 bowl',
-              notes: 'Keep preparation simple and comfortable.'
+              notes: copy.options.recovery.focus
             }
           ]
         },
         {
-          name: 'Recovery lunch',
-          purpose: 'Balanced, easy digestion',
+          name: copy.options.recovery.lunch,
+          purpose: copy.options.recovery.focus,
           foods: [
             {
-              name: 'Warm grain bowl',
+              name: copy.options.recovery.lunchFood,
               portion: '1 bowl',
-              notes: 'Choose vegetables and protein that fit your preferences.'
+              notes: copy.lunch.notes
             }
           ]
         }
@@ -358,33 +358,4 @@ function createMenuOptions(
     },
     quickOption
   ];
-}
-
-function getSummaryByMode(planQualityMode: PlanQualityMode) {
-  switch (planQualityMode) {
-    case PlanQualityMode.ADAPTIVE:
-      return {
-        title: 'Adaptive plan for today',
-        message:
-          "today's plan uses your recent patterns to support steady energy, training, and recovery.",
-        trainingRecommendation:
-          'Use today as a tailored maintain day, adjusting effort to your recent feedback and schedule.'
-      };
-    case PlanQualityMode.PERSONALIZED:
-      return {
-        title: 'Personalized plan for today',
-        message:
-          "today's plan reflects your preferences, schedule, and goal with practical choices.",
-        trainingRecommendation:
-          'Train in line with your schedule and goal, keeping the session specific but sustainable.'
-      };
-    case PlanQualityMode.BASIC:
-    default:
-      return {
-        title: 'Steady plan for today',
-        message:
-          "today's plan supports steady energy, balanced meals, and manageable movement.",
-        trainingRecommendation: 'Keep training controlled and sustainable today.'
-      };
-  }
 }

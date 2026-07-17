@@ -72,6 +72,20 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(plan.safety.userSafeMessage).toBe('Сегодня мы выбрали более безопасный и спокойный план.');
     expect(dailyPlanJsonSchema.safeParse(plan).success).toBe(true);
   });
+
+  it('creates a localized mock plan for the selected locale', () => {
+    const plan = createMockDailyPlan({
+      planLocalDate: '2026-07-17',
+      planTimezone: 'Europe/Yerevan',
+      locale: 'ru-RU',
+      isMinor: false
+    });
+
+    expect(plan.contentLocale).toBe('ru-RU');
+    expect(plan.summary.title).toBe('Спокойный план на сегодня');
+    expect(plan.nutrition.meals[0]?.name).toBe('Завтрак');
+    expect(dailyPlanJsonSchema.safeParse(plan).success).toBe(true);
+  });
   let ctx: TestApp;
   const originalAiProvider = process.env.AI_PROVIDER;
   const originalOpenAiApiKey = process.env.OPENAI_API_KEY;

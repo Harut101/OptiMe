@@ -9,6 +9,7 @@ export class MockAiProviderService implements AiProvider {
     return createMockDailyPlan({
       planLocalDate: input.planLocalDate,
       planTimezone: input.planTimezone,
+      locale: input.locale,
       firstName: input.user.firstName,
       isMinor: input.safeMode,
       planQualityMode: input.planQualityMode,
