@@ -138,14 +138,14 @@ function getRecoveryGuidance(
       (wearableContext.recoveryScore ?? 100) < 40 ||
       (wearableContext.strainScore ?? 0) >= 15
     ) {
-      return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
+      return { recommendation: copy.recoveryWithConservativeWearable, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
     }
 
-    return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
+    return { recommendation: copy.recoveryWithWearable, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
   }
 
   if (wearableContext?.isStale) {
-    return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
+    return { recommendation: copy.recoveryWithStaleWearable, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
   }
 
   return { recommendation: copy.recoveryRecommendation, sleepTip: copy.sleepTip, mobilityTip: copy.mobilityTip };
