@@ -86,7 +86,7 @@ After applying the Prisma migration and generating Prisma Client:
 
 ## Next implementation steps
 
-Ingredient swap foundation exposes up to three same-category catalog alternatives for a structured plan ingredient. Candidates are filtered by the user's current diet, allergies, excluded foods, and disliked foods. Suggestions are read-only: viewing them never changes the current plan, and applying an alternative remains a separate future action with portion solving and validation.
+Ingredient swap suggestions expose up to three same-category catalog alternatives for a structured plan ingredient. Candidates are filtered by the user's current diet, allergies, excluded foods, and disliked foods. Viewing them never changes the plan. Applying a suggestion is explicit and accepts only a slug from the current safe list; the backend recalculates ingredient, meal, and day nutrition, validates arithmetic and target fit, reruns deterministic plan safety, and keeps the existing meal when validation fails. This path does not call AI or consume an AI/menu regeneration allowance.
 
 The coverage audit reports omnivore, vegetarian, vegan, pescatarian, Mediterranean, keto, and low-carb scenarios. A scenario is `READY` when every required meal role has at least two safe candidates, `LIMITED` when a role has only one candidate, and `BLOCKED` when a required role is absent. Mediterranean selection requires explicit Mediterranean catalog metadata. Keto and low-carb selection use conservative catalog-level thresholds of 10 g and 15 g carbohydrates per 100 g respectively; these are selection guardrails, not medical nutrition targets.
 

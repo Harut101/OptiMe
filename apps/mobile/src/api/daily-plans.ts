@@ -5,6 +5,7 @@ import type {
   DailyPlanCheckInResponse,
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
+  FoodIngredientSwapSuggestionsResponse,
   AdjustWorkoutForPreWorkoutRequest,
   ApplyTrainingReplacementsRequest,
   SubmitDailyPlanFeedbackRequest,
@@ -84,6 +85,31 @@ export function excludeDailyFoodIngredient(
     method: 'POST',
     body: JSON.stringify({ ingredientName })
   });
+}
+
+export function getDailyFoodIngredientSwapSuggestions(
+  dailyPlanId: string,
+  mealId: string,
+  ingredientSlug: string
+) {
+  return apiRequest<FoodIngredientSwapSuggestionsResponse>(
+    `/daily-plans/${dailyPlanId}/food/meals/${mealId}/ingredients/${ingredientSlug}/swap-suggestions`
+  );
+}
+
+export function applyDailyFoodIngredientSwap(
+  dailyPlanId: string,
+  mealId: string,
+  ingredientSlug: string,
+  replacementCatalogFoodSlug: string
+) {
+  return apiRequest<DailyPlanResponse>(
+    `/daily-plans/${dailyPlanId}/food/meals/${mealId}/ingredients/${ingredientSlug}/apply-swap`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ replacementCatalogFoodSlug })
+    }
+  );
 }
 
 export function adjustDailyPlanTrainingForPreWorkout(

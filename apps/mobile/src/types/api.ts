@@ -268,6 +268,25 @@ export interface FoodAvailabilityCandidatesResponse {
   items: FoodAvailabilityItem[];
 }
 
+export interface FoodIngredientSwapSuggestion {
+  slug: string;
+  name: string;
+  quantity: number;
+  unit: 'g';
+  caloriesKcal: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  preparationLevel: string;
+}
+
+export interface FoodIngredientSwapSuggestionsResponse {
+  dailyPlanId: string;
+  mealId: string;
+  ingredientSlug: string;
+  suggestions: FoodIngredientSwapSuggestion[];
+}
+
 export interface TrainingPreferencesRequest {
   targetMuscleGroups?: TargetMuscleGroup[];
   trainingOutcome?: TrainingOutcome | null;

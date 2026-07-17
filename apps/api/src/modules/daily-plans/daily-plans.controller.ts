@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DailyPlansService } from './daily-plans.service';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
+import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
 import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
 import {
@@ -79,6 +80,23 @@ export class DailyPlansController {
       dailyPlanId,
       mealId,
       ingredientSlug
+    );
+  }
+
+  @Post(':id/food/meals/:mealId/ingredients/:ingredientSlug/apply-swap')
+  applyFoodIngredientSwap(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Param('mealId') mealId: string,
+    @Param('ingredientSlug') ingredientSlug: string,
+    @Body() dto: ApplyFoodIngredientSwapDto
+  ) {
+    return this.dailyPlansService.applyFoodIngredientSwap(
+      user.userId,
+      dailyPlanId,
+      mealId,
+      ingredientSlug,
+      dto
     );
   }
 

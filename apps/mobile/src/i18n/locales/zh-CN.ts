@@ -399,4 +399,16 @@ export const zhCN = createLocaleResource({
     empty: '没有符合当前偏好的安全目录食物。',
     saveFailed: '无法保存可用食物，请重试。'
   }
-});
+}, {
+    food: {
+      swapIngredient: '替换',
+      swapIngredientAccessibility: '为 {{ingredient}} 查找安全替代品',
+      swapAlternativesTitle: '选择替代品',
+      swapAlternativesMessage: '每个选项都会遵循你的饮食偏好和今天的营养目标。',
+      swapAlternativeServing: '{{quantity}} {{unit}}',
+      noSafeAlternatives: '目前没有可用的安全替代品。',
+      ingredientSwapped: '食材已更新。',
+      couldNotSwapIngredient: '无法更新此食材。已保留当前餐食。'
+    }
+  }
+);

@@ -5,13 +5,16 @@ import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
+  applyDailyFoodIngredientSwap,
   excludeDailyFoodIngredient,
+  getDailyFoodIngredientSwapSuggestions,
   getTodayPlan,
   regenerateDailyFoodMeal
 } from '@/api/daily-plans';
 import { getFoodLog, updateFoodMealStatus } from '@/api/food-logs';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { AppToast } from '@/components/AppToast';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ContextNoteCard } from '@/components/ContextNoteCard';
@@ -46,6 +49,7 @@ export default function MealDetailsScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [regenerateSheetVisible, setRegenerateSheetVisible] = useState(false);
   const [ingredientToExclude, setIngredientToExclude] = useState<string | null>(null);
+  const [ingredientToSwap, setIngredientToSwap] = useState<{ name: string; slug: string } | null>(null);
   const params = useLocalSearchParams<{ dailyPlanId?: string; mealId?: string }>();
   const today = useQuery({
     queryKey: ['today-plan'],
@@ -55,6 +59,20 @@ export default function MealDetailsScreen() {
     queryKey: ['food-log', params.dailyPlanId],
     queryFn: () => getFoodLog(String(params.dailyPlanId)),
     enabled: Boolean(params.dailyPlanId)
+  });
+  const swapSuggestions = useQuery({
+    queryKey: [
+      'food-ingredient-swap-suggestions',
+      params.dailyPlanId,
+      params.mealId,
+      ingredientToSwap?.slug
+    ],
+    queryFn: () => getDailyFoodIngredientSwapSuggestions(
+      String(params.dailyPlanId),
+      String(params.mealId),
+      String(ingredientToSwap?.slug)
+    ),
+    enabled: Boolean(params.dailyPlanId && params.mealId && ingredientToSwap?.slug)
   });
   const regenerateMeal = useMutation({
     mutationFn: () =>
@@ -89,6 +107,28 @@ export default function MealDetailsScreen() {
     onError: () => {
       setMessage(null);
       setErrorMessage(t('food.couldNotExcludeIngredient'));
+    }
+  });
+  const applyIngredientSwap = useMutation({
+    mutationFn: (replacementCatalogFoodSlug: string) => {
+      if (!ingredientToSwap) throw new Error('No ingredient selected for swapping.');
+      return applyDailyFoodIngredientSwap(
+        String(params.dailyPlanId),
+        String(params.mealId),
+        ingredientToSwap.slug,
+        replacementCatalogFoodSlug
+      );
+    },
+    onSuccess: async (data) => {
+      setIngredientToSwap(null);
+      setErrorMessage(null);
+      setMessage(t('food.ingredientSwapped'));
+      queryClient.setQueryData(['today-plan'], data);
+      await queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+    },
+    onError: () => {
+      setMessage(null);
+      setErrorMessage(t('food.couldNotSwapIngredient'));
     }
   });
   const updateMealStatus = useMutation({
@@ -183,9 +223,18 @@ export default function MealDetailsScreen() {
             <Text variant="body">
               {ingredient.name}: {ingredient.quantity} {ingredient.unit}
             </Text>
+            {ingredient.catalogFoodSlug ? (
+              <Button
+                title={t('food.swapIngredient')}
+                variant="ghost"
+                disabled={applyIngredientSwap.isPending}
+                accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: ingredient.name })}
+                onPress={() => setIngredientToSwap({ name: ingredient.name, slug: ingredient.catalogFoodSlug! })}
+              />
+            ) : null}
             <Button
               title={t('food.excludeIngredient')}
-              variant="secondary"
+              variant="ghost"
               disabled={excludeIngredient.isPending}
               accessibilityLabel={t('food.excludeIngredientAccessibility', { ingredient: ingredient.name })}
               onPress={() => setIngredientToExclude(ingredient.name)}
@@ -275,6 +324,39 @@ export default function MealDetailsScreen() {
           }
         ]}
       />
+
+      <BottomSheet
+        visible={Boolean(ingredientToSwap)}
+        title={t('food.swapAlternativesTitle')}
+        subtitle={t('food.swapAlternativesMessage', { ingredient: ingredientToSwap?.name ?? '' })}
+        onClose={() => setIngredientToSwap(null)}
+      >
+        {swapSuggestions.isLoading ? <Text variant="muted">{t('common.loading')}</Text> : null}
+        {swapSuggestions.isError ? <Text variant="muted">{t('food.couldNotSwapIngredient')}</Text> : null}
+        {swapSuggestions.data?.suggestions.length === 0 ? (
+          <Text variant="muted">{t('food.noSafeAlternatives')}</Text>
+        ) : null}
+        {swapSuggestions.data?.suggestions.map((suggestion) => (
+          <View key={suggestion.slug} style={styles.swapOption}>
+            <View style={styles.swapCopy}>
+              <Text variant="label">{suggestion.name}</Text>
+              <Text variant="muted">
+                {t('food.swapAlternativeServing', {
+                  quantity: String(suggestion.quantity),
+                  unit: suggestion.unit
+                })}
+              </Text>
+            </View>
+            <Button
+              title={applyIngredientSwap.isPending ? t('common.loading') : t('food.swapIngredient')}
+              variant="secondary"
+              disabled={applyIngredientSwap.isPending}
+              accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: suggestion.name })}
+              onPress={() => applyIngredientSwap.mutate(suggestion.slug)}
+            />
+          </View>
+        ))}
+      </BottomSheet>
     </Screen>
   );
 }
@@ -294,6 +376,16 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   ingredient: { gap: 8, paddingVertical: 8 },
+  swapOption: {
+    alignItems: 'center',
+    borderBottomColor: colors.divider,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingBottom: 12
+  },
+  swapCopy: { flex: 1, gap: 2 },
   substitution: { gap: 3, paddingVertical: 5 },
   statusWrap: { gap: 8 },
   macroGrid: {

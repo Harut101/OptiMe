@@ -399,4 +399,16 @@ export const ruRU = createLocaleResource({
     empty: 'Нет безопасных продуктов каталога для текущих предпочтений.',
     saveFailed: 'Не удалось сохранить доступные продукты. Попробуйте ещё раз.'
   }
-});
+}, {
+    food: {
+      swapIngredient: 'Заменить',
+      swapIngredientAccessibility: 'Подобрать безопасную замену для {{ingredient}}',
+      swapAlternativesTitle: 'Выберите замену',
+      swapAlternativesMessage: 'Каждый вариант учитывает ваши предпочтения и цель питания на сегодня.',
+      swapAlternativeServing: '{{quantity}} {{unit}}',
+      noSafeAlternatives: 'Сейчас нет безопасных вариантов замены.',
+      ingredientSwapped: 'Ингредиент обновлён.',
+      couldNotSwapIngredient: 'Не удалось обновить ингредиент. Текущий приём пищи сохранён.'
+    }
+  }
+);

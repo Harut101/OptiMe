@@ -32,7 +32,8 @@ import {
   type NutritionTargetExplanation,
   type NutritionTargetSnapshot,
   type ResolvedTrainingDayContext,
-  type SupportedLocale
+  type SupportedLocale,
+  type FoodIngredient
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -58,6 +59,8 @@ import { FoodAvailabilityService } from '../food-availability/food-availability.
 import { FoodIngredientSwapService } from './food-ingredient-swap.service';
 import { HealthService } from '../health/health.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
+import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validation.service';
+import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
@@ -85,6 +88,7 @@ import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
+import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
 import { RegenerateFoodPlanDto } from './dto/regenerate-food-plan.dto';
 import { AdjustTrainingForPreWorkoutDto } from './dto/adjust-training-for-pre-workout.dto';
 import {
@@ -132,6 +136,7 @@ export class DailyPlansService {
     private readonly foodIngredientSwapService: FoodIngredientSwapService,
     private readonly healthService: HealthService,
     private readonly nutritionAgent: NutritionAgentService,
+    private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly protocolSelector: ProtocolSelectorService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
@@ -616,6 +621,108 @@ export class DailyPlansService {
       ingredientSlug,
       suggestions
     };
+  }
+
+  async applyFoodIngredientSwap(
+    userId: string,
+    dailyPlanId: string,
+    mealId: string,
+    ingredientSlug: string,
+    dto: ApplyFoodIngredientSwapDto
+  ) {
+    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
+    const selectedMeal = context.currentFoodPlan.meals.find((meal) => meal.id === mealId);
+    if (!selectedMeal) throw new NotFoundException('Meal not found in this plan.');
+
+    const originalIngredient = selectedMeal.ingredients.find((ingredient) => (
+      ingredient.catalogFoodSlug === ingredientSlug
+    ));
+    if (!originalIngredient?.catalogFoodSlug) {
+      throw new NotFoundException('Ingredient not found in this meal.');
+    }
+
+    const suggestions = await this.foodIngredientSwapService.getSuggestions({
+      ingredient: originalIngredient,
+      locale: this.resolvePlanningLocale(context.user),
+      dietType: context.user.nutritionPref?.dietType ?? null,
+      restrictions: {
+        allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
+        excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
+        dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? []
+      }
+    });
+    const suggestion = suggestions.find((item) => item.slug === dto.replacementCatalogFoodSlug);
+    if (!suggestion) {
+      throw new BadRequestException(
+        'This ingredient alternative is no longer safe for your current food preferences.'
+      );
+    }
+
+    const replacement: FoodIngredient = {
+      catalogFoodSlug: suggestion.slug,
+      name: suggestion.name,
+      quantity: suggestion.quantity,
+      unit: suggestion.unit,
+      caloriesKcal: suggestion.caloriesKcal,
+      proteinGrams: suggestion.proteinGrams,
+      carbsGrams: suggestion.carbsGrams,
+      fatGrams: suggestion.fatGrams,
+      isOptional: originalIngredient.isOptional
+    };
+    const nextFoodPlan = normalizeFoodPlanNutrition({
+      ...context.currentFoodPlan,
+      source: 'NUTRITION_AGENT',
+      validation: {
+        ...context.currentFoodPlan.validation,
+        status: 'VALID',
+        reasons: []
+      },
+      meals: context.currentFoodPlan.meals.map((meal) => (
+        meal.id !== mealId
+          ? meal
+          : {
+              ...meal,
+              ingredients: meal.ingredients.map((ingredient) => (
+                ingredient.catalogFoodSlug === ingredientSlug ? replacement : ingredient
+              )),
+              substitutions: [
+                ...meal.substitutions.slice(-7),
+                {
+                  originalItem: originalIngredient.name,
+                  replacementItem: replacement.name,
+                  servingSummary: `${replacement.quantity} ${replacement.unit}`,
+                  reasonCode: 'SIMILAR_MACROS',
+                  macroImpactNote: null
+                }
+              ]
+            }
+      ))
+    });
+
+    const foodPlanValidation = this.foodPlanValidator.validate(nextFoodPlan, {
+      nutritionTarget: context.nutritionTarget,
+      nutritionTargetSnapshot: context.nutritionTargetSnapshot,
+      allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
+      excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
+      dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? [],
+      safeMode: context.user.safeMode,
+      isMinor: context.user.isMinor,
+      pregnancyStatus: context.user.profile?.pregnancyStatus
+    });
+
+    if (!foodPlanValidation.passed) {
+      this.logger.warn(
+        `ingredient swap rejected; planId=${dailyPlanId}; mealId=${mealId}; reasonCodes=${foodPlanValidation.reasons.join(',')}`
+      );
+      throw new BadRequestException(
+        'This alternative would move your meal outside today\'s safe nutrition target. Your current meal was kept.'
+      );
+    }
+
+    this.logger.log(
+      `ingredient swap applied; planId=${dailyPlanId}; mealId=${mealId}; originalSlug=${ingredientSlug}; replacementSlug=${suggestion.slug}`
+    );
+    return this.persistRegeneratedFoodPlan(context, nextFoodPlan);
   }
 
   async regenerateFoodMeal(

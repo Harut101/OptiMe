@@ -399,4 +399,16 @@ export const frFR = createLocaleResource({
     empty: 'Aucun aliment sûr du catalogue ne correspond à vos préférences actuelles.',
     saveFailed: 'Impossible d’enregistrer les aliments disponibles. Réessayez.'
   }
-});
+}, {
+    food: {
+      swapIngredient: 'Remplacer',
+      swapIngredientAccessibility: 'Trouver des alternatives sûres pour {{ingredient}}',
+      swapAlternativesTitle: 'Choisir une alternative',
+      swapAlternativesMessage: 'Chaque option respecte vos préférences et votre objectif nutritionnel du jour.',
+      swapAlternativeServing: '{{quantity}} {{unit}}',
+      noSafeAlternatives: 'Aucune alternative sûre n’est disponible pour le moment.',
+      ingredientSwapped: 'Ingrédient mis à jour.',
+      couldNotSwapIngredient: 'Impossible de mettre à jour cet ingrédient. Votre repas actuel a été conservé.'
+    }
+  }
+);
