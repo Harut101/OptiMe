@@ -18,8 +18,8 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   card: {
     backgroundColor: colors.card,
     borderRadius: 26,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 0,
+    borderColor: 'transparent',
     padding: 18,
     gap: 12,
     shadowColor: colors.textPrimary,
@@ -40,7 +40,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   },
   hero: {
     backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
     shadowOpacity: 0.15,
     elevation: 6
   }

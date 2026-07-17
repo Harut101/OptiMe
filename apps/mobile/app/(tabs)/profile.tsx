@@ -185,7 +185,7 @@ function PersonalSection() {
 
   return (
     <View style={styles.section}>
-      <Card variant="elevated" style={styles.personalAccountCard}>
+      <Card style={styles.personalAccountCard}>
         <View style={styles.accountHeader}>
           <View style={styles.avatar}>
             <UserRound size={24} color={colors.health} />

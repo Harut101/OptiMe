@@ -8,6 +8,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { formatNumber, formatWeight } from '@/i18n/formatters';
 import { themeColorsByMode, type ThemeMode } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type { WeightSummary } from '@/types/api';
 import { getWeightUnit, toDisplayWeight } from './weight-format';
 
@@ -29,12 +30,13 @@ export function WeightProgressCard({
   compact = false,
   isLoading,
   isError,
-  appearance = 'light',
+  appearance,
   onUpdate
 }: WeightProgressCardProps) {
   const { t } = useTranslation();
-  const palette = themeColorsByMode[appearance];
-  const isDark = appearance === 'dark';
+  const { colors: runtimeColors, mode } = useTheme();
+  const palette = appearance ? themeColorsByMode[appearance] : runtimeColors;
+  const isDark = appearance ? appearance === 'dark' : mode === 'dark';
   const accent = isDark ? '#A7F20D' : palette.success;
   const buttonColor = isDark ? '#9BE80E' : accent;
 
