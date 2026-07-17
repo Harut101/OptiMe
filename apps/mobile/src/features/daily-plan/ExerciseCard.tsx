@@ -5,7 +5,8 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import type { TFunction } from 'i18next';
 
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { getExerciseEquipmentLabel, getMuscleGroupLabel } from '@/i18n/enum-labels';
 import { getExerciseMediaDisplayUrl, getExerciseMediaFallbackUrl } from './exercise-media-url';
 import { formatExercisePrescription } from './exercise-formatters';
@@ -19,6 +20,8 @@ interface ExerciseCardProps {
 }
 
 export function ExerciseCard({ exercise, summary, locale, t, onPress }: ExerciseCardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const sourceUrl = summary?.thumbnail?.url ?? null;
@@ -43,7 +46,7 @@ export function ExerciseCard({ exercise, summary, locale, t, onPress }: Exercise
     <>
       <View style={styles.thumbnail}>
         {!summary?.thumbnail || imageFailed || !imageLoaded ? (
-          <Ionicons name="barbell-outline" size={28} color={colors.primary} accessible={false} />
+          <Ionicons name="barbell-outline" size={28} color={colors.training} accessible={false} />
         ) : null}
         {imageUrl && !imageFailed ? (
           <Image
@@ -71,7 +74,7 @@ export function ExerciseCard({ exercise, summary, locale, t, onPress }: Exercise
         {equipment.length ? <Text variant="muted">{equipment.join(' · ')}</Text> : null}
         {exercise.notes ? <Text variant="muted">{exercise.notes}</Text> : null}
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={20} color={colors.muted} accessible={false} style={styles.chevron} /> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={20} color={colors.textMuted} accessible={false} style={styles.chevron} /> : null}
     </>
   );
 
@@ -87,14 +90,14 @@ export function ExerciseCard({ exercise, summary, locale, t, onPress }: Exercise
   ) : <View style={styles.card}>{content}</View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     minHeight: 104,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.border,
     borderRadius: 18,
     padding: 12,
     backgroundColor: colors.card

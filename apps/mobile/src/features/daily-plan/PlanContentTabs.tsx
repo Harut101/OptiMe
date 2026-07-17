@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 export type PlanContentTab = 'food' | 'training';
 
@@ -13,6 +14,8 @@ interface PlanContentTabsProps {
 }
 
 export function PlanContentTabs({ value, foodLabel, trainingLabel, onChange }: PlanContentTabsProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.container} accessibilityRole="tablist">
       {([
@@ -37,12 +40,12 @@ export function PlanContentTabs({ value, foodLabel, trainingLabel, onChange }: P
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: 4,
     borderRadius: 12,
-    backgroundColor: colors.line,
+    backgroundColor: colors.surfaceMuted,
     gap: 4
   },
   tab: {
@@ -62,6 +65,6 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   pressed: { opacity: 0.78 },
-  label: { color: colors.muted, fontWeight: '700' },
+  label: { color: colors.textSecondary, fontWeight: '700' },
   selectedLabel: { color: colors.textPrimary }
 });

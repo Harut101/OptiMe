@@ -4,10 +4,13 @@ import { FlatList, Image, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, V
 import type { TFunction } from 'i18next';
 
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { getExerciseMediaDisplayUrl, getExerciseMediaFallbackUrl } from './exercise-media-url';
 
 export function ExerciseMediaCarousel({ media, t }: { media: ExerciseMediaItem[]; t: TFunction }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Set<string>>(new Set());
@@ -93,7 +96,7 @@ export function ExerciseMediaCarousel({ media, t }: { media: ExerciseMediaItem[]
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   frame: {
     width: '100%',
     aspectRatio: 4 / 5,
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -111,6 +114,6 @@ const styles = StyleSheet.create({
   caption: { position: 'absolute', bottom: 10, left: 12, right: 12, textAlign: 'center' },
   fallbackText: { textAlign: 'center', padding: 24 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, paddingTop: 10 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.line },
-  activeDot: { width: 18, backgroundColor: colors.primary }
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border },
+  activeDot: { width: 18, backgroundColor: colors.training }
 });
