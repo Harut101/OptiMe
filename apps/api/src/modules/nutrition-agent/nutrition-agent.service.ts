@@ -262,25 +262,11 @@ export class NutritionAgentService {
       };
     }
 
-    if (!input.regeneration || input.regeneration.mode === 'FULL_MENU_REGENERATION') {
-      const composedPlan = await this.recipeComposer.compose(input, { selectionSeed });
-      if (composedPlan) {
-        const { foodPlan, validation: composedValidation } = this.resolveComposedPlan(
-          composedPlan,
-          input,
-          catalogSelection.candidates
-        );
-        if (composedValidation.passed) {
-          this.logger.log(
-            `nutrition agent deterministic recipe composition passed; mode=${input.regeneration?.mode ?? 'INITIAL'}; requesting AI meal copy only`
-          );
-          return this.requestOpenAiMealCopy(input, foodPlan, model);
-        }
-        this.logger.warn(
-          `nutrition agent deterministic recipe composition did not meet target; using ingredient-selection path; reasons=${composedValidation.reasons.join(',')}`
-        );
-      }
-    }
+    // In OpenAI mode, AI proposes the complete catalog-bounded menu. The backend still
+    // resolves catalog nutrition, solves portions, validates it, and owns fallback.
+    this.logger.log(
+      `nutrition agent planning path=AI_PROPOSAL_FIRST; mode=${input.regeneration?.mode ?? 'INITIAL'}`
+    );
 
     try {
       this.logger.log(
@@ -364,14 +350,24 @@ export class NutritionAgentService {
     if (!currentMeal) return null;
 
     const selectionSeed = this.mealRegenerationSelectionSeed(currentMeal);
-    const catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
-    const composedCandidate = await this.recipeComposer.compose(input, { selectionSeed });
-    if (!composedCandidate) return null;
-
-    const replacement = composedCandidate.meals.find((meal) => (
+    let catalogSelection = await this.selectCatalogForComposition(input, selectionSeed);
+    let composedCandidate = await this.recipeComposer.compose(input, { selectionSeed });
+    let replacement = composedCandidate?.meals.find((meal) => (
       meal.id === selectedMealId || meal.mealType === currentMeal.mealType
     ));
-    if (!replacement || sameMealIngredients(currentMeal, replacement)) return null;
+
+    // An AI-proposed plan can legitimately use the same core ingredients in
+    // multiple meals. Try one stable alternate catalog ranking before declining
+    // a focused replacement that would otherwise be identical.
+    if (!replacement || sameMealIngredients(currentMeal, replacement)) {
+      const alternateSeed = `${selectionSeed}:alternate`;
+      catalogSelection = await this.selectCatalogForComposition(input, alternateSeed);
+      composedCandidate = await this.recipeComposer.compose(input, { selectionSeed: alternateSeed });
+      replacement = composedCandidate?.meals.find((meal) => (
+        meal.id === selectedMealId || meal.mealType === currentMeal.mealType
+      ));
+    }
+    if (!composedCandidate || !replacement || sameMealIngredients(currentMeal, replacement)) return null;
 
     const mergedPlan: DailyFoodPlan = {
       ...currentPlan,

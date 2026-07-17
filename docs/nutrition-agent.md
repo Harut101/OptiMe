@@ -74,15 +74,24 @@ For an OpenAI request, the backend sends only templates whose required catalog r
 
 The template layer does not own food names, quantities, nutrition calculations, or safety. For focused regeneration, the model selects only allowed catalog slugs and gram quantities; the backend still calculates totals, solves portions, validates restrictions, and falls back safely when needed.
 
-## Deterministic recipe composition
+## AI proposal-first planning
 
-For a new daily plan, `FoodPlanRecipeComposerService` first composes ingredients and gram quantities from the restriction-filtered catalog and the shared recipe templates. The existing portion solver then verifies the deterministic candidate against the fixed target. When it is valid, OpenAI no longer selects ingredients, quantities, calories, or macros.
+When `AI_PROVIDER=openai`, a new plan and a full-menu regeneration use an
+AI proposal-first path. OpenAI chooses the complete menu structure, allowed catalog
+food slugs, quantities, and user-facing meal copy from a compact, pre-filtered
+catalog shortlist and compatible recipe templates. It receives the fixed target,
+training-day context, goal, preferences, availability hints, and safety constraints.
 
-This same catalog-first composition runs in local `AI_PROVIDER=mock` mode. Mock mode therefore remains useful for development and QA: it produces the same catalog-backed ingredient structure and backend-owned nutrition calculations as the production path, without making an external AI request. The older deterministic mock plan is retained only as a safe last-resort fallback when the available catalog cannot satisfy the user's restrictions and target.
+The model is the meal planner, but it is not the numeric or safety authority. The
+backend resolves catalog nutrition, recalculates all meal and day totals, performs
+bounded portion solving and safe rebalancing, validates the complete result, and
+issues one validator-guided retry when necessary. A deterministic catalog fallback
+remains the last safety net if a valid plan cannot be produced.
 
-Instead, OpenAI receives the locked meal IDs and the safe ingredient names for each composed meal through the `daily_food_plan_copy` structured-output contract. It may return only localized meal titles, short descriptions, serving summaries, preparation time, and preparation steps. The backend merges this copy onto the composed plan and runs the same deterministic food-safety validation again.
-
-If this copy request is unavailable, malformed, or unsafe, OptiMe keeps the complete deterministic plan rather than downgrading the user to an incomplete plan or a user-visible fallback state. Full-menu regeneration uses the same composition path with a stable seed derived from the saved menu, so it can select a different safe catalog variation without changing the saved nutrition target. Individual-meal regeneration retains the previous controlled ingredient-selection path until it has a bounded single-meal solver that preserves unaffected meals exactly.
+Local `AI_PROVIDER=mock` mode intentionally stays catalog-first. It produces
+deterministic, catalog-backed plans for development and QA without external calls.
+Focused single-meal regeneration also stays controlled and deterministic until it
+has a bounded AI proposal flow that can prove unaffected meals remain unchanged.
 
 Current tolerances:
 
@@ -132,7 +141,7 @@ If retry fails, the backend stores a deterministic fallback food plan. The fallb
 
 The Nutrition Agent also supports two focused regeneration modes:
 
-- `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`. The backend derives a stable variation seed from the stored meal ingredients, composes the next safe catalog option, solves and rebalances portions deterministically, then requests optional AI copy only.
+- `FULL_MENU_REGENERATION`: replace the complete food plan while preserving the saved `nutritionTargetSnapshot`. In OpenAI mode, the backend derives a stable variation seed from the stored ingredients and asks AI for a new complete proposal from the safe catalog shortlist and compatible templates. It then recalculates, solves, validates, and may issue one validator-guided repair retry. In mock mode, the backend composes the next safe deterministic catalog variation.
 - `MEAL_REGENERATION`: compose a different safe catalog option for the selected meal, then run a bounded portion solve that may change only that meal's ingredient quantities. Every other saved meal is retained exactly so food tracking remains attached to the correct meal IDs.
 
 With `AI_PROVIDER=openai`, a successful single-meal replacement makes one optional `daily_food_plan_copy` request containing only that selected meal's ID, type, and approved ingredient names. AI may improve the title, description, serving summary, preparation time, and preparation steps for that meal only. It never receives authority to change ingredients, quantities, nutrition values, or any other meal.
