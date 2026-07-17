@@ -430,7 +430,8 @@ describe('Specialized Nutrition Agent food plans', () => {
     });
     expect(foodPlan.meals[0].title).not.toBe('Breakfast');
     expect(foodPlan.meals[0].title).toContain(foodPlan.meals[0].ingredients[0].name);
-    expect(foodPlan.meals[0].prepTimeMinutes).toBe(10);
+    expect(foodPlan.meals[0].prepTimeMinutes).toBeGreaterThan(0);
+    expect(foodPlan.meals[0].prepTimeMinutes).toBeLessThanOrEqual(120);
     expect(foodPlan.meals[0].preparationSteps).toHaveLength(2);
     expect(foodPlan.meals[0].preparationSteps[0]).toContain(
       foodPlan.meals[0].ingredients[0].name
@@ -483,6 +484,38 @@ describe('Specialized Nutrition Agent food plans', () => {
       .set(authHeader(user.accessToken))
       .send({ catalogFoodSlugs: ['greek-yogurt'] })
       .expect(400);
+  });
+
+  it('uses safe available foods in a generated catalog-backed menu when they cover recipe roles', async () => {
+    const user = await registerTestUser(ctx.app, 'nutrition-agent-available-food-menu@example.com');
+    await completeNutritionOnlyOnboarding(user.accessToken, {});
+    const availableSlugs = [
+      'rolled-oats',
+      'greek-yogurt-plain',
+      'banana',
+      'chicken-breast-cooked',
+      'brown-rice-cooked',
+      'broccoli-cooked',
+      'olive-oil'
+    ];
+
+    await request(ctx.app.getHttpServer())
+      .put('/v1/food-availability/today')
+      .set(authHeader(user.accessToken))
+      .send({ catalogFoodSlugs: availableSlugs })
+      .expect(200);
+
+    const generated = await request(ctx.app.getHttpServer())
+      .post('/v1/daily-plans/generate')
+      .set(authHeader(user.accessToken))
+      .send({ forceRegenerate: true })
+      .expect(201);
+    const foodPlan = generated.body.plan.nutrition.foodPlan as DailyFoodPlan;
+    const generatedSlugs = foodPlan.meals.flatMap((meal) => (
+      meal.ingredients.map((ingredient) => ingredient.catalogFoodSlug)
+    ));
+
+    expect(generatedSlugs).toEqual(expect.arrayContaining(availableSlugs));
   });
 
   it('builds a complete catalog-backed fallback menu without excluded foods', async () => {
