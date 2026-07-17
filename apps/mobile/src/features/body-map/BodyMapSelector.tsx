@@ -5,7 +5,8 @@ import Svg, { G, Image as SvgImage, Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { getMuscleGroupLabel } from '@/i18n/enum-labels';
 
 import { BODY_MAP_ASSETS } from './body-map-assets';
@@ -29,6 +30,8 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   debugBodyMapLayout?: boolean;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { width: screenWidth } = useWindowDimensions();
   const [view, setView] = useState<BodyMapView>('front');
   const [selectedMuscles, setSelectedMuscles] = useState(() => normalizeLegacyMuscleGroups(value));
@@ -159,11 +162,11 @@ function getSideLabel(
   return t('bodyMap.sideCenter');
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   root: { gap: 10 },
   viewToggle: {
     alignSelf: 'center',
-    backgroundColor: colors.line,
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 12,
     flexDirection: 'row',
     gap: 4,
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 1
   },
-  viewText: { color: colors.muted, fontWeight: '700' },
+  viewText: { color: colors.textSecondary, fontWeight: '700' },
   viewTextActive: { color: colors.textPrimary, fontWeight: '800' },
   mapCard: {
     maxWidth: BODY_MAP_CARD_MAX_WIDTH,
@@ -196,10 +199,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: colors.card,
-    borderColor: colors.line,
+    borderColor: colors.border,
     borderWidth: 1
   },
   mapStage: { position: 'relative' },
   debugFrame: { borderColor: '#00A7E1', borderWidth: 1 },
-  debugText: { color: colors.muted, fontSize: 12 }
+  debugText: { color: colors.textSecondary, fontSize: 12 }
 });

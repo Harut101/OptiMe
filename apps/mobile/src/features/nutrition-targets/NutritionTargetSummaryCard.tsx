@@ -11,7 +11,8 @@ import type {
 import { Card } from '@/components/Card';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 type TargetLike = NutritionTarget | NutritionTargetSnapshot;
 
@@ -23,6 +24,8 @@ export function NutritionTargetSummaryCard({
   isUnavailable?: boolean;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [expanded, setExpanded] = useState(false);
 
   if (isUnavailable) {
@@ -82,7 +85,7 @@ export function NutritionTargetSummaryCard({
           onPress={() => setExpanded(true)}
           style={styles.whyButton}
         >
-          <Info size={16} color={colors.primaryDark} />
+          <Info size={16} color={colors.health} />
           <Text variant="label" style={styles.whyText}>{t('nutritionTargets.why')}</Text>
         </Pressable>
       </Card>
@@ -150,6 +153,8 @@ interface LegacyNutritionTargetExplanation {
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 function Macro({ label, value, tone }: { label: string; value: string; tone: 'protein' | 'carbs' | 'fat' }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const toneColor = tone === 'protein' ? colors.training : tone === 'carbs' ? colors.warning : colors.recovery;
 
   return (
@@ -187,9 +192,9 @@ function toTargetSummary(target: TargetLike) {
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    borderColor: 'rgba(103, 206, 103, 0.28)'
+    borderColor: colors.successMuted
   },
   header: {
     alignItems: 'center',
@@ -266,7 +271,7 @@ const styles = StyleSheet.create({
     minHeight: 44
   },
   whyText: {
-    color: colors.primaryDark
+    color: colors.health
   },
   explanation: {
     gap: 10

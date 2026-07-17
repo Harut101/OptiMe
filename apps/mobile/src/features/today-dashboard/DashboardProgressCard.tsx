@@ -2,7 +2,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { CircularProgressRing } from './CircularProgressRing';
 
 type DashboardProgressTone = 'nutrition' | 'training';
@@ -40,6 +40,7 @@ export function DashboardProgressCard({
   accessibilityLabel,
   style
 }: DashboardProgressCardProps) {
+  const { colors } = useTheme();
   const isRestLikeState = value === null && centerLabel && centerLabel !== '-';
   const ringTone = isRestLikeState ? 'rest' : tone;
 
@@ -61,7 +62,7 @@ export function DashboardProgressCard({
           />
         </View>
         <View style={styles.copy}>
-          <Text variant="label" style={styles.title}>{title}</Text>
+          <Text variant="label" style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
           <Text variant="body" style={styles.subtitle}>{subtitle}</Text>
           {hint ? <Text variant="muted">{hint}</Text> : null}
         </View>
@@ -91,7 +92,6 @@ const styles = StyleSheet.create({
     gap: 5
   },
   title: {
-    color: colors.textPrimary,
     fontWeight: '600',
     letterSpacing: 0.2
   },

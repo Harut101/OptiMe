@@ -16,11 +16,12 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 type Tone = 'training' | 'recovery' | 'success' | 'warning' | 'neutral';
 
-const toneColor = (tone: Tone) => {
+const toneColor = (colors: ThemeColors, tone: Tone) => {
   if (tone === 'recovery') return colors.recovery;
   if (tone === 'success') return colors.success;
   if (tone === 'warning') return colors.warning;
@@ -28,7 +29,7 @@ const toneColor = (tone: Tone) => {
   return colors.training;
 };
 
-const toneMutedColor = (tone: Tone) => {
+const toneMutedColor = (colors: ThemeColors, tone: Tone) => {
   if (tone === 'recovery') return colors.recoveryMuted;
   if (tone === 'success') return colors.successMuted;
   if (tone === 'warning') return colors.warningMuted;
@@ -37,15 +38,17 @@ const toneMutedColor = (tone: Tone) => {
 };
 
 function TrainingHeaderBadge({ label, tone }: { label: string; tone: Tone }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Text
       accessibilityLabel={label}
       style={[
         styles.trainingHeaderBadge,
         {
-          backgroundColor: toneMutedColor(tone),
-          borderColor: toneColor(tone),
-          color: toneColor(tone)
+          backgroundColor: toneMutedColor(colors, tone),
+          borderColor: toneColor(colors, tone),
+          color: toneColor(colors, tone)
         }
       ]}
     >
@@ -65,9 +68,11 @@ export function TrainingMetricWidget({
   helper?: string;
   tone?: Tone;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
-    <View style={[styles.metricWidget, { backgroundColor: toneMutedColor(tone) }]}>
-      <Text variant="caption" style={[styles.metricLabel, { color: toneColor(tone) }]}>{label}</Text>
+    <View style={[styles.metricWidget, { backgroundColor: toneMutedColor(colors, tone) }]}>
+      <Text variant="caption" style={[styles.metricLabel, { color: toneColor(colors, tone) }]}>{label}</Text>
       <Text variant="heading" style={styles.metricValue}>{value}</Text>
       {helper ? <Text variant="caption" style={styles.metricHelper}>{helper}</Text> : null}
     </View>
@@ -99,19 +104,21 @@ export function TrainingStatusCard({
   onSecondaryAction?: () => void;
   accessibilityLabel?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const Icon = statusTone === 'recovery' || statusTone === 'neutral' ? Moon : statusTone === 'success' ? CheckCircle2 : Dumbbell;
   return (
     <Card style={styles.statusCard} accessibilityLabel={accessibilityLabel}>
       <View style={styles.statusTop}>
-        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(statusTone) }]}>
-          <Icon size={22} color={toneColor(statusTone)} strokeWidth={2.8} />
+        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(colors, statusTone) }]}>
+          <Icon size={22} color={toneColor(colors, statusTone)} strokeWidth={2.8} />
         </View>
         <StatusPill
           label={statusLabel}
           tone={statusTone === 'recovery' ? 'recovery' : statusTone === 'warning' ? 'warning' : statusTone === 'success' ? 'success' : 'training'}
         />
       </View>
-      <Text variant="caption" style={[styles.accentLabel, { color: toneColor(statusTone) }]}>{label}</Text>
+      <Text variant="caption" style={[styles.accentLabel, { color: toneColor(colors, statusTone) }]}>{label}</Text>
       <Text variant="heading" style={styles.bigTitle}>{title}</Text>
       {subtitle ? <Text variant="body" style={styles.statusSubtitle}>{subtitle}</Text> : null}
       {meta ? <Text variant="muted">{meta}</Text> : null}
@@ -142,14 +149,16 @@ export function TrainingLoadInsightCard({
   tone?: Tone;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const content = (
     <>
       <View style={styles.compactHeader}>
-        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(tone) }]}>
-          <HeartPulse size={18} color={toneColor(tone)} strokeWidth={2.7} />
+        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(colors, tone) }]}>
+          <HeartPulse size={18} color={toneColor(colors, tone)} strokeWidth={2.7} />
         </View>
         <View style={styles.flex}>
-          <Text variant="caption" style={[styles.accentLabel, { color: toneColor(tone) }]}>{title}</Text>
+          <Text variant="caption" style={[styles.accentLabel, { color: toneColor(colors, tone) }]}>{title}</Text>
           <Text variant="heading" style={styles.cardTitle}>{status}</Text>
         </View>
         {onPress ? <ChevronRight size={19} color={colors.textMuted} /> : null}
@@ -192,6 +201,8 @@ export function WeeklyRoutinePreviewCard({
   }>;
   onDayPress: (key: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card>
       <View style={styles.compactHeader}>
@@ -245,11 +256,13 @@ export function WorkoutActionCard({
   disabled?: boolean;
   errorMessage?: string | null;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card style={styles.compactCard}>
       <View style={styles.workoutActionHeader}>
-        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(tone), borderColor: toneColor(tone) }]}>
-          <Activity size={18} color={toneColor(tone)} strokeWidth={2.7} />
+        <View style={[styles.smallIcon, { backgroundColor: toneMutedColor(colors, tone), borderColor: toneColor(colors, tone) }]}>
+          <Activity size={18} color={toneColor(colors, tone)} strokeWidth={2.7} />
         </View>
         <View style={styles.flex}>
           <Text variant="label">{title}</Text>
@@ -292,19 +305,21 @@ export function WorkoutProgressHeader({
   isCompleted: boolean;
   isPartial: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const tone: Tone = isCompleted ? 'success' : isPartial ? 'warning' : 'training';
   return (
     <Card style={styles.progressHero}>
       <View style={styles.compactHeader}>
-        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(tone), borderColor: toneColor(tone) }]}>
-          <Dumbbell size={22} color={toneColor(tone)} strokeWidth={2.8} />
+        <View style={[styles.statusIcon, { backgroundColor: toneMutedColor(colors, tone), borderColor: toneColor(colors, tone) }]}>
+          <Dumbbell size={22} color={toneColor(colors, tone)} strokeWidth={2.8} />
         </View>
         <TrainingHeaderBadge label={isCompleted ? completedLabel : `${progressPercent}%`} tone={isCompleted ? 'success' : 'training'} />
       </View>
       <Text variant="heading" style={styles.bigTitle}>{title}</Text>
       <Text variant="muted">{subtitle}</Text>
       <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progressPercent }}>
-        <View style={[styles.progressFill, { width: `${Math.max(4, Math.min(100, progressPercent))}%`, backgroundColor: toneColor(tone) }]} />
+        <View style={[styles.progressFill, { width: `${Math.max(4, Math.min(100, progressPercent))}%`, backgroundColor: toneColor(colors, tone) }]} />
       </View>
       <View style={styles.metricRow}>
         <TrainingMetricWidget label={exercisesLabel} value={`${completedExercises}/${totalExercises}`} tone={tone} />
@@ -329,6 +344,8 @@ export function WorkoutExerciseCardSurface({
   children: ReactNode;
   onOpen?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card style={completed ? styles.completedExerciseCard : undefined}>
       <View style={styles.exerciseHeader}>
@@ -377,6 +394,8 @@ export function WorkoutHistoryCard({
   onPress: () => void;
   accessibilityLabel: string;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Pressable
       accessibilityRole="button"
@@ -409,6 +428,8 @@ export function ReplacementProposalCard({
   reason: string;
   accessibilityLabel: string;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.replacementCard} accessibilityLabel={accessibilityLabel}>
       <View style={[styles.smallIcon, { backgroundColor: colors.warningMuted }]}>
@@ -432,6 +453,8 @@ export function SafetyDecisionCard({
   message: string;
   children?: ReactNode;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Card style={styles.safetyCard}>
       <View style={styles.compactHeader}>
@@ -446,7 +469,7 @@ export function SafetyDecisionCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actionRow: { gap: 10, marginTop: 4 },
   accentLabel: { fontWeight: '600', letterSpacing: 0.2 },
   bigTitle: { fontSize: 30, lineHeight: 34, letterSpacing: -1.1 },
@@ -454,7 +477,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 22, lineHeight: 26, letterSpacing: -0.5 },
   compactCard: { gap: 12 },
   compactHeader: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  completedExerciseCard: { borderColor: 'rgba(103, 206, 103, 0.45)' },
+  completedExerciseCard: { borderColor: colors.success },
   dayLabel: { color: colors.textMuted, fontWeight: '600' },
   dayTile: {
     borderRadius: 18,
@@ -464,8 +487,8 @@ const styles = StyleSheet.create({
     width: '48.8%',
     padding: 12
   },
-  dayTileRest: { backgroundColor: colors.infoMuted, borderColor: 'rgba(129, 207, 250, 0.35)' },
-  dayTileTraining: { backgroundColor: colors.trainingMuted, borderColor: 'rgba(58, 130, 247, 0.32)' },
+  dayTileRest: { backgroundColor: colors.infoMuted, borderColor: colors.info },
+  dayTileTraining: { backgroundColor: colors.trainingMuted, borderColor: colors.training },
   dayTitle: { fontWeight: '600' },
   errorText: { color: colors.danger, fontWeight: '600' },
   exerciseCopy: { flex: 1, gap: 4 },
@@ -482,7 +505,7 @@ const styles = StyleSheet.create({
   mutedStrong: { color: colors.textMuted, fontWeight: '600' },
   pressableCard: {
     backgroundColor: colors.card,
-    borderColor: 'rgba(209, 209, 214, 0.65)',
+    borderColor: colors.border,
     borderRadius: 26,
     borderWidth: 1,
     padding: 18,
@@ -512,7 +535,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12
   },
-  safetyCard: { borderColor: 'rgba(241, 163, 59, 0.45)' },
+  safetyCard: { borderColor: colors.warning },
   smallIcon: {
     alignItems: 'center',
     borderRadius: 15,

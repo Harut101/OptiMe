@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
 import { StatusPill } from '@/components/StatusPill';
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type {
   FoodDayLogResponse,
   FoodMeal,
@@ -41,6 +42,8 @@ export function NutritionSummaryWidget({
   onWhyPress: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   return (
     <View style={styles.summaryCard}>
@@ -80,6 +83,8 @@ export function MacroMetricWidget({
   unit: string;
   tone?: 'nutrition' | 'protein' | 'carbs' | 'fat';
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const toneColor = {
     nutrition: colors.nutrition,
     protein: colors.training,
@@ -104,6 +109,8 @@ export function MealProgressWidget({
   trackingUnavailable: boolean;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const progress = formatFoodProgress(foodLog, t) ?? t('foodTracking.noMealsMarkedYet');
   const detail = trackingUnavailable || foodLog?.supported === false
     ? t('foodTracking.trackingStructuredOnly')
@@ -147,6 +154,8 @@ export function PremiumMealCard({
   onUpdateStatus: (status: FoodMealProgressStatus) => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const progress = getMealProgress(foodLog, meal.id);
   const status = progress?.status ?? 'PLANNED';
   const mealTypeLabel = t(`food.mealTypes.${meal.mealType}`);
@@ -209,6 +218,8 @@ export function MealStatusControl({
   trailing?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   return (
     <View style={[styles.statusControl, compact ? styles.statusControlCompact : null]}>
@@ -258,10 +269,10 @@ function normalizeMealTitle(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   summaryCard: {
     backgroundColor: colors.card,
-    borderColor: 'rgba(103, 206, 103, 0.28)',
+    borderColor: colors.successMuted,
     borderRadius: 28,
     borderWidth: 1,
     gap: 10,
@@ -331,12 +342,12 @@ const styles = StyleSheet.create({
     minHeight: 44
   },
   whyText: {
-    color: colors.primaryDark
+    color: colors.health
   },
   progressCard: {
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderColor: 'rgba(135, 227, 225, 0.34)',
+    borderColor: colors.infoMuted,
     borderRadius: 24,
     borderWidth: 1,
     flexDirection: 'row',
@@ -379,7 +390,7 @@ const styles = StyleSheet.create({
   },
   mealCard: {
     backgroundColor: colors.card,
-    borderColor: 'rgba(209, 209, 214, 0.72)',
+    borderColor: colors.border,
     borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',

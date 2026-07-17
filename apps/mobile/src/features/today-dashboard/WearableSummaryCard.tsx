@@ -10,7 +10,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { Text } from '@/components/Text';
 import { formatNumber } from '@/i18n/formatters';
 import { getHealthProviderLabel } from '@/i18n/enum-labels';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import type {
   HealthDataSource,
   HealthConnectionFoundation,
@@ -31,6 +31,7 @@ export function WearableSummaryCard({
   onOpenHealth
 }: WearableSummaryCardProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const snapshot = wearable?.snapshot ?? null;
   const connectedSource = connections?.find((connection) => connection.status === 'CONNECTED')?.source ?? null;
   const source = snapshot?.source ?? connectedSource;
@@ -101,7 +102,7 @@ export function WearableSummaryCard({
       <Text variant="muted" style={styles.metaText}>
         {t('todayDashboard.lastSynced', { value: formatLastSynced(snapshot.capturedAt, locale, t) })}
       </Text>
-      {snapshot.isStale ? <Text style={styles.stale}>{t('health.wearableDataStale')}</Text> : null}
+      {snapshot.isStale ? <Text style={[styles.stale, { color: colors.warning }]}>{t('health.wearableDataStale')}</Text> : null}
     </View>
   );
 }
@@ -169,7 +170,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2
   },
   stale: {
-    color: colors.warning,
     fontWeight: '700',
     paddingHorizontal: 2
   }

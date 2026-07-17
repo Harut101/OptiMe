@@ -7,7 +7,7 @@ import { Card } from '@/components/Card';
 import { StatusPill } from '@/components/StatusPill';
 import { Text } from '@/components/Text';
 import { formatNumber, formatWeight } from '@/i18n/formatters';
-import { colors, themeColorsByMode, type ThemeMode } from '@/theme/colors';
+import { themeColorsByMode, type ThemeMode } from '@/theme/colors';
 import type { WeightSummary } from '@/types/api';
 import { getWeightUnit, toDisplayWeight } from './weight-format';
 
@@ -41,7 +41,7 @@ export function WeightProgressCard({
   if (isLoading) {
     return (
       <Card>
-        <Text variant="label" style={styles.loadingTitle}>{t('weight.progressTitle')}</Text>
+        <Text variant="label" style={[styles.loadingTitle, { color: accent }]}>{t('weight.progressTitle')}</Text>
         <Text variant="muted">{t('common.loading')}</Text>
       </Card>
     );
@@ -50,7 +50,7 @@ export function WeightProgressCard({
   if (isError) {
     return (
       <Card>
-        <Text variant="label" style={styles.loadingTitle}>{t('weight.progressTitle')}</Text>
+        <Text variant="label" style={[styles.loadingTitle, { color: accent }]}>{t('weight.progressTitle')}</Text>
         <Text variant="muted">{t('weight.unavailable')}</Text>
         <UpdateButton
           title={t('weight.updateWeight')}
@@ -112,7 +112,7 @@ export function WeightProgressCard({
       <View style={styles.heroRow}>
         <Text style={[styles.heroValue, { color: accent }]}>{currentValue}</Text>
         {currentUnit ? <Text style={[styles.heroUnit, { color: palette.textSecondary }]}>{currentUnit}</Text> : null}
-        {relation ? <TargetArrow relation={relation} color={colors.primary} mutedColor={palette.textMuted} /> : null}
+        {relation ? <TargetArrow relation={relation} color={palette.health} mutedColor={palette.textMuted} /> : null}
       </View>
 
       <Text style={[styles.supportingText, { color: palette.textSecondary }]}>
@@ -193,7 +193,6 @@ function UpdateButton({
 
 const styles = StyleSheet.create({
   loadingTitle: {
-    color: colors.success,
     fontWeight: '600',
     textTransform: 'uppercase'
   },

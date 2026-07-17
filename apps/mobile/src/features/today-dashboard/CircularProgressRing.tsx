@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from '@/components/Text';
 
 interface CircularProgressRingProps {
@@ -25,13 +25,15 @@ export function CircularProgressRing({
   strokeWidth = 16,
   label,
   gradientColors,
-  trackColor = colors.divider,
+  trackColor: trackColorProp,
   trackOpacity = 1,
   endCapColor,
   emptyArcValue = 0,
   showEndCapDot = true,
   accessibilityLabel
 }: CircularProgressRingProps) {
+  const { colors } = useTheme();
+  const trackColor = trackColorProp ?? colors.divider;
   const rawGradientId = useId();
   const gradientId = `ring-${rawGradientId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const radius = (size - strokeWidth) / 2;
@@ -43,7 +45,7 @@ export function CircularProgressRing({
   const segmentArc = circumference / segmentCount;
   const segmentGap = Math.min(2.4, segmentArc * 0.24);
   const visibleSegmentArc = Math.max(segmentArc - segmentGap, 0.5);
-  const capColor = endCapColor ?? gradientColors[gradientColors.length - 1] ?? colors.primary;
+  const capColor = endCapColor ?? gradientColors[gradientColors.length - 1] ?? colors.health;
   const capPosition = getEndCapPosition(center, radius, normalizedValue);
   const shouldRenderSegmentedArc = normalizedValue > 0 && activeSegmentCount > 0;
   const shouldRenderEndCapDot = value !== null && showEndCapDot && normalizedValue > 2 && normalizedValue < 99.5;
@@ -127,7 +129,7 @@ export function CircularProgressRing({
         ) : null}
       </Svg>
       <View style={styles.labelWrap} pointerEvents="none">
-        <Text variant="heading" style={styles.label}>
+        <Text variant="heading" style={[styles.label, { color: colors.textPrimary }]}>
           {label ?? (value === null ? '-' : `${Math.round(normalizedValue)}%`)}
         </Text>
       </View>
@@ -145,7 +147,7 @@ function getEndCapPosition(center: number, radius: number, value: number) {
 }
 
 function interpolateGradientColor(colorsToInterpolate: readonly string[], ratio: number) {
-  if (colorsToInterpolate.length === 0) return colors.primary;
+  if (colorsToInterpolate.length === 0) return '#000000';
   if (colorsToInterpolate.length === 1) return colorsToInterpolate[0];
 
   const clampedRatio = Math.max(0, Math.min(1, ratio));
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 24,
     fontWeight: '600',
-    lineHeight: 30,
-    color: colors.textPrimary
+    lineHeight: 30
   }
 });
