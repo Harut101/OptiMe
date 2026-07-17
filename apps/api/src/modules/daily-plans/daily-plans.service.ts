@@ -86,6 +86,7 @@ import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { withRecoveryAwareContextNotes } from './daily-plan-context-notes';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
+import { getSafeFallbackCopy } from './daily-plan-copy';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
@@ -258,7 +259,8 @@ export class DailyPlansService {
               this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
               nutritionTarget
             ),
-            appMode
+            appMode,
+            this.resolvePlanningLocale(user)
           ),
           personalizationContext,
           trainingEnabled,
@@ -361,7 +363,8 @@ export class DailyPlansService {
               this.withTrainingScheduleSnapshot(retryProviderPlanResult.planJson, resolvedTrainingDay),
               nutritionTarget
             ),
-            appMode
+            appMode,
+            this.resolvePlanningLocale(user)
           ),
           personalizationContext,
           trainingEnabled,
@@ -458,6 +461,7 @@ export class DailyPlansService {
             planJson: this.createSafetyAgentFallback({
               planLocalDate,
               planTimezone,
+              locale: this.resolvePlanningLocale(user),
               fallbackReason: retryFallbackReason,
               retryUsed: true,
               retryResult: 'failed'
@@ -1719,6 +1723,7 @@ export class DailyPlansService {
           planJson: createSafeFallbackPlan({
             planLocalDate: input.planLocalDate,
             planTimezone: input.planTimezone,
+            locale: this.resolvePlanningLocale(input.user),
             reasons: [error.fallbackReason]
           })
         };
@@ -1805,6 +1810,7 @@ export class DailyPlansService {
       const fallbackPlan = createSafeFallbackPlan({
         planLocalDate: input.planLocalDate,
         planTimezone: input.planTimezone,
+        locale: this.resolvePlanningLocale(input.user),
         reasons: [
           input.safetyRetryUsed
             ? 'safety_agent_retry_invalid_output'
@@ -1849,6 +1855,7 @@ export class DailyPlansService {
         planJson: createSafeFallbackPlan({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           reasons: planSafety.reasons
         })
       };
@@ -1871,6 +1878,7 @@ export class DailyPlansService {
         planJson: createSafeFallbackPlan({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           reasons: pregnancyPlanSafety.reasons
         })
       };
@@ -1904,6 +1912,7 @@ export class DailyPlansService {
         planJson: createSafeFallbackPlan({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           reasons: exercisePlanSafety.reasons
         })
       };
@@ -1968,6 +1977,7 @@ export class DailyPlansService {
         return this.createSafetyAgentFallback({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           fallbackReason: 'safety_agent_invalid_review'
         });
       }
@@ -2047,6 +2057,7 @@ export class DailyPlansService {
         return this.createSafetyAgentFallback({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           fallbackReason,
           approved: false,
           riskLevel: parsedReview.data.riskLevel,
@@ -2076,6 +2087,7 @@ export class DailyPlansService {
         return this.createSafetyAgentFallback({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: this.resolvePlanningLocale(input.user),
           fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : error.fallbackReason,
           retryUsed: input.retryUsed,
           retryResult: input.retryUsed ? 'failed' : 'not_used'
@@ -2086,6 +2098,7 @@ export class DailyPlansService {
       return this.createSafetyAgentFallback({
         planLocalDate: input.planLocalDate,
         planTimezone: input.planTimezone,
+        locale: this.resolvePlanningLocale(input.user),
         fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : 'safety_agent_unavailable',
         retryUsed: input.retryUsed,
         retryResult: input.retryUsed ? 'failed' : 'not_used'
@@ -2124,6 +2137,7 @@ export class DailyPlansService {
   private createSafetyAgentFallback(input: {
     planLocalDate: string;
     planTimezone: string;
+    locale: SupportedLocale;
     fallbackReason: string;
     approved?: boolean;
     riskLevel?: 'low' | 'medium' | 'high';
@@ -2136,6 +2150,7 @@ export class DailyPlansService {
         createSafeFallbackPlan({
           planLocalDate: input.planLocalDate,
           planTimezone: input.planTimezone,
+          locale: input.locale,
           reasons: [input.fallbackReason]
         }),
         {
@@ -2464,15 +2479,21 @@ export class DailyPlansService {
     });
   }
 
-  private withTrainingStateForAppMode(planJson: DailyPlanJson, appMode: GoalImpactMode): DailyPlanJson {
+  private withTrainingStateForAppMode(
+    planJson: DailyPlanJson,
+    appMode: GoalImpactMode,
+    locale: SupportedLocale
+  ): DailyPlanJson {
     if (appMode !== GoalImpactMode.NUTRITION_ONLY) return planJson;
+
+    const copy = getSafeFallbackCopy(locale);
 
     return {
       ...planJson,
       training: {
-        recommendation: 'Training is off for this plan.',
+        recommendation: copy.trainingOffRecommendation,
         intensity: 'REST',
-        notes: 'OptiMe will focus on nutrition today. You can enable training whenever it fits your goals.',
+        notes: copy.trainingOffNotes,
         exercises: []
       }
     };

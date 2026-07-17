@@ -35,6 +35,7 @@ import { OPENAI_CLIENT_FACTORY } from '../src/modules/ai/open-ai-client.factory'
 import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-plan-food-name-normalizer';
 import { dailyPlanJsonSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { createMockDailyPlan } from '../src/modules/daily-plans/templates/mock-daily-plan.factory';
+import { createSafeFallbackPlan } from '../src/modules/safety/safe-fallback-plan.factory';
 import { FeatureAccessService } from '../src/modules/entitlements/feature-access.service';
 import { ProtocolSelectorService } from '../src/modules/protocol/protocol-selector.service';
 import { ProtocolSelectionInput } from '../src/modules/protocol/protocol.types';
@@ -58,6 +59,19 @@ import { seedExerciseCatalog } from '../prisma/seeds/exercises/seed';
 import { seedFoodCatalog } from '../prisma/seeds/foods/seed';
 
 describe('Sprint 1 backend vertical slice', () => {
+  it('creates a localized safe fallback plan for the selected locale', () => {
+    const plan = createSafeFallbackPlan({
+      planLocalDate: '2026-07-17',
+      planTimezone: 'Europe/Yerevan',
+      locale: 'ru-RU',
+      reasons: ['schema_validation_failed']
+    });
+
+    expect(plan.contentLocale).toBe('ru-RU');
+    expect(plan.summary.title).toBe('Простой безопасный план');
+    expect(plan.safety.userSafeMessage).toBe('Сегодня мы выбрали более безопасный и спокойный план.');
+    expect(dailyPlanJsonSchema.safeParse(plan).success).toBe(true);
+  });
   let ctx: TestApp;
   const originalAiProvider = process.env.AI_PROVIDER;
   const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
