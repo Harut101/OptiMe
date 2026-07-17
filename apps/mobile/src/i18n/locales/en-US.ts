@@ -25,6 +25,8 @@
     level6: 'Steady',
     level9: 'High',
     noteOptional: 'Optional note',
+    recent: 'Recent reflections',
+    trendValue: '{{date}} · Energy {{energy}} · Tiredness {{tiredness}} · Soreness {{soreness}}',
     notePlaceholder: 'Anything useful to remember?',
     chooseDetail: 'Choose at least one detail, or close this for now.',
     save: 'Save reflection',

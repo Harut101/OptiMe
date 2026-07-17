@@ -114,6 +114,30 @@ export class DailyPlanCheckInsService {
     };
   }
 
+  async getRecentEveningReflections(userId: string) {
+    const reflections = await this.prisma.dailyPlanCheckIn.findMany({
+      where: { userId, type: DailyCheckInType.EVENING_REFLECTION },
+      select: {
+        payload: true,
+        dailyPlan: { select: { planLocalDate: true } }
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 7
+    });
+
+    return {
+      items: reflections.reverse().map((reflection) => {
+        const payload = this.asRecord(reflection.payload);
+        return {
+          planLocalDate: reflection.dailyPlan.planLocalDate,
+          energyLevel: this.optionalInteger(payload.energyLevel, 1, 10, 'energy level') ?? null,
+          tirednessLevel: this.optionalInteger(payload.tirednessLevel, 1, 10, 'tiredness level') ?? null,
+          sorenessLevel: this.optionalInteger(payload.sorenessLevel, 1, 10, 'soreness level') ?? null
+        };
+      })
+    };
+  }
+
   private async ensurePlanBelongsToUser(userId: string, dailyPlanId: string) {
     const plan = await this.prisma.dailyPlan.findFirst({
       where: {

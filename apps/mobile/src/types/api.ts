@@ -400,6 +400,17 @@ export interface DailyPlanCheckInsResponse {
   items: DailyPlanCheckInResponse[];
 }
 
+export interface EveningReflectionTrendItem {
+  planLocalDate: string;
+  energyLevel: number | null;
+  tirednessLevel: number | null;
+  sorenessLevel: number | null;
+}
+
+export interface EveningReflectionTrendResponse {
+  items: EveningReflectionTrendItem[];
+}
+
 export type SubscriptionPlan = 'FREE' | 'PLUS' | 'PRO';
 export type PlanQualityMode = 'BASIC' | 'PERSONALIZED' | 'ADAPTIVE';
 export type UsagePeriodType = 'DAILY' | 'MONTHLY';

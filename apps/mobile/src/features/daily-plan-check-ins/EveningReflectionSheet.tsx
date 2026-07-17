@@ -4,7 +4,11 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { getDailyPlanCheckIns, submitDailyPlanCheckIn } from '@/api/daily-plans';
+import {
+  getDailyPlanCheckIns,
+  getEveningReflectionTrend,
+  submitDailyPlanCheckIn
+} from '@/api/daily-plans';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -42,6 +46,11 @@ export function EveningReflectionSheet({
     queryFn: () => getDailyPlanCheckIns(dailyPlanId!),
     enabled: visible && Boolean(dailyPlanId)
   });
+  const trend = useQuery({
+    queryKey: ['evening-reflection-trend'],
+    queryFn: getEveningReflectionTrend,
+    enabled: visible
+  });
   const saveReflection = useMutation({
     mutationFn: (payload: EveningReflectionCheckInPayload) =>
       submitDailyPlanCheckIn(dailyPlanId!, {
@@ -51,6 +60,7 @@ export function EveningReflectionSheet({
     onSuccess: async () => {
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ['daily-plan-check-ins', dailyPlanId] });
+      await queryClient.invalidateQueries({ queryKey: ['evening-reflection-trend'] });
       onSaved();
     },
     onError: () => setError(t('eveningReflection.saveFailed'))
@@ -94,6 +104,21 @@ export function EveningReflectionSheet({
     >
       <View style={styles.content}>
         <Text variant="muted">{t('eveningReflection.help')}</Text>
+        {trend.data && trend.data.items.length > 1 ? (
+          <View style={styles.trend}>
+            <Text variant="label">{t('eveningReflection.recent')}</Text>
+            {trend.data.items.map((item) => (
+              <Text key={item.planLocalDate} variant="caption">
+                {t('eveningReflection.trendValue', {
+                  date: item.planLocalDate,
+                  energy: item.energyLevel ?? '-',
+                  tiredness: item.tirednessLevel ?? '-',
+                  soreness: item.sorenessLevel ?? '-'
+                })}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         <ReflectionSelector
           label={t('eveningReflection.energy')}
           value={energyLevel}
@@ -162,6 +187,9 @@ function toLevel(value: unknown): ReflectionLevel | null {
 const styles = StyleSheet.create({
   content: {
     gap: 14
+  },
+  trend: {
+    gap: 4
   },
   error: {
     color: colors.danger,

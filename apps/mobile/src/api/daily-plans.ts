@@ -2,6 +2,7 @@ import { apiRequest } from './client';
 import type {
   CreateDailyPlanCheckInRequest,
   DailyPlanCheckInsResponse,
+  EveningReflectionTrendResponse,
   DailyPlanCheckInResponse,
   DailyPlanFeedbackResponse,
   DailyPlanResponse,
@@ -44,6 +45,10 @@ export function submitDailyPlanFeedback(
 
 export function getDailyPlanCheckIns(dailyPlanId: string) {
   return apiRequest<DailyPlanCheckInsResponse>(`/daily-plans/${dailyPlanId}/check-ins`);
+}
+
+export function getEveningReflectionTrend() {
+  return apiRequest<EveningReflectionTrendResponse>('/me/check-ins/evening-reflections');
 }
 
 export function submitDailyPlanCheckIn(
