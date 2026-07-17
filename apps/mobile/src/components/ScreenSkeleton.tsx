@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Card } from './Card';
 import { Screen } from './Screen';
 
@@ -11,6 +11,9 @@ interface ScreenSkeletonProps {
 }
 
 export function ScreenSkeleton({ variant = 'default', cardCount = 3, topSafeArea = true }: ScreenSkeletonProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Screen topSafeArea={topSafeArea}>
       <View style={styles.header}>
@@ -20,11 +23,11 @@ export function ScreenSkeleton({ variant = 'default', cardCount = 3, topSafeArea
         <View style={[styles.line, styles.subtitle]} />
       </View>
 
-      {variant === 'dashboard' ? <DashboardSkeleton /> : null}
+      {variant === 'dashboard' ? <DashboardSkeleton styles={styles} /> : null}
 
       {Array.from({ length: cardCount }).map((_, index) => (
         <Card key={index} style={variant === 'list' ? styles.listCard : undefined}>
-          {variant === 'detail' ? <DetailCardSkeleton /> : <DefaultCardSkeleton />}
+          {variant === 'detail' ? <DetailCardSkeleton styles={styles} /> : <DefaultCardSkeleton styles={styles} />}
         </Card>
       ))}
     </Screen>
@@ -32,14 +35,17 @@ export function ScreenSkeleton({ variant = 'default', cardCount = 3, topSafeArea
 }
 
 export function CardSkeleton({ variant = 'default' }: Pick<ScreenSkeletonProps, 'variant'>) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Card>
-      {variant === 'detail' ? <DetailCardSkeleton /> : <DefaultCardSkeleton />}
+      {variant === 'detail' ? <DetailCardSkeleton styles={styles} /> : <DefaultCardSkeleton styles={styles} />}
     </Card>
   );
 }
 
-function DashboardSkeleton() {
+function DashboardSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.dashboardGrid}>
       {[0, 1].map((item) => (
@@ -54,7 +60,7 @@ function DashboardSkeleton() {
   );
 }
 
-function DefaultCardSkeleton() {
+function DefaultCardSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
     <>
       <View style={styles.row}>
@@ -70,7 +76,7 @@ function DefaultCardSkeleton() {
   );
 }
 
-function DetailCardSkeleton() {
+function DetailCardSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
     <>
       <View style={[styles.line, styles.detailTitle]} />
@@ -82,7 +88,7 @@ function DetailCardSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   header: {
     gap: 12,
     paddingTop: 8

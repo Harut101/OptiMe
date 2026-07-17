@@ -43,7 +43,8 @@ import {
   toNutritionPreferencesRequest
 } from '@/features/food-preferences/FoodPreferencesForm';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { isDraftDirty } from '@/features/editor/draft-state';
 import { getDietTypeLabel } from '@/i18n/enum-labels';
 import { useSettingsStore } from '@/store/settings-store';
@@ -68,6 +69,8 @@ const MAX_AVAILABLE_FOODS = 20;
 
 export default function FoodScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
   const queryClient = useQueryClient();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
@@ -506,6 +509,8 @@ function AvailableFoodsPrompt({
   onPress: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const summary = isUnavailable
     ? t('foodAvailability.unavailable')
     : selectedCount
@@ -550,6 +555,8 @@ function DailyFoodPlanCard({
   onUpdateMealStatus: (mealId: string, status: FoodMealProgressStatus) => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const fallback = foodPlan.source === 'DETERMINISTIC_FALLBACK' || foodPlan.validation.status === 'FALLBACK';
 
   return (
@@ -594,6 +601,8 @@ function DailyFoodPlanCard({
 /** Older and safety-fallback plans still contain practical meal guidance. */
 function FallbackMealPlanCard({ meals }: { meals: DailyPlanMeal[] }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
 
   return (
     <View style={styles.mealPlanSection}>
@@ -635,7 +644,7 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   actions: { gap: 10 },
   error: { color: colors.danger, fontWeight: '600' },
   mealPlanSection: { gap: 10 },
@@ -654,7 +663,7 @@ const styles = StyleSheet.create({
   },
   mealList: { gap: 10 },
   pressed: { opacity: 0.78 },
-  linkText: { color: colors.primaryDark, fontWeight: '700' },
+  linkText: { color: colors.health, fontWeight: '700' },
   compactActions: {
     flexDirection: 'row',
     gap: 10

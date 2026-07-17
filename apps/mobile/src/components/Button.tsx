@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, PressableProps, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { Text } from './Text';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface ButtonProps extends PressableProps {
   title: string;
@@ -11,6 +11,8 @@ interface ButtonProps extends PressableProps {
 }
 
 export function Button({ title, variant = 'primary', loading = false, disabled, style, ...props }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const isDisabled = disabled || loading;
   return (
     <Pressable
@@ -42,7 +44,7 @@ export function Button({ title, variant = 'primary', loading = false, disabled, 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   base: {
     minHeight: 48,
     borderRadius: 999,
@@ -58,8 +60,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   primary: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
+    backgroundColor: colors.health,
+    borderColor: colors.health
   },
   secondary: {
     backgroundColor: colors.surfaceElevated,

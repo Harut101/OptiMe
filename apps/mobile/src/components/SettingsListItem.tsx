@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { StatusPill } from './StatusPill';
 import { Text } from './Text';
 
@@ -31,7 +31,9 @@ export function SettingsListItem({
   onPress,
   accessibilityLabel
 }: SettingsListItemProps) {
-  const toneStyle = toneStyles[tone];
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const toneStyle = createToneStyles(colors)[tone];
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -55,7 +57,7 @@ export function SettingsListItem({
   );
 }
 
-const toneStyles = {
+const createToneStyles = (colors: ReturnType<typeof useTheme>['colors']) => ({
   profile: { background: colors.healthMuted, color: colors.health },
   goal: { background: colors.accentMuted, color: colors.accent },
   nutrition: { background: colors.nutritionMuted, color: colors.nutrition },
@@ -67,9 +69,9 @@ const toneStyles = {
   support: { background: colors.cardMuted, color: colors.textSecondary },
   danger: { background: colors.dangerMuted, color: colors.danger },
   neutral: { background: colors.surfaceMuted, color: colors.textPrimary }
-} as const;
+}) as const;
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   row: {
     alignItems: 'center',
     flexDirection: 'row',

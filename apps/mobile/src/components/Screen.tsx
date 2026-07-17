@@ -2,7 +2,7 @@ import { PropsWithChildren } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
@@ -18,6 +18,8 @@ export function Screen({
   onRefresh,
   topSafeArea = true
 }: ScreenProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const content = <View style={styles.content}>{children}</View>;
 
   return (
@@ -34,8 +36,8 @@ export function Screen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
+              tintColor={colors.health}
+              colors={[colors.health]}
             />
           ) : undefined}
         >
@@ -48,7 +50,7 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background

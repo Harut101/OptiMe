@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from './Text';
 
 type StatusPillTone = 'neutral' | 'success' | 'warning' | 'danger' | 'nutrition' | 'training' | 'recovery' | 'health' | 'info';
@@ -11,6 +11,9 @@ interface StatusPillProps {
 }
 
 export function StatusPill({ label, tone = 'neutral' }: StatusPillProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View accessibilityLabel={label} style={[styles.base, styles[tone]]}>
       <Text style={[styles.label, styles[`${tone}Label`]]}>{label}</Text>
@@ -18,7 +21,7 @@ export function StatusPill({ label, tone = 'neutral' }: StatusPillProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     alignItems: 'center',
@@ -53,7 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.nutritionMuted,
     borderColor: colors.nutrition
   },
-  nutritionLabel: { color: colors.primaryDark },
+  nutritionLabel: { color: colors.nutrition },
   training: {
     backgroundColor: colors.trainingMuted,
     borderColor: colors.training

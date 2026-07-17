@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from './Text';
 
 interface SelectableCardProps {
@@ -22,6 +22,9 @@ export function SelectableCard({
   onPress,
   accessibilityLabel
 }: SelectableCardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,12 +44,12 @@ export function SelectableCard({
         <Text variant="bodyStrong" style={styles.title}>{title}</Text>
         <Text variant="caption">{subtitle}</Text>
       </View>
-      {selected ? <CheckCircle2 size={22} color={colors.primaryDark} /> : null}
+      {selected ? <CheckCircle2 size={22} color={colors.health} /> : null}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: {
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
@@ -65,8 +68,8 @@ const styles = StyleSheet.create({
   },
   selected: {
     backgroundColor: colors.healthMuted,
-    borderColor: colors.primary,
-    shadowColor: colors.primaryDark,
+    borderColor: colors.health,
+    shadowColor: colors.health,
     shadowOpacity: 0.13
   },
   pressed: {
@@ -82,7 +85,7 @@ const styles = StyleSheet.create({
     width: 42
   },
   iconSelected: {
-    backgroundColor: colors.primary
+    backgroundColor: colors.health
   },
   copy: {
     flex: 1,

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from './Text';
 
 interface ScreenHeaderProps {
@@ -12,6 +12,9 @@ interface ScreenHeaderProps {
 }
 
 export function ScreenHeader({ eyebrow, title, subtitle, rightAccessory }: ScreenHeaderProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container} accessible accessibilityRole="header">
       {eyebrow || rightAccessory ? (
@@ -28,7 +31,7 @@ export function ScreenHeader({ eyebrow, title, subtitle, rightAccessory }: Scree
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     gap: 6,
     paddingBottom: 4,

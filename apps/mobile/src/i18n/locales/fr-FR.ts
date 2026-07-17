@@ -77,6 +77,11 @@ export const frFR = createLocaleResource({
     weightHubHelp: 'Votre poids actuel aide les futures cibles nutritionnelles. Les anciens plans ne changent pas.'
   },
   settings: {
+    theme: 'Apparence',
+    themeHelp: 'Choisissez si OptiMe suit votre appareil ou utilise toujours une apparence claire ou sombre.',
+    themeSystem: 'Système',
+    themeLight: 'Clair',
+    themeDark: 'Sombre',
     signedIn: 'Connecté',
     accountHelp: 'Forfait, langue, unités et confidentialité.',
     saveErrorHelp: 'Vos réglages précédents restent actifs. Réessayez avec une connexion stable.',

@@ -3,14 +3,23 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import { AppProviders } from '@/providers/app-providers';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 export default function RootLayout() {
-  const { t } = useTranslation();
-
   return (
     <AppProviders>
-      <StatusBar style="dark" />
+      <AppNavigation />
+    </AppProviders>
+  );
+}
+
+function AppNavigation() {
+  const { t } = useTranslation();
+  const { colors, mode } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.surfaceElevated },
@@ -38,6 +47,6 @@ export default function RootLayout() {
         <Stack.Screen name="training-schedule/edit" options={{ title: t('navigation.editWorkout'), headerBackTitle: t('tabs.training') }} />
         <Stack.Screen name="training-overrides/day" options={{ title: t('trainingOverrides.todayOnly'), headerBackTitle: t('tabs.today') }} />
       </Stack>
-    </AppProviders>
+    </>
   );
 }

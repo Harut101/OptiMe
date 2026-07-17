@@ -1,7 +1,7 @@
 import { TextInput, TextInputProps, StyleSheet, View } from 'react-native';
 
 import { Text } from './Text';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface FieldProps extends TextInputProps {
   label: string;
@@ -9,6 +9,9 @@ interface FieldProps extends TextInputProps {
 }
 
 export function Field({ label, error, style, ...props }: FieldProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.wrap}>
       <Text variant="label">{label}</Text>
@@ -22,7 +25,7 @@ export function Field({ label, error, style, ...props }: FieldProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   wrap: {
     gap: 6
   },

@@ -4,7 +4,7 @@ import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from './Text';
 
 interface BottomSheetProps extends PropsWithChildren {
@@ -17,6 +17,8 @@ interface BottomSheetProps extends PropsWithChildren {
 export function BottomSheet({ visible, title, subtitle, onClose, children }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const slide = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'flex-end'

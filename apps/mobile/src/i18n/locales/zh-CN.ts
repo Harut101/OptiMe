@@ -77,6 +77,11 @@ export const zhCN = createLocaleResource({
     weightHubHelp: 'Your current weight helps future nutrition targets. Past plans stay unchanged.'
   },
   settings: {
+    theme: '\u5916\u89c2',
+    themeHelp: '\u9009\u62e9\u8ba9 OptiMe \u8ddf\u968f\u8bbe\u5907\u8bbe\u7f6e\uff0c\u6216\u59cb\u7ec8\u4f7f\u7528\u6d45\u8272\u6216\u6df1\u8272\u5916\u89c2\u3002',
+    themeSystem: '\u8ddf\u968f\u7cfb\u7edf',
+    themeLight: '\u6d45\u8272',
+    themeDark: '\u6df1\u8272',
     signedIn: '已登录',
     accountHelp: 'Plan, language, units, and privacy controls.',
     saveErrorHelp: 'Your previous settings are still active. Please try again when the connection is steady.',

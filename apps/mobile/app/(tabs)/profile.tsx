@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { goalSchema, profileSchema } from '@optime/shared-schemas';
 import { useTranslation } from 'react-i18next';
-import type { MeasurementSystem, PlanImpactChangeType, SupportedLocale } from '@optime/shared-types';
+import type { MeasurementSystem, PlanImpactChangeType, SupportedLocale, ThemePreference } from '@optime/shared-types';
 import {
   CalendarDays,
   Crown,
@@ -79,7 +79,8 @@ import {
 } from '@/features/training-preferences/TrainingSetupForm';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useAuthStore } from '@/store/auth-store';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { formatDate, formatHeight, formatWeight } from '@/i18n/formatters';
 import {
   getActivityLevelLabel,
@@ -111,6 +112,8 @@ export default function ProfileScreen() {
 
 function PersonalSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
   const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile });
@@ -306,6 +309,8 @@ function getGoalChangeConfirmationCopy(
 
 function GoalNutritionSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
@@ -515,6 +520,8 @@ function GoalNutritionSection() {
 
 function TrainingHubSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: ['training-preferences'], queryFn: getTrainingPreferences });
   const [editing, setEditing] = useState(false);
@@ -658,6 +665,8 @@ function buildTrainingPreferenceImpactTypes(
 
 function WeightSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const measurementSystem = useSettingsStore((state) => state.measurementSystem);
@@ -763,6 +772,8 @@ function WeightSection() {
 
 function ConnectionsSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const status = useQuery({ queryKey: ['health-status'], queryFn: getHealthStatus });
   const provider = getPlatformHealthProvider();
@@ -796,16 +807,20 @@ function ConnectionsSection() {
 
 function SettingsSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const applySettings = useSettingsStore((state) => state.applySettings);
   const currentLocale = useSettingsStore((state) => state.preferredLocale);
   const currentMeasurementSystem = useSettingsStore((state) => state.measurementSystem);
+  const currentThemePreference = useSettingsStore((state) => state.themePreference);
   const entitlements = useQuery({ queryKey: ['entitlements'], queryFn: getEntitlements });
   const settings = useQuery({ queryKey: ['settings'], queryFn: getSettings });
   const todayPlan = useQuery({ queryKey: ['today-plan'], queryFn: getTodayPlan });
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
   const [measurementSystem, setMeasurementSystem] = useState<MeasurementSystem>(currentMeasurementSystem);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(currentThemePreference);
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
   const [savedMessage, setSavedMessage] = useState<'settings' | 'language' | 'languageRecreated' | null>(null);
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
@@ -816,9 +831,13 @@ function SettingsSection() {
     if (!settings.data) return;
     setPreferredLocale(settings.data.preferredLocale);
     setMeasurementSystem(settings.data.measurementSystem);
+    setThemePreference(settings.data.themePreference);
   }, [settings.data]);
 
-  const dirty = preferredLocale !== currentLocale || measurementSystem !== currentMeasurementSystem;
+  const dirty =
+    preferredLocale !== currentLocale ||
+    measurementSystem !== currentMeasurementSystem ||
+    themePreference !== currentThemePreference;
   useUnsavedChangesGuard(dirty);
   const mutation = useMutation({
     mutationFn: updateSettings,
@@ -852,6 +871,7 @@ function SettingsSection() {
     if (mutation.isPending) return;
     setPreferredLocale(currentLocale);
     setMeasurementSystem(currentMeasurementSystem);
+    setThemePreference(currentThemePreference);
     setSettingsSheetVisible(false);
   };
 
@@ -859,6 +879,11 @@ function SettingsSection() {
     value,
     label: getMeasurementSystemLabel(t, value)
   }));
+  const themeOptions: Array<{ value: ThemePreference; label: string }> = [
+    { value: 'SYSTEM', label: t('settings.themeSystem') },
+    { value: 'LIGHT', label: t('settings.themeLight') },
+    { value: 'DARK', label: t('settings.themeDark') }
+  ];
 
   return (
     <View style={styles.section}>
@@ -893,10 +918,11 @@ function SettingsSection() {
             icon={<Languages size={18} color={colors.info} />}
             tone="settings"
             title={t('settings.application')}
-            subtitle={`${LANGUAGE_OPTIONS.find((item) => item.value === currentLocale)?.label ?? currentLocale} · ${getMeasurementSystemLabel(t, currentMeasurementSystem)}`}
+            subtitle={`${LANGUAGE_OPTIONS.find((item) => item.value === currentLocale)?.label ?? currentLocale} · ${getMeasurementSystemLabel(t, currentMeasurementSystem)} · ${themeOptions.find((item) => item.value === currentThemePreference)?.label ?? currentThemePreference}`}
             onPress={() => {
               setPreferredLocale(currentLocale);
               setMeasurementSystem(currentMeasurementSystem);
+              setThemePreference(currentThemePreference);
               setSavedMessage(null);
               setSettingsSheetVisible(true);
             }}
@@ -956,11 +982,18 @@ function SettingsSection() {
           onChange={(value) => { setMeasurementSystem(value); setSavedMessage(null); }}
         />
         <Text variant="muted">{t('settings.measurementHelp')}</Text>
+        <SelectChips
+          label={t('settings.theme')}
+          value={themePreference}
+          options={themeOptions}
+          onChange={(value) => { setThemePreference(value); setSavedMessage(null); }}
+        />
+        <Text variant="muted">{t('settings.themeHelp')}</Text>
         <View style={styles.actions}>
           <Button
             title={mutation.isPending ? t('common.saving') : t('settings.save')}
             disabled={mutation.isPending || !dirty}
-            onPress={() => mutation.mutate({ preferredLocale, measurementSystem })}
+            onPress={() => mutation.mutate({ preferredLocale, measurementSystem, themePreference })}
           />
           <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={closeSettingsSheet} />
         </View>
@@ -1010,6 +1043,8 @@ function SettingsSection() {
 
 function LogoutSection() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const clearSession = useAuthStore((state) => state.clearSession);
 
@@ -1046,7 +1081,7 @@ function formatHealthStatus(
   return t('health.notConnected');
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   section: { gap: 14 },
   actions: { gap: 10 },
   accountHeader: {

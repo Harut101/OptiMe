@@ -50,7 +50,8 @@ import {
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
+import type { ThemeColors } from '@/theme/colors';
 import { useSettingsStore } from '@/store/settings-store';
 import { getProgressiveOptionLabel, getProgressivePromptCopy } from '@/i18n/progressive-prompt-copy';
 import { getPlatformHealthProvider } from '@/features/health/health-platform';
@@ -68,6 +69,8 @@ import type { ProgressivePrompt, EvaluatePlanImpactResponse } from '@/types/api'
 
 export default function TodayScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const { generateAfterRoutine, generateAfterOverride } = useLocalSearchParams<{
     generateAfterRoutine?: string;
     generateAfterOverride?: string;
@@ -835,6 +838,8 @@ function getTodayDayOfWeek() {
 }
 
 function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean; label: string }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const containerStyle = trainingEnabled ? styles.modeIndicatorTraining : styles.modeIndicatorNutrition;
 
   return (
@@ -857,6 +862,9 @@ function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean
 }
 
 function TodaySkeleton() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <Screen>
       <View style={styles.todaySkeletonHeader}>
@@ -906,6 +914,8 @@ function ProgressivePromptCard({
   embedded?: boolean;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const [textValue, setTextValue] = useState('');
   const [singleValue, setSingleValue] = useState(prompt.options?.[0]?.value ?? '');
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
@@ -1059,6 +1069,8 @@ function ProgressivePromptTrigger({
   onPress: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const promptCopy = getProgressivePromptCopy(t, prompt);
 
   return (
@@ -1140,7 +1152,7 @@ function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
   return t('health.readinessUnavailableContinue');
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   dashboardGrid: {
     alignItems: 'stretch',
     flexDirection: 'row',
@@ -1180,7 +1192,7 @@ const styles = StyleSheet.create({
     gap: 3
   },
   promptTriggerAction: {
-    color: colors.primary,
+    color: colors.health,
     fontSize: 14,
     fontWeight: '600'
   },
@@ -1222,7 +1234,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary
   },
   multiChipTextActive: {
-    color: colors.primaryDark,
+    color: colors.health,
     fontWeight: '700'
   },
   modeIndicator: {

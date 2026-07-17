@@ -1,7 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { Platform, StyleSheet, Text as RNText, TextProps as RNTextProps } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface TextProps extends RNTextProps, PropsWithChildren {
   variant?: 'largeTitle' | 'title' | 'heading' | 'metric' | 'bodyStrong' | 'body' | 'muted' | 'caption' | 'label' | 'button' | 'finePrint';
@@ -14,6 +14,9 @@ const systemFontFamily = Platform.select({
 });
 
 export function Text({ variant = 'body', style, children, ...props }: TextProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <RNText {...props} style={[styles.base, styles[variant], style]}>
       {children}
@@ -21,7 +24,7 @@ export function Text({ variant = 'body', style, children, ...props }: TextProps)
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   base: {
     color: colors.textPrimary,
     fontFamily: systemFontFamily

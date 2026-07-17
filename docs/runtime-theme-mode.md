@@ -12,6 +12,6 @@ The mobile app resolves the active palette through `ThemeProvider`. The preferen
 
 ## Delivery boundary
 
-This first batch adds the persisted contract and runtime provider only. It deliberately does not expose a theme picker yet: shared mobile primitives and screens still contain static light-token styles. The next batch will migrate those surfaces to semantic runtime tokens, then expose the System, Light, and Dark controls in Settings.
+The Settings sheet in Profile exposes System, Light, and Dark controls. The app shell, navigation, shared primitives, and primary Today, Food, and Profile surfaces resolve their colors through runtime semantic tokens.
 
-This avoids presenting a partially themed interface to users.
+Feature-specific screens will continue moving away from legacy static light-token styles in follow-up UI work. The preference remains safe to use now because every shared surface falls back to the active semantic palette.

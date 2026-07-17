@@ -1,17 +1,20 @@
 import { PropsWithChildren } from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface CardProps extends PropsWithChildren<ViewProps> {
   variant?: 'default' | 'elevated' | 'muted' | 'hero';
 }
 
 export function Card({ children, style, variant = 'default', ...props }: CardProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return <View {...props} style={[styles.card, styles[variant], style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: 26,

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from './Text';
-import { colors } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 
 interface MultiSelectChipsProps<T extends string | number> {
   label: string;
@@ -16,6 +16,9 @@ export function MultiSelectChips<T extends string | number>({
   options,
   onChange
 }: MultiSelectChipsProps<T>) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.wrap}>
       <Text variant="label">{label}</Text>
@@ -47,7 +50,7 @@ export function MultiSelectChips<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   wrap: { gap: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
