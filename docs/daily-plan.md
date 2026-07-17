@@ -1,6 +1,8 @@
 # Daily Plan language compatibility
 
-Daily Plan structured enum values remain language-neutral. Existing plan text remains exactly as generated and is not translated or regenerated when the user changes application language or measurement system.
+Daily Plan structured enum values remain language-neutral. New plans receive the saved supported locale through the backend generation boundary. OpenAI, mock, and deterministic fallback copy use that locale, while catalog food names use their trusted localized catalog translations.
+
+Existing plan text remains exactly as generated. Changing the application language or measurement system never mutates a saved plan. After an explicit language change, mobile may offer to recreate today's plan in the new language. That request skips the normal refresh allowance and preserves the existing plan if the replacement cannot be saved as a ready plan.
 
 ## Context Notes
 
@@ -8,12 +10,12 @@ Daily Plan structured enum values remain language-neutral. Existing plan text re
 
 Context notes are product-facing localization codes, not debug metadata. They must not contain raw health metrics.
 
-Sprint 9A localizes the application shell only. A future Daily Plan localization batch may pass the saved supported locale into generation, but it must preserve schema validation, deterministic safety, Safety Agent review, and historical-plan immutability. Changing settings alone must never call the generation endpoint.
+Localized Daily Plan generation preserves schema validation, deterministic safety, Safety Agent review, and historical-plan immutability. Changing settings alone must never call the generation endpoint.
 ## Localization boundary
 
-Today and Plan Details localize headings, states, usage messages, feedback/check-in controls, and exercise metadata labels. Plan summaries, meal and food names, recommendations, reminders, exercise names, cues, and safety notes remain stored AI content and are rendered without translation or mutation.
+Today and Plan Details localize headings, states, usage messages, feedback/check-in controls, and exercise metadata labels. New plan summaries, meals, recommendations, reminders, exercise names, cues, and safety notes are generated in the selected language and stored with that plan. Historical plans are rendered as stored and are never silently translated or remapped.
 
-Future localized generation should pass locale through the existing backend AI boundary. ExerciseLibrary now provides explicit localized catalog content, but current free-text plan exercises remain unchanged and are not silently remapped.
+ExerciseLibrary provides explicit localized catalog content. Existing free-text plan exercises remain unchanged unless the user explicitly recreates a new plan.
 
 ## Food and Training views
 
