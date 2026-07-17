@@ -96,6 +96,29 @@ Current tolerances:
 
 OpenAI nutrition generation has one retry when deterministic validation fails.
 
+### Validator-guided retry
+
+The retry is a complete regenerated plan, not a partial patch. Before issuing it,
+`FoodPlanValidationService` produces a bounded repair brief containing only safe,
+calculated planning data:
+
+- validation reason codes
+- fixed backend target totals
+- recalculated candidate totals and target delta when a valid draft exists
+- affected meal IDs
+- concise correction instructions
+
+The OpenAI request receives that brief so it can correct the exact mismatch, such
+as portion totals or macro fit, without being allowed to change the target,
+restrictions, or catalog boundary. Logs record reason codes, affected-meal count,
+and whether a calculated delta exists; they never record full plans, health notes,
+or raw profile data.
+
+This is a transition toward an AI-first planning flow. The current catalog-first
+composer remains the preferred safe source when it can already meet the fixed
+target; the backend still validates every result and retains deterministic fallback
+as the final safety net.
+
 If retry fails, the backend stores a deterministic fallback food plan. The fallback:
 
 - uses the deterministic target when available

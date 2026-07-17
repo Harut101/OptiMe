@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DailyFoodPlan, FoodIngredient, FoodMeal } from '@optime/shared-types';
+import type { DailyFoodPlan, FoodIngredient, FoodMeal, FoodNutritionTotals } from '@optime/shared-types';
 
 import { dailyFoodPlanSchema } from '../daily-plans/daily-plan-json.schema';
 import {
@@ -20,7 +20,8 @@ export class FoodPlanValidationService {
       return {
         passed: false,
         reasons: ['SCHEMA_INVALID'],
-        totalKcalDelta: 0
+        totalKcalDelta: 0,
+        repairFeedback: this.createRepairFeedback(null, context, ['SCHEMA_INVALID'])
       };
     }
 
@@ -36,7 +37,115 @@ export class FoodPlanValidationService {
     return {
       passed: reasons.length === 0,
       reasons: [...new Set(reasons)],
-      totalKcalDelta: Math.abs(plan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)
+      totalKcalDelta: Math.abs(plan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal),
+      repairFeedback: reasons.length
+        ? this.createRepairFeedback(plan, context, [...new Set(reasons)])
+        : undefined
+    };
+  }
+
+  private createRepairFeedback(
+    plan: DailyFoodPlan | null,
+    context: FoodPlanValidationContext,
+    reasonCodes: string[]
+  ) {
+    const targetTotals = {
+      caloriesKcal: context.nutritionTarget.calories.targetKcal,
+      proteinGrams: context.nutritionTarget.macros.proteinGrams,
+      carbsGrams: context.nutritionTarget.macros.carbsGrams,
+      fatGrams: context.nutritionTarget.macros.fatGrams
+    };
+    const actualTotals = plan?.totals;
+    const deltaFromTarget = actualTotals
+      ? this.subtractTotals(actualTotals, targetTotals)
+      : undefined;
+    const affectedMealIds = plan
+      ? this.getAffectedMealIds(plan, context, reasonCodes)
+      : [];
+
+    return {
+      reasonCodes,
+      targetTotals,
+      actualTotals,
+      deltaFromTarget,
+      affectedMealIds,
+      instructions: this.getRepairInstructions(reasonCodes, deltaFromTarget)
+    };
+  }
+
+  private getAffectedMealIds(
+    plan: DailyFoodPlan,
+    context: FoodPlanValidationContext,
+    reasonCodes: string[]
+  ) {
+    if (reasonCodes.some(isPlanWideRepairReason)) {
+      return plan.meals.map((meal) => meal.id);
+    }
+
+    const ingredientMismatchMealIds = plan.meals
+      .filter((meal) => hasIngredientArithmeticMismatch(meal))
+      .map((meal) => meal.id);
+    if (ingredientMismatchMealIds.length > 0) {
+      return ingredientMismatchMealIds;
+    }
+
+    const restrictedFoods = [
+      ...context.allergies,
+      ...context.excludedFoods,
+      ...(context.dislikedFoods ?? [])
+    ].map((food) => food.trim().toLowerCase()).filter(Boolean);
+
+    return plan.meals
+      .filter((meal) => {
+        const text = [
+          meal.title,
+          meal.shortDescription ?? '',
+          meal.servingSummary,
+          ...meal.ingredients.map((ingredient) => ingredient.name),
+          ...meal.preparationSteps,
+          ...meal.substitutions.flatMap((substitution) => [
+            substitution.originalItem,
+            substitution.replacementItem,
+            substitution.servingSummary,
+            substitution.macroImpactNote ?? ''
+          ])
+        ].join(' ');
+        return restrictedFoods.some((food) => containsFood(text, food));
+      })
+      .map((meal) => meal.id);
+  }
+
+  private getRepairInstructions(
+    reasonCodes: string[],
+    delta?: FoodNutritionTotals
+  ) {
+    const instructions = [
+      'Return a complete plan using only allowed catalog foods and recipe templates.',
+      'Do not change the fixed backend nutrition target.'
+    ];
+    if (reasonCodes.includes('SCHEMA_INVALID')) {
+      instructions.push('Return every required field in the structured schema.');
+    }
+    if (reasonCodes.some((reason) => reason.includes('DO_NOT_MATCH'))) {
+      instructions.push('Make every meal internally consistent with its selected ingredients and quantities.');
+    }
+    if (reasonCodes.includes('RESTRICTED_FOOD_CONFLICT')) {
+      instructions.push('Remove restricted or disliked foods from every meal field, substitution, and preparation step.');
+    }
+    if (delta) {
+      instructions.push(
+        `Adjust selected food slugs or gram quantities to close the calculated daily delta: ${formatTotals(delta)}.`
+      );
+    }
+    return instructions;
+  }
+
+  private subtractTotals(actual: FoodNutritionTotals, target: FoodNutritionTotals): FoodNutritionTotals {
+    return {
+      caloriesKcal: Math.round(actual.caloriesKcal - target.caloriesKcal),
+      proteinGrams: Math.round((actual.proteinGrams - target.proteinGrams) * 10) / 10,
+      carbsGrams: Math.round((actual.carbsGrams - target.carbsGrams) * 10) / 10,
+      fatGrams: Math.round((actual.fatGrams - target.fatGrams) * 10) / 10
     };
   }
 
@@ -239,6 +348,34 @@ function sumIngredients(ingredients: FoodIngredient[]) {
 function withinMacroTolerance(actual: number, target: number, absolute: number, percent: number) {
   const tolerance = Math.max(absolute, target * (percent / 100));
   return Math.abs(actual - target) <= tolerance;
+}
+
+function formatTotals(totals: FoodNutritionTotals) {
+  return `${totals.caloriesKcal} kcal, ${totals.proteinGrams} g protein, ${totals.carbsGrams} g carbs, ${totals.fatGrams} g fat`;
+}
+
+function isPlanWideRepairReason(reason: string) {
+  return [
+    'CALORIES_OUTSIDE_TARGET_TOLERANCE',
+    'PROTEIN_OUTSIDE_TARGET_TOLERANCE',
+    'CARBS_OUTSIDE_TARGET_TOLERANCE',
+    'FAT_OUTSIDE_TARGET_TOLERANCE',
+    'DAILY_TOTALS_DO_NOT_MATCH_MEALS',
+    'DAILY_MACROS_DO_NOT_MATCH_MEALS',
+    'MACRO_CALORIES_DO_NOT_MATCH_TOTAL',
+    'UNSAFE_DIET_LANGUAGE',
+    'UNSAFE_SENSITIVE_CONTEXT_LANGUAGE'
+  ].includes(reason);
+}
+
+function hasIngredientArithmeticMismatch(meal: FoodMeal) {
+  const ingredientSums = sumIngredients(meal.ingredients);
+  return (
+    Math.abs(ingredientSums.caloriesKcal - meal.caloriesKcal) > FOOD_PLAN_VALIDATION_TOLERANCES.mealCaloriesKcal ||
+    Math.abs(ingredientSums.proteinGrams - meal.proteinGrams) > FOOD_PLAN_VALIDATION_TOLERANCES.mealMacroGrams ||
+    Math.abs(ingredientSums.carbsGrams - meal.carbsGrams) > FOOD_PLAN_VALIDATION_TOLERANCES.mealMacroGrams ||
+    Math.abs(ingredientSums.fatGrams - meal.fatGrams) > FOOD_PLAN_VALIDATION_TOLERANCES.mealMacroGrams
+  );
 }
 
 function containsFood(text: string, food: string) {

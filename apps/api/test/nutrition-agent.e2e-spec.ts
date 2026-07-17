@@ -886,8 +886,9 @@ describe('Specialized Nutrition Agent food plans', () => {
         caloriesKcal: foodPlan.totals.caloriesKcal + 900
       }
     };
+    const nutritionTarget = await getNutritionTarget(user.accessToken);
     const result = validator.validate(invalidPlan, {
-      nutritionTarget: await getNutritionTarget(user.accessToken),
+      nutritionTarget,
       nutritionTargetSnapshot: generated.body.plan.nutritionTargetSnapshot,
       allergies: [],
       excludedFoods: [],
@@ -898,6 +899,19 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(result.passed).toBe(false);
     expect(result.reasons).toEqual(
       expect.arrayContaining(['DAILY_TOTALS_DO_NOT_MATCH_MEALS', 'CALORIES_OUTSIDE_TARGET_TOLERANCE'])
+    );
+    expect(result.repairFeedback).toMatchObject({
+      reasonCodes: expect.arrayContaining(['DAILY_TOTALS_DO_NOT_MATCH_MEALS', 'CALORIES_OUTSIDE_TARGET_TOLERANCE']),
+      targetTotals: { caloriesKcal: nutritionTarget.calories.targetKcal },
+      actualTotals: { caloriesKcal: foodPlan.totals.caloriesKcal + 900 },
+      deltaFromTarget: { caloriesKcal: foodPlan.totals.caloriesKcal + 900 - nutritionTarget.calories.targetKcal },
+      affectedMealIds: foodPlan.meals.map((meal) => meal.id)
+    });
+    expect(result.repairFeedback?.instructions).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('complete plan'),
+        expect.stringContaining('calculated daily delta')
+      ])
     );
   });
 

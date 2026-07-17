@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 import type {
   DailyFoodPlan,
+  FoodNutritionTotals,
   NutritionTarget,
   NutritionTargetSnapshot,
   ResolvedTrainingDayContext,
@@ -86,4 +87,15 @@ export interface FoodPlanValidationResult {
   passed: boolean;
   reasons: string[];
   totalKcalDelta: number;
+  repairFeedback?: FoodPlanRepairFeedback;
+}
+
+/** Safe, calculated correction context for one bounded AI retry. */
+export interface FoodPlanRepairFeedback {
+  reasonCodes: string[];
+  targetTotals: FoodNutritionTotals;
+  actualTotals?: FoodNutritionTotals;
+  deltaFromTarget?: FoodNutritionTotals;
+  affectedMealIds: string[];
+  instructions: string[];
 }

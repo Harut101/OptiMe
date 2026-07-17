@@ -42,11 +42,20 @@ import {
   nutritionAgentFoodPlanOpenAiSchema,
   type NutritionAgentFoodPlanDraft
 } from './nutrition-agent.openai-schema';
-import type { NutritionAgentInput, NutritionAgentResult } from './nutrition-agent.types';
+import type {
+  FoodPlanRepairFeedback,
+  NutritionAgentInput,
+  NutritionAgentResult
+} from './nutrition-agent.types';
 
 type NutritionAgentAttemptResult =
   | { ok: true; foodPlan: DailyFoodPlan; validationReasons: string[] }
-  | { ok: false; validationReasons: string[]; errorReason: string };
+  | {
+      ok: false;
+      validationReasons: string[];
+      errorReason: string;
+      repairFeedback?: FoodPlanRepairFeedback;
+    };
 
 @Injectable()
 export class NutritionAgentService {
@@ -105,7 +114,7 @@ export class NutritionAgentService {
       return this.generateMockFoodPlan(input);
     }
 
-    const firstAttempt = await this.requestOpenAiFoodPlan(input, []);
+    const firstAttempt = await this.requestOpenAiFoodPlan(input);
 
     if (firstAttempt.ok) {
       this.logResult(input, firstAttempt.foodPlan, 0, firstAttempt.validationReasons);
@@ -132,9 +141,9 @@ export class NutritionAgentService {
     }
 
     this.logger.warn(
-      `nutrition agent validation failed; retrying=true; reasons=${firstAttempt.validationReasons.join(',') || firstAttempt.errorReason}`
+      `nutrition agent validation failed; retrying=true; reasons=${firstAttempt.validationReasons.join(',') || firstAttempt.errorReason}; affectedMealCount=${firstAttempt.repairFeedback?.affectedMealIds.length ?? 0}; hasCalculatedDelta=${Boolean(firstAttempt.repairFeedback?.deltaFromTarget)}`
     );
-    const retryAttempt = await this.requestOpenAiFoodPlan(input, firstAttempt.validationReasons);
+    const retryAttempt = await this.requestOpenAiFoodPlan(input, firstAttempt.repairFeedback);
 
     if (retryAttempt.ok) {
       this.logResult(input, retryAttempt.foodPlan, 1, retryAttempt.validationReasons);
@@ -214,8 +223,9 @@ export class NutritionAgentService {
 
   private async requestOpenAiFoodPlan(
     input: NutritionAgentInput,
-    previousValidationReasons: string[]
+    previousRepairFeedback?: FoodPlanRepairFeedback
   ): Promise<NutritionAgentAttemptResult> {
+    const previousValidationReasons = previousRepairFeedback?.reasonCodes ?? [];
     const model = this.getModel();
     const selectionSeed = input.regeneration?.mode === 'FULL_MENU_REGENERATION'
       ? this.fullMenuRegenerationSelectionSeed(input)
@@ -283,13 +293,13 @@ export class NutritionAgentService {
           input: [
             {
               role: 'system',
-              content: this.buildSystemInstructions(previousValidationReasons)
+              content: this.buildSystemInstructions(previousRepairFeedback)
             },
             {
               role: 'user',
               content: JSON.stringify(this.buildPlanningContext(
                 input,
-                previousValidationReasons,
+                previousRepairFeedback,
                 catalogSelection,
                 catalogFeasibility,
                 recipeTemplates
@@ -758,7 +768,8 @@ export class NutritionAgentService {
       return {
         ok: false,
         validationReasons: validation.reasons,
-        errorReason: 'VALIDATION_FAILED'
+        errorReason: 'VALIDATION_FAILED',
+        repairFeedback: validation.repairFeedback
       };
     }
 
@@ -776,7 +787,7 @@ export class NutritionAgentService {
     };
   }
 
-  private buildSystemInstructions(previousValidationReasons: string[]) {
+  private buildSystemInstructions(previousRepairFeedback?: FoodPlanRepairFeedback) {
     return [
       'You are the OptiMe Specialized Nutrition Agent.',
       'Return only structured JSON matching the provided daily food plan content schema.',
@@ -798,8 +809,12 @@ export class NutritionAgentService {
       'For minors, safeMode, pregnancy, postpartum, or breastfeeding context, keep meals balanced and conservative.',
       'For FULL_MENU_REGENERATION, replace the complete menu while preserving the fixed nutrition target.',
       'For MEAL_REGENERATION, regenerate the selected meal and return the complete adjusted food plan. Keep other meals stable unless small macro balancing changes are required.',
-      previousValidationReasons.length
-        ? `This is a retry. Fix these validation errors: ${previousValidationReasons.join(', ')}. Return a complete corrected food plan, not partial edits.`
+      previousRepairFeedback
+        ? [
+            'This is a correction attempt. Return a complete corrected food plan, not partial edits.',
+            `Validator reason codes: ${previousRepairFeedback.reasonCodes.join(', ')}.`,
+            ...previousRepairFeedback.instructions
+          ].join(' ')
         : 'Create one complete daily food plan.'
     ].join('\n');
   }
@@ -836,7 +851,7 @@ export class NutritionAgentService {
 
   private buildPlanningContext(
     input: NutritionAgentInput,
-    previousValidationReasons: string[],
+    previousRepairFeedback: FoodPlanRepairFeedback | undefined,
     catalogSelection: DailyFoodCatalogSelection,
     catalogFeasibility: FoodPlanCatalogFeasibilityResult,
     recipeTemplates: FoodPlanRecipeTemplate[]
@@ -905,7 +920,7 @@ export class NutritionAgentService {
             existingFoodPlan: input.regeneration.existingFoodPlan
           }
         : null,
-      previousValidationReasons
+      repairFeedback: previousRepairFeedback ?? null
     };
   }
 
