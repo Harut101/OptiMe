@@ -55,7 +55,7 @@ export function WeightProgressCard({
         <UpdateButton
           title={t('weight.updateWeight')}
           color={buttonColor}
-          textColor={palette.textInverse}
+          textColor={palette.textOnAccent}
           onPress={onUpdate}
         />
       </Card>
@@ -126,7 +126,7 @@ export function WeightProgressCard({
       <UpdateButton
         title={hasCurrent ? t('weight.updateWeight') : t('weight.addWeight')}
         color={buttonColor}
-        textColor={palette.textInverse}
+        textColor={palette.textOnAccent}
         onPress={onUpdate}
       />
     </View>

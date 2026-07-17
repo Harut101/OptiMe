@@ -30,11 +30,11 @@ export function Button({ title, variant = 'primary', loading = false, disabled, 
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={variant === 'primary' ? colors.textInverse : colors.textPrimary} />
+          <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? colors.textOnAccent : colors.textPrimary} />
         ) : null}
         <Text variant="button" style={[
           styles.text,
-          variant === 'primary' ? styles.primaryText : null,
+          variant === 'primary' || variant === 'danger' ? styles.primaryText : null,
           variant === 'secondary' || variant === 'ghost' ? styles.darkText : null
         ]}>
           {title}
@@ -91,7 +91,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     textAlign: 'center'
   },
   primaryText: {
-    color: colors.textInverse
+    color: colors.textOnAccent
   },
   darkText: {
     color: colors.textPrimary

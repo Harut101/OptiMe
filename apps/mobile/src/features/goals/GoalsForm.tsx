@@ -63,7 +63,7 @@ export function GoalsForm({ value, onChange, validationMode = 'standalone' }: Go
           {PRIMARY_GOAL_VALUES.map((item) => (
             <SelectableCard
               key={item}
-              icon={getPrimaryGoalIcon(item, colors.textInverse)}
+              icon={getPrimaryGoalIcon(item, colors.textOnAccent)}
               title={getPrimaryGoalLabel(t, item)}
               subtitle={primaryGoalSubtitles[item]}
               selected={value.primaryGoal === item}
@@ -75,8 +75,8 @@ export function GoalsForm({ value, onChange, validationMode = 'standalone' }: Go
             <SelectableCard
               key={item}
               icon={item === 'NUTRITION_ONLY'
-                ? <Utensils size={19} color={value.impactMode === item ? colors.textInverse : colors.nutrition} />
-                : <Dumbbell size={19} color={value.impactMode === item ? colors.textInverse : colors.training} />}
+                ? <Utensils size={19} color={value.impactMode === item ? colors.textOnAccent : colors.nutrition} />
+                : <Dumbbell size={19} color={value.impactMode === item ? colors.textOnAccent : colors.training} />}
               title={getGoalImpactLabel(t, item)}
               subtitle={item === 'NUTRITION_ONLY' ? t('onboarding.appModeNutritionOnlyHelp') : t('onboarding.appModeTrainingHelp')}
               selected={value.impactMode === item}

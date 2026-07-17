@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { themeColorsByMode, type ThemeColors, type ThemeMode } from '@/theme/colors';
+import { useTheme } from '@/theme/theme-provider';
 import { Text } from './Text';
 
 type HealthMetricWidgetTone =
@@ -40,15 +41,16 @@ export function HealthMetricWidget({
   progressPercent,
   miniBars,
   tone = 'health',
-  appearance = 'light',
+  appearance,
   icon,
   onPress,
   accessibilityLabel
 }: HealthMetricWidgetProps) {
+  const { colors: runtimeColors, mode } = useTheme();
   const displayValue = value === null ? '-' : String(value);
-  const palette = themeColorsByMode[appearance];
+  const palette = appearance ? getPaletteForAppearance(runtimeColors, mode, appearance) : runtimeColors;
   const accent = getAccentByTone(palette)[tone];
-  const isDark = appearance === 'dark';
+  const isDark = appearance ? appearance === 'dark' : mode === 'dark';
   const renderedIcon = typeof icon === 'function' ? icon(accent) : icon;
   const cardStyle = [
     styles.card,
@@ -147,6 +149,10 @@ export function HealthMetricWidget({
       {content}
     </View>
   );
+}
+
+function getPaletteForAppearance(runtimeColors: ThemeColors, runtimeMode: ThemeMode, appearance: ThemeMode) {
+  return appearance === runtimeMode ? runtimeColors : themeColorsByMode[appearance];
 }
 
 function getAccentByTone(palette: ThemeColors) {

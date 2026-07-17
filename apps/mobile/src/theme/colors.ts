@@ -11,6 +11,7 @@ export type ThemeColors = {
   textSecondary: string;
   textMuted: string;
   textInverse: string;
+  textOnAccent: string;
   border: string;
   divider: string;
   accent: string;
@@ -46,6 +47,7 @@ export const lightThemeColors = {
   textSecondary: '#636366',
   textMuted: '#848484',
   textInverse: '#FFFFFF',
+  textOnAccent: '#FFFFFF',
   border: '#D1D1D6',
   divider: '#E5E5EA',
   accent: '#EC6330',
@@ -81,6 +83,7 @@ export const darkThemeColors = {
   textSecondary: '#D1D1D6',
   textMuted: '#8E8E93',
   textInverse: '#111815',
+  textOnAccent: '#FFFFFF',
   border: '#3A3A3C',
   divider: '#2C2C2E',
   accent: '#FF8A4F',

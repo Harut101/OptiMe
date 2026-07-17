@@ -19,7 +19,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     backgroundColor: colors.card,
     borderRadius: 26,
     borderWidth: 1,
-    borderColor: 'rgba(209, 209, 214, 0.65)',
+    borderColor: colors.border,
     padding: 18,
     gap: 12,
     shadowColor: colors.textPrimary,
