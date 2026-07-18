@@ -48,20 +48,11 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     backgroundColor: colors.surfaceMuted,
     color: colors.textPrimary,
     fontSize: 16,
-    fontWeight: '500',
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 1
+    fontWeight: '500'
   },
   inputFocused: {
     backgroundColor: colors.surfaceElevated,
-    borderColor: colors.accent,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    elevation: 3
+    borderColor: colors.accent
   },
   inputError: {
     borderColor: colors.danger

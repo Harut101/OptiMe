@@ -190,8 +190,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center', marginTop: 2
   },
-  checkboxActive: { borderColor: colors.nutrition, backgroundColor: colors.nutrition },
-  checkmark: { color: colors.textInverse, fontWeight: '800' },
+  checkboxActive: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkmark: { color: colors.textOnAccent, fontWeight: '800' },
   toggleCopy: { flex: 1, gap: 4 },
   warning: { color: colors.danger, fontSize: 13, fontWeight: '600' }
 });

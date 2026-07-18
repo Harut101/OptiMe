@@ -103,7 +103,7 @@ export default function RegisterScreen() {
               style={styles.consentRow}
             >
               <View style={[styles.checkbox, field.value && styles.checkboxSelected]}>
-                {field.value ? <Check size={15} color={colors.textInverse} strokeWidth={3} /> : null}
+                {field.value ? <Check size={15} color={colors.textOnAccent} strokeWidth={3} /> : null}
               </View>
               <View style={styles.consentCopy}>
                 <Text variant="caption">{t('auth.consent')}</Text>
@@ -170,8 +170,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 24
   },
   checkboxSelected: {
-    backgroundColor: colors.health,
-    borderColor: colors.health
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
   },
   consentCopy: {
     flex: 1,
