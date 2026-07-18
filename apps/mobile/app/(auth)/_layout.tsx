@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { AppBackButton } from '@/components/AppBackButton';
+import { AppHeader } from '@/components/AppHeader';
 import { useTheme } from '@/theme/theme-provider';
 
 export default function AuthLayout() {
@@ -11,13 +11,12 @@ export default function AuthLayout() {
   return (
     <Stack
       screenOptions={{
-        headerBackVisible: false,
-        headerLeft: () => <AppBackButton fallbackHref="/(auth)/welcome" />,
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: colors.background },
-        headerTitleAlign: 'center',
-        headerTitleStyle: { color: colors.textPrimary, fontSize: 20, fontWeight: '700' },
-        headerTintColor: colors.textPrimary,
+        header: ({ options }) => (
+          <AppHeader
+            fallbackHref="/(auth)/welcome"
+            title={typeof options.title === 'string' ? options.title : ''}
+          />
+        ),
         contentStyle: { backgroundColor: colors.background }
       }}
     >
