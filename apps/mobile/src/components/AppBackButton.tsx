@@ -33,45 +33,42 @@ export function AppBackButton({ fallbackHref = '/(tabs)/today' }: AppBackButtonP
 const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
     flexGrow: 0,
     flexShrink: 0,
-    height: 48,
+    height: 44,
     justifyContent: 'center',
     margin: 0,
-    maxHeight: 48,
-    maxWidth: 48,
-    minHeight: 48,
-    minWidth: 48,
+    maxHeight: 44,
+    maxWidth: 40,
+    minHeight: 44,
+    minWidth: 40,
     padding: 0,
-    width: 48
+    width: 40
   },
   pressed: {
     opacity: 0.72,
     transform: [{ scale: 0.96 }]
   },
   chevron: {
-    height: 24,
-    left: 12,
-    position: 'absolute',
-    top: 6,
-    width: 24
+    height: 20,
+    position: 'relative',
+    width: 20
   },
   chevronArm: {
     backgroundColor: colors.textPrimary,
-    borderRadius: 2,
-    height: 3.5,
-    left: 5,
+    borderRadius: 1.5,
+    height: 2.5,
+    left: 4,
     position: 'absolute',
-    width: 15
+    width: 12
   },
   chevronArmTop: {
-    top: 5,
+    top: 4.75,
     transform: [{ rotate: '-45deg' }]
   },
   chevronArmBottom: {
-    top: 15.5,
+    top: 12.75,
     transform: [{ rotate: '45deg' }]
   }
 });

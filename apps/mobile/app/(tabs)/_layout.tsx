@@ -12,24 +12,26 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.health,
+        tabBarActiveTintColor: colors.textPrimary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarActiveBackgroundColor: colors.surfaceMuted,
         tabBarShowLabel: false,
         tabBarItemStyle: {
-          borderRadius: 28,
-          marginHorizontal: 3,
-          paddingVertical: 4
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: 0,
+          padding: 0
         },
+        tabBarIconStyle: { margin: 0 },
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopWidth: 0,
+          borderColor: colors.border,
+          borderWidth: 1,
           borderRadius: 34,
           height: 68,
           marginBottom: 10,
           marginHorizontal: 16,
           paddingHorizontal: 6,
-          paddingVertical: 6,
+          paddingVertical: 5,
           shadowColor: colors.textPrimary,
           shadowOffset: { width: 0, height: -8 },
           shadowOpacity: 0.18,
@@ -43,7 +45,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.today'),
           tabBarAccessibilityLabel: t('tabs.today'),
-          tabBarIcon: ({ color }) => <Ionicons name="sunny-outline" color={color} size={27} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name="sunny-outline" color={color} size={focused ? 30 : 26} />
         }}
       />
       <Tabs.Screen
@@ -51,7 +53,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.food'),
           tabBarAccessibilityLabel: t('tabs.food'),
-          tabBarIcon: ({ color }) => <Ionicons name="restaurant-outline" color={color} size={27} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name="restaurant-outline" color={color} size={focused ? 30 : 26} />
         }}
       />
       <Tabs.Screen
@@ -59,7 +61,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.training'),
           tabBarAccessibilityLabel: t('tabs.training'),
-          tabBarIcon: ({ color }) => <Ionicons name="barbell-outline" color={color} size={27} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name="barbell-outline" color={color} size={focused ? 30 : 26} />
         }}
       />
       <Tabs.Screen
@@ -67,7 +69,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.profile'),
           tabBarAccessibilityLabel: t('tabs.profile'),
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" color={color} size={27} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name="person-outline" color={color} size={focused ? 30 : 26} />
         }}
       />
     </Tabs>
