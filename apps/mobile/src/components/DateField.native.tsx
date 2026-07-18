@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
-import { Text } from './Text';
+import { Field } from './Field';
 import { useTheme } from '@/theme/theme-provider';
 
 interface DateFieldProps {
@@ -53,20 +53,26 @@ export function DateField({ label, placeholder, value, onChange, maximumDate = n
 
   return (
     <View style={styles.wrap}>
-      <Text variant="label">{label}</Text>
       <Pressable
         accessibilityLabel={label}
         accessibilityRole="button"
         onPress={() => setVisible(true)}
-        style={({ pressed }) => [
-          styles.input,
-          visible ? styles.inputFocused : null,
-          pressed ? styles.pressed : null
-        ]}
+        style={({ pressed }) => (pressed ? styles.pressed : null)}
       >
-        <Text style={value ? styles.value : styles.placeholder}>
-          {value ? formatDisplayDate(value, i18n.language) : placeholder}
-        </Text>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          pointerEvents="none"
+        >
+          <Field
+            caretHidden
+            editable={false}
+            label={label}
+            placeholder={placeholder}
+            style={visible ? styles.inputFocused : undefined}
+            value={value ? formatDisplayDate(value, i18n.language) : ''}
+          />
+        </View>
       </Pressable>
       {Platform.OS === 'android' && visible ? picker : null}
       <BottomSheet visible={Platform.OS === 'ios' && visible} title={label} onClose={() => setVisible(false)}>
@@ -102,23 +108,11 @@ function formatDisplayDate(value: string, locale: string) {
 }
 
 const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
-  wrap: { gap: 6 },
-  input: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    minHeight: 52,
-    paddingHorizontal: 16
-  },
+  wrap: { gap: 0 },
   inputFocused: {
     backgroundColor: colors.surfaceElevated,
     borderColor: colors.accent
   },
-  value: { color: colors.textPrimary, fontSize: 16, fontWeight: '500' },
-  placeholder: { color: colors.textMuted, fontSize: 16, fontWeight: '500' },
   pressed: { opacity: 0.78 },
   sheetContent: { gap: 16 },
   picker: { alignSelf: 'center', height: 216, width: '100%' }
