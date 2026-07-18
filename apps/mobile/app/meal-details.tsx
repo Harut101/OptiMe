@@ -169,7 +169,7 @@ export default function MealDetailsScreen() {
 
   return (
     <Screen topSafeArea={false}>
-      <Card variant="elevated" style={styles.heroCard}>
+      <Card style={styles.heroCard}>
         <View style={styles.heroTop}>
           <StatusPill
             label={getMealStatusLabel(status, t)}
@@ -377,9 +377,7 @@ export default function MealDetailsScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  heroCard: {
-    borderColor: 'rgba(103, 206, 103, 0.32)'
-  },
+  heroCard: {},
   heroTop: {
     alignItems: 'center',
     flexDirection: 'row',

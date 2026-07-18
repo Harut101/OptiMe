@@ -291,35 +291,36 @@ function WorkoutExerciseCard({
     >
 
       {hasSets ? (
-        <View style={styles.setGrid}>
-          {Array.from({ length: progress.plannedSets! }, (_, index) => {
-            const checked = progress.completedSetIndexes.includes(index);
-            return (
-              <Pressable
-                key={index}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked, disabled: completed || saving }}
-                accessibilityLabel={t('workout.setAccessibility', {
-                  exercise: progress.exerciseNameSnapshot,
-                  index: String(index + 1),
-                  total: String(progress.plannedSets),
-                  status: checked ? t('workout.complete') : t('workout.incomplete')
-                })}
-                accessibilityHint={completed ? t('workout.readOnly') : undefined}
-                disabled={completed || saving}
-                onPress={() => onToggleSet(index, !checked)}
-                style={({ pressed }) => [
-                  styles.setButton,
-                  checked && styles.setButtonChecked,
-                  pressed && !completed && styles.pressed
-                ]}
-              >
-                <Text style={checked ? styles.setTextChecked : styles.setText}>
-                  {t('workout.setNumber', { number: String(index + 1) })}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.setControl}>
+          <Text variant="label" style={styles.setLabel}>{t('workout.setsLabel')}</Text>
+          <View style={styles.setGrid}>
+            {Array.from({ length: progress.plannedSets! }, (_, index) => {
+              const checked = progress.completedSetIndexes.includes(index);
+              return (
+                <Pressable
+                  key={index}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked, disabled: completed || saving }}
+                  accessibilityLabel={t('workout.setAccessibility', {
+                    exercise: progress.exerciseNameSnapshot,
+                    index: String(index + 1),
+                    total: String(progress.plannedSets),
+                    status: checked ? t('workout.complete') : t('workout.incomplete')
+                  })}
+                  accessibilityHint={completed ? t('workout.readOnly') : undefined}
+                  disabled={completed || saving}
+                  onPress={() => onToggleSet(index, !checked)}
+                  style={({ pressed }) => [
+                    styles.setButton,
+                    checked && styles.setButtonChecked,
+                    pressed && !completed && styles.pressed
+                  ]}
+                >
+                  <Text style={checked ? styles.setTextChecked : styles.setText}>{index + 1}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       ) : (
         <Button
@@ -567,23 +568,25 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   postWorkoutActions: { gap: 8 },
   postWorkoutPrompt: { gap: 12 },
   postWorkoutSheetContent: { gap: 14 },
+  setControl: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  setLabel: { color: colors.textSecondary, textTransform: 'capitalize' },
   setGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   setButton: {
-    minHeight: 44,
-    minWidth: 72,
-    borderRadius: 10,
+    height: 34,
+    width: 34,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12
+    paddingHorizontal: 0
   },
   setButtonChecked: {
-    backgroundColor: colors.health,
-    borderColor: colors.health
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
   },
   setText: { color: colors.textPrimary, fontWeight: '700' },
-  setTextChecked: { color: colors.textInverse, fontWeight: '700' },
+  setTextChecked: { color: colors.textOnAccent, fontWeight: '700' },
   pressed: { opacity: 0.78 }
 });
