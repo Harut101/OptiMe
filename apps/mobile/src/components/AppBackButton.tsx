@@ -23,7 +23,7 @@ export function AppBackButton({ fallbackHref = '/(tabs)/today' }: AppBackButtonP
       onPress={() => (router.canGoBack() ? router.back() : router.replace(fallbackHref))}
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
     >
-      <ChevronLeft color={colors.textPrimary} size={32} strokeWidth={3} style={styles.icon} />
+      <ChevronLeft color={colors.textPrimary} size={28} strokeWidth={3} />
     </Pressable>
   );
 }
@@ -32,13 +32,10 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   button: {
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
-    borderRadius: 28,
-    height: 56,
+    borderRadius: 24,
+    height: 48,
     justifyContent: 'center',
-    width: 56
-  },
-  icon: {
-    transform: [{ translateX: 1 }]
+    width: 48
   },
   pressed: {
     opacity: 0.72,

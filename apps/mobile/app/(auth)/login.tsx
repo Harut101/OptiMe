@@ -49,7 +49,7 @@ export default function LoginScreen() {
   return (
     <Screen topSafeArea={false}>
       <View style={styles.hero}>
-        <BrandLogo style={styles.brandLogo} width={220} />
+        <BrandLogo style={styles.brandLogo} width={252} />
         <Text variant="title">{t('auth.welcomeBack')}</Text>
         <Text variant="muted">{t('auth.loginMessage')}</Text>
       </View>

@@ -112,8 +112,8 @@ assertIncludes(authWelcome, ["t('auth.valueNutrition')", "t('auth.valueTraining'
 assertIncludes(authLogin, ['AppFeedbackSheet', "t('auth.signInSecurely')", "t('auth.checkDetails')"], 'Auth login redesign');
 assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t('auth.checkDetails')"], 'Auth register redesign');
 assertIncludes(authWelcome, ['BrandLogo', 'width={252}', 'variant="title"'], 'Welcome branding');
-assertIncludes(authLogin, ['BrandLogo', 'width={220}'], 'Login branding');
-assertIncludes(authRegister, ['BrandLogo', 'width={220}'], 'Register branding');
+assertIncludes(authLogin, ['BrandLogo', 'width={252}'], 'Login branding');
+assertIncludes(authRegister, ['BrandLogo', 'width={252}'], 'Register branding');
 assertIncludes(brandLogo, ['SvgUri', 'optime-logo-light.svg', 'optime-logo-dark.svg', "accessibilityLabel=\"OptiMe\""], 'Brand logo');
 assertIncludes(launchSplash, ['BrandLogo', 'variant="icon"', 'justifyContent: \'center\''], 'Launch splash');
 assertIncludes(appLayout, ['AppLaunchSplash', 'setTimeout(() => setShowLaunchSplash(false), 1600)', 'useAuthStore'], 'Launch splash timing');

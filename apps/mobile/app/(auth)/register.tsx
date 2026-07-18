@@ -53,7 +53,7 @@ export default function RegisterScreen() {
   return (
     <Screen topSafeArea={false}>
       <View style={styles.hero}>
-        <BrandLogo style={styles.brandLogo} width={220} />
+        <BrandLogo style={styles.brandLogo} width={252} />
         <Text variant="title">{t('auth.createTitle')}</Text>
         <Text variant="muted">{t('auth.createMessage')}</Text>
       </View>
