@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { AppLaunchSplash } from '@/components/AppLaunchSplash';
 import { AppProviders } from '@/providers/app-providers';
+import { useAuthStore } from '@/store/auth-store';
 import { useTheme } from '@/theme/theme-provider';
 
 export default function RootLayout() {
@@ -16,6 +19,24 @@ export default function RootLayout() {
 function AppNavigation() {
   const { t } = useTranslation();
   const { colors, mode } = useTheme();
+  const hydrated = useAuthStore((state) => state.hydrated);
+  const [showLaunchSplash, setShowLaunchSplash] = useState(true);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const timeout = setTimeout(() => setShowLaunchSplash(false), 1600);
+    return () => clearTimeout(timeout);
+  }, [hydrated]);
+
+  if (!hydrated || showLaunchSplash) {
+    return (
+      <>
+        <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+        <AppLaunchSplash />
+      </>
+    );
+  }
 
   return (
     <>

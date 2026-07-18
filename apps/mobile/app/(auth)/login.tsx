@@ -4,13 +4,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
-import { HeartPulse, Sparkles } from 'lucide-react-native';
+import { HeartPulse } from 'lucide-react-native';
 import { loginSchema } from '@optime/shared-schemas';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 
 import { loginUser } from '@/api/auth';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
+import { BrandLogo } from '@/components/BrandLogo';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
@@ -48,8 +49,7 @@ export default function LoginScreen() {
   return (
     <Screen topSafeArea={false}>
       <View style={styles.hero}>
-        <View style={styles.logo}><Sparkles size={22} color={colors.textInverse} /></View>
-        <Text variant="label" style={styles.brand}>OptiMe</Text>
+        <BrandLogo style={styles.brandLogo} width={184} />
         <Text variant="title">{t('auth.welcomeBack')}</Text>
         <Text variant="muted">{t('auth.loginMessage')}</Text>
       </View>
@@ -112,21 +112,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 10,
     paddingTop: 30
   },
-  logo: {
-    alignItems: 'center',
-    backgroundColor: colors.health,
-    borderRadius: 22,
-    height: 52,
-    justifyContent: 'center',
-    shadowColor: colors.health,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    width: 52
-  },
-  brand: {
-    color: colors.health,
-    fontWeight: '900'
+  brandLogo: {
+    alignSelf: 'center',
+    marginBottom: 8
   },
   formHeader: {
     alignItems: 'center',

@@ -99,6 +99,9 @@ const onboardingTrainingNextStep = read('app/(onboarding)/training-next-step.tsx
 const authWelcome = read('app/(auth)/welcome.tsx');
 const authLogin = read('app/(auth)/login.tsx');
 const authRegister = read('app/(auth)/register.tsx');
+const appLayout = read('app/_layout.tsx');
+const brandLogo = read('src/components/BrandLogo.tsx');
+const launchSplash = read('src/components/AppLaunchSplash.tsx');
 assert(goalsForm.includes('PRIMARY_GOAL_VALUES') && goalsForm.includes('getPrimaryGoalLabel'), 'Goal labels must be centralized.');
 assert(!goalsForm.includes('expo-router'), 'GoalsForm must not navigate.');
 assert(!goalsForm.includes('@/api/'), 'GoalsForm must not persist data.');
@@ -106,6 +109,12 @@ assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.')
 assertIncludes(authWelcome, ["t('auth.valueNutrition')", "t('auth.valueTraining')", "t('auth.valueHealth')", "t('auth.trustNote')"], 'Auth welcome redesign');
 assertIncludes(authLogin, ['AppFeedbackSheet', "t('auth.signInSecurely')", "t('auth.checkDetails')"], 'Auth login redesign');
 assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t('auth.checkDetails')"], 'Auth register redesign');
+assertIncludes(authWelcome, ['BrandLogo', 'width={220}'], 'Welcome branding');
+assertIncludes(authLogin, ['BrandLogo', 'width={184}'], 'Login branding');
+assertIncludes(authRegister, ['BrandLogo', 'width={184}'], 'Register branding');
+assertIncludes(brandLogo, ['SvgUri', 'optime-logo-light.svg', 'optime-logo-dark.svg', "accessibilityLabel=\"OptiMe\""], 'Brand logo');
+assertIncludes(launchSplash, ['BrandLogo', 'justifyContent: \'center\''], 'Launch splash');
+assertIncludes(appLayout, ['AppLaunchSplash', 'setTimeout(() => setShowLaunchSplash(false), 1600)', 'useAuthStore'], 'Launch splash timing');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
 assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
 assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');

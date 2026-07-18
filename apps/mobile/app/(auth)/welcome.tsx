@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Dumbbell, HeartPulse, Sparkles, Utensils } from 'lucide-react-native';
+import { Dumbbell, HeartPulse, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
+import { BrandLogo } from '@/components/BrandLogo';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -18,10 +19,7 @@ export default function WelcomeScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <View style={styles.logo}>
-          <Sparkles size={28} color={colors.textInverse} />
-        </View>
-        <Text variant="label" style={styles.brand}>OptiMe</Text>
+        <BrandLogo style={styles.brandLogo} width={220} />
         <Text variant="largeTitle">{t('auth.welcomeTitle')}</Text>
         <Text variant="muted">{t('auth.welcomeMessage')}</Text>
       </View>
@@ -58,21 +56,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 12,
     paddingTop: 34
   },
-  logo: {
-    alignItems: 'center',
-    backgroundColor: colors.health,
-    borderRadius: 26,
-    height: 60,
-    justifyContent: 'center',
-    shadowColor: colors.health,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 22,
-    width: 60
-  },
-  brand: {
-    color: colors.health,
-    fontWeight: '900'
+  brandLogo: {
+    alignSelf: 'center',
+    marginBottom: 8
   },
   valueList: {
     gap: 10
