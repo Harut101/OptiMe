@@ -56,7 +56,11 @@ export function TimeField({ label, value, onChange }: TimeFieldProps) {
         accessibilityLabel={label}
         accessibilityRole="button"
         onPress={() => setVisible(true)}
-        style={({ pressed }) => [styles.input, pressed ? styles.pressed : null]}
+        style={({ pressed }) => [
+          styles.input,
+          visible ? styles.inputFocused : null,
+          pressed ? styles.pressed : null
+        ]}
       >
         <Text style={styles.value}>{formatDisplayTime(value, i18n.language)}</Text>
       </Pressable>
@@ -97,13 +101,17 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   wrap: { gap: 6 },
   input: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.divider,
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
     borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     minHeight: 52,
     paddingHorizontal: 16
+  },
+  inputFocused: {
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.accent
   },
   value: { color: colors.textPrimary, fontSize: 16, fontWeight: '500' },
   pressed: { opacity: 0.78 },
