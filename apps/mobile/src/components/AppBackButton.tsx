@@ -45,7 +45,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   },
   chevron: {
     height: 24,
-    position: 'relative',
+    left: 12,
+    position: 'absolute',
+    top: 12,
     width: 24
   },
   chevronArm: {
