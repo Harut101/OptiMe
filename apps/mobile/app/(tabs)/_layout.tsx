@@ -14,6 +14,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneStyle: { paddingBottom: 72 },
         tabBarActiveTintColor: colors.textPrimary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarShowLabel: false,
@@ -28,7 +29,8 @@ export default function TabsLayout() {
           alignItems: 'center',
           height: 62,
           justifyContent: 'center',
-          margin: 0
+          margin: 0,
+          transform: [{ translateY: -2 }]
         },
         tabBarStyle: {
           backgroundColor: colors.surfaceElevated,

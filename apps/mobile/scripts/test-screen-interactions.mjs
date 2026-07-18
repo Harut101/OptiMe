@@ -122,7 +122,7 @@ assertIncludes(appLayout, ['AppHeader', 'header: ({ options })', 'contentStyle: 
 assertIncludes(authLayout, ['AppHeader', 'fallbackHref="/(auth)/welcome"', "t('auth.login')", "t('auth.createAccount')"], 'Auth stack navigation');
 assertIncludes(appHeader, ['SafeAreaView', 'AppBackButton', "backgroundColor: colors.background", "textAlign: 'center'"], 'Custom app header');
 assertIncludes(field, ['useState', 'inputFocused', 'onFocus?.(event)', 'borderColor: colors.accent'], 'Field focus state');
-assertIncludes(tabs, ['tabBarShowLabel: false', 'tabBarActiveTintColor: colors.textPrimary', 'borderWidth: 1', "position: 'absolute'", 'focused ? 30 : 26'], 'Floating tab navigation');
+assertIncludes(tabs, ['tabBarShowLabel: false', 'tabBarActiveTintColor: colors.textPrimary', 'sceneStyle: { paddingBottom: 72 }', 'borderWidth: 1', "position: 'absolute'", 'translateY: -2', 'focused ? 30 : 26'], 'Floating tab navigation');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
 assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
 assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');
