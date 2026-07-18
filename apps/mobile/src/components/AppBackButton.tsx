@@ -35,8 +35,16 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
     borderRadius: 24,
+    flexGrow: 0,
+    flexShrink: 0,
     height: 48,
     justifyContent: 'center',
+    margin: 0,
+    maxHeight: 48,
+    maxWidth: 48,
+    minHeight: 48,
+    minWidth: 48,
+    padding: 0,
     width: 48
   },
   pressed: {
@@ -47,7 +55,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     height: 24,
     left: 12,
     position: 'absolute',
-    top: 12,
+    top: 6,
     width: 24
   },
   chevronArm: {
