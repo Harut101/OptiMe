@@ -1,7 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import Svg, { Path } from 'react-native-svg';
 
 import { useTheme } from '@/theme/theme-provider';
 
@@ -23,9 +22,10 @@ export function AppBackButton({ fallbackHref = '/(tabs)/today' }: AppBackButtonP
       onPress={() => (router.canGoBack() ? router.back() : router.replace(fallbackHref))}
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
     >
-      <Svg aria-hidden height={48} viewBox="0 0 48 48" width={48}>
-        <Path d="M29 14 19 24l10 10" fill="none" stroke={colors.textPrimary} strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} />
-      </Svg>
+      <View pointerEvents="none" style={styles.chevron}>
+        <View style={[styles.chevronArm, styles.chevronArmTop]} />
+        <View style={[styles.chevronArm, styles.chevronArmBottom]} />
+      </View>
     </Pressable>
   );
 }
@@ -42,5 +42,26 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   pressed: {
     opacity: 0.72,
     transform: [{ scale: 0.96 }]
+  },
+  chevron: {
+    height: 24,
+    position: 'relative',
+    width: 24
+  },
+  chevronArm: {
+    backgroundColor: colors.textPrimary,
+    borderRadius: 2,
+    height: 3.5,
+    left: 5,
+    position: 'absolute',
+    width: 15
+  },
+  chevronArmTop: {
+    top: 5,
+    transform: [{ rotate: '-45deg' }]
+  },
+  chevronArmBottom: {
+    top: 15.5,
+    transform: [{ rotate: '45deg' }]
   }
 });
