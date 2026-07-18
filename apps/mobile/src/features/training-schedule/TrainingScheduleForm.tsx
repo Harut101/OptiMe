@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
+import { TimeField } from '@/components/TimeField';
 import { Screen } from '@/components/Screen';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
@@ -57,7 +58,7 @@ export function TrainingScheduleForm({
         control={form.control}
         name="localTime"
         render={({ field }) => (
-          <Field label={t('schedule.time')} placeholder="07:30" value={field.value} onChangeText={field.onChange} />
+          <TimeField label={t('schedule.time')} value={field.value} onChange={field.onChange} />
         )}
       />
       <Controller

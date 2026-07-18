@@ -75,8 +75,12 @@ assertIncludes(profile, [
 const personalForm = read('src/features/profile/PersonalProfileForm.tsx');
 assertIncludes(personalForm, [
   "t('profile.weight'", "t('profile.height'", "t('profile.activity')", "t('profile.pregnancyContext')",
-  "value.gender === 'female'"
+  "value.gender === 'female'", 'DateField'
 ], 'PersonalProfileForm');
+const trainingScheduleForm = read('src/features/training-schedule/TrainingScheduleForm.tsx');
+assertIncludes(trainingScheduleForm, ['TimeField', "t('schedule.time')"], 'TrainingScheduleForm native time input');
+const bottomSheet = read('src/components/BottomSheet.tsx');
+assertIncludes(bottomSheet, ['KeyboardAvoidingView', 'automaticallyAdjustKeyboardInsets', 'keyboardShouldPersistTaps="handled"'], 'Bottom sheet keyboard handling');
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
@@ -245,6 +249,10 @@ assertIncludes(nativeHealthUtils, [
 
 const today = read('app/(tabs)/today.tsx');
 assertIncludes(today, ['ScreenHeader', 'AppToast', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
+assertIncludes(today, [
+  "queryClient.setQueryData(['progressive-profile', 'next-prompt']",
+  'data.progressiveProfile.nextPrompt'
+], 'Progressive prompt continuation');
 assert(!today.includes("t('today.safetyNote')"), 'Today must not render a contextless safety-status pill.');
 assert(today.includes('AppFeedbackSheet') && today.includes('limitSheetVisible'), 'Today usage limits must use a dismissible sheet, not permanent layout content.');
 assert(!today.includes('title={t(\'today.limitReached\')}\n          message={`${limitMessage}'), 'Today must not render a persistent usage-limit card.');

@@ -30,6 +30,8 @@ export function Screen({
       {scroll ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scroll}
           refreshControl={onRefresh ? (

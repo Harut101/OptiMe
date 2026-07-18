@@ -3,6 +3,7 @@ import type { ActivityLevel, PregnancyStatus } from '@optime/shared-types';
 import { useTranslation } from 'react-i18next';
 
 import { Field } from '@/components/Field';
+import { DateField } from '@/components/DateField';
 import { SelectChips } from '@/components/SelectChips';
 import { Text } from '@/components/Text';
 import type { ProfileRequest, ProfileResponse } from '@/types/api';
@@ -59,11 +60,11 @@ export function PersonalProfileForm({ value, onChange }: PersonalProfileFormProp
     <View style={styles.form}>
       <Field label={t('profile.firstName')} value={value.firstName} onChangeText={(text) => update('firstName', text)} />
       <Field label={t('profile.lastName')} value={value.lastName} onChangeText={(text) => update('lastName', text)} />
-      <Field
+      <DateField
         label={t('profile.dateOfBirth')}
         placeholder={t('profile.datePlaceholder')}
         value={value.dateOfBirth}
-        onChangeText={(text) => update('dateOfBirth', text)}
+        onChange={(text) => update('dateOfBirth', text)}
       />
       <Field
         label={t('profile.height', { unit: measurementSystem === 'IMPERIAL' ? 'in' : 'cm' })}

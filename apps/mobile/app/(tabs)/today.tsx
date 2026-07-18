@@ -135,7 +135,11 @@ export default function TodayScreen() {
   const answerPrompt = useMutation({
     mutationFn: ({ key, value }: { key: string; value: string | string[] | number | boolean }) =>
       answerProgressivePrompt(key, { value }),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['progressive-profile', 'next-prompt'], data.progressiveProfile.nextPrompt ?? null);
+      if (!data.progressiveProfile.nextPrompt) {
+        setProgressivePromptVisible(false);
+      }
       await queryClient.invalidateQueries({ queryKey: ['progressive-profile', 'next-prompt'] });
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
     },
@@ -144,7 +148,11 @@ export default function TodayScreen() {
   });
   const skipPrompt = useMutation({
     mutationFn: skipProgressivePrompt,
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      queryClient.setQueryData(['progressive-profile', 'next-prompt'], data.progressiveProfile.nextPrompt ?? null);
+      if (!data.progressiveProfile.nextPrompt) {
+        setProgressivePromptVisible(false);
+      }
       await queryClient.invalidateQueries({ queryKey: ['progressive-profile', 'next-prompt'] });
       await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
     },
@@ -499,11 +507,9 @@ export default function TodayScreen() {
             isSaving={answerPrompt.isPending || skipPrompt.isPending}
             onAnswer={(value) => {
               answerPrompt.mutate({ key: progressivePrompt.data!.key, value });
-              setProgressivePromptVisible(false);
             }}
             onSkip={() => {
               skipPrompt.mutate(progressivePrompt.data!.key);
-              setProgressivePromptVisible(false);
             }}
             embedded
           />
@@ -1169,9 +1175,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   promptTrigger: {
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderColor: 'rgba(209, 209, 214, 0.65)',
     borderRadius: 22,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
@@ -1226,15 +1230,15 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 10
   },
   multiChipActive: {
-    borderColor: colors.nutrition,
-    backgroundColor: colors.nutritionMuted
+    borderColor: colors.accent,
+    backgroundColor: colors.accentMuted
   },
   multiChipText: {
     fontSize: 14,
     color: colors.textPrimary
   },
   multiChipTextActive: {
-    color: colors.health,
+    color: colors.accent,
     fontWeight: '700'
   },
   modeIndicator: {

@@ -1,7 +1,7 @@
 import type { TargetMuscleGroup } from '@optime/shared-types';
 import { useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Svg, { G, Image as SvgImage, Path } from 'react-native-svg';
+import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Svg, { G, Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
@@ -21,7 +21,6 @@ import type { BodyMapView } from './body-map-types';
 const BODY_MAP_SELECTED_COLOR = '#FF2D55';
 const BODY_MAP_CARD_ASPECT_RATIO = 4 / 5;
 const BODY_MAP_CARD_MAX_WIDTH = 360;
-const HORIZONTAL_PAGE_PADDING = 16;
 const CARD_INNER_PADDING = 12;
 
 export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }: {
@@ -33,13 +32,14 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const { width: screenWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
   const [view, setView] = useState<BodyMapView>('front');
   const [selectedMuscles, setSelectedMuscles] = useState(() => normalizeLegacyMuscleGroups(value));
   const [pressedPath, setPressedPath] = useState<string | null>(null);
   const [renderedSize, setRenderedSize] = useState({ width: 0, height: 0 });
   const asset = BODY_MAP_ASSETS[view];
   const cardWidth = Math.min(
-    Math.max(0, screenWidth - HORIZONTAL_PAGE_PADDING * 2),
+    Math.max(0, containerWidth || screenWidth - 32),
     BODY_MAP_CARD_MAX_WIDTH
   );
   const cardHeight = cardWidth / BODY_MAP_CARD_ASPECT_RATIO;
@@ -61,7 +61,10 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   };
 
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
+    >
       <View style={styles.viewToggle}>
         {(['front', 'back'] as const).map((item) => (
           <Pressable
@@ -87,6 +90,12 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
             showLayoutDebug ? styles.debugFrame : null
           ]}
         >
+          <Image
+            source={asset.image}
+            resizeMode="contain"
+            style={StyleSheet.absoluteFillObject}
+            accessible={false}
+          />
           <Svg
             width="100%"
             height="100%"
@@ -94,15 +103,6 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
             preserveAspectRatio="xMidYMid meet"
             style={StyleSheet.absoluteFillObject}
           >
-            <SvgImage
-              href={asset.image}
-              x={0}
-              y={0}
-              width={asset.width}
-              height={asset.height}
-              preserveAspectRatio="xMidYMid meet"
-              pointerEvents="none"
-            />
             {paths.map((path) => {
               const selected = selectedMuscles.includes(path.muscleGroup);
               const pressed = pressedPath === path.id;
@@ -198,9 +198,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     position: 'relative',
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1
+    backgroundColor: colors.card
   },
   mapStage: { position: 'relative' },
   debugFrame: { borderColor: '#00C0E8', borderWidth: 1 },

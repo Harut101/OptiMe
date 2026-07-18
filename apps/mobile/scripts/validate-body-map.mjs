@@ -67,7 +67,7 @@ for (const [id, muscleGroup] of Object.entries(expectedMappings)) {
 const generatedIds = [...generated.matchAll(/"id": "([^"]+)"/g)].map((match) => match[1]);
 if (generatedIds.length !== ids.length || generatedIds.some((id) => !ids.includes(id))) throw new Error('Generated path IDs and SVG IDs differ.');
 
-if (!component.includes('Image as SvgImage') || component.includes("import { Image,")) throw new Error('PNG and paths must render in one Svg root.');
+if (!component.includes("import { Image,") || !component.includes('source={asset.image}')) throw new Error('Body map must render the active PNG source.');
 if (!component.includes("const BODY_MAP_SELECTED_COLOR = '#FF2D55'")) throw new Error('Selected paths must use the body-map red.');
 if (component.includes('fill={colors.primary}')) throw new Error('Selected paths must not use product green.');
 if (!component.includes("fill={selected || pressed ? BODY_MAP_SELECTED_COLOR : 'transparent'}")) throw new Error('Unselected paths must be transparent.');
@@ -75,12 +75,12 @@ if (!component.includes('toggleSpecificMuscleGroup(selectedMuscles, muscleGroup)
 if (!component.includes('strokeWidth={8}') || !component.includes('pointerEvents="none"')) throw new Error('Hit and visual paths must be separate.');
 if (/<G[^>]+onPress=/.test(component)) throw new Error('Parent groups must not process selection.');
 if (!component.includes('viewBox={asset.viewBox}')) throw new Error('SVG must use the active asset viewBox.');
-if (!component.includes('href={asset.image}') || !component.includes('width={asset.width}') || !component.includes('height={asset.height}')) throw new Error('SvgImage must use active asset dimensions.');
+if (!component.includes('style={StyleSheet.absoluteFillObject}') || !component.includes('viewBox={asset.viewBox}')) throw new Error('PNG and SVG paths must share the active map stage.');
 if ((assetConfig.match(/width: 600/g) ?? []).length !== 2 || (assetConfig.match(/height: 1220/g) ?? []).length !== 2) throw new Error('Front/back asset dimensions are missing.');
 if (/translate[XY]?|scale[XY]?|resizeMode="cover"/.test(component)) throw new Error('Body map contains a prohibited sizing transform.');
 if (!component.includes('const BODY_MAP_CARD_ASPECT_RATIO = 4 / 5')) throw new Error('Outer card must use a 4:5 aspect ratio.');
 if (!component.includes('const BODY_MAP_CARD_MAX_WIDTH = 360')) throw new Error('Outer card max width must be 360.');
-if (!component.includes('screenWidth - HORIZONTAL_PAGE_PADDING * 2')) throw new Error('Outer card must respect horizontal screen padding.');
+if (!component.includes('containerWidth || screenWidth - 32') || !component.includes('setContainerWidth(event.nativeEvent.layout.width)')) throw new Error('Outer card must respect its measured container width.');
 if (!component.includes('width: cardWidth, aspectRatio: BODY_MAP_CARD_ASPECT_RATIO')) throw new Error('Outer card must own fixed responsive dimensions.');
 if (!component.includes('availableMapWidth / asset.width') || !component.includes('availableMapHeight / asset.height')) throw new Error('Inner stage must use contain scaling.');
 if (!component.includes('width: renderedMapWidth, height: renderedMapHeight')) throw new Error('PNG and paths must share the contained inner stage.');

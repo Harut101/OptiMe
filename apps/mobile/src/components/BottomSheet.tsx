@@ -1,5 +1,5 @@
 import { PropsWithChildren, useEffect, useRef } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -44,36 +44,47 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
           style={styles.backdrop}
           onPress={onClose}
         />
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              paddingBottom: Math.max(insets.bottom, 16),
-              transform: [
-                {
-                  translateY: slide.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 360]
-                  })
-                }
-              ]
-            }
-          ]}
+        <KeyboardAvoidingView
+          behavior={Platform.select({ android: 'height', ios: 'padding' })}
+          style={styles.keyboardAvoiding}
         >
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <View style={styles.titleWrap}>
-              <Text variant="heading">{title}</Text>
-              {subtitle ? <Text variant="muted">{subtitle}</Text> : null}
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 16),
+                transform: [
+                  {
+                    translateY: slide.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 360]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <View style={styles.titleWrap}>
+                <Text variant="heading">{title}</Text>
+                {subtitle ? <Text variant="muted">{subtitle}</Text> : null}
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} style={styles.closeButton} onPress={onClose}>
+                <X size={19} color={colors.textPrimary} />
+              </Pressable>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} style={styles.closeButton} onPress={onClose}>
-              <X size={19} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
-        </Animated.View>
+            <ScrollView
+              automaticallyAdjustKeyboardInsets
+              contentContainerStyle={styles.content}
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -87,6 +98,10 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.38)'
+  },
+  keyboardAvoiding: {
+    flex: 1,
+    justifyContent: 'flex-end'
   },
   sheet: {
     backgroundColor: colors.card,
