@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { AppBackButton } from '@/components/AppBackButton';
 import { AppLaunchSplash } from '@/components/AppLaunchSplash';
 import { AppProviders } from '@/providers/app-providers';
 import { useAuthStore } from '@/store/auth-store';
@@ -43,9 +44,13 @@ function AppNavigation() {
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.surfaceElevated },
+          headerBackVisible: false,
+          headerLeft: () => <AppBackButton />,
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.textPrimary,
-          headerTitleStyle: { fontWeight: '700' },
+          headerTitleAlign: 'center',
+          headerTitleStyle: { color: colors.textPrimary, fontSize: 20, fontWeight: '700' },
           contentStyle: { backgroundColor: colors.background }
         }}
       >

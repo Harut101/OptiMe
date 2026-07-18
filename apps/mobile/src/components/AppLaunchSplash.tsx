@@ -8,7 +8,7 @@ export function AppLaunchSplash() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <BrandLogo width={224} />
+      <BrandLogo variant="icon" width={140} />
     </View>
   );
 }
