@@ -19,8 +19,8 @@ export default function WelcomeScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <BrandLogo style={styles.brandLogo} width={220} />
-        <Text variant="largeTitle">{t('auth.welcomeTitle')}</Text>
+        <BrandLogo style={styles.brandLogo} width={252} />
+        <Text variant="title">{t('auth.welcomeTitle')}</Text>
         <Text variant="muted">{t('auth.welcomeMessage')}</Text>
       </View>
 

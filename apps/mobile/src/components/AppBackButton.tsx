@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ChevronLeft } from 'lucide-react-native';
 
 import { useTheme } from '@/theme/theme-provider';
 
@@ -23,7 +23,7 @@ export function AppBackButton({ fallbackHref = '/(tabs)/today' }: AppBackButtonP
       onPress={() => (router.canGoBack() ? router.back() : router.replace(fallbackHref))}
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
     >
-      <Ionicons color={colors.textPrimary} name="chevron-back" size={30} />
+      <ChevronLeft color={colors.textPrimary} size={32} strokeWidth={3} style={styles.icon} />
     </Pressable>
   );
 }
@@ -36,6 +36,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     height: 56,
     justifyContent: 'center',
     width: 56
+  },
+  icon: {
+    transform: [{ translateX: 1 }]
   },
   pressed: {
     opacity: 0.72,
