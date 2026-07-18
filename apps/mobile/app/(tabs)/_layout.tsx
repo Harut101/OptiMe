@@ -14,7 +14,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        sceneStyle: { paddingBottom: 72 },
+        sceneStyle: { backgroundColor: colors.background, paddingBottom: 72 },
         tabBarActiveTintColor: colors.textPrimary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarShowLabel: false,
@@ -37,7 +37,7 @@ export default function TabsLayout() {
           borderColor: colors.border,
           borderWidth: 1,
           borderRadius: 32,
-          bottom: Math.max(insets.bottom, 12),
+          bottom: Math.max(insets.bottom - 8, 8),
           height: 64,
           left: 16,
           paddingHorizontal: 6,
