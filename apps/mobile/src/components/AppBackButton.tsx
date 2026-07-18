@@ -1,7 +1,7 @@
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { useTheme } from '@/theme/theme-provider';
 
@@ -23,7 +23,9 @@ export function AppBackButton({ fallbackHref = '/(tabs)/today' }: AppBackButtonP
       onPress={() => (router.canGoBack() ? router.back() : router.replace(fallbackHref))}
       style={({ pressed }) => [styles.button, pressed ? styles.pressed : null]}
     >
-      <ChevronLeft color={colors.textPrimary} size={28} strokeWidth={3} />
+      <Svg aria-hidden height={48} viewBox="0 0 48 48" width={48}>
+        <Path d="M29 14 19 24l10 10" fill="none" stroke={colors.textPrimary} strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} />
+      </Svg>
     </Pressable>
   );
 }
