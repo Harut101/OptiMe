@@ -16,7 +16,7 @@ interface TimeFieldProps {
 
 export function TimeField({ label, value, onChange }: TimeFieldProps) {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const styles = createStyles(colors);
   const [visible, setVisible] = useState(false);
   const [draftTime, setDraftTime] = useState(() => parseTime(value));
@@ -37,10 +37,14 @@ export function TimeField({ label, value, onChange }: TimeFieldProps) {
 
   const picker = (
     <DateTimePicker
+      accentColor={colors.accent}
       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
       is24Hour
       mode="time"
       onChange={(_, nextTime) => updateTime(nextTime)}
+      style={styles.picker}
+      textColor={colors.textPrimary}
+      themeVariant={mode}
       value={draftTime}
     />
   );
@@ -103,5 +107,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   },
   value: { color: colors.textPrimary, fontSize: 16, fontWeight: '500' },
   pressed: { opacity: 0.78 },
-  sheetContent: { gap: 16 }
+  sheetContent: { gap: 16 },
+  picker: { alignSelf: 'center', height: 216, width: '100%' }
 });

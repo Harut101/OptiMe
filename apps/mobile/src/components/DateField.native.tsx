@@ -18,7 +18,7 @@ interface DateFieldProps {
 
 export function DateField({ label, placeholder, value, onChange, maximumDate = new Date() }: DateFieldProps) {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const styles = createStyles(colors);
   const [visible, setVisible] = useState(false);
   const [draftDate, setDraftDate] = useState(() => parseDate(value));
@@ -39,10 +39,14 @@ export function DateField({ label, placeholder, value, onChange, maximumDate = n
 
   const picker = (
     <DateTimePicker
+      accentColor={colors.accent}
       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
       maximumDate={maximumDate}
       mode="date"
       onChange={(_, nextDate) => updateDate(nextDate)}
+      style={styles.picker}
+      textColor={colors.textPrimary}
+      themeVariant={mode}
       value={draftDate}
     />
   );
@@ -108,5 +112,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   value: { color: colors.textPrimary, fontSize: 16, fontWeight: '500' },
   placeholder: { color: colors.textMuted, fontSize: 16, fontWeight: '500' },
   pressed: { opacity: 0.78 },
-  sheetContent: { gap: 16 }
+  sheetContent: { gap: 16 },
+  picker: { alignSelf: 'center', height: 216, width: '100%' }
 });
