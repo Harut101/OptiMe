@@ -21,7 +21,7 @@ import type { BodyMapView } from './body-map-types';
 const BODY_MAP_SELECTED_COLOR = '#FF2D55';
 const BODY_MAP_CARD_ASPECT_RATIO = 4 / 5;
 const BODY_MAP_CARD_MAX_WIDTH = 360;
-const BODY_MAP_COMPACT_MAX_WIDTH = 280;
+const BODY_MAP_COMPACT_MAX_WIDTH = 300;
 const BODY_MAP_COMPACT_WIDTH_RATIO = 0.78;
 const CARD_INNER_PADDING = 12;
 
