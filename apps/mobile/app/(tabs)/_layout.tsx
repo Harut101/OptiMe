@@ -44,7 +44,8 @@ export default function TabsLayout() {
           paddingBottom: 0,
           paddingTop: 0,
           position: 'absolute',
-          right: 16
+          right: 16,
+          width: 'auto'
         }
       }}
     >
