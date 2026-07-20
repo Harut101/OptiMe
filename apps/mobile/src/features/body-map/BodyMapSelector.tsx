@@ -99,7 +99,7 @@ export function BodyMapSelector({ value, onChange, variant = 'default', debugBod
           <Image
             source={asset.image}
             resizeMode="contain"
-            style={StyleSheet.absoluteFillObject}
+            style={{ width: renderedMapWidth, height: renderedMapHeight }}
             accessible={false}
           />
           <Svg

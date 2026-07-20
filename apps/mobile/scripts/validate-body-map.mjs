@@ -68,6 +68,7 @@ const generatedIds = [...generated.matchAll(/"id": "([^"]+)"/g)].map((match) => 
 if (generatedIds.length !== ids.length || generatedIds.some((id) => !ids.includes(id))) throw new Error('Generated path IDs and SVG IDs differ.');
 
 if (!component.includes("import { Image,") || !component.includes('source={asset.image}')) throw new Error('Body map must render the active PNG source.');
+if (!component.includes('style={{ width: renderedMapWidth, height: renderedMapHeight }}')) throw new Error('PNG must use the exact rendered SVG stage dimensions.');
 if (!component.includes("const BODY_MAP_SELECTED_COLOR = '#FF2D55'")) throw new Error('Selected paths must use the body-map red.');
 if (component.includes('fill={colors.primary}')) throw new Error('Selected paths must not use product green.');
 if (!component.includes("fill={selected || pressed ? BODY_MAP_SELECTED_COLOR : 'transparent'}")) throw new Error('Unselected paths must be transparent.');
