@@ -1,5 +1,5 @@
-import { PropsWithChildren } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { PropsWithChildren, ReactNode, useRef } from 'react';
+import { Animated, Platform, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/theme-provider';
@@ -9,6 +9,7 @@ interface ScreenProps extends PropsWithChildren {
   refreshing?: boolean;
   onRefresh?: () => void;
   topSafeArea?: boolean;
+  topBackdrop?: ReactNode;
 }
 
 export function Screen({
@@ -16,10 +17,18 @@ export function Screen({
   scroll = true,
   refreshing = false,
   onRefresh,
-  topSafeArea = true
+  topSafeArea = true,
+  topBackdrop
 }: ScreenProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const backdropTranslateY = scrollY.interpolate({
+    inputRange: [0, 360],
+    outputRange: [0, -360],
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp'
+  });
   const content = <View style={styles.content}>{children}</View>;
 
   return (
@@ -27,13 +36,26 @@ export function Screen({
       edges={topSafeArea ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom']}
       style={styles.safeArea}
     >
+      {topBackdrop ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.topBackdrop, { transform: [{ translateY: backdropTranslateY }] }]}
+        >
+          {topBackdrop}
+        </Animated.View>
+      ) : null}
       {scroll ? (
-        <ScrollView
+        <Animated.ScrollView
           contentInsetAdjustmentBehavior="automatic"
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scroll}
+          onScroll={topBackdrop ? Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: Platform.OS !== 'web' }
+          ) : undefined}
+          scrollEventThrottle={topBackdrop ? 16 : undefined}
           refreshControl={onRefresh ? (
             <RefreshControl
               refreshing={refreshing}
@@ -44,7 +66,7 @@ export function Screen({
           ) : undefined}
         >
           {content}
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         content
       )}
@@ -56,6 +78,14 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   safeArea: {
     flex: 1,
     backgroundColor: colors.background
+  },
+  topBackdrop: {
+    height: 360,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   scroll: {
     flexGrow: 1

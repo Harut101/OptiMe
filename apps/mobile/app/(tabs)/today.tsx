@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Dumbbell, Utensils } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -252,6 +252,8 @@ export default function TodayScreen() {
     trainingOverride.isRefetching ||
     workoutSession.isRefetching ||
     foodLog.isRefetching;
+  const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
+  const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
 
   useEffect(() => {
     if (generateAfterRoutine !== '1' || handledRoutineReturn || today.isLoading || generate.isPending) {
@@ -298,12 +300,16 @@ export default function TodayScreen() {
   }, [generateAfterOverride, generate, handledOverrideReturn, t, today.data, today.isLoading]);
 
   if (today.isLoading) {
-    return <TodaySkeleton />;
+    return <TodaySkeleton trainingEnabled={trainingEnabled} />;
   }
 
   if (today.isError) {
     return (
-      <Screen refreshing={refreshing} onRefresh={handleRefresh}>
+      <Screen
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        topBackdrop={<TodayModeBackdrop trainingEnabled={trainingEnabled} />}
+      >
         <StateBlock
           title={t('today.unavailable')}
           message={t('errors.unableLoad')}
@@ -315,8 +321,6 @@ export default function TodayScreen() {
   }
 
   const plan = today.data?.plan;
-  const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
-  const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
   const nutritionProgress = resolveNutritionProgress({
     plan,
     foodLog: foodLog.data,
@@ -331,17 +335,15 @@ export default function TodayScreen() {
   });
 
   return (
-    <Screen refreshing={refreshing} onRefresh={handleRefresh}>
+    <Screen
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      topBackdrop={<TodayModeBackdrop trainingEnabled={trainingEnabled} />}
+    >
       <ScreenHeader
         eyebrow={t('today.title')}
         title={t('today.tagline')}
         subtitle={t('today.intro')}
-        rightAccessory={
-          <AppModeIndicator
-            trainingEnabled={trainingEnabled}
-            label={trainingEnabled ? t('appModes.nutritionTraining') : t('appModes.nutritionOnly')}
-          />
-        }
       />
 
       {today.data && plan ? (
@@ -843,36 +845,36 @@ function getTodayDayOfWeek() {
   return ORDERED_DAYS[(jsDay + 6) % 7];
 }
 
-function AppModeIndicator({ trainingEnabled, label }: { trainingEnabled: boolean; label: string }) {
-  const { colors } = useTheme();
-  const styles = createStyles(colors);
-  const containerStyle = trainingEnabled ? styles.modeIndicatorTraining : styles.modeIndicatorNutrition;
+function TodayModeBackdrop({ trainingEnabled }: { trainingEnabled: boolean }) {
+  const { colors, mode } = useTheme();
+  const palette = trainingEnabled
+    ? mode === 'dark'
+      ? ['#9B3A16', '#47190B', colors.background]
+      : ['#FF9D73', '#FFD4C2', colors.background]
+    : mode === 'dark'
+      ? ['#175C35', '#0B2D1B', colors.background]
+      : ['#A9E7BC', '#DDF5E5', colors.background];
 
   return (
-    <View
-      accessible
-      accessibilityLabel={label}
-      accessibilityRole="text"
-      style={[styles.modeIndicator, containerStyle]}
-    >
-      <View style={[styles.modeIconBubble, styles.modeIconBubbleNutrition]}>
-        <Utensils size={15} color={colors.nutrition} strokeWidth={2.7} />
-      </View>
-      {trainingEnabled ? (
-        <View style={[styles.modeIconBubble, styles.modeIconBubbleTraining]}>
-          <Dumbbell size={15} color={colors.health} strokeWidth={2.7} />
-        </View>
-      ) : null}
-    </View>
+    <Svg width="100%" height="100%" preserveAspectRatio="none">
+      <Defs>
+        <SvgLinearGradient id="today-mode-backdrop" x1="0%" y1="0%" x2="0%" y2="100%">
+          <Stop offset="0%" stopColor={palette[0]} />
+          <Stop offset="48%" stopColor={palette[1]} />
+          <Stop offset="100%" stopColor={palette[2]} />
+        </SvgLinearGradient>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#today-mode-backdrop)" />
+    </Svg>
   );
 }
 
-function TodaySkeleton() {
+function TodaySkeleton({ trainingEnabled }: { trainingEnabled: boolean }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
   return (
-    <Screen>
+    <Screen topBackdrop={<TodayModeBackdrop trainingEnabled={trainingEnabled} />}>
       <View style={styles.todaySkeletonHeader}>
         <View style={[styles.skeletonLine, styles.todaySkeletonEyebrow]} />
         <View style={[styles.skeletonLine, styles.todaySkeletonTitle]} />
@@ -1240,40 +1242,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   multiChipTextActive: {
     color: colors.accent,
     fontWeight: '700'
-  },
-  modeIndicator: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    padding: 5
-  },
-  modeIndicatorNutrition: {
-    backgroundColor: colors.nutritionMuted,
-    borderColor: 'rgba(103, 206, 103, 0.32)'
-  },
-  modeIndicatorTraining: {
-    backgroundColor: colors.accentMuted,
-    borderColor: 'rgba(236, 99, 48, 0.28)'
-  },
-  modeIconBubble: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 14,
-    height: 28,
-    justifyContent: 'center',
-    width: 28
-  },
-  modeIconBubbleNutrition: {
-    shadowColor: colors.nutrition,
-    shadowOpacity: 0.12,
-    shadowRadius: 8
-  },
-  modeIconBubbleTraining: {
-    shadowColor: colors.health,
-    shadowOpacity: 0.12,
-    shadowRadius: 8
   },
   todaySkeletonHeader: {
     gap: 12,
