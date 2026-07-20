@@ -24,6 +24,7 @@ assert(isDraftDirty({ ...persistedDraft, value: 'changed' }, persistedDraft), 'A
 assert(!isDraftDirty({ value: 'saved', nested: ['A'] }, persistedDraft), 'Reverting must clear dirty state.');
 
 const tabs = read('app/(tabs)/_layout.tsx');
+const floatingTabBar = read('src/components/FloatingTabBar.tsx');
 for (const tab of ['today', 'food', 'training', 'profile']) {
   assert(tabs.includes(`name="${tab}"`), `${tab} tab is missing.`);
 }
@@ -122,7 +123,8 @@ assertIncludes(appLayout, ['AppHeader', 'header: ({ options })', 'contentStyle: 
 assertIncludes(authLayout, ['AppHeader', 'fallbackHref="/(auth)/welcome"', "t('auth.login')", "t('auth.createAccount')"], 'Auth stack navigation');
 assertIncludes(appHeader, ['SafeAreaView', 'AppBackButton', "backgroundColor: colors.background", "textAlign: 'center'"], 'Custom app header');
 assertIncludes(field, ['useState', 'inputFocused', 'onFocus?.(event)', 'borderColor: colors.accent'], 'Field focus state');
-assertIncludes(tabs, ['tabBarShowLabel: false', 'tabBarActiveTintColor: colors.textPrimary', 'sceneStyle: { backgroundColor: colors.background, paddingBottom: 68 }', 'tabBarWidth = Math.min(screenWidth - 32, 608)', 'tabBarLeft = (screenWidth - tabBarWidth) / 2', 'left: tabBarLeft', "right: 'auto'", 'width: tabBarWidth', 'borderWidth: 1', "position: 'absolute'", 'translateY: -2', 'focused ? 28 : 24'], 'Floating tab navigation');
+assertIncludes(tabs, ['FloatingTabBar', 'tabBar={(props) => <FloatingTabBar {...props} />}', 'sceneStyle: { backgroundColor: colors.background, paddingBottom: 68 }'], 'Floating tab navigation');
+assertIncludes(floatingTabBar, ['width = Math.min(screenWidth - 32, 608)', 'left = (screenWidth - width) / 2', 'bottom: Math.max(insets.bottom - 8, 8)', 'focused ? 28 : 24', "type: 'tabPress'"], 'Floating tab bar geometry');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
 assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
 assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');
