@@ -12,7 +12,6 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const tabBarWidth = Math.min(screenWidth - 32, 608);
-  const tabBarLeft = (screenWidth - tabBarWidth) / 2;
 
   return (
     <Tabs
@@ -43,11 +42,13 @@ export default function TabsLayout() {
           borderRadius: 30,
           bottom: Math.max(insets.bottom - 8, 8),
           height: 60,
-          left: tabBarLeft,
+          left: '50%',
           paddingHorizontal: 6,
           paddingBottom: 0,
           paddingTop: 0,
           position: 'absolute',
+          right: 'auto',
+          transform: [{ translateX: -tabBarWidth / 2 }],
           width: tabBarWidth
         }
       }}

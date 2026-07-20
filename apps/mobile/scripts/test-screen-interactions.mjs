@@ -122,7 +122,7 @@ assertIncludes(appLayout, ['AppHeader', 'header: ({ options })', 'contentStyle: 
 assertIncludes(authLayout, ['AppHeader', 'fallbackHref="/(auth)/welcome"', "t('auth.login')", "t('auth.createAccount')"], 'Auth stack navigation');
 assertIncludes(appHeader, ['SafeAreaView', 'AppBackButton', "backgroundColor: colors.background", "textAlign: 'center'"], 'Custom app header');
 assertIncludes(field, ['useState', 'inputFocused', 'onFocus?.(event)', 'borderColor: colors.accent'], 'Field focus state');
-assertIncludes(tabs, ['tabBarShowLabel: false', 'tabBarActiveTintColor: colors.textPrimary', 'sceneStyle: { backgroundColor: colors.background, paddingBottom: 68 }', 'tabBarWidth = Math.min(screenWidth - 32, 608)', 'left: tabBarLeft', 'width: tabBarWidth', 'borderWidth: 1', "position: 'absolute'", 'translateY: -2', 'focused ? 28 : 24'], 'Floating tab navigation');
+assertIncludes(tabs, ['tabBarShowLabel: false', 'tabBarActiveTintColor: colors.textPrimary', 'sceneStyle: { backgroundColor: colors.background, paddingBottom: 68 }', 'tabBarWidth = Math.min(screenWidth - 32, 608)', "left: '50%'", "right: 'auto'", 'translateX: -tabBarWidth / 2', 'width: tabBarWidth', 'borderWidth: 1', "position: 'absolute'", 'translateY: -2', 'focused ? 28 : 24'], 'Floating tab navigation');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
 assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
 assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');
