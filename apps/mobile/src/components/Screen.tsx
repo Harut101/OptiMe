@@ -50,6 +50,7 @@ export function Screen({
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
           onScroll={topBackdrop ? Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],

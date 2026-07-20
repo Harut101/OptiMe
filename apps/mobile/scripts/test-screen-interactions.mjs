@@ -299,7 +299,12 @@ assertIncludes(today, [
 assertIncludes(today, ['TodayModeBackdrop', 'topBackdrop={<TodayModeBackdrop', "['#9B3A16'", "['#175C35'"], 'Today app-mode backdrop');
 assert(!today.includes('AppModeIndicator') && !today.includes('<Utensils') && !today.includes('<Dumbbell'), 'Today must not render app-mode icon pills.');
 const screen = read('src/components/Screen.tsx');
-assertIncludes(screen, ['topBackdrop?: ReactNode', 'Animated.ScrollView', "extrapolateLeft: 'clamp'"], 'Scrollable screen backdrop');
+assertIncludes(screen, [
+  'topBackdrop?: ReactNode',
+  'Animated.ScrollView',
+  "extrapolateLeft: 'clamp'",
+  'showsVerticalScrollIndicator={false}'
+], 'Scrollable screen backdrop');
 assertIncludes(today, [
   "queryClient.setQueryData(['progressive-profile', 'next-prompt']",
   'data.progressiveProfile.nextPrompt'

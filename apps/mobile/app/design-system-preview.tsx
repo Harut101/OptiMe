@@ -135,7 +135,7 @@ export default function DesignSystemPreviewScreen() {
   const iconNames = ['today', 'food', 'training', 'profile', 'schedule', 'goal', 'health', 'safety', 'settings'] as const;
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
       <AppText variant="title">{t('designSystem.title')}</AppText>
       <AppText variant="muted">{t('designSystem.intro')}</AppText>
 
