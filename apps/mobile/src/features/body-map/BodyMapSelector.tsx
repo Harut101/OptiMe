@@ -21,11 +21,14 @@ import type { BodyMapView } from './body-map-types';
 const BODY_MAP_SELECTED_COLOR = '#FF2D55';
 const BODY_MAP_CARD_ASPECT_RATIO = 4 / 5;
 const BODY_MAP_CARD_MAX_WIDTH = 360;
+const BODY_MAP_COMPACT_MAX_WIDTH = 280;
+const BODY_MAP_COMPACT_WIDTH_RATIO = 0.78;
 const CARD_INNER_PADDING = 12;
 
-export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }: {
+export function BodyMapSelector({ value, onChange, variant = 'default', debugBodyMapLayout = false }: {
   value: TargetMuscleGroup[];
   onChange: (value: TargetMuscleGroup[]) => void;
+  variant?: 'default' | 'compact';
   debugBodyMapLayout?: boolean;
 }) {
   const { t } = useTranslation();
@@ -38,10 +41,13 @@ export function BodyMapSelector({ value, onChange, debugBodyMapLayout = false }:
   const [pressedPath, setPressedPath] = useState<string | null>(null);
   const [renderedSize, setRenderedSize] = useState({ width: 0, height: 0 });
   const asset = BODY_MAP_ASSETS[view];
-  const cardWidth = Math.min(
+  const availableCardWidth = Math.min(
     Math.max(0, containerWidth || screenWidth - 32),
     BODY_MAP_CARD_MAX_WIDTH
   );
+  const cardWidth = variant === 'compact'
+    ? Math.min(availableCardWidth * BODY_MAP_COMPACT_WIDTH_RATIO, BODY_MAP_COMPACT_MAX_WIDTH)
+    : availableCardWidth;
   const cardHeight = cardWidth / BODY_MAP_CARD_ASPECT_RATIO;
   const availableMapWidth = Math.max(0, cardWidth - CARD_INNER_PADDING * 2);
   const availableMapHeight = Math.max(0, cardHeight - CARD_INNER_PADDING * 2);

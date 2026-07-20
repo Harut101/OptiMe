@@ -25,8 +25,10 @@ assert(!trainingForm.includes('BodyMapSelector'), 'TrainingSetupForm must not co
 assert(!trainingForm.includes("t('training.preferredDays')"), 'TrainingSetupForm must not show preferred training days.');
 assert(!trainingForm.includes("t('training.limitationsLabel')"), 'TrainingSetupForm must not collect global pain or limitations.');
 assert(trainingDayEditor.includes('BodyMapSelector'), 'Weekly Routine day editor must render BodyMapSelector.');
+assert(trainingDayEditor.includes('variant="compact"'), 'Weekly Routine day editor must keep the body map compact.');
 assert(trainingDayEditor.includes("'BARBELL'"), 'Weekly Routine equipment must keep BARBELL selectable.');
 assert(trainingOverrideEditor.includes('BodyMapSelector'), 'Today-only override editor must render BodyMapSelector.');
+assert(trainingOverrideEditor.includes('variant="compact"'), 'Today-only override editor must keep the body map compact.');
 assert(trainingOverrideEditor.includes("'BARBELL'"), 'Today-only override equipment must keep BARBELL selectable.');
 assert(trainingOverrideEditor.includes('saveTrainingOverride'), 'Today-only override editor must save DailyTrainingOverride, not Weekly Routine.');
 assert(trainingOverrideEditor.includes("t('trainingOverrides.todayOnlyHelp')"), 'Today-only override editor must clearly say Weekly Routine is unchanged.');

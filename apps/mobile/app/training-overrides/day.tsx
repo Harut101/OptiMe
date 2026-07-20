@@ -162,6 +162,7 @@ export default function DailyTrainingOverrideDayScreen() {
             <Text variant="label">{t('schedule.muscleFocus')}</Text>
             <Text variant="muted">{t('training.targetHelp')}</Text>
             <BodyMapSelector
+              variant="compact"
               value={value.targetMuscles}
               onChange={(targetMuscles) => setValue({ ...value, targetMuscles })}
             />

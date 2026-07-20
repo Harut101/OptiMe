@@ -99,6 +99,7 @@ export default function TrainingScheduleDayScreen() {
               <Text variant="label">{t('schedule.customMuscleFocus')}</Text>
               <Text variant="muted">{t('training.targetHelp')}</Text>
               <BodyMapSelector
+                variant="compact"
                 value={(value.targetMuscles ?? []) as TargetMuscleGroup[]}
                 onChange={(targetMuscles) => setValue({ ...value, targetMuscles })}
               />
