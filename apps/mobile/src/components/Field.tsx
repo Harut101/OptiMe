@@ -9,7 +9,7 @@ interface FieldProps extends TextInputProps {
   error?: string;
 }
 
-export function Field({ label, error, style, onBlur, onFocus, ...props }: FieldProps) {
+export function Field({ label, error, style, multiline = false, onBlur, onFocus, ...props }: FieldProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const [focused, setFocused] = useState(false);
@@ -19,6 +19,7 @@ export function Field({ label, error, style, onBlur, onFocus, ...props }: FieldP
       <Text variant="label">{label}</Text>
       <TextInput
         {...props}
+        multiline={multiline}
         onBlur={(event) => {
           setFocused(false);
           onBlur?.(event);
@@ -28,7 +29,13 @@ export function Field({ label, error, style, onBlur, onFocus, ...props }: FieldP
           onFocus?.(event);
         }}
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, focused ? styles.inputFocused : null, error ? styles.inputError : null, style]}
+        style={[
+          styles.input,
+          multiline ? styles.inputMultiline : styles.inputSingleLine,
+          focused ? styles.inputFocused : null,
+          error ? styles.inputError : null,
+          style
+        ]}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -48,7 +55,19 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     backgroundColor: colors.surfaceMuted,
     color: colors.textPrimary,
     fontSize: 16,
-    fontWeight: '500'
+    fontWeight: '500',
+    lineHeight: 22
+  },
+  inputSingleLine: {
+    height: 52,
+    paddingVertical: 0,
+    textAlignVertical: 'center'
+  },
+  inputMultiline: {
+    minHeight: 56,
+    paddingBottom: 14,
+    paddingTop: 14,
+    textAlignVertical: 'center'
   },
   inputFocused: {
     backgroundColor: colors.surfaceElevated,

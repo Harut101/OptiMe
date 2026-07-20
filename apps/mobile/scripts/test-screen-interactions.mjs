@@ -81,7 +81,13 @@ assertIncludes(personalForm, [
 const trainingScheduleForm = read('src/features/training-schedule/TrainingScheduleForm.tsx');
 assertIncludes(trainingScheduleForm, ['TimeField', "t('schedule.time')"], 'TrainingScheduleForm native time input');
 const bottomSheet = read('src/components/BottomSheet.tsx');
-assertIncludes(bottomSheet, ['KeyboardAvoidingView', 'automaticallyAdjustKeyboardInsets', 'keyboardShouldPersistTaps="handled"'], 'Bottom sheet keyboard handling');
+assertIncludes(bottomSheet, [
+  'KeyboardAvoidingView',
+  "Platform.OS === 'android' ? 'height' : undefined",
+  'automaticallyAdjustKeyboardInsets',
+  'keyboardDismissMode="interactive"',
+  'keyboardShouldPersistTaps="handled"'
+], 'Bottom sheet keyboard handling');
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
@@ -122,7 +128,15 @@ assertIncludes(appLayout, ['AppLaunchSplash', 'setTimeout(() => setShowLaunchSpl
 assertIncludes(appLayout, ['AppHeader', 'header: ({ options })', 'contentStyle: { backgroundColor: colors.background }'], 'Root stack navigation');
 assertIncludes(authLayout, ['AppHeader', 'fallbackHref="/(auth)/welcome"', "t('auth.login')", "t('auth.createAccount')"], 'Auth stack navigation');
 assertIncludes(appHeader, ['SafeAreaView', 'AppBackButton', "backgroundColor: colors.background", "textAlign: 'center'"], 'Custom app header');
-assertIncludes(field, ['useState', 'inputFocused', 'onFocus?.(event)', 'borderColor: colors.accent'], 'Field focus state');
+assertIncludes(field, [
+  'useState',
+  'inputFocused',
+  'onFocus?.(event)',
+  'borderColor: colors.accent',
+  'inputSingleLine',
+  'inputMultiline',
+  "textAlignVertical: 'center'"
+], 'Field focus state');
 assertIncludes(tabs, ['FloatingTabBar', 'tabBar={(props) => <FloatingTabBar {...props} />}', 'sceneStyle: { backgroundColor: colors.background, paddingBottom: 68 }'], 'Floating tab navigation');
 assertIncludes(floatingTabBar, ['width = Math.min(screenWidth - 32, 608)', 'left = (screenWidth - width) / 2', 'bottom: Math.max(insets.bottom - 8, 8)', 'focused ? 28 : 24', "type: 'tabPress'"], 'Floating tab bar geometry');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');

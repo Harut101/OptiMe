@@ -45,7 +45,7 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
           onPress={onClose}
         />
         <KeyboardAvoidingView
-          behavior={Platform.select({ android: 'height', ios: 'padding' })}
+          behavior={Platform.OS === 'android' ? 'height' : undefined}
           style={styles.keyboardAvoiding}
         >
           <Animated.View
@@ -144,6 +144,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   },
   content: {
     gap: 14,
+    paddingBottom: 12,
     paddingTop: 18
   }
 });
