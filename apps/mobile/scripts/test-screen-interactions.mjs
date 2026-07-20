@@ -81,6 +81,9 @@ assertIncludes(personalForm, [
 const trainingScheduleForm = read('src/features/training-schedule/TrainingScheduleForm.tsx');
 assertIncludes(trainingScheduleForm, ['TimeField', "t('schedule.time')"], 'TrainingScheduleForm native time input');
 const bottomSheet = read('src/components/BottomSheet.tsx');
+const appToast = read('src/components/AppToast.tsx');
+const appFeedbackSheet = read('src/components/AppFeedbackSheet.tsx');
+const appProviders = read('src/providers/app-providers.tsx');
 assertIncludes(bottomSheet, [
   'KeyboardAvoidingView',
   "Platform.OS === 'android' ? 'height' : undefined",
@@ -88,6 +91,11 @@ assertIncludes(bottomSheet, [
   'keyboardDismissMode="interactive"',
   'keyboardShouldPersistTaps="handled"'
 ], 'Bottom sheet keyboard handling');
+assertIncludes(appToast, ['AppToastProvider', 'pointerEvents="box-none"', 'styles.providerRoot', 'setTimeout'], 'Non-blocking toast host');
+assert(!appToast.includes('<Modal'), 'Toast feedback must not freeze the screen with a native Modal.');
+assertIncludes(appProviders, ['AppToastProvider'], 'Global toast provider');
+assertIncludes(appFeedbackSheet, ['messageRow', '<Text variant="body"', 'TriangleAlert'], 'Readable feedback sheet');
+assert(!appFeedbackSheet.includes('ContextNoteCard'), 'Feedback sheets must not duplicate their title inside a nested card.');
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
@@ -281,7 +289,13 @@ assertIncludes(nativeHealthUtils, [
 ], 'Apple Health snapshot sanitization');
 
 const today = read('app/(tabs)/today.tsx');
-assertIncludes(today, ['ScreenHeader', 'AppToast', 'ContextNoteCard', "t('today.noPlan')"], 'Today polish');
+assertIncludes(today, ['ScreenHeader', 'AppToast', "t('today.noPlan')"], 'Today polish');
+assert(!today.includes('<ContextNoteCard'), 'Today must not render health sync feedback as permanent page content.');
+assertIncludes(today, [
+  "title={t('health.updated')}",
+  'message={healthReadinessMessage}',
+  'onDismiss={() => setHealthReadinessMessage(null)}'
+], 'Today health readiness toast');
 assertIncludes(today, ['TodayModeBackdrop', 'topBackdrop={<TodayModeBackdrop', "['#9B3A16'", "['#175C35'"], 'Today app-mode backdrop');
 assert(!today.includes('AppModeIndicator') && !today.includes('<Utensils') && !today.includes('<Dumbbell'), 'Today must not render app-mode icon pills.');
 const screen = read('src/components/Screen.tsx');

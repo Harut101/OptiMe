@@ -1,5 +1,14 @@
-import { useEffect } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import {
+  PropsWithChildren,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2, Info, TriangleAlert } from 'lucide-react-native';
 
@@ -7,46 +16,139 @@ import { useTheme } from '@/theme/theme-provider';
 import type { ThemeColors } from '@/theme/colors';
 import { Text } from './Text';
 
+type AppToastTone = 'success' | 'info' | 'warning' | 'danger';
+
 interface AppToastProps {
   title: string;
   message?: string | null;
-  tone?: 'success' | 'info' | 'warning' | 'danger';
+  tone?: AppToastTone;
   onDismiss?: () => void;
 }
 
+interface ToastEntry extends AppToastProps {
+  id: string;
+}
+
+interface ToastContextValue {
+  show: (entry: ToastEntry) => void;
+  hide: (id: string) => void;
+}
+
+const ToastContext = createContext<ToastContextValue | null>(null);
+let nextToastId = 0;
+
+export function AppToastProvider({ children }: PropsWithChildren) {
+  const [toast, setToast] = useState<ToastEntry | null>(null);
+  const activeToastRef = useRef<ToastEntry | null>(null);
+  const show = useCallback((entry: ToastEntry) => {
+    const previous = activeToastRef.current;
+    activeToastRef.current = entry;
+    setToast(entry);
+    if (previous && previous.id !== entry.id) previous.onDismiss?.();
+  }, []);
+  const hide = useCallback((id: string) => {
+    if (activeToastRef.current?.id !== id) return;
+    activeToastRef.current = null;
+    setToast(null);
+  }, []);
+  const contextValue = useMemo(() => ({ show, hide }), [hide, show]);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timeout = setTimeout(() => {
+      if (activeToastRef.current?.id !== toast.id) return;
+      activeToastRef.current = null;
+      setToast(null);
+      toast.onDismiss?.();
+    }, 3200);
+
+    return () => clearTimeout(timeout);
+  }, [toast]);
+
+  return (
+    <ToastContext.Provider value={contextValue}>
+      <View style={styles.providerRoot}>
+        {children}
+        {toast ? (
+          <ToastOverlay
+            title={toast.title}
+            message={toast.message}
+            tone={toast.tone}
+            onDismiss={() => {
+              activeToastRef.current = null;
+              setToast(null);
+              toast.onDismiss?.();
+            }}
+          />
+        ) : null}
+      </View>
+    </ToastContext.Provider>
+  );
+}
+
 export function AppToast({ title, message, tone = 'info', onDismiss }: AppToastProps) {
+  const context = useContext(ToastContext);
+  const id = useRef(`app-toast-${++nextToastId}`).current;
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
+  useEffect(() => {
+    if (!context) return;
+
+    context.show({
+      id,
+      title,
+      message,
+      tone,
+      onDismiss: () => onDismissRef.current?.()
+    });
+
+    return () => context.hide(id);
+  }, [context, id, message, title, tone]);
+
+  return null;
+}
+
+function ToastOverlay({ title, message, tone = 'info', onDismiss }: AppToastProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const styles = createStyles(colors);
+  const themedStyles = createStyles(colors);
   const toneStyles = createToneStyles(colors);
+  const translateY = useRef(new Animated.Value(-12)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
   const Icon = tone === 'success' ? CheckCircle2 : tone === 'warning' || tone === 'danger' ? TriangleAlert : Info;
   const toneStyle = toneStyles[tone];
 
   useEffect(() => {
-    if (!onDismiss) return;
-    const timeout = setTimeout(onDismiss, 3200);
-    return () => clearTimeout(timeout);
-  }, [onDismiss, title, message]);
+    Animated.parallel([
+      Animated.timing(opacity, { duration: 180, toValue: 1, useNativeDriver: true }),
+      Animated.timing(translateY, { duration: 220, toValue: 0, useNativeDriver: true })
+    ]).start();
+  }, [opacity, translateY]);
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
-      <View pointerEvents="box-none" style={[styles.root, { paddingTop: Math.max(insets.top + 10, 18) }]}>
+    <View
+      pointerEvents="box-none"
+      style={[themedStyles.root, { paddingTop: Math.max(insets.top + 10, 18) }]}
+    >
+      <Animated.View style={{ opacity, transform: [{ translateY }], width: '100%', maxWidth: 640 }}>
         <Pressable
           accessibilityRole={onDismiss ? 'button' : 'text'}
           accessibilityLabel={[title, message].filter(Boolean).join('. ')}
           onPress={onDismiss}
-          style={[styles.toast, toneStyle.container]}
+          style={[themedStyles.toast, toneStyle.container]}
         >
-          <View style={[styles.iconWrap, toneStyle.iconWrap]}>
+          <View style={[themedStyles.iconWrap, toneStyle.iconWrap]}>
             <Icon size={17} color={toneStyle.iconColor} strokeWidth={2.6} />
           </View>
-          <View style={styles.copy}>
-            <Text variant="body" style={styles.title}>{title}</Text>
+          <View style={themedStyles.copy}>
+            <Text variant="body" style={themedStyles.title}>{title}</Text>
             {message ? <Text variant="caption">{message}</Text> : null}
           </View>
         </Pressable>
-      </View>
-    </Modal>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -73,11 +175,18 @@ const createToneStyles = (colors: ThemeColors) => ({
   }
 }) as const;
 
+const styles = StyleSheet.create({
+  providerRoot: {
+    flex: 1
+  }
+});
+
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   root: {
     alignItems: 'center',
     ...StyleSheet.absoluteFillObject,
-    paddingHorizontal: 18
+    paddingHorizontal: 18,
+    zIndex: 1000
   },
   toast: {
     alignItems: 'center',
@@ -87,12 +196,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 14,
-    shadowColor: colors.textPrimary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.16,
     shadowRadius: 20,
-    elevation: 8,
-    maxWidth: 640,
+    elevation: 18,
     width: '100%'
   },
   iconWrap: {

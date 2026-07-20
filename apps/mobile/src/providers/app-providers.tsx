@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 
 import { getSettings, updateSettings } from '@/api/settings';
+import { AppToastProvider } from '@/components/AppToast';
 import '@/i18n';
 import { detectDeviceLocale } from '@/i18n/locale-detection';
 import { useAuthStore } from '@/store/auth-store';
@@ -29,8 +30,10 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <SettingsBootstrap />
-        {children}
+        <AppToastProvider>
+          <SettingsBootstrap />
+          {children}
+        </AppToastProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

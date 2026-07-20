@@ -28,7 +28,6 @@ import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { BottomSheet } from '@/components/BottomSheet';
 import { AIRecommendationEntry } from '@/components/AIRecommendationEntry';
 import { AppToast } from '@/components/AppToast';
-import { ContextNoteCard } from '@/components/ContextNoteCard';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -398,10 +397,11 @@ export default function TodayScreen() {
       ) : null}
 
       {healthReadinessMessage ? (
-        <ContextNoteCard
-          title={t('health.healthDataOptional')}
+        <AppToast
+          title={t('health.updated')}
           message={healthReadinessMessage}
-          tone="health"
+          tone="info"
+          onDismiss={() => setHealthReadinessMessage(null)}
         />
       ) : null}
 
