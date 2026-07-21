@@ -219,6 +219,7 @@ function PersonalSection() {
         visible={editing}
         title={t('profile.editProfile')}
         subtitle={t('profile.hubIntro')}
+        presentation="form"
         onClose={() => {
           if (mutation.isPending) return;
           setValue(savedValue);
@@ -443,6 +444,7 @@ function GoalNutritionSection() {
         visible={editing}
         title={t('profile.goalsAndMode')}
         subtitle={t('goals.intro')}
+        presentation="form"
         onClose={closeEditor}
       >
         <GoalsForm value={value} onChange={setValue} validationMode="standalone" />

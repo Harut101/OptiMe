@@ -380,6 +380,7 @@ function PostWorkoutCheckInCard({
         visible={visible}
         title={t('workout.postWorkoutCheckIn')}
         subtitle={t('workout.postWorkoutHelp')}
+        presentation="form"
         onClose={() => setVisible(false)}
       >
         <View style={styles.postWorkoutSheetContent}>

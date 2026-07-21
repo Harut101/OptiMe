@@ -252,6 +252,7 @@ function TrainingContent(props: PlanTabbedContentProps & {
         visible={exercises.length > 0 && props.preWorkoutOpen && !props.workoutSession}
         title={t('workout.preWorkoutCheck')}
         subtitle={t('workout.preWorkoutHelp')}
+        presentation="form"
         onClose={props.onCancelPreWorkout}
       >
         <PreWorkoutCheckCard

@@ -69,6 +69,7 @@ export function WeightUpdateModal({
       visible={visible}
       title={t('weight.updateWeight')}
       subtitle={t('weight.futurePlansOnly')}
+      presentation="form"
       onClose={onClose}
     >
       <View style={styles.content}>

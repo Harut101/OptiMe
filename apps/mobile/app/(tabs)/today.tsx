@@ -500,6 +500,7 @@ export default function TodayScreen() {
       <BottomSheet
         visible={progressivePromptVisible}
         title={t('today.improvePlans')}
+        presentation="form"
         onClose={() => setProgressivePromptVisible(false)}
       >
         {progressivePrompt.data ? (

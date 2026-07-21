@@ -103,6 +103,7 @@ export function EveningReflectionSheet({
       visible={visible}
       title={t('eveningReflection.title')}
       subtitle={t('eveningReflection.subtitle')}
+      presentation="form"
       onClose={onClose}
     >
       <View style={styles.content}>

@@ -352,6 +352,7 @@ export default function FoodScreen() {
         visible={availableFoodsVisible}
         title={t('foodAvailability.title')}
         subtitle={t('foodAvailability.description')}
+        presentation="form"
         onClose={() => {
           if (saveAvailableFoods.isPending) return;
           setAvailableFoodsVisible(false);
@@ -467,6 +468,7 @@ export default function FoodScreen() {
         visible={editing}
         title={preferences.data ? t('food.updateFoodPreferences') : t('food.setup')}
         subtitle={t('food.intro')}
+        presentation="form"
         onClose={() => {
           if (mutation.isPending) return;
           setValue(savedValue);

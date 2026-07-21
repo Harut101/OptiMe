@@ -11,10 +11,18 @@ interface BottomSheetProps extends PropsWithChildren {
   visible: boolean;
   title: string;
   subtitle?: string;
+  presentation?: 'content' | 'form';
   onClose: () => void;
 }
 
-export function BottomSheet({ visible, title, subtitle, onClose, children }: BottomSheetProps) {
+export function BottomSheet({
+  visible,
+  title,
+  subtitle,
+  presentation = 'content',
+  onClose,
+  children
+}: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -51,6 +59,7 @@ export function BottomSheet({ visible, title, subtitle, onClose, children }: Bot
           <Animated.View
             style={[
               styles.sheet,
+              presentation === 'form' ? styles.formSheet : null,
               {
                 paddingBottom: Math.max(insets.bottom, 16),
                 transform: [
@@ -115,6 +124,10 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     shadowOpacity: 0.16,
     shadowRadius: 30,
     elevation: 12
+  },
+  formSheet: {
+    height: '94%',
+    maxHeight: '94%'
   },
   handle: {
     alignSelf: 'center',

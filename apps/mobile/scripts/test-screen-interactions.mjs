@@ -89,13 +89,27 @@ assertIncludes(bottomSheet, [
   "Platform.OS === 'android' ? 'height' : undefined",
   'automaticallyAdjustKeyboardInsets',
   'keyboardDismissMode="interactive"',
-  'keyboardShouldPersistTaps="handled"'
+  'keyboardShouldPersistTaps="handled"',
+  "presentation?: 'content' | 'form'",
+  "presentation === 'form' ? styles.formSheet : null",
+  "height: '94%'"
 ], 'Bottom sheet keyboard handling');
 assertIncludes(appToast, ['AppToastProvider', 'pointerEvents="box-none"', 'styles.providerRoot', 'setTimeout'], 'Non-blocking toast host');
 assert(!appToast.includes('<Modal'), 'Toast feedback must not freeze the screen with a native Modal.');
 assertIncludes(appProviders, ['AppToastProvider'], 'Global toast provider');
 assertIncludes(appFeedbackSheet, ['messageRow', '<Text variant="body"', 'TriangleAlert'], 'Readable feedback sheet');
 assert(!appFeedbackSheet.includes('ContextNoteCard'), 'Feedback sheets must not duplicate their title inside a nested card.');
+for (const formSheetFile of [
+  'app/(tabs)/today.tsx',
+  'app/(tabs)/food.tsx',
+  'app/(tabs)/profile.tsx',
+  'app/workout-session.tsx',
+  'src/features/daily-plan-check-ins/EveningReflectionSheet.tsx',
+  'src/features/daily-plan/PlanTabbedContent.tsx',
+  'src/features/weight/WeightUpdateModal.tsx'
+]) {
+  assert(read(formSheetFile).includes('presentation="form"'), `${formSheetFile} must use the near-full-height form sheet.`);
+}
 
 const goalEditor = read('app/goal-editor.tsx');
 assertIncludes(goalEditor, [
