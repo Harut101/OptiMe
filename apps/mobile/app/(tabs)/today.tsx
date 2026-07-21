@@ -1203,6 +1203,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600'
   },
   embeddedPrompt: {
+    flex: 1,
     gap: 14
   },
   promptHeader: {
@@ -1210,7 +1211,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   promptActions: {
     flexDirection: 'row',
-    gap: 10
+    gap: 10,
+    marginTop: 'auto'
   },
   promptButton: {
     flex: 1

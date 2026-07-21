@@ -150,6 +150,7 @@ export function EveningReflectionSheet({
           title={saveReflection.isPending ? t('common.saving') : t('eveningReflection.save')}
           loading={saveReflection.isPending}
           disabled={checkIns.isLoading}
+          style={styles.footerAction}
           onPress={save}
         />
       </View>
@@ -190,7 +191,11 @@ function toLevel(value: unknown): ReflectionLevel | null {
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
+    flex: 1,
     gap: 14
+  },
+  footerAction: {
+    marginTop: 'auto'
   },
   trend: {
     gap: 4

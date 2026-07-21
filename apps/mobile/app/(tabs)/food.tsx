@@ -647,7 +647,7 @@ function FoodSummary({ value }: { value: FoodPreferencesFormValue }) {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  actions: { gap: 10 },
+  actions: { gap: 10, marginTop: 'auto' },
   error: { color: colors.danger, fontWeight: '600' },
   mealPlanSection: { gap: 10 },
   mealPlanHeader: {

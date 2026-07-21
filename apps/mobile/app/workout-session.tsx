@@ -566,9 +566,9 @@ function formatTrainingLoadSessionMessage(
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  postWorkoutActions: { gap: 8 },
+  postWorkoutActions: { gap: 8, marginTop: 'auto' },
   postWorkoutPrompt: { gap: 12 },
-  postWorkoutSheetContent: { gap: 14 },
+  postWorkoutSheetContent: { flex: 1, gap: 14 },
   setControl: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   setLabel: { color: colors.textSecondary, textTransform: 'capitalize' },
   setGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

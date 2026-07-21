@@ -92,6 +92,8 @@ assertIncludes(bottomSheet, [
   'keyboardShouldPersistTaps="handled"',
   "presentation?: 'content' | 'form'",
   "presentation === 'form' ? styles.formSheet : null",
+  "presentation === 'form' ? styles.formContent : null",
+  'flexGrow: 1',
   "height: '94%'"
 ], 'Bottom sheet keyboard handling');
 assertIncludes(appToast, ['AppToastProvider', 'pointerEvents="box-none"', 'styles.providerRoot', 'setTimeout'], 'Non-blocking toast host');
@@ -109,6 +111,17 @@ for (const formSheetFile of [
   'src/features/weight/WeightUpdateModal.tsx'
 ]) {
   assert(read(formSheetFile).includes('presentation="form"'), `${formSheetFile} must use the near-full-height form sheet.`);
+}
+for (const [formSheetFile, footerContract] of [
+  ['app/(tabs)/today.tsx', "marginTop: 'auto'"],
+  ['app/(tabs)/food.tsx', "marginTop: 'auto'"],
+  ['app/(tabs)/profile.tsx', "marginTop: 'auto'"],
+  ['app/workout-session.tsx', 'postWorkoutSheetContent: { flex: 1'],
+  ['src/features/daily-plan-check-ins/EveningReflectionSheet.tsx', 'footerAction'],
+  ['src/features/daily-plan/PlanTabbedContent.tsx', "marginTop: 'auto'"],
+  ['src/features/weight/WeightUpdateModal.tsx', 'footerStart']
+]) {
+  assert(read(formSheetFile).includes(footerContract), `${formSheetFile} must keep form actions at the bottom.`);
 }
 
 const goalEditor = read('app/goal-editor.tsx');

@@ -1085,7 +1085,7 @@ function formatHealthStatus(
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   section: { gap: 14 },
-  actions: { gap: 10 },
+  actions: { gap: 10, marginTop: 'auto' },
   accountHeader: {
     alignItems: 'center',
     flexDirection: 'row',

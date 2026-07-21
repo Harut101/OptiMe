@@ -89,7 +89,12 @@ export function WeightUpdateModal({
           accessibilityLabel={t('weight.optionalNote')}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title={isSaving ? t('common.saving') : t('weight.saveWeight')} disabled={isSaving} onPress={submit} />
+        <Button
+          title={isSaving ? t('common.saving') : t('weight.saveWeight')}
+          disabled={isSaving}
+          style={styles.footerStart}
+          onPress={submit}
+        />
         <Button title={t('common.cancel')} variant="secondary" disabled={isSaving} onPress={onClose} />
       </View>
     </BottomSheet>
@@ -98,7 +103,11 @@ export function WeightUpdateModal({
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   content: {
+    flex: 1,
     gap: 12
+  },
+  footerStart: {
+    marginTop: 'auto'
   },
   error: {
     color: colors.danger,

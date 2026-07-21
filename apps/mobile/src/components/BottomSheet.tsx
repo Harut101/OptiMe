@@ -85,7 +85,10 @@ export function BottomSheet({
             </View>
             <ScrollView
               automaticallyAdjustKeyboardInsets
-              contentContainerStyle={styles.content}
+              contentContainerStyle={[
+                styles.content,
+                presentation === 'form' ? styles.formContent : null
+              ]}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -159,5 +162,8 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
     gap: 14,
     paddingBottom: 12,
     paddingTop: 18
+  },
+  formContent: {
+    flexGrow: 1
   }
 });

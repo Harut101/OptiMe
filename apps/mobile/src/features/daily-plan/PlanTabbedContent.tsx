@@ -674,6 +674,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 27
   },
   preWorkoutEmbedded: {
+    flex: 1,
     gap: 12
   },
   foodList: {
@@ -709,7 +710,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   foodNotes: {
     color: colors.textSecondary
   },
-  preWorkoutActions: { gap: 8 },
+  preWorkoutActions: { gap: 8, marginTop: 'auto' },
   replacementReview: { gap: 10, paddingTop: 8 },
   mediaError: { gap: 8 },
   errorText: { color: colors.danger, fontWeight: '700' }
