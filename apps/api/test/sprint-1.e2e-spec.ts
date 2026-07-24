@@ -1501,6 +1501,54 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(JSON.stringify(created.body)).not.toContain('secret');
   });
 
+  it('upserts Health Connect wearable snapshots through the provider-neutral contract', async () => {
+    const user = await registerTestUser(ctx.app, 'health-connect-snapshot@example.com');
+    const localDate = getUtcLocalDate();
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/health/wearable-snapshots')
+      .set(authHeader(user.accessToken))
+      .send({
+        source: HealthProvider.HEALTH_CONNECT,
+        localDate,
+        timezone: 'UTC',
+        steps: 5300,
+        activeCaloriesKcal: 360,
+        workoutMinutes: null,
+        sleepMinutes: 425
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          hasRecentData: true,
+          messageCode: 'WEARABLE_DATA_CONNECTED',
+          snapshot: {
+            source: HealthProvider.HEALTH_CONNECT,
+            localDate,
+            steps: 5300,
+            activeCaloriesKcal: 360,
+            workoutMinutes: null,
+            sleepMinutes: 425
+          }
+        });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .get('/v1/health/connections')
+      .set(authHeader(user.accessToken))
+      .expect(200)
+      .expect(({ body }) => {
+        const healthConnect = body.connections.find(
+          (connection: { source: string }) => connection.source === HealthProvider.HEALTH_CONNECT
+        );
+        expect(healthConnect).toMatchObject({
+          source: HealthProvider.HEALTH_CONNECT,
+          status: 'CONNECTED',
+          errorCode: null
+        });
+      });
+  });
+
   it('rejects invalid wearable snapshot input and marks stale snapshots safely', async () => {
     const user = await registerTestUser(ctx.app, 'wearable-snapshot-validation@example.com');
     const localDate = getUtcLocalDate();

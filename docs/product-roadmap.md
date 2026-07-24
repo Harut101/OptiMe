@@ -7,7 +7,7 @@ The mobile UI/UX consolidation and physical-device visual QA are accepted. The s
 The next active phase is release readiness:
 
 1. Keep the accepted UI stable and fix only verified regressions.
-2. Complete Android Health Connect production readiness.
+2. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
 3. Run release-focused privacy, permission, native-build, and end-to-end QA.
 
 Garmin integration is intentionally deferred until after the first release. Do not add Garmin OAuth, API sync, provider tokens, or background sync to the release-critical path.

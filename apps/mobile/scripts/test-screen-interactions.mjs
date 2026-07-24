@@ -266,7 +266,8 @@ assertIncludes(health, [
   'health.yesterdayAt',
   'getConnectionBodyCopy',
   'getConnectionHelperCopy',
-  '!isConnected ? <Text variant="muted">{t(\'health.appleHealthIosOnly\')}</Text> : null'
+  "source === 'APPLE_HEALTH' && isSupportedNativeSource",
+  "t('health.appleHealthIosOnly')"
 ], 'Apple Health connection polish');
 assertIncludes(health, [
   'getSnapshotMetrics',
@@ -279,6 +280,7 @@ assert(!health.includes('console.error'), 'Expected Apple Health unavailable sta
 assert(!profile.includes('WHOOP'), 'Unsupported WHOOP provider must not be shown.');
 
 const nativeHealthIos = read('src/features/health/native-health.ios.ts');
+const nativeHealthAndroid = read('src/features/health/native-health.android.ts');
 const nativeHealthService = read('src/features/health/native-health.service.ts');
 const nativeHealthUtils = read('src/features/health/native-health.utils.ts');
 assertIncludes(nativeHealthIos, [
@@ -315,6 +317,42 @@ assertIncludes(nativeHealthService, [
   'APPLE_HEALTH_PERMISSION_DENIED',
   'APPLE_HEALTH_NO_DATA'
 ], 'Apple Health sync status handling');
+assertIncludes(nativeHealthAndroid, [
+  'getSdkStatus',
+  'getGrantedPermissions',
+  'openHealthConnectSettings',
+  'aggregateRecord',
+  "'Steps'",
+  "'SleepSession'",
+  "'ExerciseSession'",
+  "'ActiveCaloriesBurned'",
+  'Health Connect metric read failed',
+  'Health Connect daily summary normalized'
+], 'Health Connect native readiness');
+assertIncludes(nativeHealthService, [
+  'syncHealthConnectLast7Days',
+  'HEALTH_CONNECT_PERMISSION_DENIED',
+  'HEALTH_CONNECT_SNAPSHOT_SAVE_FAILED',
+  "source: 'HEALTH_CONNECT'",
+  'Health Connect summary POST succeeded'
+], 'Health Connect sync status handling');
+assertIncludes(health, [
+  'healthConnectSync',
+  'healthConnectDisconnect',
+  'nativeHealthService.openSettings',
+  "t('health.connectHealthConnect')",
+  "t('health.manageHealthConnect')",
+  'getHealthConnectResultMessage'
+], 'Health Connect connection actions');
+const mobileAppConfig = read('app.json');
+for (const permission of [
+  'android.permission.health.READ_STEPS',
+  'android.permission.health.READ_SLEEP',
+  'android.permission.health.READ_EXERCISE',
+  'android.permission.health.READ_ACTIVE_CALORIES_BURNED'
+]) {
+  assert(mobileAppConfig.includes(permission), `Android config must declare ${permission}.`);
+}
 assertIncludes(nativeHealthUtils, [
   'sanitizeIsoDateOrNow',
   'sanitizeIntegerOrNull',

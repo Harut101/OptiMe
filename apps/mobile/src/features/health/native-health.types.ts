@@ -8,6 +8,8 @@ export type NativeHealthAvailability =
         | 'EXPO_GO_UNSUPPORTED'
         | 'PLATFORM_UNSUPPORTED'
         | 'MISSING_NATIVE_MODULE'
+        | 'HEALTH_CONNECT_NOT_INSTALLED'
+        | 'HEALTH_CONNECT_UPDATE_REQUIRED'
         | 'PERMISSION_UNAVAILABLE'
         | 'UNKNOWN';
     };
@@ -34,7 +36,7 @@ export interface NativeHealthDailySummary {
 export interface NativeWearableSnapshotInput {
   localDate: string;
   timezone: string;
-  source: Extract<HealthProvider, 'APPLE_HEALTH'>;
+  source: Extract<HealthProvider, 'APPLE_HEALTH' | 'HEALTH_CONNECT'>;
   steps?: number | null;
   activeCaloriesKcal?: number | null;
   workoutMinutes?: number | null;
@@ -65,6 +67,7 @@ export interface NativeHealthAdapter {
   provider: HealthProvider | null;
   getAvailability(): Promise<NativeHealthAvailability>;
   requestPermissions(): Promise<NativeHealthPermissions>;
+  openSettings?(): Promise<void> | void;
   readDailySummaries(options: NativeHealthReadOptions): Promise<NativeHealthDailySummary[]>;
   readWearableSnapshots?(options: NativeHealthReadOptions): Promise<NativeWearableSnapshotInput[]>;
 }

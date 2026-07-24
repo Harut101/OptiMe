@@ -6,7 +6,7 @@ The detailed roadmap remains in [product-roadmap.md](./product-roadmap.md).
 
 The UI/UX consolidation is accepted after physical-device review. The current shared visual system is now the product baseline, not an experimental pass. Future work should preserve its typography, themed surfaces, navigation, bottom-sheet, feedback, localization, and responsive-layout conventions.
 
-Apple Health development-build QA is accepted on macOS/Xcode and a physical iPhone, including pods, permissions, read-only sync, and mobile rendering. The next implementation phase is Android Health Connect production readiness. Garmin OAuth/API sync is postponed until after the first release and is not part of the release-critical plan.
+Apple Health development-build QA is accepted on macOS/Xcode and a physical iPhone, including pods, permissions, read-only sync, and mobile rendering. Android Health Connect production code now includes minimum manifest permissions, SDK availability handling, partial foreground sync, provider-neutral snapshots, and localized connection controls. Android development-build/device QA and Google Play Health declarations remain release tasks. Garmin OAuth/API sync is postponed until after the first release and is not part of the release-critical plan.
 
 Manual weight tracking is now implemented with `WeightLog`, neutral progress summaries, Today/Profile mobile UI, and future-plan Nutrition Target integration. Garmin is represented as a future health/weight source only; real Garmin OAuth, provider API sync, token storage, and background sync remain deferred.
 

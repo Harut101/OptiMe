@@ -310,3 +310,11 @@ Apple Health should show only currently supported MVP metrics on the main Health
 The Health Data screen now renders the latest wearable snapshot with the shared `HealthMetricWidget` system instead of the older `MetricCard` grid. Each metric uses a semantic icon, strong numeric value, source/last-sync context, and lightweight progress or mini-bar visuals. Missing values remain calm and non-error-like; unavailable Apple Health metrics should not be invented.
 
 Today may reuse the same widget language for a compact wearable summary, but it should not become a full health analytics screen. Provider setup, sync, disconnect, and delete actions stay on Health Data.
+
+## Android Health Connect Production Update
+
+Health Connect now has a real foreground Android path rather than a future-only card. It requests read-only access to steps, sleep, exercise sessions, and active calories, syncs at most seven local days, tolerates individual metric failures, and stores both daily summaries and provider-neutral wearable snapshots.
+
+The mobile connection card exposes Connect, Sync, Manage, Disconnect, and Delete only on Android builds with the native module. Expo Go and other platforms remain safe unavailable states. Background sync, write access, weight/heart permissions, WHOOP, and Garmin are not part of this release batch.
+
+See [health-connect-production-readiness.md](./health-connect-production-readiness.md) for Android build QA and Google Play declaration requirements.

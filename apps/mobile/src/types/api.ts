@@ -636,7 +636,7 @@ export interface CreateMockWearableSnapshotRequest {
 export interface UpsertWearableSnapshotRequest {
   localDate: string;
   timezone: string;
-  source: Extract<HealthDataSource, 'APPLE_HEALTH'>;
+  source: Extract<HealthDataSource, 'APPLE_HEALTH' | 'HEALTH_CONNECT'>;
   steps?: number | null;
   activeCaloriesKcal?: number | null;
   workoutMinutes?: number | null;

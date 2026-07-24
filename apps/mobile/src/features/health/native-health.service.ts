@@ -18,6 +18,10 @@ export const nativeHealthService = {
     return nativeHealthAdapter.requestPermissions();
   },
 
+  openSettings() {
+    return nativeHealthAdapter.openSettings?.();
+  },
+
   readDailySummaries(options: { days: number }) {
     return nativeHealthAdapter.readDailySummaries(options);
   },
@@ -143,11 +147,36 @@ export const nativeHealthService = {
   },
 
   async syncLast7Days(): Promise<NativeHealthSyncResult> {
+    return syncHealthConnectLast7Days();
+  },
+
+  async syncHealthConnectLast7Days(): Promise<NativeHealthSyncResult> {
+    return syncHealthConnectLast7Days();
+  }
+};
+
+async function syncHealthConnectLast7Days(): Promise<NativeHealthSyncResult> {
     const provider = nativeHealthAdapter.provider;
     const availability = await nativeHealthAdapter.getAvailability();
 
-    if (!provider || !availability.available) {
-      throw new Error('Health sync requires a development build with native health support.');
+    if (provider !== 'HEALTH_CONNECT') {
+      logNativeHealthEvent('sync stopped', {
+        provider: provider ?? 'none',
+        reason: 'PLATFORM_UNSUPPORTED'
+      }, 'warn');
+      return unavailableResult('PLATFORM_UNSUPPORTED', provider ?? undefined, 7);
+    }
+
+    if (!availability.available) {
+      logNativeHealthEvent('sync stopped', {
+        provider,
+        reason: availability.reason
+      }, 'warn');
+      await updateConnectionStatusBestEffort(provider, {
+        status: getUnavailableConnectionStatus(availability.reason),
+        errorCode: availability.reason
+      });
+      return unavailableResult(availability.reason, provider, 7);
     }
 
     const permissions = await nativeHealthAdapter.requestPermissions();
@@ -155,28 +184,115 @@ export const nativeHealthService = {
       permissions.steps || permissions.sleep || permissions.workouts || permissions.activeEnergy;
 
     if (!grantedCorePermission) {
-      throw new Error('Health permissions were not granted. Nothing was synced.');
+      logNativeHealthEvent('sync stopped', {
+        provider,
+        reason: 'HEALTH_CONNECT_PERMISSION_DENIED',
+        grantedCorePermissions: 0
+      }, 'warn');
+      await updateConnectionStatusBestEffort(provider, {
+        status: 'NEEDS_REAUTH',
+        errorCode: 'HEALTH_CONNECT_PERMISSION_DENIED'
+      });
+      return {
+        syncedDays: 0,
+        attemptedDays: 7,
+        source: provider,
+        fieldsPresent: 0,
+        messageCode: 'PERMISSION_DENIED',
+        errorCode: 'HEALTH_CONNECT_PERMISSION_DENIED'
+      };
     }
 
-    await connectHealthProvider({
+    try {
+      await connectHealthProvider({
+        provider,
+        permissionsGranted: permissions
+      });
+    } catch (error) {
+      const errorCode = getHealthConnectSaveErrorCode(error);
+      logNativeHealthEvent('Health Connect connection POST failed', {
+        provider,
+        errorCode,
+        status: error instanceof ApiError ? error.status : null
+      }, 'error');
+      await updateConnectionStatusBestEffort(provider, {
+        status: 'ERROR',
+        errorCode
+      });
+      throw new NativeHealthServiceError(errorCode);
+    }
+    logNativeHealthEvent('health provider connected', {
       provider,
-      permissionsGranted: permissions
+      permissionSteps: Boolean(permissions.steps),
+      permissionSleep: Boolean(permissions.sleep),
+      permissionWorkouts: Boolean(permissions.workouts),
+      permissionActiveEnergy: Boolean(permissions.activeEnergy)
     });
 
     const summaries = await nativeHealthAdapter.readDailySummaries({ days: 7 });
+    let fieldsPresent = 0;
 
     for (const summary of summaries) {
-      await upsertHealthDailySummary(summary);
+      fieldsPresent += countDailySummaryFields(summary);
+      try {
+        await upsertHealthDailySummary(summary);
+        await upsertWearableSnapshot({
+          localDate: summary.localDate,
+          timezone: summary.timezone,
+          source: 'HEALTH_CONNECT',
+          steps: summary.steps ?? null,
+          activeCaloriesKcal: summary.activeEnergyKcal ?? null,
+          workoutMinutes: summary.workoutMinutes ?? null,
+          sleepMinutes: summary.sleepMinutes ?? null,
+          sleepQualityScore: null,
+          recoveryScore: null,
+          strainScore: null,
+          restingHeartRateBpm: null,
+          hrvMs: null,
+          respiratoryRate: null,
+          capturedAt: new Date().toISOString()
+        });
+        logNativeHealthEvent('Health Connect summary POST succeeded', {
+          provider,
+          localDate: summary.localDate,
+          fieldsPresent: countDailySummaryFields(summary)
+        });
+      } catch (error) {
+        const errorCode = getHealthConnectSaveErrorCode(error);
+        logNativeHealthEvent('Health Connect summary POST failed', {
+          provider,
+          localDate: summary.localDate,
+          fieldsPresent: countDailySummaryFields(summary),
+          errorCode,
+          status: error instanceof ApiError ? error.status : null
+        }, 'error');
+        await updateConnectionStatusBestEffort(provider, {
+          status: 'ERROR',
+          errorCode
+        });
+        throw new NativeHealthServiceError(errorCode);
+      }
     }
+
+    await updateConnectionStatusBestEffort(provider, {
+      status: 'CONNECTED',
+      errorCode: summaries.length > 0 ? null : 'HEALTH_CONNECT_NO_DATA'
+    });
+    logNativeHealthEvent('Health Connect sync completed', {
+      provider,
+      attemptedDays: 7,
+      syncedDays: summaries.length,
+      fieldsPresent
+    });
 
     return {
       syncedDays: summaries.length,
       attemptedDays: 7,
       source: provider,
+      fieldsPresent,
       messageCode: summaries.length > 0 ? 'SYNCED' : 'NO_DATA'
     };
-  }
-};
+}
 
 export class NativeHealthServiceError extends Error {
   constructor(public readonly code: string) {
@@ -222,11 +338,12 @@ function getBodyCode(body: unknown) {
 
 function unavailableResult(
   errorCode: string,
-  source?: NativeHealthSyncResult['source']
+  source?: NativeHealthSyncResult['source'],
+  attemptedDays = 1
 ): NativeHealthSyncResult {
   return {
     syncedDays: 0,
-    attemptedDays: 1,
+    attemptedDays,
     source,
     fieldsPresent: 0,
     messageCode: 'UNAVAILABLE',
@@ -235,9 +352,41 @@ function unavailableResult(
 }
 
 function getUnavailableConnectionStatus(errorCode: string) {
-  return errorCode === 'PLATFORM_UNSUPPORTED' || errorCode === 'MISSING_NATIVE_MODULE'
-    ? 'DISABLED'
-    : 'ERROR';
+  if (
+    errorCode === 'PLATFORM_UNSUPPORTED'
+    || errorCode === 'MISSING_NATIVE_MODULE'
+    || errorCode === 'HEALTH_CONNECT_NOT_INSTALLED'
+  ) {
+    return 'DISABLED';
+  }
+
+  return errorCode === 'HEALTH_CONNECT_UPDATE_REQUIRED' ? 'NEEDS_REAUTH' : 'ERROR';
+}
+
+function countDailySummaryFields(summary: Awaited<ReturnType<typeof nativeHealthAdapter.readDailySummaries>>[number]) {
+  return [
+    summary.steps,
+    summary.sleepMinutes,
+    summary.activeEnergyKcal,
+    summary.workoutCount,
+    summary.workoutMinutes
+  ].filter((value) => value !== undefined && value !== null).length;
+}
+
+function getHealthConnectSaveErrorCode(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return 'HEALTH_CONNECT_API_AUTH_FAILED';
+    }
+
+    if (error.status === 400) {
+      return getBodyCode(error.body) ?? 'HEALTH_CONNECT_SNAPSHOT_VALIDATION_FAILED';
+    }
+
+    return getBodyCode(error.body) ?? 'HEALTH_CONNECT_SNAPSHOT_SAVE_FAILED';
+  }
+
+  return 'HEALTH_CONNECT_SNAPSHOT_SAVE_FAILED';
 }
 
 async function updateConnectionStatusBestEffort(

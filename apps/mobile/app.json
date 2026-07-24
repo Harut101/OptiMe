@@ -16,6 +16,15 @@
         "com.apple.developer.healthkit": true
       }
     },
+    "android": {
+      "package": "com.optime.app",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
+      ]
+    },
     "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",

@@ -13,8 +13,8 @@ export class UpsertWearableSnapshotDto {
   timezone!: string;
 
   @IsEnum(HealthProvider)
-  @IsIn([HealthProvider.APPLE_HEALTH])
-  source!: typeof HealthProvider.APPLE_HEALTH;
+  @IsIn([HealthProvider.APPLE_HEALTH, HealthProvider.HEALTH_CONNECT])
+  source!: typeof HealthProvider.APPLE_HEALTH | typeof HealthProvider.HEALTH_CONNECT;
 
   @IsOptional()
   @Type(() => Number)

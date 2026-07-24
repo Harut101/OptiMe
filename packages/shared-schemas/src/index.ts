@@ -467,7 +467,7 @@ export const createMockWearableSnapshotSchema = z.object({
 });
 
 export const upsertWearableSnapshotSchema = z.object({
-  source: z.literal('APPLE_HEALTH'),
+  source: z.enum(['APPLE_HEALTH', 'HEALTH_CONNECT']),
   localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   timezone: z.string(),
   steps: z.number().int().min(0).max(100000).nullable().optional(),

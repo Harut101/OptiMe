@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, Apple, Bed, Flame, Footprints, HeartPulse, Timer, Watch } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -51,6 +51,8 @@ export default function HealthDataScreen() {
   const styles = createStyles(colors);
   const preferredLocale = useSettingsStore((state) => state.preferredLocale);
   const queryClient = useQueryClient();
+  const canUseAppleHealth = Platform.OS === 'ios';
+  const canUseHealthConnect = Platform.OS === 'android';
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deleteSource, setDeleteSource] = useState<HealthProvider | null>(null);
   const [planImpact, setPlanImpact] = useState<EvaluatePlanImpactResponse | null>(null);
@@ -109,6 +111,30 @@ export default function HealthDataScreen() {
       setActionMessage(t('health.syncError'));
     }
   });
+  const healthConnectSync = useMutation({
+    mutationFn: nativeHealthService.syncHealthConnectLast7Days,
+    onSuccess: async (result) => {
+      await refreshHealthQueries(queryClient);
+      setActionMessage(getHealthConnectResultMessage(t, result));
+    },
+    onError: (error) => {
+      setActionMessage(getHealthConnectErrorMessage(t, error));
+    }
+  });
+  const healthConnectDisconnect = useMutation({
+    mutationFn: () =>
+      updateHealthConnectionStatus('HEALTH_CONNECT', {
+        status: 'DISABLED',
+        errorCode: 'HEALTH_CONNECT_DISABLED_BY_USER'
+      }),
+    onSuccess: async () => {
+      await refreshHealthQueries(queryClient);
+      setActionMessage(t('health.healthConnectDisconnected'));
+    },
+    onError: () => {
+      setActionMessage(t('health.syncError'));
+    }
+  });
   const deleteSyncedData = useMutation({
     mutationFn: (source: HealthProvider) => deleteHealthData({ provider: source }),
     onSuccess: async (result) => {
@@ -153,14 +179,51 @@ export default function HealthDataScreen() {
           key={source}
           source={source}
           connection={connections.data?.connections.find((item) => item.source === source)}
-          onConnect={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
-          onSync={source === 'APPLE_HEALTH' ? () => appleHealthSync.mutate() : undefined}
-          onDisconnect={source === 'APPLE_HEALTH' ? () => appleHealthDisconnect.mutate() : undefined}
-          onDelete={source === 'APPLE_HEALTH' ? () => setDeleteSource(source) : undefined}
+          onConnect={
+            source === 'APPLE_HEALTH' && canUseAppleHealth
+              ? () => appleHealthSync.mutate()
+              : source === 'HEALTH_CONNECT' && canUseHealthConnect
+                ? () => healthConnectSync.mutate()
+                : undefined
+          }
+          onSync={
+            source === 'APPLE_HEALTH' && canUseAppleHealth
+              ? () => appleHealthSync.mutate()
+              : source === 'HEALTH_CONNECT' && canUseHealthConnect
+                ? () => healthConnectSync.mutate()
+                : undefined
+          }
+          onDisconnect={
+            source === 'APPLE_HEALTH' && canUseAppleHealth
+              ? () => appleHealthDisconnect.mutate()
+              : source === 'HEALTH_CONNECT' && canUseHealthConnect
+                ? () => healthConnectDisconnect.mutate()
+                : undefined
+          }
+          onManage={
+            source === 'HEALTH_CONNECT' && canUseHealthConnect
+              ? () => {
+                  try {
+                    nativeHealthService.openSettings();
+                  } catch {
+                    setActionMessage(t('health.healthConnectSettingsUnavailable'));
+                  }
+                }
+              : undefined
+          }
+          onDelete={
+            (source === 'APPLE_HEALTH' && canUseAppleHealth)
+            || (source === 'HEALTH_CONNECT' && canUseHealthConnect)
+              ? () => setDeleteSource(source)
+              : undefined
+          }
           locale={preferredLocale}
           isActionPending={
-            source === 'APPLE_HEALTH' &&
-            (appleHealthSync.isPending || appleHealthDisconnect.isPending || deleteSyncedData.isPending)
+            source === 'APPLE_HEALTH'
+              ? appleHealthSync.isPending || appleHealthDisconnect.isPending || deleteSyncedData.isPending
+              : source === 'HEALTH_CONNECT'
+                ? healthConnectSync.isPending || healthConnectDisconnect.isPending || deleteSyncedData.isPending
+                : false
           }
         />
       ))}
@@ -169,7 +232,15 @@ export default function HealthDataScreen() {
         <AppToast
           title={t('health.status')}
           message={actionMessage}
-          tone={appleHealthSync.isError || appleHealthDisconnect.isError || deleteSyncedData.isError ? 'warning' : 'success'}
+          tone={
+            appleHealthSync.isError
+            || appleHealthDisconnect.isError
+            || healthConnectSync.isError
+            || healthConnectDisconnect.isError
+            || deleteSyncedData.isError
+              ? 'warning'
+              : 'success'
+          }
           onDismiss={() => setActionMessage(null)}
         />
       ) : null}
@@ -288,6 +359,7 @@ function ConnectionCard({
   onConnect,
   onSync,
   onDisconnect,
+  onManage,
   onDelete,
   locale,
   isActionPending = false
@@ -297,6 +369,7 @@ function ConnectionCard({
   onConnect?: () => void;
   onSync?: () => void;
   onDisconnect?: () => void;
+  onManage?: () => void;
   onDelete?: () => void;
   locale: string;
   isActionPending?: boolean;
@@ -307,6 +380,7 @@ function ConnectionCard({
   const status = connection?.status ?? 'NOT_CONNECTED';
   const isConnected = status === 'CONNECTED';
   const needsAttention = status === 'NEEDS_REAUTH' || status === 'ERROR';
+  const isSupportedNativeSource = Boolean(onConnect || onSync);
 
   return (
     <ProviderConnectionCard
@@ -315,7 +389,7 @@ function ConnectionCard({
       statusLabel={getConnectionStatusLabel(status, t)}
       statusTone={isConnected ? 'success' : needsAttention ? 'danger' : 'neutral'}
       description={getConnectionBodyCopy(source, isConnected, t)}
-      helper={getConnectionHelperCopy(source, isConnected, t)}
+      helper={getConnectionHelperCopy(source, isConnected, isSupportedNativeSource, t)}
       lastSync={connection?.lastSyncAt ? t('health.lastSynced', { value: formatHealthTimestamp(connection.lastSyncAt, locale, t) }) : null}
     >
       <View
@@ -326,15 +400,24 @@ function ConnectionCard({
         })}
       >
       </View>
-      {source === 'APPLE_HEALTH' ? (
+      {source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT' ? (
         <>
-          {!isConnected ? <Text variant="muted">{t('health.appleHealthIosOnly')}</Text> : null}
-          <View style={styles.actionRow}>
+          {!isConnected && source === 'APPLE_HEALTH' && isSupportedNativeSource ? (
+            <Text variant="muted">{t('health.appleHealthIosOnly')}</Text>
+          ) : null}
+          {!isConnected && source === 'HEALTH_CONNECT' && isSupportedNativeSource ? (
+            <Text variant="muted">{t('health.healthConnectAndroidHelp')}</Text>
+          ) : null}
+          {isSupportedNativeSource ? <View style={styles.actionRow}>
             {!isConnected ? (
               <Button
                 title={isActionPending ? t('health.connecting') : t('health.connect')}
                 disabled={isActionPending}
-                accessibilityLabel={t('health.connectAppleHealth')}
+                accessibilityLabel={
+                  source === 'APPLE_HEALTH'
+                    ? t('health.connectAppleHealth')
+                    : t('health.connectHealthConnect')
+                }
                 onPress={onConnect}
                 style={styles.actionButton}
               />
@@ -342,7 +425,11 @@ function ConnectionCard({
               <Button
                 title={isActionPending ? t('health.syncing') : t('health.sync')}
                 disabled={isActionPending}
-                accessibilityLabel={t('health.syncAppleHealth')}
+                accessibilityLabel={
+                  source === 'APPLE_HEALTH'
+                    ? t('health.syncAppleHealth')
+                    : t('health.syncHealthConnect')
+                }
                 onPress={onSync}
                 style={styles.actionButton}
               />
@@ -353,10 +440,24 @@ function ConnectionCard({
                   title={t('health.disconnect')}
                   variant="secondary"
                   disabled={isActionPending}
-                  accessibilityLabel={t('health.disconnectAppleHealth')}
+                  accessibilityLabel={
+                    source === 'APPLE_HEALTH'
+                      ? t('health.disconnectAppleHealth')
+                      : t('health.disconnectHealthConnect')
+                  }
                   onPress={onDisconnect}
                   style={styles.actionButton}
                 />
+                {source === 'HEALTH_CONNECT' ? (
+                  <Button
+                    title={t('health.manage')}
+                    variant="secondary"
+                    disabled={isActionPending}
+                    accessibilityLabel={t('health.manageHealthConnect')}
+                    onPress={onManage}
+                    style={styles.actionButton}
+                  />
+                ) : null}
                 <Button
                   title={t('health.deleteData')}
                   variant="ghost"
@@ -367,7 +468,7 @@ function ConnectionCard({
                 />
               </>
             ) : null}
-          </View>
+          </View> : null}
         </>
       ) : null}
     </ProviderConnectionCard>
@@ -455,7 +556,7 @@ function getConnectionStatusLabel(status: HealthConnectionFoundation['status'], 
 
 function getProviderDescription(source: HealthProvider, t: TFunction) {
   if (source === 'APPLE_HEALTH') return t('health.appleHealthDescription');
-  if (source === 'HEALTH_CONNECT') return t('health.healthConnectDescription');
+  if (source === 'HEALTH_CONNECT') return t('health.healthConnectSyncDescription');
   if (source === 'GARMIN') return t('health.garminDescription');
   return t('health.whoopDescription');
 }
@@ -465,15 +566,28 @@ function getConnectionBodyCopy(source: HealthProvider, isConnected: boolean, t: 
     return t('health.appleHealthConnected');
   }
 
+  if (source === 'HEALTH_CONNECT' && isConnected) {
+    return t('health.healthConnectConnected');
+  }
+
   return getProviderDescription(source, t);
 }
 
-function getConnectionHelperCopy(source: HealthProvider, isConnected: boolean, t: TFunction) {
-  if (source === 'APPLE_HEALTH' && isConnected) {
+function getConnectionHelperCopy(
+  source: HealthProvider,
+  isConnected: boolean,
+  isSupportedNativeSource: boolean,
+  t: TFunction
+) {
+  if ((source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT') && isConnected) {
     return t('health.wearableDataConnected');
   }
 
-  return source === 'APPLE_HEALTH' ? t('health.beforeConnect') : t('health.comingSoon');
+  if (source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT') {
+    return isSupportedNativeSource ? t('health.beforeConnect') : t('health.providerUnavailable');
+  }
+
+  return t('health.comingSoon');
 }
 
 function getProviderName(source: HealthProvider, t: TFunction) {
@@ -680,6 +794,64 @@ function getAppleHealthUnavailableMessage(t: TFunction, code?: string | null) {
   }
 
   return t('health.providerUnavailable');
+}
+
+function getHealthConnectErrorMessage(t: TFunction, error: unknown) {
+  const code =
+    error instanceof NativeHealthServiceError
+      ? error.code
+      : typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : null;
+
+  if (code === 'HEALTH_CONNECT_PERMISSION_DENIED') {
+    return t('health.healthConnectPermissionDenied');
+  }
+
+  if (
+    code === 'MISSING_NATIVE_MODULE'
+    || code === 'HEALTH_CONNECT_NOT_INSTALLED'
+    || code === 'HEALTH_CONNECT_UPDATE_REQUIRED'
+  ) {
+    return getHealthConnectUnavailableMessage(t, code);
+  }
+
+  return t('health.syncError');
+}
+
+function getHealthConnectResultMessage(
+  t: TFunction,
+  result: Awaited<ReturnType<typeof nativeHealthService.syncHealthConnectLast7Days>>
+) {
+  if (result.messageCode === 'UNAVAILABLE') {
+    return getHealthConnectUnavailableMessage(t, result.errorCode);
+  }
+
+  if (result.messageCode === 'PERMISSION_DENIED') {
+    return t('health.healthConnectPermissionDenied');
+  }
+
+  if (result.messageCode === 'NO_DATA') {
+    return t('health.healthConnectNoData');
+  }
+
+  return t('health.healthConnectSynced');
+}
+
+function getHealthConnectUnavailableMessage(t: TFunction, code?: string | null) {
+  if (code === 'HEALTH_CONNECT_NOT_INSTALLED') {
+    return t('health.healthConnectNotInstalled');
+  }
+
+  if (code === 'HEALTH_CONNECT_UPDATE_REQUIRED') {
+    return t('health.healthConnectUpdateRequired');
+  }
+
+  if (code === 'MISSING_NATIVE_MODULE') {
+    return t('health.healthConnectNativeUnavailable');
+  }
+
+  return t('health.healthConnectUnavailable');
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({

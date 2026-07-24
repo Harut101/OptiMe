@@ -57,7 +57,7 @@ export function sanitizeWearableSnapshot(
   const sanitized: NativeWearableSnapshotInput = {
     localDate: snapshot.localDate,
     timezone: snapshot.timezone,
-    source: 'APPLE_HEALTH',
+    source: snapshot.source,
     steps: sanitizeIntegerOrNull(snapshot.steps, 0, 100000),
     activeCaloriesKcal: sanitizeIntegerOrNull(snapshot.activeCaloriesKcal, 0, 10000),
     workoutMinutes: sanitizeIntegerOrNull(snapshot.workoutMinutes, 0, 1440),
@@ -86,7 +86,7 @@ export function makeEmptyDailySummary(
 }
 
 export function makeEmptyWearableSnapshot(
-  provider: Extract<HealthProvider, 'APPLE_HEALTH'>,
+  provider: Extract<HealthProvider, 'APPLE_HEALTH' | 'HEALTH_CONNECT'>,
   localDate: string
 ): NativeWearableSnapshotInput {
   return {

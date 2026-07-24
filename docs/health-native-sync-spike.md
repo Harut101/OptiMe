@@ -192,10 +192,10 @@ Android development build:
 
 ## Known Limitations
 
-- Android record shape may need small adjustment after physical-device testing.
-- iOS HealthKit is not implemented yet.
+- The Android spike has been hardened into a foreground production path; see [health-connect-production-readiness.md](./health-connect-production-readiness.md).
+- Android record shape and generated manifest still require physical-device/build verification.
+- iOS Apple Health MVP is implemented and has passed macOS/Xcode physical-device QA.
 - No background sync.
 - No charts.
-- No protocol integration.
-- No daily-plan integration.
-- No production Play Store Health Connect declaration work yet.
+- Google Play Health apps, Data Safety, and permission declarations remain release operations.
+- Garmin remains deferred until after the first release.
