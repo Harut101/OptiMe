@@ -2,6 +2,14 @@
 
 This polish pass keeps OptiMe's existing product behavior intact while making the core mobile flows feel more consistent, calm, and production-ready.
 
+## Closure Status
+
+The UI/UX consolidation is accepted after physical-device review. Light and dark themes, auth/onboarding branding, responsive localized layouts, headers, floating tab navigation, cards, fields, native date controls, bottom sheets, loading skeletons, toast/feedback behavior, and the core Today/Food/Training/Profile flows form the current production visual baseline.
+
+New product work should reuse the existing primitives and semantic tokens. It should not introduce one-off colors, permanent inline notifications, clipped text, fixed-height localized controls, or page-owned variants of shared navigation and feedback patterns.
+
+Garmin remains a post-release integration and should not add UI or implementation scope before the first release.
+
 ## Shared primitives
 
 The mobile app now uses a small presentation layer for repeated patterns:
@@ -40,7 +48,7 @@ These primitives use existing tokens from `apps/mobile/src/theme/colors.ts` and 
 - Context notes expose combined title/message labels for screen readers.
 - Buttons keep localized labels and existing touch target sizes.
 
-Apple Health physical QA remains manual and paused until the user tests with a MacBook + iPhone development build.
+Apple Health UI physical QA is accepted. Native release build, pod, permission, and App Store validation remain part of release readiness on macOS/Xcode.
 
 ## Visual Direction Update
 
@@ -102,7 +110,7 @@ The v2 pass applies the Apple Health-inspired system across the core mobile surf
 - Food is a meal dashboard with compact meal cards and status actions.
 - Meal Details opens with a focused meal hero and macro widgets.
 - Training is action-oriented around today's workout/rest state, weekly routine, setup, and workout history.
-- Health uses compact provider cards for Apple Health, Health Connect, WHOOP, and Garmin plus wearable metric widgets.
+- Health uses compact provider cards for Apple Health and Health Connect, plus future-provider states and wearable metric widgets. Garmin implementation remains post-release.
 - Profile is a stacked settings hub with account/profile, goal/nutrition, weight, training, connections, plan/settings, support, and safety cards. It routes to domain screens instead of duplicating dashboard content.
 - Auth and Onboarding use the same premium visual language: branded hero, compact value props, vivid primary CTA, onboarding progress, selected cards, and feedback sheets.
 - Auth screens use a brand mark, stronger title hierarchy, and carded inputs.

@@ -1,5 +1,18 @@
 # Product Roadmap
 
+## Current Release Direction
+
+The mobile UI/UX consolidation and physical-device visual QA are accepted. The shared light/dark theme, auth and onboarding presentation, floating tab navigation, bottom sheets, feedback patterns, responsive localized layouts, and core Today/Food/Training/Profile surfaces are now the visual baseline for future work.
+
+The next active phase is release readiness:
+
+1. Keep the accepted UI stable and fix only verified regressions.
+2. Harden the existing Apple Health path for production builds.
+3. Complete Android Health Connect production readiness.
+4. Run release-focused privacy, permission, native-build, and end-to-end QA.
+
+Garmin integration is intentionally deferred until after the first release. Do not add Garmin OAuth, API sync, provider tokens, or background sync to the release-critical path.
+
 ## Sprint 8B Batch 1
 
 Mobile information architecture now separates Today, Food, Training, and Profile. Food and Training preferences can be updated after onboarding through reusable domain forms, while Profile acts as a settings hub for account/profile, goals, current weight, plan tier, health connections, language/units, privacy, and safety context. Preference saves affect future plans without regenerating the current plan.
@@ -143,10 +156,10 @@ Still not implemented:
 
 - Real App Store or Google Play payments.
 - Production Apple Health / Health Connect rollout.
-- iOS native HealthKit implementation.
+- macOS/Xcode pod validation and App Store privacy/permission verification for the existing read-only Apple Health MVP.
 - Health background sync.
 - Health charts or dashboard.
-- Garmin OAuth/API sync and provider-driven weight import.
+- Garmin OAuth/API sync and provider-driven weight import; explicitly deferred until after the first release.
 - WHOOP integration.
 - AI Coach chat.
 - Embeddings-based personalization.

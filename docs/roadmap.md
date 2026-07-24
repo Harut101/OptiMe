@@ -2,6 +2,12 @@
 
 The detailed roadmap remains in [product-roadmap.md](./product-roadmap.md).
 
+## Current Direction
+
+The UI/UX consolidation is accepted after physical-device review. The current shared visual system is now the product baseline, not an experimental pass. Future work should preserve its typography, themed surfaces, navigation, bottom-sheet, feedback, localization, and responsive-layout conventions.
+
+The next phase is release readiness for the existing Apple Health path followed by Android Health Connect production readiness. Garmin OAuth/API sync is postponed until after the first release and is not part of the release-critical plan.
+
 Manual weight tracking is now implemented with `WeightLog`, neutral progress summaries, Today/Profile mobile UI, and future-plan Nutrition Target integration. Garmin is represented as a future health/weight source only; real Garmin OAuth, provider API sync, token storage, and background sync remain deferred.
 
 Auth and onboarding now share the v2 premium mobile visual language, including a stronger primary action accent, branded auth hero, onboarding progress shell, selectable goal/app-mode cards, and unified feedback sheets. Business logic and APIs are unchanged.
@@ -137,4 +143,4 @@ Safety remains available for every tier. Nutrition-only users can still receive 
 
 The mobile presentation layer now has an Apple Health-inspired premium direction: stronger light/dark tokens, dashboard widgets, compact AI Coach entry with bottom sheet, provider cards, meal/workout widgets, and settings-list rows.
 
-Future roadmap work should build on this system rather than adding one-off screen styles.
+Physical-device QA accepted this presentation layer, including auth/onboarding hierarchy, themed form controls, floating tab navigation, responsive bottom sheets, and localized content behavior. Future roadmap work should build on this system rather than adding one-off screen styles.
