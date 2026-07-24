@@ -2,6 +2,12 @@
 
 Apple Health is OptiMe's first real health-data provider. It is iOS-only and requires a development or production build with HealthKit capability enabled; Expo Go does not include the native HealthKit module.
 
+## QA Status
+
+The Apple Health MVP has passed development-build QA on macOS/Xcode and a physical iPhone. The verified path includes native build/pods, HealthKit permission presentation, partial read permission handling, read-only manual sync, normalized backend snapshot storage, and mobile rendering.
+
+This closes the local implementation QA step. App Store submission and Apple's external privacy/entitlement review remain release-distribution work and cannot be completed by local automated tests.
+
 ## Scope
 
 Implemented:

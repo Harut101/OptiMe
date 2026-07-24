@@ -48,7 +48,7 @@ These primitives use existing tokens from `apps/mobile/src/theme/colors.ts` and 
 - Context notes expose combined title/message labels for screen readers.
 - Buttons keep localized labels and existing touch target sizes.
 
-Apple Health UI physical QA is accepted. Native release build, pod, permission, and App Store validation remain part of release readiness on macOS/Xcode.
+Apple Health UI and development-build QA are accepted on macOS/Xcode and a physical iPhone. App Store submission and Apple's external privacy/entitlement review remain separate release-distribution steps.
 
 ## Visual Direction Update
 

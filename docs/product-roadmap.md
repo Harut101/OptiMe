@@ -7,11 +7,12 @@ The mobile UI/UX consolidation and physical-device visual QA are accepted. The s
 The next active phase is release readiness:
 
 1. Keep the accepted UI stable and fix only verified regressions.
-2. Harden the existing Apple Health path for production builds.
-3. Complete Android Health Connect production readiness.
-4. Run release-focused privacy, permission, native-build, and end-to-end QA.
+2. Complete Android Health Connect production readiness.
+3. Run release-focused privacy, permission, native-build, and end-to-end QA.
 
 Garmin integration is intentionally deferred until after the first release. Do not add Garmin OAuth, API sync, provider tokens, or background sync to the release-critical path.
+
+Apple Health development-build QA on macOS/Xcode and a physical iPhone is accepted, including native build/pods, HealthKit permissions, read-only sync, and mobile rendering. App Store submission and Apple's external privacy/entitlement review remain release-distribution steps rather than implementation blockers.
 
 ## Sprint 8B Batch 1
 
@@ -156,7 +157,7 @@ Still not implemented:
 
 - Real App Store or Google Play payments.
 - Production Apple Health / Health Connect rollout.
-- macOS/Xcode pod validation and App Store privacy/permission verification for the existing read-only Apple Health MVP.
+- App Store submission and external Apple privacy/entitlement review for the verified read-only Apple Health MVP.
 - Health background sync.
 - Health charts or dashboard.
 - Garmin OAuth/API sync and provider-driven weight import; explicitly deferred until after the first release.
