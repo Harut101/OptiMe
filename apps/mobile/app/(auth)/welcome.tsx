@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
     <Screen>
       <View style={styles.hero}>
         <BrandLogo style={styles.brandLogo} width={252} />
-        <Text variant="title">{t('auth.welcomeTitle')}</Text>
+        <Text variant="title" style={styles.heroTitle}>{t('auth.welcomeTitle')}</Text>
         <Text variant="muted">{t('auth.welcomeMessage')}</Text>
       </View>
 
@@ -59,6 +59,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   brandLogo: {
     alignSelf: 'center',
     marginBottom: 8
+  },
+  heroTitle: {
+    fontSize: 30,
+    lineHeight: 35,
+    textAlign: 'center'
   },
   valueList: {
     gap: 10

@@ -157,6 +157,13 @@ assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t
 assertIncludes(authWelcome, ['BrandLogo', 'width={252}', 'variant="title"'], 'Welcome branding');
 assertIncludes(authLogin, ['BrandLogo', 'width={252}'], 'Login branding');
 assertIncludes(authRegister, ['BrandLogo', 'width={252}'], 'Register branding');
+for (const [label, screen] of [
+  ['Welcome', authWelcome],
+  ['Login', authLogin],
+  ['Register', authRegister]
+]) {
+  assertIncludes(screen, ['style={styles.heroTitle}', 'fontSize: 30', 'lineHeight: 35', "textAlign: 'center'"], `${label} auth title`);
+}
 assertIncludes(brandLogo, ['SvgUri', 'optime-logo-light.svg', 'optime-logo-dark.svg', "accessibilityLabel=\"OptiMe\""], 'Brand logo');
 assertIncludes(launchSplash, ['BrandLogo', 'variant="icon"', 'justifyContent: \'center\''], 'Launch splash');
 assertIncludes(appLayout, ['AppLaunchSplash', 'setTimeout(() => setShowLaunchSplash(false), 1600)', 'useAuthStore'], 'Launch splash timing');

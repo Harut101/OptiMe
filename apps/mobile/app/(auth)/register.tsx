@@ -54,7 +54,7 @@ export default function RegisterScreen() {
     <Screen topSafeArea={false}>
       <View style={styles.hero}>
         <BrandLogo style={styles.brandLogo} width={252} />
-        <Text variant="title">{t('auth.createTitle')}</Text>
+        <Text variant="title" style={styles.heroTitle}>{t('auth.createTitle')}</Text>
         <Text variant="muted">{t('auth.createMessage')}</Text>
       </View>
 
@@ -140,6 +140,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   brandLogo: {
     alignSelf: 'center',
     marginBottom: 8
+  },
+  heroTitle: {
+    fontSize: 30,
+    lineHeight: 35,
+    textAlign: 'center'
   },
   formHeader: {
     alignItems: 'center',
