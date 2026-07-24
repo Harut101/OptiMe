@@ -162,7 +162,7 @@ for (const [label, screen] of [
   ['Login', authLogin],
   ['Register', authRegister]
 ]) {
-  assertIncludes(screen, ['style={styles.heroTitle}', 'fontSize: 30', 'lineHeight: 35', "textAlign: 'center'"], `${label} auth title`);
+  assertIncludes(screen, ['style={styles.heroTitle}', 'style={styles.heroSubtitle}', 'fontSize: 30', 'lineHeight: 35', "textAlign: 'center'"], `${label} auth hero`);
 }
 assertIncludes(brandLogo, ['SvgUri', 'optime-logo-light.svg', 'optime-logo-dark.svg', "accessibilityLabel=\"OptiMe\""], 'Brand logo');
 assertIncludes(launchSplash, ['BrandLogo', 'variant="icon"', 'justifyContent: \'center\''], 'Launch splash');

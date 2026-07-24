@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
       <View style={styles.hero}>
         <BrandLogo style={styles.brandLogo} width={252} />
         <Text variant="title" style={styles.heroTitle}>{t('auth.welcomeTitle')}</Text>
-        <Text variant="muted">{t('auth.welcomeMessage')}</Text>
+        <Text variant="muted" style={styles.heroSubtitle}>{t('auth.welcomeMessage')}</Text>
       </View>
 
       <Card variant="elevated">
@@ -63,6 +63,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   heroTitle: {
     fontSize: 30,
     lineHeight: 35,
+    textAlign: 'center'
+  },
+  heroSubtitle: {
     textAlign: 'center'
   },
   valueList: {
