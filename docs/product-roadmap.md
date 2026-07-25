@@ -7,12 +7,19 @@ The mobile UI/UX consolidation and physical-device visual QA are accepted. The s
 The next active phase is release readiness:
 
 1. Keep the accepted UI stable and fix only verified regressions.
-2. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
-3. Run release-focused privacy, permission, native-build, and end-to-end QA.
+2. Add the foreground-only Adaptive Plan Checkpoint described below.
+3. Freeze new product features after the Adaptive Plan Checkpoint.
+4. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
+5. Run release-focused privacy, permission, native-build, and end-to-end QA.
 
 Garmin integration is intentionally deferred until after the first release. Do not add Garmin OAuth, API sync, provider tokens, or background sync to the release-critical path.
 
 Apple Health development-build QA on macOS/Xcode and a physical iPhone is accepted, including native build/pods, HealthKit permissions, read-only sync, and mobile rendering. App Store submission and Apple's external privacy/entitlement review remain release-distribution steps rather than implementation blockers.
+
+Adaptive Plan Checkpoint is the only new product feature approved before the
+first-release feature freeze. It must reuse the current DailyPlan, Plan Impact,
+health-summary, check-in, deterministic safety, and AI provider boundaries rather
+than introduce a parallel planning system.
 
 ## Sprint 8B Batch 1
 
@@ -295,6 +302,95 @@ Example:
 
 - "We noticed Friday workouts are often missed. Want to move your harder session to Thursday and keep Friday as mobility?"
 
+### Adaptive Plan Checkpoint
+
+Pre-release feature, not yet implemented.
+
+Purpose:
+
+- Close the loop between the morning plan and meaningful changes later in the day.
+- Recheck whether today's existing plan still fits after a foreground health sync,
+  an app-open checkpoint, or a pre-workout check.
+- Propose a safe adjustment without silently replacing the user's plan.
+
+Initial inputs:
+
+- The current normalized DailyPlan.
+- Fresh optional Apple Health or Health Connect summary data already supported by
+  OptiMe: sleep duration, steps, active energy, exercise minutes, and workouts.
+- Meal and workout completion facts.
+- Energy, tiredness, soreness, pain, and limitation check-ins.
+- Existing goal, app mode, nutrition targets, training schedule or daily override,
+  and safety context.
+
+Required flow:
+
+1. A deterministic material-change detector decides whether the new facts are
+   significant enough to review.
+2. If nothing materially changed, keep the current plan and avoid unnecessary AI
+   calls or user prompts.
+3. If review is useful, AI proposes a complete normalized plan adjustment within
+   existing deterministic nutrition, training-volume, catalog, and safety bounds.
+4. Schema validation, deterministic SafetyService, and Safety Agent review run
+   before showing the proposal.
+5. Mobile shows a concise comparison and lets the user choose Review changes,
+   Apply update, or Keep current plan.
+6. Only an explicitly accepted proposal updates today's plan and records why it
+   changed.
+
+Safety and trust requirements:
+
+- Never diagnose burnout, poor recovery, or a medical condition.
+- Never claim continuous or emergency monitoring.
+- Never silently cancel a workout, add calories, or replace meals.
+- Do not infer a negative health state from a missing metric.
+- Do not use HRV, resting heart rate, respiratory rate, recovery score, or strain
+  until those permissions and validated product rules are introduced explicitly.
+- Pain, illness, dizziness, exhaustion, allergies, excluded foods, under-18 rules,
+  pregnancy/postpartum context, and dangerous goals remain deterministic hard
+  rules.
+- Nutrition adjustments must preserve the backend-owned target contract unless a
+  separately validated Nutrition Engine recalculation is required.
+- Core safety adjustments are available to every tier and are never paywalled.
+- Health data remains optional; manual check-ins provide a useful non-wearable path.
+
+Pre-release scope:
+
+- Foreground checks only.
+- No background HealthKit or Health Connect delivery.
+- No push notifications.
+- No continuous heart-rate monitoring.
+- No automatic plan mutation.
+- No new wearable provider.
+
+Acceptance criteria:
+
+- A meaningful health or check-in change can produce one safe adjustment proposal.
+- No meaningful change produces no prompt and no AI request.
+- The original plan remains available until the user accepts the proposal.
+- Rejected, invalid, unsafe, or unavailable AI output leaves the current plan
+  unchanged and shows supportive feedback.
+- Nutrition targets, exercise selection, duration budgets, restrictions, and
+  safety behavior remain valid after adjustment.
+- The flow works without connected health data.
+- API, mobile, E2E, localization, and physical iPhone QA pass before feature freeze.
+
+### Future Competitive Features
+
+After the first release:
+
+- Recovery Trend: use several weeks of history to identify supportive recovery
+  patterns without diagnosing burnout or overtraining.
+- Photo Food Logging: estimate meal contents and nutrition from a photo, require
+  user confirmation, and clearly communicate portion uncertainty.
+- WHOOP: add OAuth, secure token lifecycle, sleep/recovery/strain normalization,
+  disconnect/delete controls, and safe planning integration.
+- Audio Co-Pilot: explore voice set logging and non-medical workout guidance only
+  after wearable, latency, privacy, and safety feasibility work.
+- Transparent Plan Checks: explain that nutrition, training, catalog, and safety
+  checks approved a plan. Do not present fictional cardiologists or fabricated
+  expert debates.
+
 ### User-Facing Safety Disclaimer
 
 Sprint 5 added a lightweight disclaimer in onboarding and Settings:
@@ -324,21 +420,22 @@ For minors:
 
 ## Recommended Order
 
-1. Sprint 8: ExerciseLibrary plus professional interactive body map and exercise media foundation.
-2. Sprint 9: Real subscriptions/payments and paywall polish.
-3. Sprint 10: Predictive adaptive coaching foundation.
-4. Sprint 11: WHOOP integration on top of the health-data foundation.
-5. Later: AI Coach chat, embeddings, admin/web, meal swaps, and advanced analytics.
+1. Implement and validate the foreground Adaptive Plan Checkpoint.
+2. Freeze new product features for the first release.
+3. Complete privacy, account-control, permission, security, environment, and
+   monitoring release readiness.
+4. Complete Android Health Connect development-build/device QA and Google Play
+   declarations.
+5. Run iOS/Android release builds, full automated regression, localization QA, and
+   physical-device QA.
+6. Release the stable first version.
+7. Add Recovery Trend and Photo Food Logging based on real user feedback.
+8. Add WHOOP as the first specialized post-release wearable integration.
+9. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+   advanced analytics as separate approved product phases.
 
-This order strengthens the core loop and health-data foundation before monetization and narrower wearable integrations.
-
-Sprint 8 ExerciseLibrary/body map note:
-
-- Production body maps require professional/licensed SVG assets or designer-created assets.
-- Each muscle region should be a separate SVG path with stable IDs.
-- Dev-generated SVG stubs should not be used in production UI.
-- Exercise media should use licensed, owned, or curated assets only.
-- AI should select and customize from deterministic exercise data rather than inventing all exercises freely.
+This order adds one differentiated closed-loop feature before release, then protects
+release quality by preventing further scope expansion.
 ## Food Tracking MVP
 
 Completed: lightweight food completion tracking for structured meal plans. Users can mark meals as planned, eaten, partially eaten, or skipped from Food and Meal Details, while Today shows a compact progress summary.

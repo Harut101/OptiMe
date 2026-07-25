@@ -10,6 +10,21 @@ Apple Health development-build QA is accepted on macOS/Xcode and a physical iPho
 
 Manual weight tracking is now implemented with `WeightLog`, neutral progress summaries, Today/Profile mobile UI, and future-plan Nutrition Target integration. Garmin is represented as a future health/weight source only; real Garmin OAuth, provider API sync, token storage, and background sync remain deferred.
 
+Adaptive Plan Checkpoint is the only new product feature approved before the
+first-release feature freeze. It will compare today's existing plan with meaningful
+foreground health-sync and check-in changes, run the complete deterministic and AI
+safety pipeline, and present an explicit adjustment proposal. It will not silently
+change plans, diagnose recovery states, add background sync, use unsupported HRV
+signals, or make health data mandatory.
+
+After Adaptive Plan Checkpoint, the active path is release readiness: privacy and
+account controls, production configuration and monitoring, Android Health Connect
+device QA and Google Play declarations, native release builds, full regression, and
+physical-device QA. Post-release product candidates are Recovery Trend, confirmed
+Photo Food Logging, WHOOP, and later Audio Co-Pilot. A user-facing fictional
+"council of experts" is not planned; OptiMe should explain its real nutrition,
+training, catalog, and safety checks instead.
+
 Auth and onboarding now share the v2 premium mobile visual language, including a stronger primary action accent, branded auth hero, onboarding progress shell, selectable goal/app-mode cards, and unified feedback sheets. Business logic and APIs are unchanged.
 
 Recovery-aware planning foundation is now in place: wearable snapshots feed deterministic wearable planning context and training-load context. A future Training Load Agent can build on this, but deterministic safety remains the hard-rule authority.
