@@ -17,6 +17,21 @@ safety pipeline, and present an explicit adjustment proposal. It will not silent
 change plans, diagnose recovery states, add background sync, use unsupported HRV
 signals, or make health data mandatory.
 
+The production Free-tier direction is also approved: route its one Basic Daily
+Plan per local day through the cost-efficient OpenAI Luna model, disable manual
+plan refresh and full-menu regeneration, and allow at most two AI meal
+regenerations per month. Core tracking, workouts, health connections,
+deterministic substitutions, and all safety behavior remain available. Current
+backend limits still need a dedicated migration after token/cost telemetry is
+added.
+
+Provisional production pricing is `$19.99/month` or `$199.99/year` for Plus and
+`$39.99/month` or `$399.99/year` for Pro. Plus uses Terra for its main
+Personalized plan; Pro reserves Sol for its main Adaptive plan. Pricing remains
+internal until multi-agent token/cost telemetry, monthly cost ceilings, and a
+30-day simulation demonstrate at least 65% contribution margin after variable
+costs. The current development limits are not approved production limits.
+
 After Adaptive Plan Checkpoint, the active path is release readiness: privacy and
 account controls, production configuration and monitoring, Android Health Connect
 device QA and Google Play declarations, native release builds, full regression, and

@@ -21,6 +21,20 @@ first-release feature freeze. It must reuse the current DailyPlan, Plan Impact,
 health-summary, check-in, deterministic safety, and AI provider boundaries rather
 than introduce a parallel planning system.
 
+The approved Free-tier production direction is one Basic Daily Plan per local day
+using the cost-efficient OpenAI Luna route, no manual plan refresh, no full-menu
+regeneration, and at most two AI meal regenerations per month. Tracking, workout
+execution/history, deterministic substitutions, health connections, and safety
+remain available. The existing usage matrix has not yet been migrated to these
+limits.
+
+The provisional paid pricing floor is `$19.99/month` or `$199.99/year` for Plus
+and `$39.99/month` or `$399.99/year` for Pro. Plus routes its main Personalized
+plan through Terra; Pro reserves Sol for its main Adaptive plan. These amounts
+must not become customer-facing until per-agent token/cost telemetry proves at
+least 65% contribution margin after storefront commission and other variable
+costs. No paid tier is unlimited.
+
 ## Sprint 8B Batch 1
 
 Mobile information architecture now separates Today, Food, Training, and Profile. Food and Training preferences can be updated after onboarding through reusable domain forms, while Profile acts as a settings hub for account/profile, goals, current weight, plan tier, health connections, language/units, privacy, and safety context. Preference saves affect future plans without regenerating the current plan.
@@ -421,17 +435,21 @@ For minors:
 ## Recommended Order
 
 1. Implement and validate the foreground Adaptive Plan Checkpoint.
-2. Freeze new product features for the first release.
-3. Complete privacy, account-control, permission, security, environment, and
+2. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
+   cost ceilings, and the approved Free production limits.
+3. Run the pricing unit-economics gate against median and p95 multi-agent cost;
+   validate the provisional Plus and Pro pricing floors before billing work.
+4. Freeze new product features for the first release.
+5. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
-4. Complete Android Health Connect development-build/device QA and Google Play
+6. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
-5. Run iOS/Android release builds, full automated regression, localization QA, and
+7. Run iOS/Android release builds, full automated regression, localization QA, and
    physical-device QA.
-6. Release the stable first version.
-7. Add Recovery Trend and Photo Food Logging based on real user feedback.
-8. Add WHOOP as the first specialized post-release wearable integration.
-9. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+8. Release the stable first version.
+9. Add Recovery Trend and Photo Food Logging based on real user feedback.
+10. Add WHOOP as the first specialized post-release wearable integration.
+11. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
    advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects
