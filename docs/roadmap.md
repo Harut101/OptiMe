@@ -36,9 +36,12 @@ After Adaptive Plan Checkpoint, the active path is release readiness: privacy an
 account controls, production configuration and monitoring, Android Health Connect
 device QA and Google Play declarations, native release builds, full regression, and
 physical-device QA. Post-release product candidates are Recovery Trend, confirmed
-Photo Food Logging, WHOOP, and later Audio Co-Pilot. A user-facing fictional
-"council of experts" is not planned; OptiMe should explain its real nutrition,
-training, catalog, and safety checks instead.
+Photo Food Logging, Smart Shopping, WHOOP, and later Audio Co-Pilot. Smart Shopping
+starts with ingredient lists and provider deep links; exact product matching and
+prefilled carts require deterministic catalog safety plus an approved commercial
+provider integration. A user-facing fictional "council of experts" is not planned;
+OptiMe should explain its real nutrition, training, catalog, and safety checks
+instead.
 
 Auth and onboarding now share the v2 premium mobile visual language, including a stronger primary action accent, branded auth hero, onboarding progress shell, selectable goal/app-mode cards, and unified feedback sheets. Business logic and APIs are unchanged.
 

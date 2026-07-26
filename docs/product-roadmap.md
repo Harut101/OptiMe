@@ -397,6 +397,11 @@ After the first release:
   patterns without diagnosing burnout or overtraining.
 - Photo Food Logging: estimate meal contents and nutrition from a photo, require
   user confirmation, and clearly communicate portion uncertainty.
+- Smart Shopping: start with an ingredient list and provider deep link, then add
+  deterministic catalog matching for real products, prices, availability,
+  nutrition, allergies, and exclusions. Full prefilled carts or checkout require
+  an approved commercial provider integration. AI may interpret and rank options,
+  but it must not invent products, stock, prices, nutrition, or availability.
 - WHOOP: add OAuth, secure token lifecycle, sleep/recovery/strain normalization,
   disconnect/delete controls, and safe planning integration.
 - Audio Co-Pilot: explore voice set logging and non-medical workout guidance only
@@ -448,8 +453,10 @@ For minors:
    physical-device QA.
 8. Release the stable first version.
 9. Add Recovery Trend and Photo Food Logging based on real user feedback.
-10. Add WHOOP as the first specialized post-release wearable integration.
-11. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+10. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+    catalog/cart integration until a provider partnership is approved.
+11. Add WHOOP as the first specialized post-release wearable integration.
+12. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
    advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects
