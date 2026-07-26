@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { AiModule } from '../ai/ai.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { DailyPlanOrchestratorModule } from '../daily-plan-orchestrator/daily-plan-orchestrator.module';
@@ -26,7 +25,6 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
 
 @Module({
   imports: [
-    AiOperationLogsModule,
     AiModule,
     DailyPlanCheckInsModule,
     DailyPlanOrchestratorModule,

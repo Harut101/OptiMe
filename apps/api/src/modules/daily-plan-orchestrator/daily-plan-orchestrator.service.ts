@@ -9,6 +9,12 @@ import type {
   DailyPlanOrchestrator
 } from './daily-plan-orchestrator.interface';
 import type {
+  PersistGeneratedDailyPlanInput,
+  RecordDailyPlanGenerationErrorInput,
+  RecordDailyPlanGenerationInput
+} from './daily-plan-persistence.interface';
+import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
+import type {
   CreateSafetyFallbackInput,
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
@@ -21,7 +27,8 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
   constructor(
     private readonly trainingPlanAgent: TrainingPlanAgentService,
     private readonly recoveryPlanAgent: RecoveryPlanAgentService,
-    private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService
+    private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService,
+    private readonly persistence: DailyPlanPersistenceService
   ) {}
 
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput) {
@@ -34,6 +41,22 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
 
   createSafetyFallback(input: CreateSafetyFallbackInput) {
     return this.safetyOrchestrator.createSafetyFallback(input);
+  }
+
+  resolvePersistenceStatus(result: Parameters<DailyPlanPersistenceService['resolvePlanStatus']>[0]) {
+    return this.persistence.resolvePlanStatus(result);
+  }
+
+  persistGeneratedPlan(input: PersistGeneratedDailyPlanInput) {
+    return this.persistence.persistGeneratedPlan(input);
+  }
+
+  recordGeneration(input: RecordDailyPlanGenerationInput) {
+    return this.persistence.recordGeneration(input);
+  }
+
+  recordGenerationError(input: RecordDailyPlanGenerationErrorInput) {
+    return this.persistence.recordGenerationError(input);
   }
 
   async assembleBeforeSafety(

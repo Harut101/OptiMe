@@ -5,6 +5,7 @@ import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
+import type { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 
 describe('DailyPlanOrchestratorService', () => {
@@ -36,7 +37,8 @@ describe('DailyPlanOrchestratorService', () => {
     const service = new DailyPlanOrchestratorService(
       trainingPlanAgent,
       recoveryPlanAgent,
-      {} as DailyPlanSafetyOrchestratorService
+      {} as DailyPlanSafetyOrchestratorService,
+      {} as DailyPlanPersistenceService
     );
     const plan = createPlan();
 
@@ -92,7 +94,8 @@ describe('DailyPlanOrchestratorService', () => {
     const service = new DailyPlanOrchestratorService(
       trainingPlanAgent,
       recoveryPlanAgent,
-      {} as DailyPlanSafetyOrchestratorService
+      {} as DailyPlanSafetyOrchestratorService,
+      {} as DailyPlanPersistenceService
     );
 
     await service.assembleBeforeSafety({
@@ -124,7 +127,8 @@ describe('DailyPlanOrchestratorService', () => {
     const service = new DailyPlanOrchestratorService(
       {} as TrainingPlanAgentService,
       {} as RecoveryPlanAgentService,
-      safetyOrchestrator
+      safetyOrchestrator,
+      {} as DailyPlanPersistenceService
     );
     const input = {
       providerPlan: expected.planJson,

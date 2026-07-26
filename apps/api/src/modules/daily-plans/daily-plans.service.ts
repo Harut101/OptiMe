@@ -6,12 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
-  AiOperationFeature,
-  AiOperationProvider,
-  AiOperationStatus,
-  DailyReadinessLevel,
   GoalImpactMode,
   PlanFeedbackRating,
   PlanQualityMode,
@@ -37,7 +32,6 @@ import {
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
 import {
   AiProvider,
   GenerateDailyPlanExerciseFeedback,
@@ -67,7 +61,6 @@ import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.servic
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
-import { SafetyAgentError } from '../safety-agent/safety-agent.error';
 import {
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
@@ -103,8 +96,6 @@ export class DailyPlansService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
-    private readonly aiOperationLogs: AiOperationLogsService,
     private readonly featureAccessService: FeatureAccessService,
     private readonly trainingPlanAgent: TrainingPlanAgentService,
     private readonly usageGuardService: UsageGuardService,
@@ -502,8 +493,8 @@ export class DailyPlansService {
           existingPlan?.id
         )
       };
-      const planJson = safePlanResult.planJson as Prisma.JsonObject;
-      const status = this.resolvePersistedPlanStatus(safePlanResult);
+      const status =
+        this.dailyPlanOrchestrator.resolvePersistenceStatus(safePlanResult);
       const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
         .map((exercise) => exercise.exerciseId)
         .filter((exerciseId): exerciseId is string => Boolean(exerciseId));
@@ -517,51 +508,34 @@ export class DailyPlansService {
 
       if (recreateForCurrentLanguage && existingPlan && safePlanResult.status === PlanStatus.FALLBACK) {
         this.logger.warn('daily plan language recreation did not produce a ready plan; existing plan preserved');
-        await this.recordDailyPlanAiOperation({
+        await this.dailyPlanOrchestrator.recordGeneration({
           userId,
           status,
           planJson: safePlanResult.planJson,
-          latencyMs: Date.now() - operationStartedAt
+          latencyMs: Date.now() - operationStartedAt,
+          operation: this.getDailyPlanOperationContext()
         });
         return this.toResponse(existingPlan);
       }
 
-      const plan = existingPlan
-        ? await this.prisma.dailyPlan.update({
-            where: { id: existingPlan.id },
-            data: {
-              status,
-              readinessLevel: DailyReadinessLevel.MAINTAIN,
-              planJson,
-              createdByAi: false
-            }
-          })
-        : await this.prisma.dailyPlan.create({
-            data: {
-              userId,
-              planLocalDate,
-              planTimezone,
-              status,
-              readinessLevel: DailyReadinessLevel.MAINTAIN,
-              planJson,
-              createdByAi: false
-            }
-          });
-
-      await this.recordDailyPlanAiOperation({
+      const { plan } = await this.dailyPlanOrchestrator.persistGeneratedPlan({
         userId,
-        status,
-        planJson: safePlanResult.planJson,
-        latencyMs: Date.now() - operationStartedAt
+        existingPlanId: existingPlan?.id,
+        planLocalDate,
+        planTimezone,
+        result: safePlanResult,
+        operationStartedAt,
+        operation: this.getDailyPlanOperationContext()
       });
 
       return this.toResponse(plan);
     } catch (error) {
       await this.refundConsumedUsage(consumedUsage);
-      await this.recordDailyPlanAiOperationError({
+      await this.dailyPlanOrchestrator.recordGenerationError({
         userId,
         latencyMs: Date.now() - operationStartedAt,
-        error
+        error,
+        operation: this.getDailyPlanOperationContext()
       });
       throw error;
     }
@@ -2177,14 +2151,6 @@ export class DailyPlansService {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
   }
 
-  private resolvePersistedPlanStatus(result: DailyPlanSafetyResult) {
-    // A complete deterministic replacement is a usable plan, not a user-facing failure.
-    // Provenance and operational fallback metrics remain in plan.debug and AiOperationLog.
-    return result.planJson.debug?.generation?.isComplete
-      ? PlanStatus.READY
-      : result.status;
-  }
-
   private canUseSafetyFeedbackRetry(providerStatus: PlanStatus) {
     return (
       providerStatus === PlanStatus.READY &&
@@ -2441,109 +2407,12 @@ export class DailyPlansService {
       .map(([tag]) => tag);
   }
 
-  private async recordDailyPlanAiOperation(input: {
-    userId: string;
-    status: PlanStatus;
-    planJson: DailyPlanJson;
-    latencyMs: number;
-  }) {
-    const adjustedSections = input.planJson.debug?.generation?.adjustedSections ?? [];
-    const fallbackReason = this.getFallbackReason(input.planJson)
-      ?? this.getSectionFallbackReason(input.planJson, adjustedSections);
-    await this.recordAiOperationSafely({
-      userId: input.userId,
-      feature: AiOperationFeature.DAILY_PLAN,
-      provider: this.getAiOperationProvider(),
-      model: this.getAiOperationModel(),
-      status:
-        input.status === PlanStatus.READY && adjustedSections.length === 0
-          ? AiOperationStatus.SUCCESS
-          : AiOperationStatus.FALLBACK,
-      latencyMs: input.latencyMs,
-      retryCount: this.getSafetyRetryUsed(input.planJson) ? 1 : 0,
+  private getDailyPlanOperationContext() {
+    return {
+      provider: this.getProviderDebugName(),
       safetyAgentEnabled: this.safetyAgentConfig.enabled,
-      safetyAgentProvider: this.safetyAgentConfig.provider,
-      safetyAgentApproved: this.getSafetyAgentApproved(input.planJson),
-      fallbackReason,
-      errorReason: null
-    });
-  }
-
-  private async recordDailyPlanAiOperationError(input: {
-    userId: string;
-    latencyMs: number;
-    error: unknown;
-  }) {
-    await this.recordAiOperationSafely({
-      userId: input.userId,
-      feature: AiOperationFeature.DAILY_PLAN,
-      provider: this.getAiOperationProvider(),
-      model: this.getAiOperationModel(),
-      status: AiOperationStatus.ERROR,
-      latencyMs: input.latencyMs,
-      retryCount: 0,
-      safetyAgentEnabled: this.safetyAgentConfig.enabled,
-      safetyAgentProvider: this.safetyAgentConfig.provider,
-      safetyAgentApproved: null,
-      fallbackReason: null,
-      errorReason: this.getSafeAiOperationErrorReason(input.error)
-    });
-  }
-
-  private async recordAiOperationSafely(
-    input: Parameters<AiOperationLogsService['record']>[0]
-  ) {
-    try {
-      await this.aiOperationLogs.record(input);
-    } catch {
-      this.logger.warn('AI operation log write failed; daily plan generation continued.');
-    }
-  }
-
-  private getAiOperationProvider() {
-    return this.getProviderDebugName() === 'openai'
-      ? AiOperationProvider.OPENAI
-      : AiOperationProvider.MOCK;
-  }
-
-  private getAiOperationModel() {
-    return this.getProviderDebugName() === 'openai'
-      ? this.configService.get<string>('OPENAI_DEFAULT_MODEL') ?? null
-      : null;
-  }
-
-  private getSafetyAgentApproved(planJson: DailyPlanJson) {
-    const approved = planJson.debug?.safetyAgent?.approved;
-    return typeof approved === 'boolean' ? approved : null;
-  }
-
-  private getSafetyRetryUsed(planJson: DailyPlanJson) {
-    return planJson.debug?.safetyAgent?.retryUsed === true || planJson.debug?.exerciseSelection?.usedAiRetry === true;
-  }
-
-  private getSectionFallbackReason(
-    planJson: DailyPlanJson,
-    adjustedSections: Array<'CORE' | 'NUTRITION' | 'TRAINING' | 'RECOVERY'>
-  ) {
-    const foodPlanReason = planJson.nutrition.foodPlan?.validation.status === 'FALLBACK'
-      ? planJson.nutrition.foodPlan.validation.reasons[0]
-      : null;
-    if (foodPlanReason) return foodPlanReason;
-    if (adjustedSections.includes('TRAINING')) return 'deterministic_training_section_adjustment';
-    if (adjustedSections.length > 0) return 'deterministic_section_adjustment';
-    return null;
-  }
-
-  private getSafeAiOperationErrorReason(error: unknown) {
-    if (error instanceof OpenAiProviderError) {
-      return error.fallbackReason;
-    }
-
-    if (error instanceof SafetyAgentError) {
-      return error.fallbackReason;
-    }
-
-    return 'daily_plan_generation_error';
+      safetyAgentProvider: this.safetyAgentConfig.provider
+    } as const;
   }
 
   private toResponse(plan: {
