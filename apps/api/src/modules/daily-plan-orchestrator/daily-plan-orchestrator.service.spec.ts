@@ -4,6 +4,7 @@ import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.fa
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
+import type { DailyPlanFinalizationService } from './daily-plan-finalization.service';
 import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import type { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import type { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
@@ -40,7 +41,8 @@ describe('DailyPlanOrchestratorService', () => {
       recoveryPlanAgent,
       {} as DailyPlanSafetyOrchestratorService,
       {} as DailyPlanPersistenceService,
-      {} as DailyPlanGenerationContextService
+      {} as DailyPlanGenerationContextService,
+      {} as DailyPlanFinalizationService
     );
     const plan = createPlan();
 
@@ -98,7 +100,8 @@ describe('DailyPlanOrchestratorService', () => {
       recoveryPlanAgent,
       {} as DailyPlanSafetyOrchestratorService,
       {} as DailyPlanPersistenceService,
-      {} as DailyPlanGenerationContextService
+      {} as DailyPlanGenerationContextService,
+      {} as DailyPlanFinalizationService
     );
 
     await service.assembleBeforeSafety({
@@ -132,7 +135,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as RecoveryPlanAgentService,
       safetyOrchestrator,
       {} as DailyPlanPersistenceService,
-      {} as DailyPlanGenerationContextService
+      {} as DailyPlanGenerationContextService,
+      {} as DailyPlanFinalizationService
     );
     const input = {
       providerPlan: expected.planJson,
@@ -371,6 +375,7 @@ function createWorkflowService() {
     {} as RecoveryPlanAgentService,
     {} as DailyPlanSafetyOrchestratorService,
     {} as DailyPlanPersistenceService,
-    {} as DailyPlanGenerationContextService
+    {} as DailyPlanGenerationContextService,
+    {} as DailyPlanFinalizationService
   );
 }

@@ -52,8 +52,6 @@ import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validati
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
-import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.service';
-import { SelectedProtocols } from '../protocol/protocol.types';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import {
   SAFETY_AGENT_CONFIG,
@@ -66,7 +64,6 @@ import { TrainingScheduleResolverService } from '../training-schedule/training-s
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
-import { getSafeFallbackCopy } from './daily-plan-copy';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
@@ -100,7 +97,6 @@ export class DailyPlansService {
     private readonly nutritionAgent: NutritionAgentService,
     private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
-    private readonly planCheckpointService: PlanCheckpointService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
@@ -276,19 +272,18 @@ export class DailyPlansService {
             trainingEnabled,
             isTrainingDay: resolvedTrainingDay.isTrainingDay,
             decorateProviderPlan: (planJson) =>
-              this.withTrainingStateForAppMode(
-                this.withNutritionTargetSnapshot(
-                  this.withTrainingScheduleSnapshot(
-                    planJson,
-                    resolvedTrainingDay
-                  ),
-                  nutritionTarget
-                ),
+              this.dailyPlanOrchestrator.prepareProviderPlanDocument({
+                planJson,
+                resolvedTrainingDay,
+                nutritionTarget,
                 appMode,
-                targetLocale
-              ),
+                locale: targetLocale
+              }),
             attachFoodPlan: (planJson, foodPlanToAttach) =>
-              this.withFoodPlan(planJson, foodPlanToAttach),
+              this.dailyPlanOrchestrator.attachFoodPlan(
+                planJson,
+                foodPlanToAttach
+              ),
             applyTrainingLoad: (planJson) =>
               this.withTrainingLoadAgentSnapshot({
                 planJson,
@@ -345,93 +340,62 @@ export class DailyPlansService {
               retryResult: 'failed'
             })
         });
-      let {
+      const {
         safePlanResult,
         finalFoodPlan,
         trainingPreparation: exercisePreparation
       } = generationWorkflow;
-      safePlanResult = {
-        ...safePlanResult,
-        planJson: this.withSafeTrainingDayFallback({
-          planJson: safePlanResult.planJson,
-          resolvedTrainingDay,
-          exerciseSelection,
-          trainingEnabled
-        })
-      };
-      safePlanResult = {
-        ...safePlanResult,
-        planJson: this.withTrainingScheduleSnapshot(
-          this.withPlanDebugContext(
-            this.dailyPlanOrchestrator.finalizeRecoveryContext({
-              planJson: this.withNutritionTargetSnapshot(
-                this.ensureFoodPlan(safePlanResult.planJson, finalFoodPlan),
-                nutritionTarget
-              ),
-              recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
-              healthPlanningContext: personalizationContext.healthPlanningContext,
-              trainingEnabled,
-              isTrainingDay: resolvedTrainingDay.isTrainingDay
-            }).planJson,
-            planQualityMode,
-            personalizationContext.selectedProtocols,
-            personalizationContext.healthPlanningContext
-          ),
-          resolvedTrainingDay
-        )
-      };
-      safePlanResult.planJson = this.withExerciseSelectionDebug(
-        safePlanResult.planJson,
-        exerciseSelection,
-        exercisePreparation.usedAiRetry,
-        exercisePreparation.usedDeterministicFallback
-      );
-      safePlanResult.planJson = this.withGenerationSectionDebug(
-        safePlanResult.planJson,
-        exercisePreparation.usedDeterministicFallback
-      );
-      safePlanResult.planJson = {
-        ...safePlanResult.planJson,
-        checkpointBaseline: await this.planCheckpointService.captureGenerationBaseline(
+      const finalizedGeneration =
+        await this.dailyPlanOrchestrator.finalizeGenerationResult({
           userId,
           planLocalDate,
-          existingPlan?.id
-        )
-      };
-      const status =
-        this.dailyPlanOrchestrator.resolvePersistenceStatus(safePlanResult);
-      const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
-        .map((exercise) => exercise.exerciseId)
-        .filter((exerciseId): exerciseId is string => Boolean(exerciseId));
-      this.logger.log(`exercise selection finalized; exerciseIds=${JSON.stringify(finalExerciseIds)}`);
+          existingPlanId: existingPlan?.id,
+          safePlanResult,
+          finalFoodPlan,
+          trainingPreparation: exercisePreparation,
+          exerciseSelection,
+          resolvedTrainingDay,
+          nutritionTarget,
+          planQualityMode,
+          selectedProtocols: personalizationContext.selectedProtocols,
+          healthPlanningContext:
+            personalizationContext.healthPlanningContext,
+          trainingEnabled
+        });
+      const finalizedPlanResult = finalizedGeneration.safePlanResult;
+      const status = finalizedGeneration.status;
       this.logger.log(
-        `plan completion finalized; complete=${safePlanResult.planJson.debug?.generation?.isComplete ?? false}; adjustedSections=${safePlanResult.planJson.debug?.generation?.adjustedSections.join(',') || 'none'}`
-      );
-      this.logger.log(
-        `daily plan generation completed; safe replacement used: ${safePlanResult.status === PlanStatus.FALLBACK}; persisted status=${status}`
+        `daily plan generation completed; safe replacement used: ${finalizedPlanResult.status === PlanStatus.FALLBACK}; persisted status=${status}`
       );
 
-      if (recreateForCurrentLanguage && existingPlan && safePlanResult.status === PlanStatus.FALLBACK) {
-        this.logger.warn('daily plan language recreation did not produce a ready plan; existing plan preserved');
+      if (
+        recreateForCurrentLanguage &&
+        existingPlan &&
+        finalizedPlanResult.status === PlanStatus.FALLBACK
+      ) {
+        this.logger.warn(
+          'daily plan language recreation did not produce a ready plan; existing plan preserved'
+        );
         await this.dailyPlanOrchestrator.recordGeneration({
           userId,
           status,
-          planJson: safePlanResult.planJson,
+          planJson: finalizedPlanResult.planJson,
           latencyMs: Date.now() - operationStartedAt,
           operation: this.getDailyPlanOperationContext()
         });
         return this.toResponse(existingPlan);
       }
 
-      const { plan } = await this.dailyPlanOrchestrator.persistGeneratedPlan({
-        userId,
-        existingPlanId: existingPlan?.id,
-        planLocalDate,
-        planTimezone,
-        result: safePlanResult,
-        operationStartedAt,
-        operation: this.getDailyPlanOperationContext()
-      });
+      const { plan } =
+        await this.dailyPlanOrchestrator.persistGeneratedPlan({
+          userId,
+          existingPlanId: existingPlan?.id,
+          planLocalDate,
+          planTimezone,
+          result: finalizedPlanResult,
+          operationStartedAt,
+          operation: this.getDailyPlanOperationContext()
+        });
 
       return this.toResponse(plan);
     } catch (error) {
@@ -1149,7 +1113,10 @@ export class DailyPlansService {
     context: Awaited<ReturnType<DailyPlansService['getFoodRegenerationContext']>>,
     foodPlan: DailyFoodPlan
   ) {
-    const nextPlanJson = this.withFoodPlan(context.currentPlanJson, foodPlan);
+    const nextPlanJson = this.dailyPlanOrchestrator.attachFoodPlan(
+      context.currentPlanJson,
+      foodPlan
+    );
     const validation = await this.validateProviderPlan({
       providerPlan: nextPlanJson,
       blockedFoods: context.blockedFoods,
@@ -1583,60 +1550,6 @@ export class DailyPlansService {
     return this.dailyPlanOrchestrator.createSafetyFallback(input);
   }
 
-  private withPlanDebugContext(
-    planJson: DailyPlanJson,
-    planQualityMode: PlanQualityMode,
-    selectedProtocols?: SelectedProtocols,
-    healthPlanningContext?: GenerateDailyPlanPersonalizationContext['healthPlanningContext']
-  ): DailyPlanJson {
-    if (!planJson.debug) {
-      return planJson;
-    }
-
-    return {
-      ...planJson,
-      debug: {
-        ...planJson.debug,
-        planQualityMode,
-        ...(selectedProtocols
-          ? {
-              protocols: {
-                nutritionProtocolId: selectedProtocols.nutritionProtocol.id,
-                trainingProtocolId: selectedProtocols.trainingProtocol.id,
-                recoveryProtocolId: selectedProtocols.recoveryProtocol.id
-              }
-            }
-          : {}),
-        ...(healthPlanningContext?.available
-          ? {
-              healthSignals: {
-                lowSleep: healthPlanningContext.signals.lowSleep,
-                highActivityYesterday: healthPlanningContext.signals.highActivityYesterday,
-                recentWorkout: healthPlanningContext.signals.recentWorkout,
-                lowStepTrend: healthPlanningContext.signals.lowStepTrend
-              },
-              ...(healthPlanningContext.wearableContext
-                ? {
-                    wearableContext: {
-                      source: healthPlanningContext.wearableContext.source,
-                      hasRecentData: healthPlanningContext.wearableContext.hasRecentData,
-                      isStale: healthPlanningContext.wearableContext.isStale,
-                      localDate: healthPlanningContext.wearableContext.localDate
-                    }
-                  }
-                : {}),
-              trainingLoadContext: {
-                hasTrainingLoadContext:
-                  healthPlanningContext.trainingLoadContext.hasTrainingLoadContext,
-                readinessHint: healthPlanningContext.trainingLoadContext.readinessHint,
-                reasons: healthPlanningContext.trainingLoadContext.reasons
-              }
-            }
-          : {})
-      }
-    };
-  }
-
   private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
     switch (user.settings?.preferredLocale) {
       case PreferredLocale.RU_RU: return 'ru-RU';
@@ -1645,172 +1558,6 @@ export class DailyPlansService {
       case PreferredLocale.EN_US: return 'en-US';
       default: return resolveSupportedLocale(user.locale);
     }
-  }
-
-  private withExerciseSelectionDebug(
-    planJson: DailyPlanJson,
-    selection: ExerciseSelectionResult,
-    usedAiRetry: boolean,
-    usedDeterministicFallback: boolean
-  ): DailyPlanJson {
-    if (!planJson.debug) return planJson;
-    return {
-      ...planJson,
-      debug: {
-        ...planJson.debug,
-        exerciseSelection: {
-          candidateCount: selection.candidates.length,
-          requestedExerciseCount: selection.requestedExerciseCount,
-          minExerciseCount: selection.minExerciseCount,
-          maxExerciseCount: selection.maxExerciseCount,
-          workoutDurationMinutes: selection.workoutDurationMinutes,
-          volumeReasonCodes: selection.volumePlan.volumeReasonCodes,
-          fallbackMode: selection.fallbackMode,
-          usedAiRetry,
-          usedDeterministicFallback,
-          resolvedLocale: selection.candidates[0]?.resolvedLocale ?? 'en-US'
-        }
-      }
-    };
-  }
-
-  private withGenerationSectionDebug(
-    planJson: DailyPlanJson,
-    usedDeterministicExerciseFallback: boolean
-  ): DailyPlanJson {
-    if (!planJson.debug) return planJson;
-
-    const adjustedSections = new Set(planJson.debug.generation?.adjustedSections ?? []);
-    if (planJson.debug.provider === 'fallback') {
-      adjustedSections.add('CORE');
-      adjustedSections.add('TRAINING');
-      adjustedSections.add('RECOVERY');
-    }
-    if (planJson.nutrition.foodPlan?.source === 'DETERMINISTIC_FALLBACK') {
-      adjustedSections.add('NUTRITION');
-    }
-    if (usedDeterministicExerciseFallback) {
-      adjustedSections.add('TRAINING');
-    }
-
-    return {
-      ...planJson,
-      debug: {
-        ...planJson.debug,
-        generation: {
-          isComplete: true,
-          adjustedSections: [...adjustedSections]
-        }
-      }
-    };
-  }
-
-  private withTrainingScheduleSnapshot(
-    planJson: DailyPlanJson,
-    resolvedTrainingDay: ResolvedTrainingDayContext
-  ): DailyPlanJson {
-    return {
-      ...planJson,
-      trainingScheduleSnapshot: resolvedTrainingDay
-    };
-  }
-
-  /**
-   * A rejected AI plan must not erase a user's already-resolved training day.
-   * These exercises are selected from the vetted library, so this path contains
-   * no rejected provider text and remains conservative by design.
-   */
-  private withSafeTrainingDayFallback(input: {
-    planJson: DailyPlanJson;
-    resolvedTrainingDay: ResolvedTrainingDayContext;
-    exerciseSelection: ExerciseSelectionResult;
-    trainingEnabled: boolean;
-  }): DailyPlanJson {
-    if (
-      !input.trainingEnabled ||
-      !input.resolvedTrainingDay.isTrainingDay ||
-      input.exerciseSelection.requestedExerciseCount === 0 ||
-      input.planJson.debug?.provider !== 'fallback'
-    ) {
-      return input.planJson;
-    }
-
-    const conservativePlan: DailyPlanJson = {
-      ...input.planJson,
-      training: {
-        ...input.planJson.training,
-        recommendation: 'Follow your planned session at a light, controlled pace.',
-        intensity: 'LIGHT',
-        notes: 'This version uses your saved routine and safer exercise options. Stop if discomfort increases.'
-      }
-    };
-
-    this.logger.warn(
-      `safe training-day fallback restored; exerciseCount=${input.exerciseSelection.requestedExerciseCount}`
-    );
-    return this.trainingPlanAgent.composeDeterministicFallback(
-      conservativePlan,
-      input.exerciseSelection
-    );
-  }
-
-  private withNutritionTargetSnapshot(
-    planJson: DailyPlanJson,
-    nutritionTarget: NutritionTarget
-  ): DailyPlanJson {
-    return {
-      ...planJson,
-      nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget)
-    };
-  }
-
-  private withFoodPlan(planJson: DailyPlanJson, foodPlan: DailyPlanJson['nutrition']['foodPlan']): DailyPlanJson {
-    if (!foodPlan) return planJson;
-
-    return {
-      ...planJson,
-      nutrition: {
-        ...planJson.nutrition,
-        // Keep legacy rendering fields aligned with the catalog-backed plan so
-        // safety and clients never see two different daily menus.
-        meals: foodPlan.meals.map((meal) => ({
-          name: meal.title,
-          purpose: meal.shortDescription ?? meal.servingSummary,
-          foods: meal.ingredients.map((ingredient) => ({
-            name: ingredient.name,
-            portion: `${ingredient.quantity} ${ingredient.unit}`
-          }))
-        })),
-        foodPlan
-      }
-    };
-  }
-
-  private ensureFoodPlan(
-    planJson: DailyPlanJson,
-    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
-  ): DailyPlanJson {
-    return planJson.nutrition.foodPlan ? planJson : this.withFoodPlan(planJson, foodPlan);
-  }
-
-  private withTrainingStateForAppMode(
-    planJson: DailyPlanJson,
-    appMode: GoalImpactMode,
-    locale: SupportedLocale
-  ): DailyPlanJson {
-    if (appMode !== GoalImpactMode.NUTRITION_ONLY) return planJson;
-
-    const copy = getSafeFallbackCopy(locale);
-
-    return {
-      ...planJson,
-      training: {
-        recommendation: copy.trainingOffRecommendation,
-        intensity: 'REST',
-        notes: copy.trainingOffNotes,
-        exercises: []
-      }
-    };
   }
 
   private async withTrainingLoadAgentSnapshot(input: {

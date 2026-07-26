@@ -8,7 +8,6 @@ import { FoodCatalogModule } from '../food-catalog/food-catalog.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
-import { PlanCheckpointModule } from '../plan-checkpoint/plan-checkpoint.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { TrainingLoadAgentModule } from '../training-load-agent/training-load-agent.module';
 import { TrainingPlanAgentModule } from '../training-plan-agent/training-plan-agent.module';
@@ -29,7 +28,6 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     NutritionAgentModule,
     NutritionTargetsModule,
     OnboardingModule,
-    PlanCheckpointModule,
     SafetyAgentModule,
     TrainingLoadAgentModule,
     TrainingPlanAgentModule,

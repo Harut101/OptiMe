@@ -10,9 +10,16 @@ import type {
 } from '@optime/shared-types';
 
 import type { GenerateDailyPlanPersonalizationContext } from '../ai/ai-provider.interface';
+import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { FinalizeRecoveryPlanInput } from '../recovery-plan-agent/recovery-plan-agent.interface';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
+import type {
+  FinalizeDailyPlanGenerationInput,
+  FinalizedDailyPlanGeneration,
+  PrepareProviderPlanDocumentInput
+} from './daily-plan-finalization.interface';
+import { DailyPlanFinalizationService } from './daily-plan-finalization.service';
 import type {
   AssembleDailyPlanInput,
   AssembledDailyPlan,
@@ -44,7 +51,8 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     private readonly recoveryPlanAgent: RecoveryPlanAgentService,
     private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService,
     private readonly persistence: DailyPlanPersistenceService,
-    private readonly generationContext: DailyPlanGenerationContextService
+    private readonly generationContext: DailyPlanGenerationContextService,
+    private readonly finalization: DailyPlanFinalizationService
   ) {}
 
   prepareGenerationContext(input: PrepareDailyPlanGenerationContextInput) {
@@ -87,6 +95,29 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
       input.personalizationContext,
       input.resolvedTrainingDay
     );
+  }
+
+  prepareProviderPlanDocument(input: PrepareProviderPlanDocumentInput) {
+    return this.finalization.prepareProviderPlanDocument(input);
+  }
+
+  attachFoodPlan(
+    planJson: DailyPlanJson,
+    foodPlan: DailyPlanJson['nutrition']['foodPlan']
+  ) {
+    return this.finalization.attachFoodPlan(planJson, foodPlan);
+  }
+
+  async finalizeGenerationResult(
+    input: FinalizeDailyPlanGenerationInput
+  ): Promise<FinalizedDailyPlanGeneration> {
+    const finalized = await this.finalization.finalize(input);
+    return {
+      ...finalized,
+      status: this.persistence.resolvePlanStatus(
+        finalized.safePlanResult
+      )
+    };
   }
 
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput) {

@@ -19,6 +19,11 @@ import type {
   DailyPlanSafetyResult,
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
+import type {
+  FinalizeDailyPlanGenerationInput,
+  FinalizedDailyPlanGeneration,
+  PrepareProviderPlanDocumentInput
+} from './daily-plan-finalization.interface';
 
 export interface AssembleDailyPlanInput {
   providerPlanResult: TrainingPlanProviderResult;
@@ -79,6 +84,16 @@ export interface DailyPlanGenerationWorkflowResult {
 }
 
 export interface DailyPlanOrchestrator {
+  prepareProviderPlanDocument(
+    input: PrepareProviderPlanDocumentInput
+  ): DailyPlanJson;
+  attachFoodPlan(
+    planJson: DailyPlanJson,
+    foodPlan: DailyPlanJson['nutrition']['foodPlan']
+  ): DailyPlanJson;
+  finalizeGenerationResult(
+    input: FinalizeDailyPlanGenerationInput
+  ): Promise<FinalizedDailyPlanGeneration>;
   executeGenerationWorkflow(
     input: ExecuteDailyPlanGenerationWorkflowInput
   ): Promise<DailyPlanGenerationWorkflowResult>;
