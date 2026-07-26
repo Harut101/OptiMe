@@ -447,10 +447,10 @@ For minors:
 ## Recommended Order
 
 1. Completed: implement and validate the foreground Adaptive Plan Checkpoint.
-2. In progress: formalize bounded Nutrition, Training, Recovery, and Safety agent
-   boundaries under a backend orchestrator. Training and Recovery Plan Agent
-   foundations are complete, and the shared pre-safety orchestrator is extracted.
-   Final safety/persistence extraction remains a separate stabilization batch.
+2. Completed: formalize bounded Nutrition, Training, Recovery, and Safety agent
+   boundaries under a backend orchestrator. Generation context, agent execution,
+   safety, finalization, persistence, Today resolution, food mutations, training
+   adjustments, and history/feedback now have explicit use-case boundaries.
 3. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
    cost ceilings, and the approved Free production limits.
 4. Run the pricing unit-economics gate against median and p95 multi-agent cost;
@@ -467,6 +467,7 @@ For minors:
 11. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
 12. Add WHOOP as the first specialized post-release wearable integration.
+    Garmin remains deferred until after release and a separate provider review.
 13. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
     advanced analytics as separate approved product phases.
 

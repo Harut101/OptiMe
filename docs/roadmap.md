@@ -28,6 +28,14 @@ separately, shown in a localized mobile review sheet, and applied only after an
 explicit user decision. Optimistic stale protection prevents an old proposal
 from overwriting a newer plan.
 
+The bounded daily-plan architecture phase is also complete. Nutrition, Training,
+Recovery, and Safety responsibilities now run under an explicit backend
+orchestrator with separate generation-context, provider execution, safety,
+finalization, persistence, Today, food mutation, training adjustment, and
+history/feedback boundaries. `DailyPlansService` is now a thin API facade. The
+next active batch should improve production model routing and cost telemetry,
+not continue structural extraction without a measured need.
+
 The production Free-tier direction is also approved: route its one Basic Daily
 Plan per local day through the cost-efficient OpenAI Luna model, disable manual
 plan refresh and full-menu regeneration, and allow at most two AI meal

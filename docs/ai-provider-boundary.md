@@ -82,20 +82,25 @@ Rules:
 - If `AI_PROVIDER=openai` is set without `OPENAI_API_KEY`, the API fails fast with a clear config error.
 - `OPENAI_DEFAULT_MODEL` is also required when `AI_PROVIDER=openai`.
 
-## DailyPlansService Boundary
+## Provider And Use-Case Boundary
 
-`DailyPlansService` depends on `AI_PROVIDER`, not the concrete mock provider.
+`DailyPlanAgentExecutionService` depends on `AI_PROVIDER`, not the concrete mock
+or OpenAI provider. `DailyPlansService` does not invoke a provider directly; it
+delegates generation to the Today and generation use cases.
 
 Flow:
 
 ```text
-DailyPlansService
--> NutritionTargetsService calculates backend-owned calorie/macro targets
--> AiProvider.generateDailyPlan()
--> validate DailyPlanJson schema
--> SafetyService checks
--> persist READY plan or FALLBACK plan
--> return normalized response
+DailyPlansService facade
+-> DailyPlanTodayUseCaseService
+-> DailyPlanGenerationUseCaseService
+-> DailyPlanGenerationContextService calculates backend-owned context
+-> DailyPlanAgentExecutionService invokes AiProvider and NutritionAgent
+-> DailyPlanOrchestratorService assembles recovery, food, training, and load
+-> DailyPlanSafetyOrchestratorService validates schema and safety
+-> DailyPlanFinalizationService guarantees a complete normalized plan
+-> DailyPlanPersistenceService stores the result and operation metadata
+-> stable normalized response
 ```
 
 ## Safety After Provider Output
@@ -115,7 +120,9 @@ The backend must:
 - generate user-facing content in the requested `outputLanguage.locale`
 - allow the backend, not the model, to persist `contentLocale`
 
-If `OpenAiProviderService` throws `OpenAiProviderError`, `DailyPlansService` uses the existing safe fallback plan.
+If `OpenAiProviderService` throws `OpenAiProviderError`, the bounded generation
+workflow records a safe operational reason and uses the existing normalized
+fallback behavior without exposing provider internals to mobile.
 
 AI providers may explain nutrition targets and shape meals around them, but they must not invent alternate calorie or macro values. Saved plans include `nutritionTargetSnapshot` so historical plans remain stable after profile, goal, app mode, or schedule changes.
 

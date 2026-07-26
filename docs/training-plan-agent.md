@@ -21,19 +21,21 @@ remain inputs to deterministic candidate selection and volume planning.
 
 ## Current Boundary
 
-`DailyPlansService` remains the top-level daily-plan orchestrator. It gathers user
-context, invokes the plan and nutrition providers, passes generated training to
-`TrainingPlanAgentService`, runs deterministic safety and the Safety Agent, and
-saves the final plan.
+`DailyPlanGenerationContextService` supplies trusted exercise candidates and the
+duration/volume contract. `DailyPlanOrchestratorService` passes generated
+training to `TrainingPlanAgentService`, and
+`DailyPlanSafetyOrchestratorService` runs deterministic exercise safety before
+the optional Safety Agent.
 
-The next architecture batches should:
+`DailyPlanFinalizationService` restores a complete deterministic
+library-backed workout when provider output cannot meet the contract.
+`DailyPlanPersistenceService` owns the final status and storage. The
+controller-facing `DailyPlansService` only delegates to use cases.
 
-1. Add a bounded Recovery Agent around normalized health signals and recovery
-   recommendations.
-2. Extract the complete daily-plan pipeline from `DailyPlansService` into a
-   dedicated backend orchestrator.
-3. Keep Nutrition, Training, Recovery, and Safety outputs structured and
-   independently validated.
+The Recovery Agent and the complete generation, safety, finalization, and
+persistence boundaries are implemented. Future changes should improve measured
+plan quality or operational reliability rather than add an autonomous agent
+loop.
 
 RAG and embeddings are not required for this flow. Exercise retrieval is
 deterministic and relational through `ExerciseLibrary`.

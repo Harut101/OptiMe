@@ -69,9 +69,12 @@ checks still run afterward.
 
 The backend orchestrator controls stage ordering; individual agents cannot call
 each other recursively or persist their own final plan. Initial generation and
-safety-feedback regeneration share one pre-safety assembly method. Deterministic
-`SafetyService`, semantic `SafetyAgent`, fallback selection, usage logging, and
-persistence remain mandatory after assembly.
+safety-feedback regeneration share one pre-safety assembly method.
+`DailyPlanSafetyOrchestratorService`, `DailyPlanFinalizationService`, and
+`DailyPlanPersistenceService` keep deterministic `SafetyService`, semantic
+`SafetyAgent`, fallback selection, operation logging, and persistence mandatory
+after assembly. `DailyPlansService` is a thin controller-facing facade over the
+dedicated use cases.
 
 ## Regeneration Boundary
 
