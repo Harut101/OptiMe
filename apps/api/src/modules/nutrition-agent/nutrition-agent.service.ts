@@ -367,8 +367,41 @@ export class NutritionAgentService {
         meal.id === selectedMealId || meal.mealType === currentMeal.mealType
       ));
     }
-    if (!composedCandidate || !replacement || sameMealIngredients(currentMeal, replacement)) return null;
+    if (!composedCandidate || !replacement || sameMealIngredients(currentMeal, replacement)) {
+      this.logger.warn(
+        [
+          'nutrition agent deterministic meal composition unavailable',
+          `mealId=${selectedMealId}`,
+          `composed=${Boolean(composedCandidate)}`,
+          `replacement=${Boolean(replacement)}`,
+          `sameIngredients=${Boolean(replacement && sameMealIngredients(currentMeal, replacement))}`
+        ].join('; ')
+      );
+      return null;
+    }
 
+    const replacementWithStableIdentity = {
+      ...replacement,
+      id: selectedMealId,
+      mealType: currentMeal.mealType
+    };
+    const targetedReplacementPlan = this.portionSolver.solve({
+      foodPlan: {
+        ...composedCandidate,
+        meals: [replacementWithStableIdentity],
+        totals: sumFoodNutrition([replacementWithStableIdentity])
+      },
+      target: {
+        caloriesKcal: currentMeal.caloriesKcal,
+        proteinGrams: currentMeal.proteinGrams,
+        carbsGrams: currentMeal.carbsGrams,
+        fatGrams: currentMeal.fatGrams
+      },
+      catalogCandidates: catalogSelection.candidates,
+      allowedMealIds: [selectedMealId]
+    });
+    const targetedReplacement =
+      targetedReplacementPlan.foodPlan.meals[0] ?? replacementWithStableIdentity;
     const mergedPlan: DailyFoodPlan = {
       ...currentPlan,
       source: 'NUTRITION_AGENT',
@@ -382,11 +415,11 @@ export class NutritionAgentService {
       },
       meals: currentPlan.meals.map((meal) => (
         meal.id === selectedMealId
-          ? { ...replacement, id: selectedMealId, mealType: currentMeal.mealType }
+          ? targetedReplacement
           : meal
       )),
       totals: sumFoodNutrition(currentPlan.meals.map((meal) => (
-        meal.id === selectedMealId ? replacement : meal
+        meal.id === selectedMealId ? targetedReplacement : meal
       )))
     };
 
@@ -418,7 +451,18 @@ export class NutritionAgentService {
         );
       }
     }
-    if (!validation.passed) return null;
+    if (!validation.passed) {
+      this.logger.warn(
+        [
+          'nutrition agent deterministic meal composition invalid',
+          `mealId=${selectedMealId}`,
+          `reasons=${validation.reasons.join(',')}`,
+          `totalKcalDelta=${validation.totalKcalDelta}`,
+          `portionAdjusted=${solved.adjusted}`
+        ].join('; ')
+      );
+      return null;
+    }
 
     this.logger.log(
       `nutrition agent deterministic meal composition passed; mealId=${selectedMealId}; portionAdjusted=${solved.adjusted}`
