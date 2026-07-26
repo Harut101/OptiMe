@@ -144,6 +144,19 @@ for a later review.
 The checkpoint remains foreground-only. There is no background sync, push
 notification, silent plan mutation, or health-data requirement.
 
+### Development Mock QA
+
+In development builds, create the Daily Plan first and then use the Health Data
+mock snapshot action. The dev-only snapshot intentionally represents a material
+change with low sleep and high activity, so it can exercise the `HEALTH_SYNC`
+checkpoint path without Apple Health or Health Connect. Return to Today to
+review the pending proposal and test Apply and Keep separately.
+
+If the plan was generated after this same mock snapshot already existed, the
+snapshot is part of its baseline and correctly produces no new proposal. Create
+the plan before the mock snapshot, or clear/update the development health data
+before repeating the scenario.
+
 ## Deferred To Later Batches
 
 - Tier limits and cost accounting.

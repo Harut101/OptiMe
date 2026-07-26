@@ -74,13 +74,13 @@ export default function HealthDataScreen() {
     mutationFn: () =>
       createMockWearableSnapshot({
         source: 'MOCK',
-        steps: 8200,
-        activeCaloriesKcal: 420,
-        workoutMinutes: 35,
-        sleepMinutes: 420,
-        sleepQualityScore: 78,
-        recoveryScore: 72,
-        strainScore: 8.5
+        steps: 13500,
+        activeCaloriesKcal: 720,
+        workoutMinutes: 65,
+        sleepMinutes: 300,
+        sleepQualityScore: 52,
+        recoveryScore: 44,
+        strainScore: 13.5
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['health-connections'] });
