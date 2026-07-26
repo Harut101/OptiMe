@@ -28,6 +28,7 @@ import {
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { DailyPlanGenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-generation-use-case.service';
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
 import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
@@ -37,7 +38,6 @@ import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.servic
 import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validation.service';
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
-import { OnboardingService } from '../onboarding/onboarding.service';
 import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
@@ -70,8 +70,8 @@ export class DailyPlansService {
     private readonly featureAccessService: FeatureAccessService,
     private readonly trainingPlanAgent: TrainingPlanAgentService,
     private readonly usageGuardService: UsageGuardService,
-    private readonly onboardingService: OnboardingService,
     private readonly dailyPlanOrchestrator: DailyPlanOrchestratorService,
+    private readonly generationUseCase: DailyPlanGenerationUseCaseService,
     private readonly foodAvailabilityService: FoodAvailabilityService,
     private readonly foodIngredientSwapService: FoodIngredientSwapService,
     private readonly nutritionAgent: NutritionAgentService,
@@ -126,239 +126,20 @@ export class DailyPlansService {
       }
     });
 
-    const recreateForCurrentLanguage = Boolean(dto.recreateForCurrentLanguage);
+    const plan = await this.generationUseCase.generate({
+      userId,
+      user,
+      existingPlan,
+      planLocalDate,
+      planTimezone,
+      locale: targetLocale,
+      forceRegenerate: Boolean(dto.forceRegenerate),
+      recreateForCurrentLanguage: Boolean(
+        dto.recreateForCurrentLanguage
+      )
+    });
 
-    if (recreateForCurrentLanguage && !existingPlan) {
-      throw new BadRequestException('A current daily plan is required before it can be recreated in another language.');
-    }
-
-    const existingPlanParsed = existingPlan
-      ? dailyPlanJsonSchema.safeParse(existingPlan.planJson)
-      : null;
-    const existingPlanLocale = existingPlanParsed?.success
-      ? existingPlanParsed.data.contentLocale
-      : undefined;
-
-    if (existingPlan && existingPlanLocale === targetLocale && recreateForCurrentLanguage) {
-      return this.toResponse(existingPlan);
-    }
-
-    if (existingPlan && !dto.forceRegenerate && !recreateForCurrentLanguage) {
-      return this.toResponse(existingPlan);
-    }
-
-    this.assertReadyToGenerate(user);
-
-    const operationStartedAt = Date.now();
-    const consumedUsage: Array<{ id: string; amount: number }> = [];
-
-    try {
-      if (!recreateForCurrentLanguage) {
-        consumedUsage.push(
-          ...(await this.consumeDailyPlanUsage(userId, Boolean(existingPlan && dto.forceRegenerate)))
-        );
-      } else {
-        this.logger.log(`daily plan language recreation started; targetLocale=${targetLocale}`);
-      }
-      this.logger.log(`daily plan generation started; provider=${this.getProviderDebugName()}`);
-      const {
-        planQualityMode,
-        availableFoodSlugs,
-        appMode,
-        trainingEnabled,
-        resolvedTrainingDay,
-        nutritionTarget,
-        personalizationContext,
-        exerciseSelection,
-        blockedFoods
-      } = await this.dailyPlanOrchestrator.prepareGenerationContext({
-        user,
-        planLocalDate
-      });
-      const generationWorkflow =
-        await this.dailyPlanOrchestrator.executeGenerationWorkflow({
-          generateProviderPlan: ({ safetyFeedback } = {}) =>
-            this.dailyPlanOrchestrator.generateProviderPlan({
-              user,
-              locale: targetLocale,
-              planLocalDate,
-              planTimezone,
-              planQualityMode,
-              personalizationContext,
-              exerciseSelection,
-              safetyFeedback
-            }),
-          generateFoodPlan: () =>
-            this.dailyPlanOrchestrator.generateFoodPlan({
-              user,
-              planLocalDate,
-              locale: targetLocale,
-              planQualityMode,
-              appMode,
-              nutritionTarget,
-              personalizationContext,
-              availableFoodSlugs,
-              resolvedTrainingDay
-            }),
-          buildAssemblyInput: ({
-            providerPlanResult,
-            foodPlan,
-            isSafetyRetry
-          }) => ({
-            providerPlanResult,
-            foodPlan,
-            exerciseSelection,
-            recoveryProtocol:
-              personalizationContext.selectedProtocols?.recoveryProtocol,
-            healthPlanningContext:
-              personalizationContext.healthPlanningContext,
-            trainingEnabled,
-            isTrainingDay: resolvedTrainingDay.isTrainingDay,
-            decorateProviderPlan: (planJson) =>
-              this.dailyPlanOrchestrator.prepareProviderPlanDocument({
-                planJson,
-                resolvedTrainingDay,
-                nutritionTarget,
-                appMode,
-                locale: targetLocale
-              }),
-            attachFoodPlan: (planJson, foodPlanToAttach) =>
-              this.dailyPlanOrchestrator.attachFoodPlan(
-                planJson,
-                foodPlanToAttach
-              ),
-            applyTrainingLoad: (planJson) =>
-              this.dailyPlanOrchestrator.applyTrainingLoad({
-                planJson,
-                user,
-                locale: targetLocale,
-                planLocalDate,
-                planQualityMode,
-                personalizationContext,
-                exerciseSelection,
-                resolvedTrainingDay,
-                appMode,
-                provider: this.getProviderDebugName()
-              }),
-            retryTrainingPlan:
-              !isSafetyRetry && this.getProviderDebugName() === 'openai'
-                ? (exerciseFeedback) =>
-                    this.dailyPlanOrchestrator.generateProviderPlan({
-                      user,
-                      locale: targetLocale,
-                      planLocalDate,
-                      planTimezone,
-                      planQualityMode,
-                      personalizationContext,
-                      exerciseSelection,
-                      exerciseFeedback
-                    })
-                : undefined
-          }),
-          validateAttempt: ({
-            providerPlanResult,
-            allowSafetyRetry,
-            safetyRetryUsed
-          }) =>
-            this.dailyPlanOrchestrator.validateGeneratedPlan({
-              providerPlan: providerPlanResult.planJson,
-              blockedFoods,
-              planLocalDate,
-              planTimezone,
-              locale: targetLocale,
-              user,
-              personalizationContext,
-              forcedFallback:
-                providerPlanResult.status === PlanStatus.FALLBACK,
-              allowSafetyRetry,
-              safetyRetryUsed
-            }),
-          canUseSafetyRetry: (providerStatus) =>
-            this.dailyPlanOrchestrator.canUseSafetyRetry(
-              providerStatus
-            ),
-          getProviderFallbackReason: (providerPlanResult) =>
-            this.dailyPlanOrchestrator.getProviderFallbackReason(
-              providerPlanResult.planJson
-            ),
-          createRetryFailureFallback: (fallbackReason) =>
-            this.dailyPlanOrchestrator.createSafetyFallback({
-              planLocalDate,
-              planTimezone,
-              locale: targetLocale,
-              fallbackReason,
-              retryUsed: true,
-              retryResult: 'failed'
-            })
-        });
-      const {
-        safePlanResult,
-        finalFoodPlan,
-        trainingPreparation: exercisePreparation
-      } = generationWorkflow;
-      const finalizedGeneration =
-        await this.dailyPlanOrchestrator.finalizeGenerationResult({
-          userId,
-          planLocalDate,
-          existingPlanId: existingPlan?.id,
-          safePlanResult,
-          finalFoodPlan,
-          trainingPreparation: exercisePreparation,
-          exerciseSelection,
-          resolvedTrainingDay,
-          nutritionTarget,
-          planQualityMode,
-          selectedProtocols: personalizationContext.selectedProtocols,
-          healthPlanningContext:
-            personalizationContext.healthPlanningContext,
-          trainingEnabled
-        });
-      const finalizedPlanResult = finalizedGeneration.safePlanResult;
-      const status = finalizedGeneration.status;
-      this.logger.log(
-        `daily plan generation completed; safe replacement used: ${finalizedPlanResult.status === PlanStatus.FALLBACK}; persisted status=${status}`
-      );
-
-      if (
-        recreateForCurrentLanguage &&
-        existingPlan &&
-        finalizedPlanResult.status === PlanStatus.FALLBACK
-      ) {
-        this.logger.warn(
-          'daily plan language recreation did not produce a ready plan; existing plan preserved'
-        );
-        await this.dailyPlanOrchestrator.recordGeneration({
-          userId,
-          status,
-          planJson: finalizedPlanResult.planJson,
-          latencyMs: Date.now() - operationStartedAt,
-          operation: this.getDailyPlanOperationContext()
-        });
-        return this.toResponse(existingPlan);
-      }
-
-      const { plan } =
-        await this.dailyPlanOrchestrator.persistGeneratedPlan({
-          userId,
-          existingPlanId: existingPlan?.id,
-          planLocalDate,
-          planTimezone,
-          result: finalizedPlanResult,
-          operationStartedAt,
-          operation: this.getDailyPlanOperationContext()
-        });
-
-      return this.toResponse(plan);
-    } catch (error) {
-      await this.refundConsumedUsage(consumedUsage);
-      await this.dailyPlanOrchestrator.recordGenerationError({
-        userId,
-        latencyMs: Date.now() - operationStartedAt,
-        error,
-        operation: this.getDailyPlanOperationContext()
-      });
-      throw error;
-    }
+    return this.toResponse(plan);
   }
 
   async regenerateFoodPlan(userId: string, dailyPlanId: string, dto: RegenerateFoodPlanDto) {
@@ -1309,56 +1090,6 @@ export class DailyPlansService {
     return Math.min(Math.max(Math.trunc(parsedLimit), 1), 30);
   }
 
-  private assertReadyToGenerate(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>) {
-    const readiness = this.onboardingService.evaluateStage1Readiness(user);
-
-    if (!readiness.canGenerateFirstPlan) {
-      throw new BadRequestException({
-        message: 'Please complete the required onboarding basics before generating a daily plan.',
-        code: 'ONBOARDING_STAGE_1_INCOMPLETE',
-        missingStage1Fields: readiness.missingStage1Fields
-      });
-    }
-  }
-
-  private async consumeDailyPlanUsage(userId: string, isRefresh: boolean) {
-    const productFeature = isRefresh
-      ? UsageFeature.DAILY_PLAN_REFRESH
-      : UsageFeature.DAILY_PLAN_GENERATION;
-    const usageChecks: Array<{ feature: UsageFeature; periodType: UsagePeriodType }> = [
-      {
-        feature: productFeature,
-        periodType: UsagePeriodType.DAILY
-      }
-    ];
-
-    if (this.getProviderDebugName() === 'openai') {
-      usageChecks.push({
-        feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
-        periodType: UsagePeriodType.DAILY
-      });
-    }
-
-    await Promise.all(
-      usageChecks.map((check) =>
-        this.usageGuardService.assertCanUse(userId, check.feature, check.periodType)
-      )
-    );
-
-    const consumed: Array<{ id: string; amount: number }> = [];
-
-    for (const check of usageChecks) {
-      const usage = await this.usageGuardService.checkAndConsume(
-        userId,
-        check.feature,
-        check.periodType
-      );
-      consumed.push({ id: usage.id, amount: 1 });
-    }
-
-    return consumed;
-  }
-
   private async refundConsumedUsage(consumedUsage: Array<{ id: string; amount: number }>) {
     for (const usage of consumedUsage.reverse()) {
       try {
@@ -1379,14 +1110,6 @@ export class DailyPlansService {
       case PreferredLocale.EN_US: return 'en-US';
       default: return resolveSupportedLocale(user.locale);
     }
-  }
-
-  private getProviderDebugName() {
-    return this.dailyPlanOrchestrator.getProviderName();
-  }
-
-  private getDailyPlanOperationContext() {
-    return this.dailyPlanOrchestrator.getOperationContext();
   }
 
   private toResponse(plan: {

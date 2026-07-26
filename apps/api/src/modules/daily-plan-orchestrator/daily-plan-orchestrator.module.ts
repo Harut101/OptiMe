@@ -9,6 +9,7 @@ import { FoodLogsModule } from '../food-logs/food-logs.module';
 import { HealthModule } from '../health/health.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 import { PlanCheckpointModule } from '../plan-checkpoint/plan-checkpoint.module';
 import { ProtocolModule } from '../protocol/protocol.module';
 import { RecoveryPlanAgentModule } from '../recovery-plan-agent/recovery-plan-agent.module';
@@ -20,6 +21,7 @@ import { TrainingScheduleModule } from '../training-schedule/training-schedule.m
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlanAgentExecutionService } from './daily-plan-agent-execution.service';
 import { DailyPlanFinalizationService } from './daily-plan-finalization.service';
+import { DailyPlanGenerationUseCaseService } from './daily-plan-generation-use-case.service';
 import { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
@@ -37,6 +39,7 @@ import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service
     HealthModule,
     NutritionAgentModule,
     NutritionTargetsModule,
+    OnboardingModule,
     PlanCheckpointModule,
     ProtocolModule,
     RecoveryPlanAgentModule,
@@ -51,11 +54,15 @@ import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service
     DailyPlanOrchestratorService,
     DailyPlanAgentExecutionService,
     DailyPlanFinalizationService,
+    DailyPlanGenerationUseCaseService,
     DailyPlanGenerationContextService,
     DailyPlanPersistenceService,
     DailyPlanSafetyOrchestratorService,
     DailyPlanTrainingLoadService
   ],
-  exports: [DailyPlanOrchestratorService]
+  exports: [
+    DailyPlanGenerationUseCaseService,
+    DailyPlanOrchestratorService
+  ]
 })
 export class DailyPlanOrchestratorModule {}

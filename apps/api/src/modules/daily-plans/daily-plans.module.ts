@@ -6,7 +6,6 @@ import { FoodAvailabilityModule } from '../food-availability/food-availability.m
 import { FoodCatalogModule } from '../food-catalog/food-catalog.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
-import { OnboardingModule } from '../onboarding/onboarding.module';
 import { TrainingPlanAgentModule } from '../training-plan-agent/training-plan-agent.module';
 import { TrainingScheduleModule } from '../training-schedule/training-schedule.module';
 import { UsageModule } from '../usage/usage.module';
@@ -23,7 +22,6 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     FoodCatalogModule,
     NutritionAgentModule,
     NutritionTargetsModule,
-    OnboardingModule,
     TrainingPlanAgentModule,
     TrainingScheduleModule,
     UsageModule
