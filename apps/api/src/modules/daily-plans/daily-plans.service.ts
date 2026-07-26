@@ -7,38 +7,28 @@ import {
 } from '@nestjs/common';
 import {
   GoalImpactMode,
-  PlanQualityMode,
   PlanStatus,
   Prisma,
   PreferredLocale,
-  ProgressiveProfilePromptKey,
-  TargetMuscleGroup,
-  UsageFeature,
-  UsagePeriodType
+  TargetMuscleGroup
 } from '@prisma/client';
 import {
   resolveSupportedLocale,
-  type DailyFoodPlan,
-  type NutritionTarget,
-  type NutritionTargetExplanation,
-  type NutritionTargetSnapshot,
-  type ResolvedTrainingDayContext,
   type SupportedLocale,
   type FoodIngredient
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { DailyPlanFoodContextService } from '../daily-plan-orchestrator/daily-plan-food-context.service';
+import { DailyPlanFoodRegenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-generation-use-case.service';
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
 import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
-import { FoodAvailabilityService } from '../food-availability/food-availability.service';
 import { FoodIngredientSwapService } from './food-ingredient-swap.service';
-import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validation.service';
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
-import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
@@ -69,12 +59,11 @@ export class DailyPlansService {
     private readonly prisma: PrismaService,
     private readonly featureAccessService: FeatureAccessService,
     private readonly trainingPlanAgent: TrainingPlanAgentService,
-    private readonly usageGuardService: UsageGuardService,
     private readonly dailyPlanOrchestrator: DailyPlanOrchestratorService,
     private readonly generationUseCase: DailyPlanGenerationUseCaseService,
-    private readonly foodAvailabilityService: FoodAvailabilityService,
+    private readonly foodContextService: DailyPlanFoodContextService,
+    private readonly foodRegenerationUseCase: DailyPlanFoodRegenerationUseCaseService,
     private readonly foodIngredientSwapService: FoodIngredientSwapService,
-    private readonly nutritionAgent: NutritionAgentService,
     private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
@@ -143,31 +132,13 @@ export class DailyPlansService {
   }
 
   async regenerateFoodPlan(userId: string, dailyPlanId: string, dto: RegenerateFoodPlanDto) {
-    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
-    const consumedUsage = await this.usageGuardService.checkAndConsume(
+    const plan = await this.foodRegenerationUseCase.regenerateMenu({
       userId,
-      UsageFeature.MENU_REGENERATION,
-      UsagePeriodType.DAILY
-    );
+      dailyPlanId,
+      reason: dto.reason
+    });
 
-    try {
-      const result = await this.generateReplacementFoodPlan(context, {
-        mode: 'FULL_MENU_REGENERATION',
-        reason: dto.reason
-      });
-
-      this.logger.log(
-        `food plan regeneration completed; type=full_menu; planId=${dailyPlanId}; validationStatus=${result.foodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(result.foodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
-      );
-
-      return this.persistRegeneratedFoodPlan(
-        context,
-        this.markFoodPlanRegenerated(result.foodPlan, 'FULL_MENU_REGENERATION')
-      );
-    } catch (error) {
-      await this.refundConsumedUsage([{ id: consumedUsage.id, amount: 1 }]);
-      throw error;
-    }
+    return this.toResponse(plan);
   }
 
   async getFoodIngredientSwapSuggestions(
@@ -176,7 +147,10 @@ export class DailyPlansService {
     mealId: string,
     ingredientSlug: string
   ) {
-    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
+    const context = await this.foodContextService.getContext(
+      userId,
+      dailyPlanId
+    );
     const meal = context.currentFoodPlan.meals.find((item) => item.id === mealId);
     if (!meal) throw new NotFoundException('Meal not found in this plan.');
 
@@ -188,7 +162,7 @@ export class DailyPlansService {
 
     const suggestions = await this.foodIngredientSwapService.getSuggestions({
       ingredient,
-      locale: this.resolvePlanningLocale(context.user),
+      locale: context.locale,
       dietType: context.user.nutritionPref?.dietType ?? null,
       restrictions: {
         allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
@@ -212,7 +186,10 @@ export class DailyPlansService {
     ingredientSlug: string,
     dto: ApplyFoodIngredientSwapDto
   ) {
-    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
+    const context = await this.foodContextService.getContext(
+      userId,
+      dailyPlanId
+    );
     const selectedMeal = context.currentFoodPlan.meals.find((meal) => meal.id === mealId);
     if (!selectedMeal) throw new NotFoundException('Meal not found in this plan.');
 
@@ -225,7 +202,7 @@ export class DailyPlansService {
 
     const suggestions = await this.foodIngredientSwapService.getSuggestions({
       ingredient: originalIngredient,
-      locale: this.resolvePlanningLocale(context.user),
+      locale: context.locale,
       dietType: context.user.nutritionPref?.dietType ?? null,
       restrictions: {
         allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
@@ -304,7 +281,12 @@ export class DailyPlansService {
     this.logger.log(
       `ingredient swap applied; planId=${dailyPlanId}; mealId=${mealId}; originalSlug=${ingredientSlug}; replacementSlug=${suggestion.slug}`
     );
-    return this.persistRegeneratedFoodPlan(context, nextFoodPlan);
+    const plan = await this.foodContextService.persistFoodPlan(
+      context,
+      nextFoodPlan
+    );
+
+    return this.toResponse(plan);
   }
 
   async regenerateFoodMeal(
@@ -313,41 +295,14 @@ export class DailyPlansService {
     mealId: string,
     dto: RegenerateFoodPlanDto
   ) {
-    const context = await this.getFoodRegenerationContext(userId, dailyPlanId);
-    const selectedMeal = context.currentFoodPlan.meals.find((meal) => meal.id === mealId);
-
-    if (!selectedMeal) {
-      throw new BadRequestException('Meal not found in this plan.');
-    }
-
-    const consumedUsage = await this.usageGuardService.checkAndConsume(
+    const plan = await this.foodRegenerationUseCase.regenerateMeal({
       userId,
-      UsageFeature.MEAL_REGENERATION,
-      UsagePeriodType.DAILY
-    );
+      dailyPlanId,
+      mealId,
+      reason: dto.reason
+    });
 
-    try {
-      const result = await this.generateReplacementFoodPlan(context, {
-        mode: 'MEAL_REGENERATION',
-        reason: dto.reason,
-        selectedMealId: mealId
-      });
-      const nextMeal = result.foodPlan.meals.find((meal) => meal.id === mealId);
-
-      if (!nextMeal) {
-        throw new BadRequestException('Could not safely regenerate this meal. Your current meal was kept.');
-      }
-
-      const markedFoodPlan = this.markFoodPlanRegenerated(result.foodPlan, 'MEAL_REGENERATION', mealId);
-      this.logger.log(
-        `food plan regeneration completed; type=meal; planId=${dailyPlanId}; mealId=${mealId}; validationStatus=${markedFoodPlan.validation.status}; retryCount=${result.retryCount}; fallbackUsed=${result.fallbackUsed}; kcalDelta=${Math.abs(markedFoodPlan.totals.caloriesKcal - context.nutritionTarget.calories.targetKcal)}`
-      );
-
-      return this.persistRegeneratedFoodPlan(context, markedFoodPlan);
-    } catch (error) {
-      await this.refundConsumedUsage([{ id: consumedUsage.id, amount: 1 }]);
-      throw error;
-    }
+    return this.toResponse(plan);
   }
 
   async excludeFoodIngredient(userId: string, dailyPlanId: string, dto: ExcludeFoodIngredientDto) {
@@ -719,66 +674,6 @@ export class DailyPlansService {
     };
   }
 
-  private async getFoodRegenerationContext(
-    userId: string,
-    dailyPlanId: string
-  ) {
-    const [user, plan] = await Promise.all([
-      this.getPlanningUser(userId),
-      this.getOwnedPlanOrThrow(userId, dailyPlanId)
-    ]);
-    const currentPlanJson = normalizeDailyPlanJson({
-      planJson: plan.planJson,
-      planLocalDate: plan.planLocalDate,
-      planTimezone: plan.planTimezone,
-      readinessLevel: plan.readinessLevel
-    });
-    const currentFoodPlan = currentPlanJson.nutrition.foodPlan;
-
-    if (!currentFoodPlan) {
-      throw new BadRequestException('This plan does not support meal regeneration yet.');
-    }
-
-    const nutritionTargetSnapshot =
-      currentFoodPlan.nutritionTargetSnapshot ?? currentPlanJson.nutritionTargetSnapshot;
-
-    if (!nutritionTargetSnapshot) {
-      throw new BadRequestException('This plan is missing a nutrition target snapshot.');
-    }
-
-    const nutritionTarget = this.nutritionTargetFromSnapshot(nutritionTargetSnapshot);
-    const resolvedTrainingDay = currentPlanJson.trainingScheduleSnapshot ??
-      this.createFallbackTrainingDayContext(plan.planLocalDate, nutritionTarget);
-    const planQualityMode = await this.featureAccessService.getPlanQualityMode(userId);
-    const appMode = nutritionTarget.appMode as GoalImpactMode;
-    const personalizationContext =
-      await this.dailyPlanOrchestrator.preparePersonalizationContext({
-        user,
-        planQualityMode,
-        planLocalDate: plan.planLocalDate,
-        resolvedTrainingDay,
-        appMode
-      });
-    personalizationContext.nutritionTarget = nutritionTarget;
-
-    return {
-      user,
-      plan,
-      currentPlanJson,
-      currentFoodPlan,
-      nutritionTarget,
-      nutritionTargetSnapshot,
-      resolvedTrainingDay,
-      planQualityMode,
-      appMode,
-      personalizationContext,
-      blockedFoods: {
-        allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
-        excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
-      }
-    };
-  }
-
   private async getOwnedPlanOrThrow(userId: string, dailyPlanId: string) {
     const plan = await this.prisma.dailyPlan.findFirst({
       where: {
@@ -794,180 +689,6 @@ export class DailyPlansService {
     return plan;
   }
 
-  private async generateReplacementFoodPlan(
-    context: Awaited<ReturnType<DailyPlansService['getFoodRegenerationContext']>>,
-    regeneration: {
-      mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
-      reason?: string;
-      selectedMealId?: string;
-    }
-  ) {
-    const availableFoodSlugs = await this.foodAvailabilityService.getAvailableFoodSlugs(
-      context.user.id,
-      context.plan.planLocalDate
-    );
-    const result = await this.nutritionAgent.generateDailyFoodPlan({
-      planLocalDate: context.plan.planLocalDate,
-      locale: this.resolvePlanningLocale(context.user),
-      planQualityMode: context.planQualityMode,
-      appMode: context.appMode,
-      safeMode: context.user.safeMode,
-      isMinor: context.user.isMinor,
-      pregnancyStatus: context.user.profile?.pregnancyStatus,
-      nutritionTarget: context.nutritionTarget,
-      nutritionTargetSnapshot: context.nutritionTargetSnapshot,
-      nutritionPreference: this.toNutritionAgentPreference(context.user),
-      goalSummary: context.user.goal
-        ? {
-            primaryGoal: context.user.goal.primaryGoal,
-            goalType: context.user.goal.goalType
-          }
-        : null,
-      foodAdherenceSummary: context.personalizationContext.foodAdherenceSummary,
-      mealPracticalityPreference: this.toMealPracticalityPreference(context.user),
-      mealTimingPreference: this.toMealTimingPreference(context.user),
-      availableFoodSlugs,
-      resolvedTrainingDay: context.resolvedTrainingDay,
-      regeneration: {
-        ...regeneration,
-        existingFoodPlan: context.currentFoodPlan
-      }
-    });
-
-    if (result.fallbackUsed || result.foodPlan.validation.status === 'FALLBACK') {
-      throw new BadRequestException('Could not safely regenerate this meal plan. Your current plan was kept.');
-    }
-
-    return result;
-  }
-
-  private async persistRegeneratedFoodPlan(
-    context: Awaited<ReturnType<DailyPlansService['getFoodRegenerationContext']>>,
-    foodPlan: DailyFoodPlan
-  ) {
-    const nextPlanJson = this.dailyPlanOrchestrator.attachFoodPlan(
-      context.currentPlanJson,
-      foodPlan
-    );
-    const validation =
-      await this.dailyPlanOrchestrator.validateGeneratedPlan({
-        providerPlan: nextPlanJson,
-        blockedFoods: context.blockedFoods,
-        planLocalDate: context.plan.planLocalDate,
-        planTimezone: context.plan.planTimezone,
-        locale: this.resolvePlanningLocale(context.user),
-        user: context.user,
-        personalizationContext: context.personalizationContext,
-        forcedFallback: false,
-        allowSafetyRetry: false
-      });
-
-    if (validation.status !== PlanStatus.READY) {
-      throw new BadRequestException('Could not safely regenerate this meal plan. Your current plan was kept.');
-    }
-
-    const updated = await this.prisma.dailyPlan.update({
-      where: { id: context.plan.id },
-      data: {
-        status: validation.status,
-        planJson: validation.planJson as Prisma.JsonObject
-      }
-    });
-
-    return this.toResponse(updated);
-  }
-
-  private toNutritionAgentPreference(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>) {
-    return user.nutritionPref
-      ? {
-          dietType: user.nutritionPref.dietType,
-          mealsPerDay: user.nutritionPref.mealsPerDay,
-          notes: user.nutritionPref.notes,
-          allergies: user.nutritionPref.allergies.map((food) => food.name),
-          excludedFoods: user.nutritionPref.excludedFoods.map((food) => food.name),
-          dislikedFoods: user.nutritionPref.dislikedFoods.map((food) => food.name),
-          preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
-        }
-      : null;
-  }
-
-  private toMealPracticalityPreference(
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>
-  ): { cookingTime: 'VERY_QUICK' | 'FIFTEEN_TO_THIRTY' | 'LONGER' } | undefined {
-    const answer = user.progressiveProfilePrompts.find(
-      (prompt) => prompt.promptKey === ProgressiveProfilePromptKey.COOKING_TIME
-    )?.answerJson;
-
-    if (
-      answer === 'VERY_QUICK' ||
-      answer === 'FIFTEEN_TO_THIRTY' ||
-      answer === 'LONGER'
-    ) {
-      return { cookingTime: answer };
-    }
-
-    return undefined;
-  }
-
-  private toMealTimingPreference(
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>
-  ): 'EARLIER' | 'EVENLY_SPACED' | 'LATER' | 'FLEXIBLE' | undefined {
-    const answer = user.progressiveProfilePrompts.find(
-      (prompt) => prompt.promptKey === ProgressiveProfilePromptKey.MEAL_TIMING
-    )?.answerJson;
-
-    if (
-      answer === 'EARLIER' ||
-      answer === 'EVENLY_SPACED' ||
-      answer === 'LATER' ||
-      answer === 'FLEXIBLE'
-    ) {
-      return answer;
-    }
-
-    return undefined;
-  }
-
-  private nutritionTargetFromSnapshot(snapshot: NutritionTargetSnapshot): NutritionTarget {
-    return {
-      engineVersion: snapshot.engineVersion,
-      localDate: snapshot.localDate,
-      source: 'DETERMINISTIC_ENGINE',
-      appMode: snapshot.appMode,
-      primaryGoal: snapshot.primaryGoal,
-      dayType: snapshot.dayType,
-      calories: {
-        targetKcal: snapshot.targetKcal,
-        minKcal: snapshot.minKcal,
-        maxKcal: snapshot.maxKcal,
-        maintenanceEstimateKcal: snapshot.maintenanceEstimateKcal,
-        adjustmentKcal: 0,
-        adjustmentReason: 'stored_daily_plan_snapshot'
-      },
-      macros: {
-        proteinGrams: snapshot.proteinGrams,
-        carbsGrams: snapshot.carbsGrams,
-        fatGrams: snapshot.fatGrams,
-        proteinKcal: snapshot.proteinGrams * 4,
-        carbsKcal: snapshot.carbsGrams * 4,
-        fatKcal: snapshot.fatGrams * 9
-      },
-      context: {
-        trainingEnabled: snapshot.appMode === 'NUTRITION_AND_TRAINING',
-        scheduledTrainingDay: snapshot.dayType === 'TRAINING_DAY',
-        plannedWorkoutDurationMinutes: null,
-        plannedWorkoutIntensity: null,
-        normalActivityLevel: null
-      },
-      safety: {
-        status: snapshot.safetyStatus,
-        reasons: snapshot.safetyReasons,
-        warnings: []
-      },
-      explanation: this.normalizeNutritionTargetExplanation(snapshot.explanation)
-    };
-  }
-
   private getPlanExerciseMuscles(exercise: NonNullable<DailyPlanJson['training']['exercises']>[number]) {
     const values = [
       ...(exercise.exerciseSnapshot?.targetMuscles ?? []),
@@ -980,63 +701,6 @@ export class DailyPlansService {
       .filter((value): value is TargetMuscleGroup =>
         Object.values(TargetMuscleGroup).includes(value as TargetMuscleGroup)
       ))];
-  }
-
-  private normalizeNutritionTargetExplanation(
-    explanation: NutritionTargetSnapshot['explanation']
-  ): NutritionTargetExplanation {
-    if ('titleCode' in explanation && 'reasonCodes' in explanation) {
-      return explanation;
-    }
-
-    return {
-      titleCode: 'TODAY_TARGET',
-      reasonCodes: []
-    };
-  }
-
-  private createFallbackTrainingDayContext(
-    planLocalDate: string,
-    nutritionTarget: NutritionTarget
-  ): ResolvedTrainingDayContext {
-    return {
-      source: 'GLOBAL_DEFAULTS',
-      localDate: planLocalDate,
-      dayOfWeek: 'MONDAY',
-      isTrainingDay: nutritionTarget.dayType === 'TRAINING_DAY',
-      targetMuscles: [],
-      environment: null,
-      availableEquipment: [],
-      durationMinutes: 30,
-      protocolPreference: null,
-      inheritedFields: []
-    };
-  }
-
-  private markFoodPlanRegenerated(
-    foodPlan: DailyFoodPlan,
-    mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION',
-    selectedMealId?: string
-  ): DailyFoodPlan {
-    const marker = mode === 'FULL_MENU_REGENERATION'
-      ? "Menu refreshed while preserving today's nutrition target."
-      : "Meal refreshed while preserving today's nutrition target.";
-
-    return {
-      ...foodPlan,
-      meals: foodPlan.meals.map((meal) => {
-        if (mode === 'MEAL_REGENERATION' && meal.id !== selectedMealId) {
-          return meal;
-        }
-
-        return {
-          ...meal,
-          shortDescription: meal.shortDescription
-            ? `${meal.shortDescription} ${marker}`
-            : marker
-        };
-      })
-    };
   }
 
   private async getPlanningUser(userId: string) {
@@ -1088,18 +752,6 @@ export class DailyPlansService {
     }
 
     return Math.min(Math.max(Math.trunc(parsedLimit), 1), 30);
-  }
-
-  private async refundConsumedUsage(consumedUsage: Array<{ id: string; amount: number }>) {
-    for (const usage of consumedUsage.reverse()) {
-      try {
-        await this.usageGuardService.refundById(usage.id, usage.amount);
-      } catch (error) {
-        this.logger.warn(
-          `usage refund failed; usageLedgerId=${usage.id}; reason=${error instanceof Error ? error.name : 'unknown'}`
-        );
-      }
-    }
   }
 
   private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {

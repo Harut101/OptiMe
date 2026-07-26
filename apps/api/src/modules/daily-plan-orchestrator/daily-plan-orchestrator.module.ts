@@ -21,6 +21,8 @@ import { TrainingScheduleModule } from '../training-schedule/training-schedule.m
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlanAgentExecutionService } from './daily-plan-agent-execution.service';
 import { DailyPlanFinalizationService } from './daily-plan-finalization.service';
+import { DailyPlanFoodContextService } from './daily-plan-food-context.service';
+import { DailyPlanFoodRegenerationUseCaseService } from './daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from './daily-plan-generation-use-case.service';
 import { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
@@ -54,6 +56,8 @@ import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service
     DailyPlanOrchestratorService,
     DailyPlanAgentExecutionService,
     DailyPlanFinalizationService,
+    DailyPlanFoodContextService,
+    DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
     DailyPlanGenerationContextService,
     DailyPlanPersistenceService,
@@ -61,6 +65,8 @@ import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service
     DailyPlanTrainingLoadService
   ],
   exports: [
+    DailyPlanFoodContextService,
+    DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
     DailyPlanOrchestratorService
   ]
