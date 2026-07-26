@@ -4,7 +4,6 @@ import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.mo
 import { AiModule } from '../ai/ai.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
-import { ExerciseSelectionModule } from '../exercise-selection/exercise-selection.module';
 import { FoodLogsModule } from '../food-logs/food-logs.module';
 import { FoodAvailabilityModule } from '../food-availability/food-availability.module';
 import { FoodCatalogModule } from '../food-catalog/food-catalog.module';
@@ -17,6 +16,7 @@ import { ProtocolModule } from '../protocol/protocol.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
 import { TrainingLoadAgentModule } from '../training-load-agent/training-load-agent.module';
+import { TrainingPlanAgentModule } from '../training-plan-agent/training-plan-agent.module';
 import { TrainingScheduleModule } from '../training-schedule/training-schedule.module';
 import { UsageModule } from '../usage/usage.module';
 import { DailyPlansController } from './daily-plans.controller';
@@ -30,7 +30,6 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     AiModule,
     DailyPlanCheckInsModule,
     EntitlementsModule,
-    ExerciseSelectionModule,
     FoodLogsModule,
     FoodAvailabilityModule,
     FoodCatalogModule,
@@ -43,6 +42,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     SafetyModule,
     SafetyAgentModule,
     TrainingLoadAgentModule,
+    TrainingPlanAgentModule,
     TrainingScheduleModule,
     UsageModule
   ],

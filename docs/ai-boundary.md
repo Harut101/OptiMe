@@ -8,6 +8,9 @@ OptiMe keeps AI behind the NestJS backend. The mobile app never calls OpenAI dir
 - `NutritionTargetsService` calculates deterministic calories and macros before meal generation.
 - `NutritionAgentService` acts as the specialized AI Nutrition Agent when `AI_PROVIDER=openai`.
 - `FoodPlanValidationService` deterministically validates the Nutrition Agent output.
+- `TrainingPlanAgentService` selects allowed library candidates, validates the
+  generated workout and its duration budget, permits one bounded repair attempt,
+  and composes a trusted library fallback when needed.
 - `SafetyService` enforces hard safety rules.
 - `SafetyAgent` performs final semantic review when enabled.
 
@@ -32,6 +35,18 @@ It must not generate or override:
 - medical diagnosis
 
 The deterministic Nutrition Engine remains the numeric source of truth.
+
+## Training Agent Boundary
+
+The AI may choose and prescribe exercises only from the candidates supplied by
+`TrainingPlanAgentService` and `ExerciseSelectionService`. The backend remains
+authoritative for exercise identity, equipment eligibility, pain and limitation
+filtering, target duration, volume bounds, and immutable localized exercise
+snapshots.
+
+Invalid identities, prescriptions, rest intervals, or session duration trigger
+at most one repair request. A failed repair is replaced with a deterministic
+workout made only from trusted `ExerciseLibrary` records.
 
 ## Regeneration Boundary
 

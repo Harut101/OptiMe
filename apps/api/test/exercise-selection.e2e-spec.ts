@@ -1,6 +1,7 @@
 import request from 'supertest';
 import {
   ExerciseEquipment,
+  PlanStatus,
   PlanQualityMode,
   PregnancyStatus,
   PreferredLocale,
@@ -18,6 +19,7 @@ import { ExerciseSelectionService } from '../src/modules/exercise-selection/exer
 import type { ExerciseSelectionContext } from '../src/modules/exercise-selection/exercise-selection.types';
 import { normalizeLegacyTargetMuscles } from '../src/modules/exercise-selection/legacy-muscle-normalizer';
 import { trainingProtocols } from '../src/modules/protocol/training-protocols';
+import { TrainingPlanAgentService } from '../src/modules/training-plan-agent/training-plan-agent.service';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { cleanupDatabase } from './helpers/cleanup';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -25,12 +27,14 @@ import { createTestApp, TestApp } from './helpers/test-app';
 describe('ExerciseSelection and library-backed Daily Plans', () => {
   let ctx: TestApp;
   let service: ExerciseSelectionService;
+  let trainingPlanAgent: TrainingPlanAgentService;
 
   beforeAll(async () => {
     delete process.env.AI_PROVIDER;
     ctx = await createTestApp();
     await seedExerciseCatalog(ctx.prisma);
     service = ctx.app.get(ExerciseSelectionService);
+    trainingPlanAgent = ctx.app.get(TrainingPlanAgentService);
   });
 
   beforeEach(async () => cleanupDatabase(ctx.prisma));
@@ -263,6 +267,57 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     }
   });
 
+  it('accepts one corrected AI training plan through the TrainingPlanAgent boundary', async () => {
+    const selection = await trainingPlanAgent.selectCandidates(baseContext());
+    const invalidPlan = createInventedExercisePlan(selection.requestedExerciseCount);
+    const correctedPlan = trainingPlanAgent.composeDeterministicFallback(
+      createMockDailyPlan({
+        planLocalDate: '2026-06-20',
+        planTimezone: 'UTC',
+        isMinor: false
+      }),
+      selection
+    );
+    const retry = jest.fn().mockResolvedValue({
+      status: PlanStatus.READY,
+      planJson: correctedPlan
+    });
+
+    const result = await trainingPlanAgent.finalizeGeneratedPlan({
+      providerPlanResult: { status: PlanStatus.READY, planJson: invalidPlan },
+      exerciseSelection: selection,
+      retry
+    });
+
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledWith(expect.objectContaining({
+      reasonCodes: expect.arrayContaining(['EXERCISE_NOT_ALLOWED'])
+    }));
+    expect(result).toMatchObject({
+      status: PlanStatus.READY,
+      usedAiRetry: true,
+      usedDeterministicFallback: false
+    });
+  });
+
+  it('uses a trusted library fallback when the TrainingPlanAgent retry is still invalid', async () => {
+    const selection = await trainingPlanAgent.selectCandidates(baseContext());
+    const invalidPlan = createInventedExercisePlan(selection.requestedExerciseCount);
+
+    const result = await trainingPlanAgent.finalizeGeneratedPlan({
+      providerPlanResult: { status: PlanStatus.READY, planJson: invalidPlan },
+      exerciseSelection: selection,
+      retry: async () => ({ status: PlanStatus.READY, planJson: invalidPlan })
+    });
+
+    expect(result.usedAiRetry).toBe(true);
+    expect(result.usedDeterministicFallback).toBe(true);
+    expect(result.planJson.training.exercises).toHaveLength(selection.requestedExerciseCount);
+    expect(result.planJson.training.exercises?.every((exercise) =>
+      selection.candidates.some((candidate) => candidate.exerciseId === exercise.exerciseId)
+    )).toBe(true);
+  });
+
   it('stores library identities and immutable localized snapshots for a gym beginner leg plan', async () => {
     const user = await setupUser('selection-gym@example.com');
     await saveTrainingPreference(user.accessToken, {
@@ -385,4 +440,23 @@ function allExerciseEquipment() {
     ExerciseEquipment.RESISTANCE_BANDS,
     ExerciseEquipment.CARDIO_MACHINE
   ];
+}
+
+function createInventedExercisePlan(exerciseCount: number) {
+  const plan = createMockDailyPlan({
+    planLocalDate: '2026-06-20',
+    planTimezone: 'UTC',
+    isMinor: false
+  });
+  plan.training.exercises = Array.from({ length: exerciseCount }, (_, index) => ({
+    exerciseId: `invented-${index}`,
+    slug: `invented-${index}`,
+    name: 'Invented move',
+    targetMuscles: [],
+    equipment: [],
+    sets: '2',
+    reps: '8-10',
+    rest: '60 seconds'
+  }));
+  return plan;
 }

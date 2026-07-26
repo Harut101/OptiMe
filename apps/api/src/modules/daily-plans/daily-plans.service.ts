@@ -48,11 +48,6 @@ import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
-import {
-  composeDeterministicFallbackWorkout,
-  validateAndNormalizePlannedExercises
-} from '../exercise-selection/exercise-plan-validator';
-import { ExerciseSelectionService } from '../exercise-selection/exercise-selection.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { FoodLogsService } from '../food-logs/food-logs.service';
 import { FoodAvailabilityService } from '../food-availability/food-availability.service';
@@ -81,6 +76,7 @@ import {
 } from '../safety-agent/safety-agent.token';
 import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingLoadAgentService } from '../training-load-agent/training-load-agent.service';
+import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
@@ -129,7 +125,7 @@ export class DailyPlansService {
     private readonly safetyService: SafetyService,
     private readonly aiOperationLogs: AiOperationLogsService,
     private readonly featureAccessService: FeatureAccessService,
-    private readonly exerciseSelectionService: ExerciseSelectionService,
+    private readonly trainingPlanAgent: TrainingPlanAgentService,
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
@@ -254,7 +250,7 @@ export class DailyPlansService {
       );
       personalizationContext.nutritionTarget = nutritionTarget;
       const exerciseSelection = trainingEnabled
-        ? await this.exerciseSelectionService.selectCandidates(
+        ? await this.trainingPlanAgent.selectCandidates(
             this.buildExerciseSelectionContext(user, planLocalDate, planQualityMode, personalizationContext, resolvedTrainingDay)
           )
         : this.createEmptyExerciseSelection();
@@ -329,15 +325,20 @@ export class DailyPlansService {
         ...providerPlanResult,
         planJson: this.withFoodPlan(providerPlanResult.planJson, foodPlanResult.foodPlan)
       };
-      let exercisePreparation = await this.prepareLibraryBackedExercises({
+      let exercisePreparation = await this.trainingPlanAgent.finalizeGeneratedPlan({
         providerPlanResult,
-        user,
-        planLocalDate,
-        planTimezone,
-        planQualityMode,
-        personalizationContext,
         exerciseSelection,
-        allowAiRetry: this.getProviderDebugName() === 'openai'
+        retry: this.getProviderDebugName() === 'openai'
+          ? (exerciseFeedback) => this.generateProviderPlanOrFallback({
+              user,
+              planLocalDate,
+              planTimezone,
+              planQualityMode,
+              personalizationContext,
+              exerciseSelection,
+              exerciseFeedback
+            })
+          : undefined
       });
       providerPlanResult = {
         status: exercisePreparation.status,
@@ -432,15 +433,10 @@ export class DailyPlansService {
           retryProviderPlanResult.planJson,
           retryFoodPlanResult.foodPlan
         );
-        const retryExercisePreparation = await this.prepareLibraryBackedExercises({
+        const retryExercisePreparation = await this.trainingPlanAgent.finalizeGeneratedPlan({
           providerPlanResult: retryProviderPlanResult,
-          user,
-          planLocalDate,
-          planTimezone,
-          planQualityMode,
-          personalizationContext,
           exerciseSelection,
-          allowAiRetry: false
+          retry: undefined
         });
         exercisePreparation = {
           ...retryExercisePreparation,
@@ -1110,7 +1106,7 @@ export class DailyPlansService {
       personalizationContext,
       resolvedTrainingDay
     );
-    const selection = await this.exerciseSelectionService.selectCandidates({
+    const selection = await this.trainingPlanAgent.selectCandidates({
       ...selectionContext,
       limitationsPresent: true
     });
@@ -1776,68 +1772,6 @@ export class DailyPlansService {
     }
   }
 
-  private async prepareLibraryBackedExercises(input: {
-    providerPlanResult: { status: PlanStatus; planJson: DailyPlanJson };
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    planLocalDate: string;
-    planTimezone: string;
-    planQualityMode: PlanQualityMode;
-    personalizationContext: GenerateDailyPlanPersonalizationContext;
-    exerciseSelection: ExerciseSelectionResult;
-    allowAiRetry: boolean;
-  }) {
-    const unchanged = {
-      status: input.providerPlanResult.status,
-      planJson: input.providerPlanResult.planJson,
-      usedAiRetry: false,
-      usedDeterministicFallback: false
-    };
-    if (input.providerPlanResult.status === PlanStatus.FALLBACK) return unchanged;
-
-    const parsed = dailyPlanJsonSchema.safeParse(input.providerPlanResult.planJson);
-    if (!parsed.success) return unchanged;
-    const validation = validateAndNormalizePlannedExercises(parsed.data, input.exerciseSelection);
-    if (validation.valid) return { ...unchanged, planJson: validation.planJson };
-
-    this.logger.warn(`exercise selection validation failed; reasons=${validation.reasonCodes.join(',')}`);
-    if (input.allowAiRetry) {
-      this.logger.log(`exercise selection retry triggered=true; reasonCount=${validation.reasonCodes.length}`);
-      const retry = await this.generateProviderPlanOrFallback({
-        user: input.user,
-        planLocalDate: input.planLocalDate,
-        planTimezone: input.planTimezone,
-        planQualityMode: input.planQualityMode,
-        personalizationContext: input.personalizationContext,
-        exerciseSelection: input.exerciseSelection,
-        exerciseFeedback: {
-          reasonCodes: validation.reasonCodes,
-          ...validation.repairFeedback
-        }
-      });
-      if (retry.status === PlanStatus.READY) {
-        const retryParsed = dailyPlanJsonSchema.safeParse(retry.planJson);
-        if (retryParsed.success) {
-          const retryValidation = validateAndNormalizePlannedExercises(retryParsed.data, input.exerciseSelection);
-          if (retryValidation.valid) {
-            this.logger.log('exercise selection retry validation passed=true');
-            return { status: PlanStatus.READY, planJson: retryValidation.planJson, usedAiRetry: true, usedDeterministicFallback: false };
-          }
-          this.logger.warn(`exercise selection retry validation passed=false; reasons=${retryValidation.reasonCodes.join(',')}`);
-        }
-      }
-    } else {
-      this.logger.log('exercise selection retry triggered=false');
-    }
-
-    this.logger.warn('deterministic exercise fallback used=true');
-    return {
-      status: PlanStatus.READY,
-      planJson: composeDeterministicFallbackWorkout(parsed.data, input.exerciseSelection),
-      usedAiRetry: input.allowAiRetry,
-      usedDeterministicFallback: true
-    };
-  }
-
   private validateProviderPlan(input: {
     providerPlan: unknown;
     blockedFoods: { allergies: string[]; excludedFoods: string[] };
@@ -2470,7 +2404,10 @@ export class DailyPlansService {
     this.logger.warn(
       `safe training-day fallback restored; exerciseCount=${input.exerciseSelection.requestedExerciseCount}`
     );
-    return composeDeterministicFallbackWorkout(conservativePlan, input.exerciseSelection);
+    return this.trainingPlanAgent.composeDeterministicFallback(
+      conservativePlan,
+      input.exerciseSelection
+    );
   }
 
   private withNutritionTargetSnapshot(

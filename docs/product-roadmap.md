@@ -446,25 +446,28 @@ For minors:
 
 ## Recommended Order
 
-1. Implement and validate the foreground Adaptive Plan Checkpoint.
-2. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
+1. Completed: implement and validate the foreground Adaptive Plan Checkpoint.
+2. In progress: formalize bounded Nutrition, Training, Recovery, and Safety agent
+   boundaries under a backend orchestrator. The Training Plan Agent foundation is
+   complete; Recovery Agent and orchestrator extraction remain.
+3. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
    cost ceilings, and the approved Free production limits.
-3. Run the pricing unit-economics gate against median and p95 multi-agent cost;
+4. Run the pricing unit-economics gate against median and p95 multi-agent cost;
    validate the provisional Plus and Pro pricing floors before billing work.
-4. Freeze new product features for the first release.
-5. Complete privacy, account-control, permission, security, environment, and
+5. Freeze new product features for the first release.
+6. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
-6. Complete Android Health Connect development-build/device QA and Google Play
+7. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
-7. Run iOS/Android release builds, full automated regression, localization QA, and
+8. Run iOS/Android release builds, full automated regression, localization QA, and
    physical-device QA.
-8. Release the stable first version.
-9. Add Recovery Trend and Photo Food Logging based on real user feedback.
-10. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+9. Release the stable first version.
+10. Add Recovery Trend and Photo Food Logging based on real user feedback.
+11. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
-11. Add WHOOP as the first specialized post-release wearable integration.
-12. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
-   advanced analytics as separate approved product phases.
+12. Add WHOOP as the first specialized post-release wearable integration.
+13. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+    advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects
 release quality by preventing further scope expansion.
