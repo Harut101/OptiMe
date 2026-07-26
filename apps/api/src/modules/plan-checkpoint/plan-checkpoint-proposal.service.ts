@@ -1,9 +1,26 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { PlanQualityMode, PregnancyStatus } from '@prisma/client';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException
+} from '@nestjs/common';
+import {
+  DailyReadinessLevel,
+  PlanCheckpointProposalStatus,
+  PlanQualityMode,
+  PlanStatus,
+  PregnancyStatus,
+  Prisma
+} from '@prisma/client';
 import type {
+  DailyPlanCheckpointPendingProposalResponse,
   DailyPlanCheckpointProposalResponse,
+  DailyPlanCheckpointProposal,
   DailyPlanJson as SharedDailyPlanJson,
-  PlanCheckpointProposalFailureReason
+  PlanCheckpointProposalFailureReason,
+  ResolveDailyPlanCheckpointProposalResponse
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -45,6 +62,8 @@ const SUPPORTIVE_PROPOSAL_MESSAGES: Record<
   safety_agent_unavailable:
     'Your current plan is still available. Safety review is temporarily unavailable.'
 };
+
+class StaleCheckpointProposalError extends Error {}
 
 @Injectable()
 export class PlanCheckpointProposalService {
@@ -193,30 +212,189 @@ export class PlanCheckpointProposalService {
     }
 
     const generatedAt = new Date().toISOString();
+    const persistedPlan = {
+      ...finalSchema.data,
+      generatedAt
+    };
+    const stored = await this.prisma.$transaction(async (tx) => {
+      await tx.dailyPlanCheckpointProposal.updateMany({
+        where: {
+          userId,
+          dailyPlanId,
+          status: PlanCheckpointProposalStatus.PENDING
+        },
+        data: {
+          status: PlanCheckpointProposalStatus.EXPIRED,
+          resolvedAt: new Date()
+        }
+      });
+
+      return tx.dailyPlanCheckpointProposal.create({
+        data: {
+          userId,
+          dailyPlanId,
+          sourcePlanUpdatedAt: new Date(context.sourcePlanUpdatedAt),
+          trigger: context.evaluation.trigger,
+          severity: context.evaluation.severity,
+          reasonCodes: context.evaluation.reasonCodes,
+          affectedSections: context.evaluation.affectedSections,
+          evaluationJson: context.evaluation as unknown as Prisma.JsonObject,
+          proposedPlanJson: persistedPlan as unknown as Prisma.JsonObject,
+          summaryTitle: persistedPlan.summary.title,
+          summaryMessage: persistedPlan.summary.message
+        }
+      });
+    });
     this.logger.log(
-      `checkpoint proposal ready; dailyPlanId=${dailyPlanId}; persisted=false`
+      `checkpoint proposal ready; dailyPlanId=${dailyPlanId}; proposalId=${stored.id}; persisted=true`
     );
     return {
       evaluation: context.evaluation,
       status: 'READY',
-      proposal: {
-        proposalVersion: 'adaptive-checkpoint.v1',
-        generatedAt,
-        sourceDailyPlanId: dailyPlanId,
-        sourcePlanUpdatedAt: context.sourcePlanUpdatedAt,
-        trigger: context.evaluation.trigger,
-        severity: context.evaluation.severity,
-        reasonCodes: context.evaluation.reasonCodes,
-        affectedSections: context.evaluation.affectedSections,
-        summary: {
-          title: finalSchema.data.summary.title,
-          message: finalSchema.data.summary.message
-        },
-        proposedPlan: {
-          ...finalSchema.data,
-          generatedAt
-        } as unknown as SharedDailyPlanJson
+      proposal: this.toProposal(stored)
+    };
+  }
+
+  async getPending(
+    userId: string,
+    dailyPlanId: string
+  ): Promise<DailyPlanCheckpointPendingProposalResponse> {
+    const proposal = await this.prisma.dailyPlanCheckpointProposal.findFirst({
+      where: {
+        userId,
+        dailyPlanId,
+        status: PlanCheckpointProposalStatus.PENDING
+      },
+      include: {
+        dailyPlan: {
+          select: { updatedAt: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!proposal) return { proposal: null };
+    if (
+      proposal.dailyPlan.updatedAt.getTime() !==
+      proposal.sourcePlanUpdatedAt.getTime()
+    ) {
+      await this.expireProposal(proposal.id, userId);
+      return { proposal: null };
+    }
+
+    const parsedPlan = dailyPlanJsonSchema.safeParse(proposal.proposedPlanJson);
+    if (!parsedPlan.success) {
+      await this.expireProposal(proposal.id, userId);
+      return { proposal: null };
+    }
+
+    return { proposal: this.toProposal(proposal) };
+  }
+
+  async apply(userId: string, dailyPlanId: string, proposalId: string) {
+    try {
+      const updatedPlan = await this.prisma.$transaction(async (tx) => {
+        const proposal = await tx.dailyPlanCheckpointProposal.findFirst({
+          where: { id: proposalId, userId, dailyPlanId }
+        });
+
+        if (!proposal) {
+          throw new NotFoundException('Plan update proposal not found.');
+        }
+        if (proposal.status !== PlanCheckpointProposalStatus.PENDING) {
+          throw new ConflictException({
+            code: 'CHECKPOINT_PROPOSAL_NOT_PENDING',
+            message: 'This plan update has already been resolved.'
+          });
+        }
+
+        const parsedPlan = dailyPlanJsonSchema.safeParse(
+          proposal.proposedPlanJson
+        );
+        if (!parsedPlan.success) {
+          throw new StaleCheckpointProposalError();
+        }
+
+        const updateResult = await tx.dailyPlan.updateMany({
+          where: {
+            id: dailyPlanId,
+            userId,
+            updatedAt: proposal.sourcePlanUpdatedAt
+          },
+          data: {
+            status: PlanStatus.READY,
+            readinessLevel:
+              parsedPlan.data.summary.readiness as DailyReadinessLevel,
+            planJson: parsedPlan.data as unknown as Prisma.JsonObject,
+            createdByAi: parsedPlan.data.debug?.provider === 'openai'
+          }
+        });
+        if (updateResult.count !== 1) {
+          throw new StaleCheckpointProposalError();
+        }
+
+        await tx.dailyPlanCheckpointProposal.update({
+          where: { id: proposal.id },
+          data: {
+            status: PlanCheckpointProposalStatus.APPLIED,
+            resolvedAt: new Date()
+          }
+        });
+
+        return tx.dailyPlan.findUniqueOrThrow({
+          where: { id: dailyPlanId }
+        });
+      });
+
+      this.logger.log(
+        `checkpoint proposal applied; dailyPlanId=${dailyPlanId}; proposalId=${proposalId}`
+      );
+      return this.toDailyPlanResponse(updatedPlan);
+    } catch (error) {
+      if (error instanceof StaleCheckpointProposalError) {
+        await this.expireProposal(proposalId, userId);
+        throw new ConflictException({
+          code: 'CHECKPOINT_PROPOSAL_STALE',
+          message:
+            'This suggested update is no longer current. Your latest plan was not changed.'
+        });
       }
+      throw error;
+    }
+  }
+
+  async keep(
+    userId: string,
+    dailyPlanId: string,
+    proposalId: string
+  ): Promise<ResolveDailyPlanCheckpointProposalResponse> {
+    const proposal = await this.prisma.dailyPlanCheckpointProposal.findFirst({
+      where: { id: proposalId, userId, dailyPlanId }
+    });
+    if (!proposal) {
+      throw new NotFoundException('Plan update proposal not found.');
+    }
+    if (proposal.status !== PlanCheckpointProposalStatus.PENDING) {
+      throw new ConflictException({
+        code: 'CHECKPOINT_PROPOSAL_NOT_PENDING',
+        message: 'This plan update has already been resolved.'
+      });
+    }
+
+    await this.prisma.dailyPlanCheckpointProposal.update({
+      where: { id: proposal.id },
+      data: {
+        status: PlanCheckpointProposalStatus.DISMISSED,
+        resolvedAt: new Date()
+      }
+    });
+    this.logger.log(
+      `checkpoint proposal dismissed; dailyPlanId=${dailyPlanId}; proposalId=${proposalId}`
+    );
+
+    return {
+      id: proposal.id,
+      resolutionStatus: 'DISMISSED'
     };
   }
 
@@ -381,6 +559,79 @@ export class PlanCheckpointProposalService {
       proposal: null,
       failureReason,
       safeUserMessage: SUPPORTIVE_PROPOSAL_MESSAGES[failureReason]
+    };
+  }
+
+  private toProposal(proposal: {
+    id: string;
+    dailyPlanId: string;
+    sourcePlanUpdatedAt: Date;
+    trigger: string;
+    severity: string;
+    reasonCodes: string[];
+    affectedSections: string[];
+    evaluationJson: Prisma.JsonValue;
+    proposedPlanJson: Prisma.JsonValue;
+    summaryTitle: string;
+    summaryMessage: string;
+    status: PlanCheckpointProposalStatus;
+    createdAt: Date;
+  }): DailyPlanCheckpointProposal {
+    const evaluation =
+      proposal.evaluationJson as unknown as DailyPlanCheckpointProposalResponse['evaluation'];
+
+    return {
+      id: proposal.id,
+      proposalVersion: 'adaptive-checkpoint.v1',
+      resolutionStatus: proposal.status,
+      generatedAt: proposal.createdAt.toISOString(),
+      sourceDailyPlanId: proposal.dailyPlanId,
+      sourcePlanUpdatedAt: proposal.sourcePlanUpdatedAt.toISOString(),
+      trigger: evaluation.trigger,
+      severity: evaluation.severity,
+      reasonCodes: evaluation.reasonCodes,
+      affectedSections: evaluation.affectedSections,
+      summary: {
+        title: proposal.summaryTitle,
+        message: proposal.summaryMessage
+      },
+      proposedPlan: proposal.proposedPlanJson as unknown as SharedDailyPlanJson
+    };
+  }
+
+  private async expireProposal(proposalId: string, userId: string) {
+    await this.prisma.dailyPlanCheckpointProposal.updateMany({
+      where: {
+        id: proposalId,
+        userId,
+        status: PlanCheckpointProposalStatus.PENDING
+      },
+      data: {
+        status: PlanCheckpointProposalStatus.EXPIRED,
+        resolvedAt: new Date()
+      }
+    });
+  }
+
+  private toDailyPlanResponse(plan: {
+    id: string;
+    status: PlanStatus;
+    readinessLevel: DailyReadinessLevel;
+    planLocalDate: string;
+    planTimezone: string;
+    planJson: Prisma.JsonValue;
+    updatedAt: Date;
+  }) {
+    const parsedPlan = dailyPlanJsonSchema.parse(plan.planJson);
+
+    return {
+      id: plan.id,
+      status: plan.status,
+      readinessLevel: plan.readinessLevel,
+      planLocalDate: plan.planLocalDate,
+      planTimezone: plan.planTimezone,
+      plan: parsedPlan,
+      updatedAt: plan.updatedAt.toISOString()
     };
   }
 

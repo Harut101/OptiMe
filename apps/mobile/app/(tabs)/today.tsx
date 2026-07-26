@@ -7,7 +7,14 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
 import { ApiError } from '@/api/client';
-import { generateTodayPlan, getTodayPlan } from '@/api/daily-plans';
+import {
+  applyDailyPlanCheckpointProposal,
+  generateTodayPlan,
+  getPendingDailyPlanCheckpointProposal,
+  getTodayPlan,
+  keepCurrentDailyPlan,
+  proposeDailyPlanCheckpoint
+} from '@/api/daily-plans';
 import { getFoodLog } from '@/api/food-logs';
 import { getGoal } from '@/api/goals';
 import { getHealthConnections, getTodayWearableSnapshot } from '@/api/health';
@@ -49,6 +56,7 @@ import {
   getUsageLimitError
 } from '@/features/entitlements/usage-limit-message';
 import { PlanImpactPromptCard } from '@/features/plan-impact/PlanImpactPromptCard';
+import { PlanCheckpointReviewSheet } from '@/features/plan-checkpoint/PlanCheckpointReviewSheet';
 import { useTheme } from '@/theme/theme-provider';
 import type { ThemeColors } from '@/theme/colors';
 import { useSettingsStore } from '@/store/settings-store';
@@ -64,7 +72,11 @@ import { resolveHealthDataReadiness } from '@/features/health/health-readiness';
 import { getLocalDateString } from '@/features/training-overrides/local-date';
 import { ORDERED_DAYS, toDraft } from '@/features/training-schedule/weekly-schedule';
 import { useTrainingScheduleDraftStore } from '@/store/training-schedule-draft-store';
-import type { ProgressivePrompt, EvaluatePlanImpactResponse } from '@/types/api';
+import type {
+  DailyPlanCheckpointProposal,
+  ProgressivePrompt,
+  EvaluatePlanImpactResponse
+} from '@/types/api';
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -89,12 +101,22 @@ export default function TodayScreen() {
   const [coachVisible, setCoachVisible] = useState(false);
   const [eveningReflectionVisible, setEveningReflectionVisible] = useState(false);
   const [progressivePromptVisible, setProgressivePromptVisible] = useState(false);
+  const [checkpointProposalVisible, setCheckpointProposalVisible] = useState(false);
+  const [checkpointMessage, setCheckpointMessage] = useState<string | null>(null);
+  const [handledCheckpointKey, setHandledCheckpointKey] = useState<string | null>(null);
+  const [presentedCheckpointProposalId, setPresentedCheckpointProposalId] =
+    useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
   const todayLocalDate = getLocalDateString();
   const today = useQuery({
     queryKey: ['today-plan'],
     queryFn: getTodayPlan
+  });
+  const checkpointProposal = useQuery({
+    queryKey: ['plan-checkpoint-proposal', today.data?.id],
+    queryFn: () => getPendingDailyPlanCheckpointProposal(today.data!.id),
+    enabled: Boolean(today.data?.id)
   });
   const workoutSession = useQuery({
     queryKey: ['workout-session-by-plan', today.data?.id],
@@ -182,6 +204,13 @@ export default function TodayScreen() {
       setLimitSheetVisible(false);
       setPlanImpact(null);
       setPlanImpactError(null);
+      setHandledCheckpointKey(`${data.id}:${data.updatedAt}`);
+      setPresentedCheckpointProposalId(null);
+      setCheckpointProposalVisible(false);
+      queryClient.setQueryData(
+        ['plan-checkpoint-proposal', data.id],
+        { proposal: null }
+      );
       setRefreshMessage(forceRegenerate ? t('today.refreshed') : t('today.generated'));
     },
     onError: (error) => {
@@ -210,6 +239,93 @@ export default function TodayScreen() {
       }
 
       Alert.alert(t('today.updateFailed'), t('errors.network'));
+    }
+  });
+  const proposeCheckpoint = useMutation({
+    mutationFn: ({
+      dailyPlanId,
+      trigger
+    }: {
+      dailyPlanId: string;
+      trigger:
+        | 'APP_OPEN'
+        | 'HEALTH_SYNC'
+        | 'PRE_WORKOUT_CHECK'
+        | 'MANUAL_CHECK_IN';
+    }) => proposeDailyPlanCheckpoint(dailyPlanId, trigger),
+    onSuccess: (response) => {
+      if (response.proposal) {
+        queryClient.setQueryData(
+          ['plan-checkpoint-proposal', response.proposal.sourceDailyPlanId],
+          { proposal: response.proposal }
+        );
+        setPresentedCheckpointProposalId(response.proposal.id);
+        setCheckpointProposalVisible(true);
+        return;
+      }
+
+      if (response.safeUserMessage) {
+        setCheckpointMessage(response.safeUserMessage);
+      }
+    }
+  });
+  const applyCheckpoint = useMutation({
+    mutationFn: ({
+      dailyPlanId,
+      proposalId
+    }: {
+      dailyPlanId: string;
+      proposalId: string;
+    }) => applyDailyPlanCheckpointProposal(dailyPlanId, proposalId),
+    onSuccess: async (updatedPlan) => {
+      queryClient.setQueryData(['today-plan'], updatedPlan);
+      queryClient.setQueryData(
+        ['plan-checkpoint-proposal', updatedPlan.id],
+        { proposal: null }
+      );
+      setHandledCheckpointKey(`${updatedPlan.id}:${updatedPlan.updatedAt}`);
+      setCheckpointProposalVisible(false);
+      setCheckpointMessage(t('checkpoint.applied'));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['today-plan'] }),
+        queryClient.invalidateQueries({ queryKey: ['food-log', updatedPlan.id] }),
+        queryClient.invalidateQueries({ queryKey: ['workout-session-by-plan', updatedPlan.id] })
+      ]);
+    },
+    onError: async () => {
+      setCheckpointProposalVisible(false);
+      setCheckpointMessage(t('checkpoint.unavailable'));
+      if (today.data?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['plan-checkpoint-proposal', today.data.id]
+        });
+      }
+    }
+  });
+  const keepCheckpoint = useMutation({
+    mutationFn: ({
+      dailyPlanId,
+      proposalId
+    }: {
+      dailyPlanId: string;
+      proposalId: string;
+    }) => keepCurrentDailyPlan(dailyPlanId, proposalId),
+    onSuccess: (_response, variables) => {
+      queryClient.setQueryData(
+        ['plan-checkpoint-proposal', variables.dailyPlanId],
+        { proposal: null }
+      );
+      setCheckpointProposalVisible(false);
+      setCheckpointMessage(t('checkpoint.kept'));
+    },
+    onError: async () => {
+      setCheckpointProposalVisible(false);
+      setCheckpointMessage(t('checkpoint.unavailable'));
+      if (today.data?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['plan-checkpoint-proposal', today.data.id]
+        });
+      }
     }
   });
   const appleHealthSync = useMutation({
@@ -253,6 +369,48 @@ export default function TodayScreen() {
     foodLog.isRefetching;
   const appMode = goal.data?.appMode ?? goal.data?.impactMode ?? 'NUTRITION_AND_TRAINING';
   const trainingEnabled = appMode === 'NUTRITION_AND_TRAINING';
+  const checkpointKey = today.data
+    ? `${today.data.id}:${today.data.updatedAt}`
+    : null;
+  const activeCheckpointProposal =
+    checkpointProposal.data?.proposal as
+      | DailyPlanCheckpointProposal
+      | null
+      | undefined;
+
+  useEffect(() => {
+    if (
+      activeCheckpointProposal &&
+      activeCheckpointProposal.id !== presentedCheckpointProposalId
+    ) {
+      setPresentedCheckpointProposalId(activeCheckpointProposal.id);
+      setCheckpointProposalVisible(true);
+      return;
+    }
+
+    if (
+      !today.data ||
+      !checkpointKey ||
+      checkpointProposal.isLoading ||
+      handledCheckpointKey === checkpointKey
+    ) {
+      return;
+    }
+
+    setHandledCheckpointKey(checkpointKey);
+    proposeCheckpoint.mutate({
+      dailyPlanId: today.data.id,
+      trigger: 'APP_OPEN'
+    });
+  }, [
+    activeCheckpointProposal,
+    checkpointKey,
+    checkpointProposal.isLoading,
+    handledCheckpointKey,
+    presentedCheckpointProposalId,
+    proposeCheckpoint,
+    today.data
+  ]);
 
   useEffect(() => {
     if (generateAfterRoutine !== '1' || handledRoutineReturn || today.isLoading || generate.isPending) {
@@ -495,6 +653,12 @@ export default function TodayScreen() {
         onSaved={() => {
           setEveningReflectionVisible(false);
           setRefreshMessage(t('eveningReflection.saved'));
+          if (today.data?.id) {
+            proposeCheckpoint.mutate({
+              dailyPlanId: today.data.id,
+              trigger: 'MANUAL_CHECK_IN'
+            });
+          }
         }}
       />
       <BottomSheet
@@ -531,11 +695,35 @@ export default function TodayScreen() {
           }
         ]}
       />
-      {refreshMessage ? (
+      <PlanCheckpointReviewSheet
+        visible={checkpointProposalVisible}
+        proposal={activeCheckpointProposal ?? null}
+        currentPlan={plan ?? null}
+        isResolving={applyCheckpoint.isPending || keepCheckpoint.isPending}
+        onApply={() => {
+          if (!today.data || !activeCheckpointProposal) return;
+          applyCheckpoint.mutate({
+            dailyPlanId: today.data.id,
+            proposalId: activeCheckpointProposal.id
+          });
+        }}
+        onKeep={() => {
+          if (!today.data || !activeCheckpointProposal) return;
+          keepCheckpoint.mutate({
+            dailyPlanId: today.data.id,
+            proposalId: activeCheckpointProposal.id
+          });
+        }}
+        onClose={() => setCheckpointProposalVisible(false)}
+      />
+      {checkpointMessage || refreshMessage ? (
         <AppToast
-          title={refreshMessage}
-          tone="success"
-          onDismiss={() => setRefreshMessage(null)}
+          title={checkpointMessage ?? refreshMessage ?? ''}
+          tone={checkpointMessage ? 'info' : 'success'}
+          onDismiss={() => {
+            setCheckpointMessage(null);
+            setRefreshMessage(null);
+          }}
         />
       ) : null}
     </Screen>

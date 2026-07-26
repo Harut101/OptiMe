@@ -348,6 +348,29 @@ export const frFR = createLocaleResource({
     dailyGuidance: 'Conseils du jour',
     createPlanHint: "Créez le plan du jour pour voir des conseils concis."
   },
+  checkpoint: {
+    title: 'Mise à jour du plan disponible',
+    subtitle: "Un changement important est survenu aujourd'hui. Vérifiez la suggestion avant de l'appliquer.",
+    currentPlan: 'Plan actuel',
+    suggestedUpdate: 'Mise à jour proposée',
+    changedAreas: 'Ce qui peut changer',
+    trustNote: "Votre plan actuel reste inchangé jusqu'à ce que vous appliquiez cette mise à jour.",
+    apply: 'Appliquer la mise à jour',
+    applying: 'Application...',
+    keep: 'Garder le plan actuel',
+    applied: 'Plan mis à jour',
+    kept: 'Plan actuel conservé',
+    unavailable: "Cette mise à jour n'est plus disponible. Votre plan actuel n'a pas changé.",
+    sections: {
+      NUTRITION_TARGET: 'Objectif nutritionnel',
+      FOOD_PLAN: 'Plan alimentaire',
+      TRAINING_PLAN: 'Entraînement',
+      RECOVERY: 'Récupération',
+      REMINDERS: 'Rappels',
+      WEARABLE_CONTEXT: 'Contexte santé',
+      SAFETY: 'Sécurité'
+    }
+  },
   feedback: {
     savedSuccessfully: 'Enregistré',
     changesSaved: 'Modifications enregistrées',

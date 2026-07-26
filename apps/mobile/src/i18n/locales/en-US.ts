@@ -62,6 +62,29 @@
     dailyGuidance: 'Daily guidance',
     createPlanHint: "Create today's plan to see concise coach guidance."
   },
+  checkpoint: {
+    title: 'Plan update available',
+    subtitle: 'Something meaningful changed today. Review the suggestion before applying it.',
+    currentPlan: 'Current plan',
+    suggestedUpdate: 'Suggested update',
+    changedAreas: 'What may change',
+    trustNote: 'Your current plan stays unchanged until you apply this update.',
+    apply: 'Apply update',
+    applying: 'Applying...',
+    keep: 'Keep current plan',
+    applied: 'Plan updated',
+    kept: 'Current plan kept',
+    unavailable: 'This update is no longer available. Your current plan was not changed.',
+    sections: {
+      NUTRITION_TARGET: 'Nutrition target',
+      FOOD_PLAN: 'Food plan',
+      TRAINING_PLAN: 'Training',
+      RECOVERY: 'Recovery',
+      REMINDERS: 'Reminders',
+      WEARABLE_CONTEXT: 'Health context',
+      SAFETY: 'Safety'
+    }
+  },
   limits: {
     message: "You've reached today's limit for this plan. Your {{plan}} plan includes {{limit}} {{action}} per day. {{reset}}",
     tryAfter: 'Try again after {{time}}.',

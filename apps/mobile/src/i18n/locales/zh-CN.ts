@@ -348,6 +348,29 @@ export const zhCN = createLocaleResource({
     dailyGuidance: '今日指导',
     createPlanHint: '生成今天的计划后，可查看简洁的教练建议。'
   },
+  checkpoint: {
+    title: '计划更新可用',
+    subtitle: '今天出现了重要变化。应用前请先查看建议。',
+    currentPlan: '当前计划',
+    suggestedUpdate: '建议更新',
+    changedAreas: '可能变化的内容',
+    trustNote: '在你确认应用之前，当前计划不会改变。',
+    apply: '应用更新',
+    applying: '正在应用...',
+    keep: '保留当前计划',
+    applied: '计划已更新',
+    kept: '已保留当前计划',
+    unavailable: '此更新已不可用。当前计划未被更改。',
+    sections: {
+      NUTRITION_TARGET: '营养目标',
+      FOOD_PLAN: '饮食计划',
+      TRAINING_PLAN: '训练',
+      RECOVERY: '恢复',
+      REMINDERS: '提醒',
+      WEARABLE_CONTEXT: '健康信息',
+      SAFETY: '安全'
+    }
+  },
   feedback: {
     savedSuccessfully: '已保存',
     changesSaved: '更改已保存',

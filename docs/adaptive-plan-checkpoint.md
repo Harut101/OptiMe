@@ -106,9 +106,45 @@ does not include passwords, tokens, raw health samples, or a full private
 profile. Safe logs record only plan ID, trigger severity, reason count, status,
 and whether persistence occurred.
 
+## Batch 4: Persistent Review And Explicit Decision
+
+Safe `READY` proposals are now stored separately from `DailyPlan` in
+`DailyPlanCheckpointProposal`. The record contains the normalized evaluation,
+the complete validated proposed plan, a short comparison summary, status, and
+the source plan's `updatedAt`. It does not store prompts, raw health samples,
+tokens, API keys, or a full profile.
+
+Apply the migration in each environment before using the Batch 4 endpoints:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api prisma:migrate
+```
+
+Authenticated clients can use:
+
+```txt
+GET  /v1/daily-plans/:id/checkpoint/proposal
+POST /v1/daily-plans/:id/checkpoint/proposals/:proposalId/apply
+POST /v1/daily-plans/:id/checkpoint/proposals/:proposalId/keep
+```
+
+The mobile Today flow checks for a pending proposal on foreground entry. If no
+pending proposal exists, it can run one `APP_OPEN` checkpoint evaluation for the
+current plan version. A proposal opens a localized review sheet that compares
+the current plan with the suggested update and offers two explicit decisions:
+Apply update or Keep current plan.
+
+Apply uses optimistic concurrency against the source plan's `updatedAt`. If the
+plan was regenerated or changed after the proposal was created, the proposal is
+marked `EXPIRED`, the API returns `CHECKPOINT_PROPOSAL_STALE`, and the latest
+plan remains unchanged. Keep marks the proposal `DISMISSED` without modifying
+the plan. Closing the sheet applies nothing and leaves the proposal available
+for a later review.
+
+The checkpoint remains foreground-only. There is no background sync, push
+notification, silent plan mutation, or health-data requirement.
+
 ## Deferred To Later Batches
 
-- Proposal persistence and explicit apply/keep behavior.
-- Mobile comparison UI.
 - Tier limits and cost accounting.
 - Background sync and push notifications.

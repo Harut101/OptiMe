@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards
+} from '@nestjs/common';
 
 import {
   AuthenticatedUser,
@@ -36,6 +43,43 @@ export class PlanCheckpointController {
       user.userId,
       dailyPlanId,
       dto
+    );
+  }
+
+  @Get(':id/checkpoint/proposal')
+  getPendingProposal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string
+  ) {
+    return this.planCheckpointProposalService.getPending(
+      user.userId,
+      dailyPlanId
+    );
+  }
+
+  @Post(':id/checkpoint/proposals/:proposalId/apply')
+  applyProposal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Param('proposalId') proposalId: string
+  ) {
+    return this.planCheckpointProposalService.apply(
+      user.userId,
+      dailyPlanId,
+      proposalId
+    );
+  }
+
+  @Post(':id/checkpoint/proposals/:proposalId/keep')
+  keepCurrentPlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') dailyPlanId: string,
+    @Param('proposalId') proposalId: string
+  ) {
+    return this.planCheckpointProposalService.keep(
+      user.userId,
+      dailyPlanId,
+      proposalId
     );
   }
 }

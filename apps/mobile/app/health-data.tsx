@@ -5,7 +5,11 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { generateTodayPlan } from '@/api/daily-plans';
+import {
+  generateTodayPlan,
+  getTodayPlan,
+  proposeDailyPlanCheckpoint
+} from '@/api/daily-plans';
 import {
   createMockWearableSnapshot,
   deleteHealthData,
@@ -38,6 +42,7 @@ import { useTheme } from '@/theme/theme-provider';
 import type { ThemeColors } from '@/theme/colors';
 import type {
   EvaluatePlanImpactResponse,
+  DailyPlanResponse,
   HealthConnectionFoundation,
   HealthProvider,
   WearableSnapshotResponse
@@ -313,6 +318,26 @@ export default function HealthDataScreen() {
 
   async function evaluateHealthPlanImpact(changeType: 'APPLE_HEALTH_SYNCED' | 'WEARABLE_SNAPSHOT_CHANGED') {
     try {
+      const currentPlan =
+        queryClient.getQueryData<DailyPlanResponse | null>(['today-plan']) ??
+        await queryClient.fetchQuery({
+          queryKey: ['today-plan'],
+          queryFn: getTodayPlan
+        });
+      if (currentPlan) {
+        const checkpoint = await proposeDailyPlanCheckpoint(
+          currentPlan.id,
+          'HEALTH_SYNC'
+        );
+        queryClient.setQueryData(
+          ['plan-checkpoint-proposal', currentPlan.id],
+          { proposal: checkpoint.proposal }
+        );
+        setPlanImpact(null);
+        setPlanImpactError(null);
+        return;
+      }
+
       const impact = await evaluatePlanImpact({ changeTypes: [changeType] });
       setPlanImpactError(null);
       setPlanImpact(impact.prompt ? impact : null);

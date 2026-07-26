@@ -350,6 +350,29 @@ export const ruRU = createLocaleResource({
     dailyGuidance: 'Советы на день',
     createPlanHint: 'Создайте план на сегодня, чтобы увидеть краткие рекомендации коуча.'
   },
+  checkpoint: {
+    title: 'Доступно обновление плана',
+    subtitle: 'Сегодня появились важные изменения. Просмотрите предложение перед применением.',
+    currentPlan: 'Текущий план',
+    suggestedUpdate: 'Предлагаемое обновление',
+    changedAreas: 'Что может измениться',
+    trustNote: 'Текущий план не изменится, пока вы не примените обновление.',
+    apply: 'Применить обновление',
+    applying: 'Применение...',
+    keep: 'Оставить текущий план',
+    applied: 'План обновлён',
+    kept: 'Текущий план сохранён',
+    unavailable: 'Это обновление больше недоступно. Текущий план не изменён.',
+    sections: {
+      NUTRITION_TARGET: 'Цель питания',
+      FOOD_PLAN: 'План питания',
+      TRAINING_PLAN: 'Тренировка',
+      RECOVERY: 'Восстановление',
+      REMINDERS: 'Напоминания',
+      WEARABLE_CONTEXT: 'Данные здоровья',
+      SAFETY: 'Безопасность'
+    }
+  },
   feedback: {
     savedSuccessfully: 'Сохранено',
     changesSaved: 'Изменения сохранены',

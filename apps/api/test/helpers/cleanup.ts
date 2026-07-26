@@ -15,6 +15,7 @@ export async function cleanupDatabase(prisma: PrismaService) {
   await prisma.wearableDailySnapshot.deleteMany();
   await prisma.workoutExerciseProgress.deleteMany();
   await prisma.workoutSession.deleteMany();
+  await prisma.dailyPlanCheckpointProposal.deleteMany();
   await prisma.dailyPlan.deleteMany();
   await prisma.subscription.deleteMany();
   await prisma.dailyTrainingOverride.deleteMany();

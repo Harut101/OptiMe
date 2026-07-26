@@ -5,13 +5,16 @@ import type {
   EveningReflectionTrendResponse,
   DailyPlanCheckInResponse,
   DailyPlanFeedbackResponse,
+  DailyPlanCheckpointPendingProposalResponse,
+  DailyPlanCheckpointProposalResponse,
   DailyPlanResponse,
   FoodIngredientSwapSuggestionsResponse,
   AdjustWorkoutForPreWorkoutRequest,
   ApplyTrainingReplacementsRequest,
   SubmitDailyPlanFeedbackRequest,
   TrainingReplacementProposalsRequest,
-  TrainingReplacementProposalsResponse
+  TrainingReplacementProposalsResponse,
+  ResolveDailyPlanCheckpointProposalResponse
 } from '@/types/api';
 
 interface RegenerateFoodPlanRequest {
@@ -38,6 +41,45 @@ export function recreateTodayPlanForCurrentLanguage() {
 
 export function getPlanHistory(limit = 10) {
   return apiRequest<{ items: DailyPlanResponse[] }>(`/daily-plans/history?limit=${limit}`);
+}
+
+export function proposeDailyPlanCheckpoint(
+  dailyPlanId: string,
+  trigger: 'APP_OPEN' | 'HEALTH_SYNC' | 'PRE_WORKOUT_CHECK' | 'MANUAL_CHECK_IN'
+) {
+  return apiRequest<DailyPlanCheckpointProposalResponse>(
+    `/daily-plans/${dailyPlanId}/checkpoint/propose`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ trigger })
+    }
+  );
+}
+
+export function getPendingDailyPlanCheckpointProposal(dailyPlanId: string) {
+  return apiRequest<DailyPlanCheckpointPendingProposalResponse>(
+    `/daily-plans/${dailyPlanId}/checkpoint/proposal`
+  );
+}
+
+export function applyDailyPlanCheckpointProposal(
+  dailyPlanId: string,
+  proposalId: string
+) {
+  return apiRequest<DailyPlanResponse>(
+    `/daily-plans/${dailyPlanId}/checkpoint/proposals/${proposalId}/apply`,
+    { method: 'POST' }
+  );
+}
+
+export function keepCurrentDailyPlan(
+  dailyPlanId: string,
+  proposalId: string
+) {
+  return apiRequest<ResolveDailyPlanCheckpointProposalResponse>(
+    `/daily-plans/${dailyPlanId}/checkpoint/proposals/${proposalId}/keep`,
+    { method: 'POST' }
+  );
 }
 
 export function submitDailyPlanFeedback(

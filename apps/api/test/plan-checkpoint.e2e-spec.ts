@@ -2,6 +2,7 @@ import request from 'supertest';
 import {
   DailyReadinessLevel,
   HealthProvider,
+  PlanCheckpointProposalStatus,
   PlanStatus,
   Prisma
 } from '@prisma/client';
@@ -172,7 +173,9 @@ describe('Adaptive plan checkpoint evaluation', () => {
         severity: 'HIGH'
       },
       proposal: {
+        id: expect.any(String),
         proposalVersion: 'adaptive-checkpoint.v1',
+        resolutionStatus: 'PENDING',
         sourceDailyPlanId: plan.id,
         trigger: 'HEALTH_SYNC',
         severity: 'HIGH',
@@ -192,8 +195,177 @@ describe('Adaptive plan checkpoint evaluation', () => {
     });
     expect(saved.planJson).toEqual(plan.planJson);
     expect(saved.updatedAt.toISOString()).toBe(plan.updatedAt.toISOString());
+    const storedProposal =
+      await ctx.prisma.dailyPlanCheckpointProposal.findFirstOrThrow({
+        where: { dailyPlanId: plan.id }
+      });
+    expect(storedProposal.status).toBe(PlanCheckpointProposalStatus.PENDING);
     expect(proposalSpy).toHaveBeenCalledTimes(1);
     proposalSpy.mockRestore();
+  });
+
+  it('returns only the current user pending proposal', async () => {
+    const owner = await registerTestUser(ctx.app);
+    const otherUser = await registerTestUser(ctx.app);
+    const plan = await createPlan(owner.user.id, createBaseline(480));
+    await createLowSleepSnapshot(ctx, owner.user.id, plan.planLocalDate);
+    const proposalResponse = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(owner.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+
+    const ownerResponse = await request(ctx.app.getHttpServer())
+      .get(`/v1/daily-plans/${plan.id}/checkpoint/proposal`)
+      .set(authHeader(owner.accessToken))
+      .expect(200);
+    expect(ownerResponse.body).toMatchObject({
+      proposal: {
+        id: proposalResponse.body.proposal.id,
+        resolutionStatus: 'PENDING'
+      }
+    });
+
+    const otherResponse = await request(ctx.app.getHttpServer())
+      .get(`/v1/daily-plans/${plan.id}/checkpoint/proposal`)
+      .set(authHeader(otherUser.accessToken))
+      .expect(200);
+    expect(otherResponse.body).toEqual({ proposal: null });
+  });
+
+  it('applies an approved proposal only after explicit confirmation', async () => {
+    const user = await registerTestUser(ctx.app);
+    const plan = await createPlan(user.user.id, createBaseline(480));
+    await createLowSleepSnapshot(ctx, user.user.id, plan.planLocalDate);
+    const proposalResponse = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(user.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+    const proposal = proposalResponse.body.proposal;
+
+    const beforeApply = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: plan.id }
+    });
+    expect(beforeApply.planJson).toEqual(plan.planJson);
+
+    const applyResponse = await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/daily-plans/${plan.id}/checkpoint/proposals/${proposal.id}/apply`
+      )
+      .set(authHeader(user.accessToken))
+      .expect(201);
+
+    expect(applyResponse.body).toMatchObject({
+      id: plan.id,
+      status: 'READY',
+      plan: proposal.proposedPlan
+    });
+    const storedProposal =
+      await ctx.prisma.dailyPlanCheckpointProposal.findUniqueOrThrow({
+        where: { id: proposal.id }
+      });
+    expect(storedProposal.status).toBe(PlanCheckpointProposalStatus.APPLIED);
+    expect(storedProposal.resolvedAt).not.toBeNull();
+  });
+
+  it('keeps the current plan and dismisses the proposal', async () => {
+    const user = await registerTestUser(ctx.app);
+    const plan = await createPlan(user.user.id, createBaseline(480));
+    await createLowSleepSnapshot(ctx, user.user.id, plan.planLocalDate);
+    const proposalResponse = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(user.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+    const proposal = proposalResponse.body.proposal;
+
+    const keepResponse = await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/daily-plans/${plan.id}/checkpoint/proposals/${proposal.id}/keep`
+      )
+      .set(authHeader(user.accessToken))
+      .expect(201);
+    expect(keepResponse.body).toEqual({
+      id: proposal.id,
+      resolutionStatus: 'DISMISSED'
+    });
+
+    const saved = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: plan.id }
+    });
+    expect(saved.planJson).toEqual(plan.planJson);
+    const storedProposal =
+      await ctx.prisma.dailyPlanCheckpointProposal.findUniqueOrThrow({
+        where: { id: proposal.id }
+      });
+    expect(storedProposal.status).toBe(
+      PlanCheckpointProposalStatus.DISMISSED
+    );
+  });
+
+  it('expires a stale proposal without overwriting the latest plan', async () => {
+    const user = await registerTestUser(ctx.app);
+    const plan = await createPlan(user.user.id, createBaseline(480));
+    await createLowSleepSnapshot(ctx, user.user.id, plan.planLocalDate);
+    const proposalResponse = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(user.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+    const proposal = proposalResponse.body.proposal;
+    const latestUpdatedAt = new Date(plan.updatedAt.getTime() + 5000);
+    await ctx.prisma.dailyPlan.update({
+      where: { id: plan.id },
+      data: { updatedAt: latestUpdatedAt }
+    });
+
+    const applyResponse = await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/daily-plans/${plan.id}/checkpoint/proposals/${proposal.id}/apply`
+      )
+      .set(authHeader(user.accessToken))
+      .expect(409);
+    expect(applyResponse.body).toMatchObject({
+      code: 'CHECKPOINT_PROPOSAL_STALE'
+    });
+
+    const saved = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: plan.id }
+    });
+    expect(saved.updatedAt.toISOString()).toBe(latestUpdatedAt.toISOString());
+    expect(saved.planJson).toEqual(plan.planJson);
+    const storedProposal =
+      await ctx.prisma.dailyPlanCheckpointProposal.findUniqueOrThrow({
+        where: { id: proposal.id }
+      });
+    expect(storedProposal.status).toBe(PlanCheckpointProposalStatus.EXPIRED);
+  });
+
+  it('does not allow another user to apply or dismiss a proposal', async () => {
+    const owner = await registerTestUser(ctx.app);
+    const otherUser = await registerTestUser(ctx.app);
+    const plan = await createPlan(owner.user.id, createBaseline(480));
+    await createLowSleepSnapshot(ctx, owner.user.id, plan.planLocalDate);
+    const proposalResponse = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(owner.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+    const proposalId = proposalResponse.body.proposal.id;
+
+    await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/daily-plans/${plan.id}/checkpoint/proposals/${proposalId}/apply`
+      )
+      .set(authHeader(otherUser.accessToken))
+      .expect(404);
+    await request(ctx.app.getHttpServer())
+      .post(
+        `/v1/daily-plans/${plan.id}/checkpoint/proposals/${proposalId}/keep`
+      )
+      .set(authHeader(otherUser.accessToken))
+      .expect(404);
   });
 
   it('rejects invalid provider output without changing the saved plan', async () => {

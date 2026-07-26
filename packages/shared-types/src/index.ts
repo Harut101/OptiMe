@@ -992,6 +992,12 @@ export type PlanCheckpointProposalStatus =
   | 'UNSAFE'
   | 'UNAVAILABLE';
 
+export type PlanCheckpointProposalResolutionStatus =
+  | 'PENDING'
+  | 'APPLIED'
+  | 'DISMISSED'
+  | 'EXPIRED';
+
 export type PlanCheckpointProposalFailureReason =
   | 'provider_unavailable'
   | 'schema_validation_failed'
@@ -1001,7 +1007,9 @@ export type PlanCheckpointProposalFailureReason =
   | 'safety_agent_unavailable';
 
 export interface DailyPlanCheckpointProposal {
+  id: string;
   proposalVersion: 'adaptive-checkpoint.v1';
+  resolutionStatus: PlanCheckpointProposalResolutionStatus;
   generatedAt: string;
   sourceDailyPlanId: string;
   sourcePlanUpdatedAt: string;
@@ -1014,6 +1022,18 @@ export interface DailyPlanCheckpointProposal {
     message: string;
   };
   proposedPlan: DailyPlanJson;
+}
+
+export interface ResolveDailyPlanCheckpointProposalResponse {
+  id: string;
+  resolutionStatus: Extract<
+    PlanCheckpointProposalResolutionStatus,
+    'DISMISSED' | 'EXPIRED'
+  >;
+}
+
+export interface DailyPlanCheckpointPendingProposalResponse {
+  proposal: DailyPlanCheckpointProposal | null;
 }
 
 export interface DailyPlanCheckpointProposalResponse {
