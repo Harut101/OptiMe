@@ -3,9 +3,11 @@ import { Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
+import { FoodIngredientSwapService } from '../daily-plans/food-ingredient-swap.service';
 import { PainAwareExerciseReplacementService } from '../daily-plans/pain-aware-exercise-replacement.service';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { FoodAvailabilityModule } from '../food-availability/food-availability.module';
+import { FoodCatalogModule } from '../food-catalog/food-catalog.module';
 import { FoodLogsModule } from '../food-logs/food-logs.module';
 import { HealthModule } from '../health/health.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
@@ -23,6 +25,7 @@ import { UsageModule } from '../usage/usage.module';
 import { DailyPlanAgentExecutionService } from './daily-plan-agent-execution.service';
 import { DailyPlanFinalizationService } from './daily-plan-finalization.service';
 import { DailyPlanFoodContextService } from './daily-plan-food-context.service';
+import { DailyPlanFoodIngredientUseCaseService } from './daily-plan-food-ingredient-use-case.service';
 import { DailyPlanFoodRegenerationUseCaseService } from './daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from './daily-plan-generation-use-case.service';
 import { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
@@ -39,6 +42,7 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanCheckInsModule,
     EntitlementsModule,
     FoodAvailabilityModule,
+    FoodCatalogModule,
     FoodLogsModule,
     HealthModule,
     NutritionAgentModule,
@@ -59,17 +63,20 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanAgentExecutionService,
     DailyPlanFinalizationService,
     DailyPlanFoodContextService,
+    DailyPlanFoodIngredientUseCaseService,
     DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
     DailyPlanGenerationContextService,
     DailyPlanPersistenceService,
     DailyPlanSafetyOrchestratorService,
     DailyPlanTrainingAdjustmentUseCaseService,
+    FoodIngredientSwapService,
     PainAwareExerciseReplacementService,
     DailyPlanTrainingLoadService
   ],
   exports: [
     DailyPlanFoodContextService,
+    DailyPlanFoodIngredientUseCaseService,
     DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
     DailyPlanTrainingAdjustmentUseCaseService,

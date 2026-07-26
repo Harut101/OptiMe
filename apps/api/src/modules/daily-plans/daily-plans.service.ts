@@ -1,7 +1,5 @@
 import {
-  BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
   UnauthorizedException
 } from '@nestjs/common';
@@ -11,20 +9,15 @@ import {
 } from '@prisma/client';
 import {
   resolveSupportedLocale,
-  type SupportedLocale,
-  type FoodIngredient
+  type SupportedLocale
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { DailyPlanFoodContextService } from '../daily-plan-orchestrator/daily-plan-food-context.service';
+import { DailyPlanFoodIngredientUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-ingredient-use-case.service';
 import { DailyPlanFoodRegenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-generation-use-case.service';
 import { DailyPlanTrainingAdjustmentUseCaseService } from '../daily-plan-orchestrator/daily-plan-training-adjustment-use-case.service';
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
-import { FoodIngredientSwapService } from './food-ingredient-swap.service';
-import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validation.service';
-import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
-import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
@@ -39,17 +32,12 @@ import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto
 
 @Injectable()
 export class DailyPlansService {
-  private readonly logger = new Logger(DailyPlansService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly generationUseCase: DailyPlanGenerationUseCaseService,
-    private readonly foodContextService: DailyPlanFoodContextService,
+    private readonly foodIngredientUseCase: DailyPlanFoodIngredientUseCaseService,
     private readonly foodRegenerationUseCase: DailyPlanFoodRegenerationUseCaseService,
-    private readonly trainingAdjustmentUseCase: DailyPlanTrainingAdjustmentUseCaseService,
-    private readonly foodIngredientSwapService: FoodIngredientSwapService,
-    private readonly foodPlanValidator: FoodPlanValidationService,
-    private readonly nutritionTargetsService: NutritionTargetsService
+    private readonly trainingAdjustmentUseCase: DailyPlanTrainingAdjustmentUseCaseService
   ) {}
 
   async getTodayPlan(userId: string) {
@@ -129,36 +117,12 @@ export class DailyPlansService {
     mealId: string,
     ingredientSlug: string
   ) {
-    const context = await this.foodContextService.getContext(
+    return this.foodIngredientUseCase.getSwapSuggestions({
       userId,
-      dailyPlanId
-    );
-    const meal = context.currentFoodPlan.meals.find((item) => item.id === mealId);
-    if (!meal) throw new NotFoundException('Meal not found in this plan.');
-
-    const ingredient = meal.ingredients.find((item) => item.catalogFoodSlug === ingredientSlug);
-    if (!ingredient) throw new NotFoundException('Ingredient not found in this meal.');
-    if (!ingredient.catalogFoodSlug) {
-      throw new BadRequestException('This ingredient does not support catalog substitutions yet.');
-    }
-
-    const suggestions = await this.foodIngredientSwapService.getSuggestions({
-      ingredient,
-      locale: context.locale,
-      dietType: context.user.nutritionPref?.dietType ?? null,
-      restrictions: {
-        allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
-        excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
-        dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? []
-      }
-    });
-
-    return {
       dailyPlanId,
       mealId,
-      ingredientSlug,
-      suggestions
-    };
+      ingredientSlug
+    });
   }
 
   async applyFoodIngredientSwap(
@@ -168,105 +132,14 @@ export class DailyPlansService {
     ingredientSlug: string,
     dto: ApplyFoodIngredientSwapDto
   ) {
-    const context = await this.foodContextService.getContext(
+    const plan = await this.foodIngredientUseCase.applySwap({
       userId,
-      dailyPlanId
-    );
-    const selectedMeal = context.currentFoodPlan.meals.find((meal) => meal.id === mealId);
-    if (!selectedMeal) throw new NotFoundException('Meal not found in this plan.');
-
-    const originalIngredient = selectedMeal.ingredients.find((ingredient) => (
-      ingredient.catalogFoodSlug === ingredientSlug
-    ));
-    if (!originalIngredient?.catalogFoodSlug) {
-      throw new NotFoundException('Ingredient not found in this meal.');
-    }
-
-    const suggestions = await this.foodIngredientSwapService.getSuggestions({
-      ingredient: originalIngredient,
-      locale: context.locale,
-      dietType: context.user.nutritionPref?.dietType ?? null,
-      restrictions: {
-        allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
-        excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
-        dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? []
-      }
+      dailyPlanId,
+      mealId,
+      ingredientSlug,
+      replacementCatalogFoodSlug:
+        dto.replacementCatalogFoodSlug
     });
-    const suggestion = suggestions.find((item) => item.slug === dto.replacementCatalogFoodSlug);
-    if (!suggestion) {
-      throw new BadRequestException(
-        'This ingredient alternative is no longer safe for your current food preferences.'
-      );
-    }
-
-    const replacement: FoodIngredient = {
-      catalogFoodSlug: suggestion.slug,
-      name: suggestion.name,
-      quantity: suggestion.quantity,
-      unit: suggestion.unit,
-      caloriesKcal: suggestion.caloriesKcal,
-      proteinGrams: suggestion.proteinGrams,
-      carbsGrams: suggestion.carbsGrams,
-      fatGrams: suggestion.fatGrams,
-      isOptional: originalIngredient.isOptional
-    };
-    const nextFoodPlan = normalizeFoodPlanNutrition({
-      ...context.currentFoodPlan,
-      source: 'NUTRITION_AGENT',
-      validation: {
-        ...context.currentFoodPlan.validation,
-        status: 'VALID',
-        reasons: []
-      },
-      meals: context.currentFoodPlan.meals.map((meal) => (
-        meal.id !== mealId
-          ? meal
-          : {
-              ...meal,
-              ingredients: meal.ingredients.map((ingredient) => (
-                ingredient.catalogFoodSlug === ingredientSlug ? replacement : ingredient
-              )),
-              substitutions: [
-                ...meal.substitutions.slice(-7),
-                {
-                  originalItem: originalIngredient.name,
-                  replacementItem: replacement.name,
-                  servingSummary: `${replacement.quantity} ${replacement.unit}`,
-                  reasonCode: 'SIMILAR_MACROS',
-                  macroImpactNote: null
-                }
-              ]
-            }
-      ))
-    });
-
-    const foodPlanValidation = this.foodPlanValidator.validate(nextFoodPlan, {
-      nutritionTarget: context.nutritionTarget,
-      nutritionTargetSnapshot: context.nutritionTargetSnapshot,
-      allergies: context.user.nutritionPref?.allergies.map((food) => food.name) ?? [],
-      excludedFoods: context.user.nutritionPref?.excludedFoods.map((food) => food.name) ?? [],
-      dislikedFoods: context.user.nutritionPref?.dislikedFoods.map((food) => food.name) ?? [],
-      safeMode: context.user.safeMode,
-      isMinor: context.user.isMinor,
-      pregnancyStatus: context.user.profile?.pregnancyStatus
-    });
-
-    if (!foodPlanValidation.passed) {
-      this.logger.warn(
-        `ingredient swap rejected; planId=${dailyPlanId}; mealId=${mealId}; reasonCodes=${foodPlanValidation.reasons.join(',')}`
-      );
-      throw new BadRequestException(
-        'This alternative would move your meal outside today\'s safe nutrition target. Your current meal was kept.'
-      );
-    }
-
-    this.logger.log(
-      `ingredient swap applied; planId=${dailyPlanId}; mealId=${mealId}; originalSlug=${ingredientSlug}; replacementSlug=${suggestion.slug}`
-    );
-    const plan = await this.foodContextService.persistFoodPlan(
-      context,
-      nextFoodPlan
-    );
 
     return this.toResponse(plan);
   }
@@ -288,54 +161,11 @@ export class DailyPlansService {
   }
 
   async excludeFoodIngredient(userId: string, dailyPlanId: string, dto: ExcludeFoodIngredientDto) {
-    await this.getOwnedPlanOrThrow(userId, dailyPlanId);
-    const ingredientName = dto.ingredientName.trim();
-
-    if (!ingredientName) {
-      throw new BadRequestException('Ingredient name is required.');
-    }
-
-    const preference = await this.prisma.$transaction(async (tx) => {
-      const nutritionPreference = await tx.nutritionPreference.upsert({
-        where: { userId },
-        update: {},
-        create: {
-          userId,
-          dietType: 'NONE',
-          mealsPerDay: 3,
-          noKnownAllergiesConfirmed: false
-        }
-      });
-      const existing = await tx.excludedFood.findFirst({
-        where: {
-          nutritionPreferenceId: nutritionPreference.id,
-          name: { equals: ingredientName, mode: 'insensitive' }
-        }
-      });
-
-      if (!existing) {
-        await tx.excludedFood.create({
-          data: {
-            nutritionPreferenceId: nutritionPreference.id,
-            name: ingredientName
-          }
-        });
-      }
-
-      return tx.nutritionPreference.findUniqueOrThrow({
-        where: { userId },
-        include: {
-          allergies: true,
-          excludedFoods: true,
-          dislikedFoods: true,
-          preferredFoods: true
-        }
-      });
+    return this.foodIngredientUseCase.excludeIngredient({
+      userId,
+      dailyPlanId,
+      ingredientName: dto.ingredientName
     });
-
-    this.logger.log(`food ingredient excluded; planId=${dailyPlanId}; userId=${userId}; duplicateSafe=true`);
-
-    return preference;
   }
 
   async adjustTrainingForPreWorkout(userId: string, dailyPlanId: string, dto: AdjustTrainingForPreWorkoutDto) {
@@ -424,21 +254,6 @@ export class DailyPlansService {
       createdAt: feedback.createdAt.toISOString(),
       updatedAt: feedback.updatedAt.toISOString()
     };
-  }
-
-  private async getOwnedPlanOrThrow(userId: string, dailyPlanId: string) {
-    const plan = await this.prisma.dailyPlan.findFirst({
-      where: {
-        id: dailyPlanId,
-        userId
-      }
-    });
-
-    if (!plan) {
-      throw new NotFoundException('Daily plan not found.');
-    }
-
-    return plan;
   }
 
   private async getPlanningUser(userId: string) {
