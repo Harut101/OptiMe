@@ -1,21 +1,11 @@
-import {
-  Injectable,
-  UnauthorizedException
-} from '@nestjs/common';
-import { PreferredLocale } from '@prisma/client';
-import {
-  resolveSupportedLocale,
-  type SupportedLocale
-} from '@optime/shared-types';
+import { Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../../prisma/prisma.service';
 import { DailyPlanFoodIngredientUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-ingredient-use-case.service';
 import { DailyPlanFoodRegenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-regeneration-use-case.service';
-import { DailyPlanGenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-generation-use-case.service';
 import { DailyPlanHistoryFeedbackUseCaseService } from '../daily-plan-orchestrator/daily-plan-history-feedback-use-case.service';
 import { toDailyPlanResponse } from '../daily-plan-orchestrator/daily-plan-response.mapper';
+import { DailyPlanTodayUseCaseService } from '../daily-plan-orchestrator/daily-plan-today-use-case.service';
 import { DailyPlanTrainingAdjustmentUseCaseService } from '../daily-plan-orchestrator/daily-plan-training-adjustment-use-case.service';
-import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
@@ -30,27 +20,15 @@ import { SubmitDailyPlanFeedbackDto } from './dto/submit-daily-plan-feedback.dto
 @Injectable()
 export class DailyPlansService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly generationUseCase: DailyPlanGenerationUseCaseService,
     private readonly foodIngredientUseCase: DailyPlanFoodIngredientUseCaseService,
     private readonly foodRegenerationUseCase: DailyPlanFoodRegenerationUseCaseService,
     private readonly historyFeedbackUseCase: DailyPlanHistoryFeedbackUseCaseService,
+    private readonly todayUseCase: DailyPlanTodayUseCaseService,
     private readonly trainingAdjustmentUseCase: DailyPlanTrainingAdjustmentUseCaseService
   ) {}
 
   async getTodayPlan(userId: string) {
-    const user = await this.getPlanningUser(userId);
-    const { planLocalDate, planTimezone } = this.getLocalPlanDate(user.timezone);
-
-    const plan = await this.prisma.dailyPlan.findUnique({
-      where: {
-        userId_planLocalDate_planTimezone: {
-          userId,
-          planLocalDate,
-          planTimezone
-        }
-      }
-    });
+    const plan = await this.todayUseCase.getToday(userId);
 
     return plan ? toDailyPlanResponse(plan) : null;
   }
@@ -63,27 +41,8 @@ export class DailyPlansService {
   }
 
   async generateTodayPlan(userId: string, dto: GenerateDailyPlanDto) {
-    const user = await this.getPlanningUser(userId);
-    const { planLocalDate, planTimezone } = this.getLocalPlanDate(user.timezone);
-    const targetLocale = this.resolvePlanningLocale(user);
-
-    const existingPlan = await this.prisma.dailyPlan.findUnique({
-      where: {
-        userId_planLocalDate_planTimezone: {
-          userId,
-          planLocalDate,
-          planTimezone
-        }
-      }
-    });
-
-    const plan = await this.generationUseCase.generate({
+    const plan = await this.todayUseCase.generateToday({
       userId,
-      user,
-      existingPlan,
-      planLocalDate,
-      planTimezone,
-      locale: targetLocale,
       forceRegenerate: Boolean(dto.forceRegenerate),
       recreateForCurrentLanguage: Boolean(
         dto.recreateForCurrentLanguage
@@ -211,57 +170,6 @@ export class DailyPlansService {
       tags: dto.tags,
       notes: dto.notes
     });
-  }
-
-  private async getPlanningUser(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: dailyPlanPlanningUserSelect
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Your session is no longer valid. Please log in again.');
-    }
-
-    return user;
-  }
-
-  private getLocalPlanDate(timezone: string) {
-    const safeTimezone = this.normalizeTimezone(timezone);
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: safeTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).formatToParts(new Date());
-
-    const year = parts.find((part) => part.type === 'year')?.value;
-    const month = parts.find((part) => part.type === 'month')?.value;
-    const day = parts.find((part) => part.type === 'day')?.value;
-
-    return {
-      planLocalDate: `${year}-${month}-${day}`,
-      planTimezone: safeTimezone
-    };
-  }
-
-  private normalizeTimezone(timezone: string) {
-    try {
-      new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
-      return timezone;
-    } catch {
-      return 'UTC';
-    }
-  }
-
-  private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
-    switch (user.settings?.preferredLocale) {
-      case PreferredLocale.RU_RU: return 'ru-RU';
-      case PreferredLocale.FR_FR: return 'fr-FR';
-      case PreferredLocale.ZH_CN: return 'zh-CN';
-      case PreferredLocale.EN_US: return 'en-US';
-      default: return resolveSupportedLocale(user.locale);
-    }
   }
 
 }

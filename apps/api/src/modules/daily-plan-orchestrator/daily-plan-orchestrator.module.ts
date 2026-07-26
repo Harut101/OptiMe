@@ -35,6 +35,7 @@ import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service';
 import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training-adjustment-use-case.service';
+import { DailyPlanTodayUseCaseService } from './daily-plan-today-use-case.service';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanPersistenceService,
     DailyPlanSafetyOrchestratorService,
     DailyPlanTrainingAdjustmentUseCaseService,
+    DailyPlanTodayUseCaseService,
     FoodIngredientSwapService,
     PainAwareExerciseReplacementService,
     DailyPlanTrainingLoadService
@@ -83,6 +85,7 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanGenerationUseCaseService,
     DailyPlanHistoryFeedbackUseCaseService,
     DailyPlanTrainingAdjustmentUseCaseService,
+    DailyPlanTodayUseCaseService,
     DailyPlanOrchestratorService
   ]
 })
