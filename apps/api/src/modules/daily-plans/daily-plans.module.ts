@@ -12,6 +12,7 @@ import { HealthModule } from '../health/health.module';
 import { NutritionAgentModule } from '../nutrition-agent/nutrition-agent.module';
 import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { PlanCheckpointModule } from '../plan-checkpoint/plan-checkpoint.module';
 import { ProtocolModule } from '../protocol/protocol.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
@@ -37,6 +38,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     NutritionAgentModule,
     NutritionTargetsModule,
     OnboardingModule,
+    PlanCheckpointModule,
     ProtocolModule,
     SafetyModule,
     SafetyAgentModule,

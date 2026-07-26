@@ -973,6 +973,18 @@ export interface EvaluatePlanCheckpointResponse {
   reasonCodes: PlanCheckpointReasonCode[];
 }
 
+export interface EvaluateDailyPlanCheckpointRequest {
+  trigger: PlanCheckpointTrigger;
+}
+
+export interface DailyPlanCheckpointEvaluationResponse
+  extends EvaluatePlanCheckpointResponse {
+  dailyPlanId: string;
+  planLocalDate: string;
+  baselineInitialized: boolean;
+  evaluatedAt: string;
+}
+
 export interface UpsertWearableSnapshotRequest {
   localDate: string;
   timezone: string;
@@ -1274,6 +1286,8 @@ export interface DailyPlanJson {
   };
   trainingScheduleSnapshot?: ResolvedTrainingDayContext;
   nutritionTargetSnapshot?: NutritionTargetSnapshot;
+  /** Backend-owned facts that were available when this plan was generated. */
+  checkpointBaseline?: PlanCheckpointFacts;
   contextNotes?: DailyPlanContextNotes;
   recovery: {
     recommendation: string;

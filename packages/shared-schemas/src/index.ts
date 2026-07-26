@@ -142,6 +142,10 @@ export const evaluatePlanCheckpointSchema = z.object({
   current: planCheckpointFactsSchema
 });
 
+export const evaluateDailyPlanCheckpointRequestSchema = z.object({
+  trigger: planCheckpointTriggerSchema
+});
+
 export const planCheckpointResultSchema = z.object({
   trigger: planCheckpointTriggerSchema,
   materialChangeDetected: z.boolean(),
@@ -161,6 +165,14 @@ export const planCheckpointResultSchema = z.object({
   ),
   reasonCodes: z.array(planCheckpointReasonCodeSchema)
 });
+
+export const dailyPlanCheckpointEvaluationResponseSchema =
+  planCheckpointResultSchema.extend({
+    dailyPlanId: z.string().min(1),
+    planLocalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    baselineInitialized: z.boolean(),
+    evaluatedAt: z.string().datetime()
+  });
 
 export const goalSchema = z.object({
   goalType: z.enum([

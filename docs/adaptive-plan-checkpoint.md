@@ -38,10 +38,40 @@ Initial material changes include:
 Safety signals receive priority and require deterministic safety review. The
 detector does not diagnose a condition and does not call AI.
 
+## Batch 2: Plan Baseline And Deterministic Evaluation
+
+Every newly generated or regenerated Daily Plan now stores an optional,
+backend-owned `checkpointBaseline` inside `DailyPlanJson`. It contains only
+normalized facts that were available when the plan was generated:
+
+- one selected wearable snapshot for the plan date;
+- aggregate meal completion and skip counts;
+- workout status;
+- numeric energy, tiredness, and soreness check-ins;
+- explicit structured pain/limitation signals.
+
+Raw health samples, free-form notes, prompts, and private profile details are not
+stored in the baseline.
+
+Authenticated clients can call:
+
+```txt
+POST /v1/daily-plans/:id/checkpoint/evaluate
+```
+
+with one trigger: `APP_OPEN`, `HEALTH_SYNC`, `PRE_WORKOUT_CHECK`, or
+`MANUAL_CHECK_IN`. The server verifies plan ownership and loads current facts
+from the database; clients cannot submit or override health values.
+
+Older plans without a baseline are backward compatible. Their first evaluation
+stores the current facts as the baseline and returns no material change. This
+prevents a false review prompt caused by comparing known current data with an
+unknown historical state.
+
+Batch 2 does not call AI, change a plan, create a proposal, or add mobile UI.
+
 ## Deferred To Later Batches
 
-- Loading baseline and current facts for a real Daily Plan.
-- Checkpoint API endpoints.
 - AI adjustment proposal generation.
 - Schema, deterministic safety, and Safety Agent proposal validation.
 - Proposal persistence and explicit apply/keep behavior.

@@ -1,5 +1,41 @@
 import { z } from 'zod';
 
+const planCheckpointFactsSchema = z.object({
+  capturedAt: z.string().datetime(),
+  health: z.object({
+    source: z
+      .enum(['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'GARMIN', 'MANUAL', 'MOCK'])
+      .nullable(),
+    localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    sleepMinutes: z.number().int().min(0).max(1440).nullable(),
+    steps: z.number().int().min(0).max(100000).nullable(),
+    activeCaloriesKcal: z.number().int().min(0).max(10000).nullable(),
+    workoutMinutes: z.number().int().min(0).max(1440).nullable()
+  }),
+  progress: z.object({
+    completedMeals: z.number().int().min(0).max(20),
+    skippedMeals: z.number().int().min(0).max(20),
+    workoutStatus: z.enum([
+      'NOT_STARTED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'SKIPPED',
+      'RESTED_INSTEAD'
+    ])
+  }),
+  checkIn: z.object({
+    energyLevel: z.number().int().min(1).max(10).nullable(),
+    tirednessLevel: z.number().int().min(1).max(10).nullable(),
+    sorenessLevel: z.number().int().min(1).max(10).nullable()
+  }),
+  safetySignals: z.object({
+    painOrLimitation: z.boolean(),
+    illness: z.boolean(),
+    dizziness: z.boolean(),
+    exhaustion: z.boolean()
+  })
+});
+
 const foodItemSchema = z.object({
   name: z.string(),
   portion: z.string(),
@@ -439,6 +475,7 @@ export const dailyPlanJsonSchema = z.object({
   trainingAdjustmentSnapshot: trainingAdjustmentSnapshotSchema.optional(),
   trainingScheduleSnapshot: resolvedTrainingDayContextSchema.optional(),
   nutritionTargetSnapshot: nutritionTargetSnapshotSchema.optional(),
+  checkpointBaseline: planCheckpointFactsSchema.optional(),
   contextNotes: dailyPlanContextNotesSchema.optional(),
   recovery: z.object({
     recommendation: z.string(),

@@ -63,6 +63,7 @@ import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validati
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
@@ -139,6 +140,7 @@ export class DailyPlansService {
     private readonly nutritionAgent: NutritionAgentService,
     private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
+    private readonly planCheckpointService: PlanCheckpointService,
     private readonly protocolSelector: ProtocolSelectorService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
@@ -532,6 +534,14 @@ export class DailyPlansService {
         safePlanResult.planJson,
         exercisePreparation.usedDeterministicFallback
       );
+      safePlanResult.planJson = {
+        ...safePlanResult.planJson,
+        checkpointBaseline: await this.planCheckpointService.captureGenerationBaseline(
+          userId,
+          planLocalDate,
+          existingPlan?.id
+        )
+      };
       const planJson = safePlanResult.planJson as Prisma.JsonObject;
       const status = this.resolvePersistedPlanStatus(safePlanResult);
       const finalExerciseIds = (safePlanResult.planJson.training.exercises ?? [])
