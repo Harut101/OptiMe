@@ -8,6 +8,11 @@ import type {
   AssembledDailyPlan,
   DailyPlanOrchestrator
 } from './daily-plan-orchestrator.interface';
+import type {
+  CreateSafetyFallbackInput,
+  ValidateDailyPlanSafetyInput
+} from './daily-plan-safety-orchestrator.interface';
+import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 
 @Injectable()
 export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
@@ -15,11 +20,20 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
 
   constructor(
     private readonly trainingPlanAgent: TrainingPlanAgentService,
-    private readonly recoveryPlanAgent: RecoveryPlanAgentService
+    private readonly recoveryPlanAgent: RecoveryPlanAgentService,
+    private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService
   ) {}
 
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput) {
     return this.recoveryPlanAgent.finalizeGeneratedPlan(input);
+  }
+
+  validateBeforePersistence(input: ValidateDailyPlanSafetyInput) {
+    return this.safetyOrchestrator.validate(input);
+  }
+
+  createSafetyFallback(input: CreateSafetyFallbackInput) {
+    return this.safetyOrchestrator.createSafetyFallback(input);
   }
 
   async assembleBeforeSafety(

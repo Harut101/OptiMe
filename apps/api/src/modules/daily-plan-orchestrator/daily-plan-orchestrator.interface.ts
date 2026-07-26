@@ -11,6 +11,11 @@ import type {
   FinalizedTrainingPlan,
   TrainingPlanProviderResult
 } from '../training-plan-agent/training-plan-agent.interface';
+import type {
+  CreateSafetyFallbackInput,
+  DailyPlanSafetyResult,
+  ValidateDailyPlanSafetyInput
+} from './daily-plan-safety-orchestrator.interface';
 
 export interface AssembleDailyPlanInput {
   providerPlanResult: TrainingPlanProviderResult;
@@ -39,4 +44,8 @@ export interface AssembledDailyPlan {
 export interface DailyPlanOrchestrator {
   assembleBeforeSafety(input: AssembleDailyPlanInput): Promise<AssembledDailyPlan>;
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput): FinalizedRecoveryPlan;
+  validateBeforePersistence(
+    input: ValidateDailyPlanSafetyInput
+  ): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult>;
+  createSafetyFallback(input: CreateSafetyFallbackInput): DailyPlanSafetyResult;
 }

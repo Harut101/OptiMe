@@ -4,6 +4,7 @@ import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.fa
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
+import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 
 describe('DailyPlanOrchestratorService', () => {
@@ -34,7 +35,8 @@ describe('DailyPlanOrchestratorService', () => {
     } as unknown as TrainingPlanAgentService;
     const service = new DailyPlanOrchestratorService(
       trainingPlanAgent,
-      recoveryPlanAgent
+      recoveryPlanAgent,
+      {} as DailyPlanSafetyOrchestratorService
     );
     const plan = createPlan();
 
@@ -89,7 +91,8 @@ describe('DailyPlanOrchestratorService', () => {
     } as unknown as RecoveryPlanAgentService;
     const service = new DailyPlanOrchestratorService(
       trainingPlanAgent,
-      recoveryPlanAgent
+      recoveryPlanAgent,
+      {} as DailyPlanSafetyOrchestratorService
     );
 
     await service.assembleBeforeSafety({
@@ -108,6 +111,41 @@ describe('DailyPlanOrchestratorService', () => {
     expect(trainingPlanAgent.finalizeGeneratedPlan).toHaveBeenCalledWith(
       expect.objectContaining({ retry: retryTrainingPlan })
     );
+  });
+
+  it('delegates final safety decisions to the safety orchestrator', async () => {
+    const expected = {
+      status: PlanStatus.READY,
+      planJson: createPlan()
+    };
+    const safetyOrchestrator = {
+      validate: jest.fn().mockResolvedValue(expected)
+    } as unknown as DailyPlanSafetyOrchestratorService;
+    const service = new DailyPlanOrchestratorService(
+      {} as TrainingPlanAgentService,
+      {} as RecoveryPlanAgentService,
+      safetyOrchestrator
+    );
+    const input = {
+      providerPlan: expected.planJson,
+      blockedFoods: { allergies: [], excludedFoods: [] },
+      planLocalDate: '2026-07-26',
+      planTimezone: 'UTC',
+      locale: 'en-US' as const,
+      userContext: {
+        safeMode: false,
+        isMinor: false,
+        limitationsOrPainAreas: [],
+        painOrDiscomfortReported: false,
+        highTirednessReported: false,
+        goal: null
+      }
+    };
+
+    await expect(service.validateBeforePersistence(input)).resolves.toBe(
+      expected
+    );
+    expect(safetyOrchestrator.validate).toHaveBeenCalledWith(input);
   });
 });
 

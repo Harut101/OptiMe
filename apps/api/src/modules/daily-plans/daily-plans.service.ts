@@ -47,6 +47,10 @@ import {
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
+import type {
+  CreateSafetyFallbackInput,
+  DailyPlanSafetyResult
+} from '../daily-plan-orchestrator/daily-plan-safety-orchestrator.interface';
 import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
@@ -63,15 +67,8 @@ import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.servic
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
-import { SafetyService } from '../safety/safety.service';
-import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
 import { SafetyAgentError } from '../safety-agent/safety-agent.error';
 import {
-  safetyAgentReviewSchema,
-  type SafetyAgentReview
-} from '../safety-agent/safety-agent-review.schema';
-import {
-  SAFETY_AGENT,
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
@@ -80,7 +77,6 @@ import { TrainingLoadAgentService } from '../training-load-agent/training-load-a
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
-import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { getSafeFallbackCopy } from './daily-plan-copy';
@@ -101,20 +97,6 @@ import {
   TrainingReplacementProposalResult
 } from './pain-aware-exercise-replacement.service';
 
-interface DailyPlanValidationResult {
-  status: PlanStatus;
-  planJson: DailyPlanJson;
-  safetyRetryRequest?: GenerateDailyPlanSafetyFeedback;
-}
-
-const MATERIAL_SAFETY_REVIEW_PATTERNS: Array<{ category: string; pattern: RegExp }> = [
-  { category: 'unsafe_diet', pattern: /starv|fasting|detox|extreme calor|severe (?:calorie|diet)|skip meals|punish(?:ment)? exercise/i },
-  { category: 'body_shaming', pattern: /body.?sham|shame|guilt|disgust|lazy|punish/i },
-  { category: 'medical_claim', pattern: /medical diagnos|diagnos|treat(?:ment)?|medical claim|supplement/i },
-  { category: 'unsafe_training', pattern: /unsafe (?:training|exercise|workout)|train through|push through|ignore (?:pain|dizz|illness|exhaust|injur)|(?:exercise|workout|training).*(?:despite|with) (?:pain|dizz|illness|exhaust|injur)|maximum effort|max effort|overtrain|aggress(?:ive|ively)/i },
-  { category: 'sensitive_context', pattern: /unsafe.*(?:under.?18|minor|safe mode|pregnan|postpartum|breastfeed)|(?:under.?18|minor|safe mode|pregnan|postpartum|breastfeed).*(?:unsafe|high.?intensity|extreme|aggress)/i }
-];
-
 @Injectable()
 export class DailyPlansService {
   private readonly logger = new Logger(DailyPlansService.name);
@@ -122,7 +104,6 @@ export class DailyPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly safetyService: SafetyService,
     private readonly aiOperationLogs: AiOperationLogsService,
     private readonly featureAccessService: FeatureAccessService,
     private readonly trainingPlanAgent: TrainingPlanAgentService,
@@ -143,7 +124,6 @@ export class DailyPlansService {
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
-    @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
   ) {}
 
@@ -1766,410 +1746,46 @@ export class DailyPlansService {
     forcedFallback?: boolean;
     allowSafetyRetry?: boolean;
     safetyRetryUsed?: boolean;
-  }): DailyPlanValidationResult | Promise<DailyPlanValidationResult> {
-    const parsedPlan = dailyPlanJsonSchema.safeParse(input.providerPlan);
-
-    if (!parsedPlan.success) {
-      this.logger.warn('schema validation passed: false; fallback used: true');
-      const fallbackPlan = createSafeFallbackPlan({
-        planLocalDate: input.planLocalDate,
-        planTimezone: input.planTimezone,
-        locale: this.resolvePlanningLocale(input.user),
-        reasons: [
-          input.safetyRetryUsed
-            ? 'safety_agent_retry_invalid_output'
-            : 'The generated plan could not be safely validated.'
-        ]
-      });
-
-      return {
-        status: PlanStatus.FALLBACK,
-        planJson: input.safetyRetryUsed
-          ? this.withSafetyAgentDebug(fallbackPlan, {
-              retryUsed: true,
-              retryResult: 'failed'
-            })
-          : fallbackPlan
-      };
-    }
-
-    const normalizedFoodNames = normalizeDailyPlanFoodNames(parsedPlan.data, input.blockedFoods);
-
-    normalizedFoodNames.normalizedPaths.forEach((path) => {
-      this.logger.log(`Food name normalized: path=${path}`);
-    });
-
-    const planSafety = this.safetyService.validatePlanFoodSafety(
-      normalizedFoodNames.planJson,
-      input.blockedFoods
-    );
-
-    if (!planSafety.passed) {
-      const firstConflict = planSafety.conflicts[0];
-      this.logger.warn(
-        [
-          'SafetyService failed',
-          firstConflict
-            ? `${firstConflict.conflictType} conflict at ${firstConflict.matchedPath}; restrictedFood=${firstConflict.restrictedFood}; matchedFoodName=${firstConflict.matchedFoodName ?? 'unknown'}`
-            : `fallback reason=${planSafety.reasons.join(' | ')}`
-        ].join(': ')
-      );
-      return {
-        status: PlanStatus.FALLBACK,
-        planJson: createSafeFallbackPlan({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          reasons: planSafety.reasons
-        })
-      };
-    }
-
-    const pregnancyPlanSafety = this.safetyService.validatePregnancySensitivePlanSafety(
-      normalizedFoodNames.planJson,
-      input.user.profile?.pregnancyStatus
-    );
-
-    if (!pregnancyPlanSafety.passed) {
-      this.logger.warn(
-        [
-          'SafetyService failed',
-          `pregnancy-sensitive conflict at ${pregnancyPlanSafety.matchedPath ?? 'unknown'}; matchedText=${pregnancyPlanSafety.matchedText ?? 'unknown'}`
-        ].join(': ')
-      );
-      return {
-        status: PlanStatus.FALLBACK,
-        planJson: createSafeFallbackPlan({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          reasons: pregnancyPlanSafety.reasons
-        })
-      };
-    }
-
-    const exercisePlanSafety = this.safetyService.validatePlanExerciseSafety({
-      planJson: normalizedFoodNames.planJson,
-      safeMode: input.user.safeMode,
-      isMinor: input.user.isMinor,
-      pregnancyStatus: input.user.profile?.pregnancyStatus,
-      trainingLevel: input.user.trainingPreference?.trainingLevel,
-      limitationsOrPainAreas: input.user.trainingPreference?.limitationsOrPainAreas ?? [],
-      painOrDiscomfortReported:
-        input.personalizationContext.checkInSummary?.painOrDiscomfortReported ?? false,
-      highTirednessReported:
-        input.personalizationContext.checkInSummary?.highTirednessReported ?? false
-    });
-
-    if (!exercisePlanSafety.passed) {
-      const firstConflict = exercisePlanSafety.conflicts[0];
-      this.logger.warn(
-        [
-          'SafetyService failed',
-          firstConflict
-            ? `exercise conflict at ${firstConflict.matchedPath}; reason=${firstConflict.reason}; matchedText=${firstConflict.matchedText}`
-            : `fallback reason=${exercisePlanSafety.reasons.join(' | ')}`
-        ].join(': ')
-      );
-      return {
-        status: PlanStatus.FALLBACK,
-        planJson: createSafeFallbackPlan({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          reasons: exercisePlanSafety.reasons
-        })
-      };
-    }
-
-    this.logger.log('schema validation passed: true');
-    this.logger.log('SafetyService passed: true');
-
-    if (input.forcedFallback) {
-      return {
-        status: PlanStatus.FALLBACK,
-        planJson: normalizedFoodNames.planJson
-      };
-    }
-
-    return this.reviewPlanWithSafetyAgent({
-      planJson: normalizedFoodNames.planJson,
-      user: input.user,
+  }): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult> {
+    return this.dailyPlanOrchestrator.validateBeforePersistence({
+      providerPlan: input.providerPlan,
       blockedFoods: input.blockedFoods,
       planLocalDate: input.planLocalDate,
       planTimezone: input.planTimezone,
-      allowSafetyRetry: Boolean(input.allowSafetyRetry),
-      retryUsed: Boolean(input.safetyRetryUsed)
+      locale: this.resolvePlanningLocale(input.user),
+      userContext: {
+        safeMode: input.user.safeMode,
+        isMinor: input.user.isMinor,
+        gender: input.user.profile?.gender,
+        pregnancyStatus: input.user.profile?.pregnancyStatus,
+        trainingLevel: input.user.trainingPreference?.trainingLevel,
+        limitationsOrPainAreas:
+          input.user.trainingPreference?.limitationsOrPainAreas ?? [],
+        painOrDiscomfortReported:
+          input.personalizationContext.checkInSummary
+            ?.painOrDiscomfortReported ?? false,
+        highTirednessReported:
+          input.personalizationContext.checkInSummary
+            ?.highTirednessReported ?? false,
+        goal: input.user.goal
+          ? {
+              goalType: input.user.goal.goalType,
+              targetWeightKg: input.user.goal.targetWeightKg,
+              targetTimelineDays: input.user.goal.targetTimelineDays,
+              impactMode: input.user.goal.impactMode
+            }
+          : null
+      },
+      forcedFallback: input.forcedFallback,
+      allowSafetyRetry: input.allowSafetyRetry,
+      safetyRetryUsed: input.safetyRetryUsed
     });
   }
 
-  private async reviewPlanWithSafetyAgent(input: {
-    planJson: DailyPlanJson;
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    blockedFoods: { allergies: string[]; excludedFoods: string[] };
-    planLocalDate: string;
-    planTimezone: string;
-    allowSafetyRetry: boolean;
-    retryUsed: boolean;
-  }): Promise<DailyPlanValidationResult> {
-    this.logger.log(
-      `SafetyAgent enabled=${this.safetyAgentConfig.enabled}; provider=${this.safetyAgentConfig.provider}`
-    );
-
-    if (!this.safetyAgentConfig.enabled) {
-      return {
-        status: PlanStatus.READY,
-        planJson: input.retryUsed
-          ? this.withSafetyAgentDebug(input.planJson, {
-              retryUsed: true,
-              retryResult: 'approved'
-            })
-          : input.planJson
-      };
-    }
-
-    try {
-      const review = await this.safetyAgent.reviewDailyPlan(
-        this.buildSafetyAgentReviewInput(input)
-      );
-      const parsedReview = safetyAgentReviewSchema.safeParse(review);
-
-      if (!parsedReview.success) {
-        this.logger.warn(
-          `SafetyAgent review invalid; provider=${this.safetyAgentConfig.provider}; fallback reason=safety_agent_invalid_review`
-        );
-        return this.createSafetyAgentFallback({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          fallbackReason: 'safety_agent_invalid_review'
-        });
-      }
-
-      this.logger.log(
-        [
-          'SafetyAgent review completed',
-          `provider=${this.safetyAgentConfig.provider}`,
-          `approved=${parsedReview.data.approved}`,
-          `riskLevel=${parsedReview.data.riskLevel}`,
-          `reasonCount=${parsedReview.data.reasons.length}`
-        ].join('; ')
-      );
-
-      if (!parsedReview.data.approved) {
-        const rejection = this.classifySafetyAgentRejection(parsedReview.data);
-        if (!rejection.isBlocking) {
-          this.logger.warn(
-            [
-              'SafetyAgent non-blocking review accepted',
-              `provider=${this.safetyAgentConfig.provider}`,
-              `riskLevel=${parsedReview.data.riskLevel}`,
-              `reasonCount=${parsedReview.data.reasons.length}`,
-              'categories=none'
-            ].join('; ')
-          );
-          return {
-            status: PlanStatus.READY,
-            planJson: this.withSafetyAgentDebug(input.planJson, {
-              approved: true,
-              riskLevel: 'low',
-              retryUsed: input.retryUsed,
-              retryResult: input.retryUsed ? 'approved' : 'not_used'
-            })
-          };
-        }
-
-        this.logger.warn(
-          [
-            'SafetyAgent blocking review',
-            `provider=${this.safetyAgentConfig.provider}`,
-            `riskLevel=${parsedReview.data.riskLevel}`,
-            `reasonCount=${parsedReview.data.reasons.length}`,
-            `categories=${rejection.categories.join(',')}`
-          ].join('; ')
-        );
-        for (const category of rejection.categories) {
-          this.logger.warn(`SafetyAgent blocking category=${category}`);
-        }
-        if (
-          input.allowSafetyRetry &&
-          parsedReview.data.requiredChanges.some((change) => change.trim().length > 0)
-        ) {
-          this.logger.warn(
-            `SafetyAgent rejected plan; safety retry available=true; reasonCount=${parsedReview.data.reasons.length}`
-          );
-          return {
-            status: PlanStatus.FALLBACK,
-            planJson: this.withSafetyAgentDebug(input.planJson, {
-              approved: false,
-              riskLevel: parsedReview.data.riskLevel,
-              retryUsed: false,
-              retryResult: 'not_used'
-            }),
-            safetyRetryRequest: {
-              riskLevel: parsedReview.data.riskLevel,
-              reasons: parsedReview.data.reasons,
-              requiredChanges: parsedReview.data.requiredChanges
-            }
-          };
-        }
-
-        const fallbackReason = input.retryUsed
-          ? 'safety_agent_retry_rejected'
-          : 'safety_agent_rejected';
-        this.logger.warn(`fallback used: true; fallback reason=${fallbackReason}`);
-        return this.createSafetyAgentFallback({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          fallbackReason,
-          approved: false,
-          riskLevel: parsedReview.data.riskLevel,
-          retryUsed: input.retryUsed,
-          retryResult: input.retryUsed ? 'rejected' : 'not_used'
-        });
-      }
-
-      if (input.retryUsed) {
-        this.logger.log('retry SafetyAgent approved=true');
-      }
-
-      return {
-        status: PlanStatus.READY,
-        planJson: this.withSafetyAgentDebug(input.planJson, {
-          approved: true,
-          riskLevel: parsedReview.data.riskLevel,
-          retryUsed: input.retryUsed,
-          retryResult: input.retryUsed ? 'approved' : 'not_used'
-        })
-      };
-    } catch (error) {
-      if (error instanceof SafetyAgentError) {
-        this.logger.warn(
-          `SafetyAgent failed; provider=${this.safetyAgentConfig.provider}; fallback reason=${error.fallbackReason}`
-        );
-        return this.createSafetyAgentFallback({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: this.resolvePlanningLocale(input.user),
-          fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : error.fallbackReason,
-          retryUsed: input.retryUsed,
-          retryResult: input.retryUsed ? 'failed' : 'not_used'
-        });
-      }
-
-      this.logger.warn('SafetyAgent unavailable; fallback reason=safety_agent_unavailable');
-      return this.createSafetyAgentFallback({
-        planLocalDate: input.planLocalDate,
-        planTimezone: input.planTimezone,
-        locale: this.resolvePlanningLocale(input.user),
-        fallbackReason: input.retryUsed ? 'safety_agent_retry_failed' : 'safety_agent_unavailable',
-        retryUsed: input.retryUsed,
-        retryResult: input.retryUsed ? 'failed' : 'not_used'
-      });
-    }
-  }
-
-  private buildSafetyAgentReviewInput(input: {
-    planJson: DailyPlanJson;
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    blockedFoods: { allergies: string[]; excludedFoods: string[] };
-  }): ReviewDailyPlanInput {
-    return {
-      plan: input.planJson,
-      safeMode: input.user.safeMode,
-      goalSummary: input.user.goal
-        ? {
-            goalType: input.user.goal.goalType,
-            targetWeightKg: input.user.goal.targetWeightKg,
-            targetTimelineDays: input.user.goal.targetTimelineDays,
-            impactMode: input.user.goal.impactMode
-          }
-        : null,
-      deterministicSafetyContext: {
-        safeMode: input.user.safeMode,
-        isMinor: input.user.isMinor,
-        gender: input.user.profile?.gender ?? null,
-        pregnancyStatus: input.user.profile?.pregnancyStatus ?? 'UNKNOWN',
-        allergies: input.blockedFoods.allergies,
-        excludedFoods: input.blockedFoods.excludedFoods,
-        deterministicSafetyPassed: true
-      }
-    };
-  }
-
-  private createSafetyAgentFallback(input: {
-    planLocalDate: string;
-    planTimezone: string;
-    locale: SupportedLocale;
-    fallbackReason: string;
-    approved?: boolean;
-    riskLevel?: 'low' | 'medium' | 'high';
-    retryUsed?: boolean;
-    retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
-  }): DailyPlanValidationResult {
-    return {
-      status: PlanStatus.FALLBACK,
-      planJson: this.withSafetyAgentDebug(
-        createSafeFallbackPlan({
-          planLocalDate: input.planLocalDate,
-          planTimezone: input.planTimezone,
-          locale: input.locale,
-          reasons: [input.fallbackReason]
-        }),
-        {
-          approved: input.approved,
-          riskLevel: input.riskLevel,
-          retryUsed: input.retryUsed,
-          retryResult: input.retryResult
-        }
-      )
-    };
-  }
-
-  private classifySafetyAgentRejection(review: SafetyAgentReview) {
-    const reviewText = [...review.reasons, ...review.requiredChanges].join(' ');
-    const categories = MATERIAL_SAFETY_REVIEW_PATTERNS
-      .filter(({ pattern }) => pattern.test(reviewText))
-      .map(({ category }) => category);
-
-    return {
-      categories,
-      // A high-risk verdict remains fail-closed. Medium findings must identify
-      // a material safety category; editorial feedback is not a reason to lose a plan.
-      isBlocking: review.riskLevel === 'high' || categories.length > 0
-    };
-  }
-
-  private withSafetyAgentDebug(
-    planJson: DailyPlanJson,
-    review?: {
-      approved?: boolean;
-      riskLevel?: 'low' | 'medium' | 'high';
-      retryUsed?: boolean;
-      retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
-    }
-  ): DailyPlanJson {
-    if (!planJson.debug) {
-      return planJson;
-    }
-
-    const safetyAgentDebug = {
-      enabled: this.safetyAgentConfig.enabled,
-      provider: this.safetyAgentConfig.provider,
-      ...(review?.approved !== undefined ? { approved: review.approved } : {}),
-      ...(review?.riskLevel !== undefined ? { riskLevel: review.riskLevel } : {}),
-      ...(review?.retryUsed !== undefined ? { retryUsed: review.retryUsed } : {}),
-      ...(review?.retryResult !== undefined ? { retryResult: review.retryResult } : {})
-    };
-
-    return {
-      ...planJson,
-      debug: {
-        ...planJson.debug,
-        safetyAgent: safetyAgentDebug
-      }
-    };
+  private createSafetyAgentFallback(
+    input: CreateSafetyFallbackInput
+  ): DailyPlanSafetyResult {
+    return this.dailyPlanOrchestrator.createSafetyFallback(input);
   }
 
   private withPlanDebugContext(
@@ -2561,7 +2177,7 @@ export class DailyPlansService {
     return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
   }
 
-  private resolvePersistedPlanStatus(result: DailyPlanValidationResult) {
+  private resolvePersistedPlanStatus(result: DailyPlanSafetyResult) {
     // A complete deterministic replacement is a usable plan, not a user-facing failure.
     // Provenance and operational fallback metrics remain in plan.debug and AiOperationLog.
     return result.planJson.debug?.generation?.isComplete

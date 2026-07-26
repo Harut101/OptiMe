@@ -15,7 +15,6 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
 import { PlanCheckpointModule } from '../plan-checkpoint/plan-checkpoint.module';
 import { ProtocolModule } from '../protocol/protocol.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
-import { SafetyModule } from '../safety/safety.module';
 import { TrainingLoadAgentModule } from '../training-load-agent/training-load-agent.module';
 import { TrainingPlanAgentModule } from '../training-plan-agent/training-plan-agent.module';
 import { TrainingScheduleModule } from '../training-schedule/training-schedule.module';
@@ -41,7 +40,6 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     OnboardingModule,
     PlanCheckpointModule,
     ProtocolModule,
-    SafetyModule,
     SafetyAgentModule,
     TrainingLoadAgentModule,
     TrainingPlanAgentModule,
