@@ -1,12 +1,8 @@
 import {
   Injectable,
-  NotFoundException,
   UnauthorizedException
 } from '@nestjs/common';
-import {
-  Prisma,
-  PreferredLocale
-} from '@prisma/client';
+import { PreferredLocale } from '@prisma/client';
 import {
   resolveSupportedLocale,
   type SupportedLocale
@@ -16,9 +12,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { DailyPlanFoodIngredientUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-ingredient-use-case.service';
 import { DailyPlanFoodRegenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from '../daily-plan-orchestrator/daily-plan-generation-use-case.service';
+import { DailyPlanHistoryFeedbackUseCaseService } from '../daily-plan-orchestrator/daily-plan-history-feedback-use-case.service';
+import { toDailyPlanResponse } from '../daily-plan-orchestrator/daily-plan-response.mapper';
 import { DailyPlanTrainingAdjustmentUseCaseService } from '../daily-plan-orchestrator/daily-plan-training-adjustment-use-case.service';
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
-import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { GenerateDailyPlanDto } from './dto/generate-daily-plan.dto';
 import { ExcludeFoodIngredientDto } from './dto/exclude-food-ingredient.dto';
 import { ApplyFoodIngredientSwapDto } from './dto/apply-food-ingredient-swap.dto';
@@ -37,6 +34,7 @@ export class DailyPlansService {
     private readonly generationUseCase: DailyPlanGenerationUseCaseService,
     private readonly foodIngredientUseCase: DailyPlanFoodIngredientUseCaseService,
     private readonly foodRegenerationUseCase: DailyPlanFoodRegenerationUseCaseService,
+    private readonly historyFeedbackUseCase: DailyPlanHistoryFeedbackUseCaseService,
     private readonly trainingAdjustmentUseCase: DailyPlanTrainingAdjustmentUseCaseService
   ) {}
 
@@ -54,20 +52,14 @@ export class DailyPlansService {
       }
     });
 
-    return plan ? this.toResponse(plan) : null;
+    return plan ? toDailyPlanResponse(plan) : null;
   }
 
   async getHistory(userId: string, limit?: string) {
-    const take = this.normalizeHistoryLimit(limit);
-    const plans = await this.prisma.dailyPlan.findMany({
-      where: { userId },
-      orderBy: [{ planLocalDate: 'desc' }, { updatedAt: 'desc' }],
-      take
+    return this.historyFeedbackUseCase.getHistory({
+      userId,
+      limit
     });
-
-    return {
-      items: plans.map((plan) => this.toResponse(plan))
-    };
   }
 
   async generateTodayPlan(userId: string, dto: GenerateDailyPlanDto) {
@@ -98,7 +90,7 @@ export class DailyPlansService {
       )
     });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async regenerateFoodPlan(userId: string, dailyPlanId: string, dto: RegenerateFoodPlanDto) {
@@ -108,7 +100,7 @@ export class DailyPlansService {
       reason: dto.reason
     });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async getFoodIngredientSwapSuggestions(
@@ -141,7 +133,7 @@ export class DailyPlansService {
         dto.replacementCatalogFoodSlug
     });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async regenerateFoodMeal(
@@ -157,7 +149,7 @@ export class DailyPlansService {
       reason: dto.reason
     });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async excludeFoodIngredient(userId: string, dailyPlanId: string, dto: ExcludeFoodIngredientDto) {
@@ -176,7 +168,7 @@ export class DailyPlansService {
         preWorkoutCheck: dto.preWorkoutCheck
       });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async getTrainingReplacementProposals(
@@ -208,52 +200,17 @@ export class DailyPlansService {
           dto.acceptedOriginalPlanExerciseKeys
       });
 
-    return this.toResponse(plan);
+    return toDailyPlanResponse(plan);
   }
 
   async submitFeedback(userId: string, dailyPlanId: string, dto: SubmitDailyPlanFeedbackDto) {
-    const plan = await this.prisma.dailyPlan.findFirst({
-      where: {
-        id: dailyPlanId,
-        userId
-      },
-      select: { id: true }
+    return this.historyFeedbackUseCase.submitFeedback({
+      userId,
+      dailyPlanId,
+      rating: dto.rating,
+      tags: dto.tags,
+      notes: dto.notes
     });
-
-    if (!plan) {
-      throw new NotFoundException('Daily plan not found.');
-    }
-
-    const feedback = await this.prisma.dailyPlanFeedback.upsert({
-      where: {
-        userId_dailyPlanId: {
-          userId,
-          dailyPlanId
-        }
-      },
-      update: {
-        rating: dto.rating,
-        tags: dto.tags ?? [],
-        notes: dto.notes?.trim() || null
-      },
-      create: {
-        userId,
-        dailyPlanId,
-        rating: dto.rating,
-        tags: dto.tags ?? [],
-        notes: dto.notes?.trim() || null
-      }
-    });
-
-    return {
-      id: feedback.id,
-      dailyPlanId: feedback.dailyPlanId,
-      rating: feedback.rating,
-      tags: feedback.tags,
-      notes: feedback.notes,
-      createdAt: feedback.createdAt.toISOString(),
-      updatedAt: feedback.updatedAt.toISOString()
-    };
   }
 
   private async getPlanningUser(userId: string) {
@@ -297,16 +254,6 @@ export class DailyPlansService {
     }
   }
 
-  private normalizeHistoryLimit(limit?: string) {
-    const parsedLimit = Number(limit);
-
-    if (!Number.isFinite(parsedLimit)) {
-      return 10;
-    }
-
-    return Math.min(Math.max(Math.trunc(parsedLimit), 1), 30);
-  }
-
   private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
     switch (user.settings?.preferredLocale) {
       case PreferredLocale.RU_RU: return 'ru-RU';
@@ -317,31 +264,4 @@ export class DailyPlansService {
     }
   }
 
-  private toResponse(plan: {
-    id: string;
-    status: string;
-    readinessLevel: string;
-    planLocalDate: string;
-    planTimezone: string;
-    planJson: Prisma.JsonValue;
-    createdAt: Date;
-    updatedAt: Date;
-  }) {
-    const normalizedPlan = normalizeDailyPlanJson({
-      planJson: plan.planJson,
-      planLocalDate: plan.planLocalDate,
-      planTimezone: plan.planTimezone,
-      readinessLevel: plan.readinessLevel
-    });
-
-    return {
-      id: plan.id,
-      status: plan.status,
-      readinessLevel: plan.readinessLevel,
-      planLocalDate: plan.planLocalDate,
-      planTimezone: plan.planTimezone,
-      plan: normalizedPlan,
-      updatedAt: plan.updatedAt.toISOString()
-    };
-  }
 }

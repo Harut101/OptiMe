@@ -29,6 +29,7 @@ import { DailyPlanFoodIngredientUseCaseService } from './daily-plan-food-ingredi
 import { DailyPlanFoodRegenerationUseCaseService } from './daily-plan-food-regeneration-use-case.service';
 import { DailyPlanGenerationUseCaseService } from './daily-plan-generation-use-case.service';
 import { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
+import { DailyPlanHistoryFeedbackUseCaseService } from './daily-plan-history-feedback-use-case.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
@@ -67,6 +68,7 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
     DailyPlanGenerationContextService,
+    DailyPlanHistoryFeedbackUseCaseService,
     DailyPlanPersistenceService,
     DailyPlanSafetyOrchestratorService,
     DailyPlanTrainingAdjustmentUseCaseService,
@@ -79,6 +81,7 @@ import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training
     DailyPlanFoodIngredientUseCaseService,
     DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
+    DailyPlanHistoryFeedbackUseCaseService,
     DailyPlanTrainingAdjustmentUseCaseService,
     DailyPlanOrchestratorService
   ]
