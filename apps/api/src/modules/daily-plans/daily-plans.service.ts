@@ -61,6 +61,7 @@ import { OnboardingService } from '../onboarding/onboarding.service';
 import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
+import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
@@ -80,7 +81,6 @@ import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-a
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
 import { normalizeDailyPlanFoodNames } from './daily-plan-food-name-normalizer';
-import { withRecoveryAwareContextNotes } from './daily-plan-context-notes';
 import { DailyPlanJson, dailyPlanJsonSchema } from './daily-plan-json.schema';
 import { normalizeDailyPlanJson } from './daily-plan-normalizer';
 import { getSafeFallbackCopy } from './daily-plan-copy';
@@ -138,6 +138,7 @@ export class DailyPlansService {
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly planCheckpointService: PlanCheckpointService,
     private readonly protocolSelector: ProtocolSelectorService,
+    private readonly recoveryPlanAgent: RecoveryPlanAgentService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
@@ -2455,11 +2456,13 @@ export class DailyPlansService {
     trainingEnabled: boolean,
     isTrainingDay: boolean
   ): DailyPlanJson {
-    return withRecoveryAwareContextNotes(planJson, {
+    return this.recoveryPlanAgent.finalizeGeneratedPlan({
+      planJson,
+      recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
       healthPlanningContext: personalizationContext.healthPlanningContext,
       trainingEnabled,
       isTrainingDay
-    });
+    }).planJson;
   }
 
   private withTrainingStateForAppMode(

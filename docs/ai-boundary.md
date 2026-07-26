@@ -11,6 +11,9 @@ OptiMe keeps AI behind the NestJS backend. The mobile app never calls OpenAI dir
 - `TrainingPlanAgentService` selects allowed library candidates, validates the
   generated workout and its duration budget, permits one bounded repair attempt,
   and composes a trusted library fallback when needed.
+- `RecoveryPlanAgentService` applies deterministic recovery context from selected
+  protocols and normalized health signals without reading raw health samples or
+  diagnosing recovery state.
 - `SafetyService` enforces hard safety rules.
 - `SafetyAgent` performs final semantic review when enabled.
 
@@ -47,6 +50,18 @@ snapshots.
 Invalid identities, prescriptions, rest intervals, or session duration trigger
 at most one repair request. A failed repair is replaced with a deterministic
 workout made only from trusted `ExerciseLibrary` records.
+
+## Recovery Agent Boundary
+
+The Recovery Plan Agent receives only the selected recovery protocol and
+normalized `HealthPlanningContext`. Fresh low-sleep/high-activity hints may add
+gentler recovery context. Pain/limitation and pregnancy/postpartum protocols stay
+conservative. Missing or stale wearable data must never be interpreted as poor
+recovery.
+
+This foundation does not add another OpenAI call and does not rewrite nutrition,
+training, or provider-authored recovery copy. Final hard and semantic safety
+checks still run afterward.
 
 ## Regeneration Boundary
 

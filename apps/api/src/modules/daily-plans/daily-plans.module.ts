@@ -13,6 +13,7 @@ import { NutritionTargetsModule } from '../nutrition-targets/nutrition-targets.m
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { PlanCheckpointModule } from '../plan-checkpoint/plan-checkpoint.module';
 import { ProtocolModule } from '../protocol/protocol.module';
+import { RecoveryPlanAgentModule } from '../recovery-plan-agent/recovery-plan-agent.module';
 import { SafetyAgentModule } from '../safety-agent/safety-agent.module';
 import { SafetyModule } from '../safety/safety.module';
 import { TrainingLoadAgentModule } from '../training-load-agent/training-load-agent.module';
@@ -39,6 +40,7 @@ import { PainAwareExerciseReplacementService } from './pain-aware-exercise-repla
     OnboardingModule,
     PlanCheckpointModule,
     ProtocolModule,
+    RecoveryPlanAgentModule,
     SafetyModule,
     SafetyAgentModule,
     TrainingLoadAgentModule,
