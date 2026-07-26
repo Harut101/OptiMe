@@ -624,7 +624,7 @@ describe('Sprint 1 backend vertical slice', () => {
     );
 
     await expect(featureAccess.canGenerateDailyPlan(freeUser.user.id)).resolves.toBe(true);
-    await expect(featureAccess.canRefreshPlan(freeUser.user.id)).resolves.toBe(true);
+    await expect(featureAccess.canRefreshPlan(freeUser.user.id)).resolves.toBe(false);
     await expect(featureAccess.canUseOpenAIProvider(freeUser.user.id)).resolves.toBe(true);
     await expect(featureAccess.canUseAdvancedPersonalization(freeUser.user.id)).resolves.toBe(
       false
@@ -720,30 +720,30 @@ describe('Sprint 1 backend vertical slice', () => {
       usageGuard.getLimit(
         plusUser.user.id,
         UsageFeature.DAILY_PLAN_REFRESH,
-        UsagePeriodType.DAILY
+        UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(5);
+    ).resolves.toBe(3);
     await expect(
       usageGuard.getLimit(
         proUser.user.id,
         UsageFeature.AI_DAILY_PLAN_GENERATION,
         UsagePeriodType.DAILY
       )
-    ).resolves.toBe(20);
+    ).resolves.toBe(1);
     await expect(
       usageGuard.getLimit(
         freeUser.user.id,
         UsageFeature.MENU_REGENERATION,
-        UsagePeriodType.DAILY
+        UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(1);
+    ).resolves.toBe(0);
     await expect(
       usageGuard.getLimit(
         plusUser.user.id,
         UsageFeature.MEAL_REGENERATION,
-        UsagePeriodType.DAILY
+        UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(5);
+    ).resolves.toBe(12);
     await expect(
       usageGuard.getLimit(
         proUser.user.id,
@@ -759,21 +759,10 @@ describe('Sprint 1 backend vertical slice', () => {
       )
     ).resolves.toBeNull();
 
-    await usageGuard.assertCanUse(
-      freeUser.user.id,
-      UsageFeature.DAILY_PLAN_REFRESH,
-      UsagePeriodType.DAILY
-    );
-    await usageGuard.consume(
-      freeUser.user.id,
-      UsageFeature.DAILY_PLAN_REFRESH,
-      UsagePeriodType.DAILY
-    );
     await expect(
-      usageGuard.assertCanUse(
+      usageGuard.assertCanUseConfigured(
         freeUser.user.id,
-        UsageFeature.DAILY_PLAN_REFRESH,
-        UsagePeriodType.DAILY
+        UsageFeature.DAILY_PLAN_REFRESH
       )
     ).rejects.toBeInstanceOf(UsageLimitExceededException);
 
@@ -844,24 +833,31 @@ describe('Sprint 1 backend vertical slice', () => {
         }),
         expect.objectContaining({
           feature: UsageFeature.DAILY_PLAN_REFRESH,
-          periodType: UsagePeriodType.DAILY,
+          periodType: UsagePeriodType.MONTHLY,
           count: 0,
-          limit: 1,
-          remaining: 1
+          limit: 0,
+          remaining: 0
+        }),
+        expect.objectContaining({
+          feature: UsageFeature.AI_PLAN_CHECKPOINT_PROPOSAL,
+          periodType: UsagePeriodType.MONTHLY,
+          count: 0,
+          limit: 0,
+          remaining: 0
         }),
         expect.objectContaining({
           feature: UsageFeature.MENU_REGENERATION,
-          periodType: UsagePeriodType.DAILY,
+          periodType: UsagePeriodType.MONTHLY,
           count: 0,
-          limit: 1,
-          remaining: 1
+          limit: 0,
+          remaining: 0
         }),
         expect.objectContaining({
           feature: UsageFeature.MEAL_REGENERATION,
-          periodType: UsagePeriodType.DAILY,
+          periodType: UsagePeriodType.MONTHLY,
           count: 0,
-          limit: 1,
-          remaining: 1
+          limit: 2,
+          remaining: 2
         }),
         expect.objectContaining({
           feature: UsageFeature.AI_TRAINING_LOAD_AGENT,
@@ -872,7 +868,7 @@ describe('Sprint 1 backend vertical slice', () => {
         })
       ])
     );
-    expect(summary.body.items).toHaveLength(6);
+    expect(summary.body.items).toHaveLength(7);
     expect(summary.body.items[0].resetAt).toEqual(expect.any(String));
   });
 
@@ -3085,6 +3081,10 @@ describe('Sprint 1 backend vertical slice', () => {
   it('persists mock daily plans and handles regeneration rules', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'First');
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
 
     const first = await request(ctx.app.getHttpServer())
       .post('/v1/daily-plans/generate')
@@ -3207,7 +3207,7 @@ describe('Sprint 1 backend vertical slice', () => {
     });
   });
 
-  it('consumes refresh usage and blocks a second Free refresh same day', async () => {
+  it('blocks manual refresh for Free without consuming refresh usage', async () => {
     const user = await registerTestUser(ctx.app, 'usage-refresh-integration@example.com');
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'RefreshOne');
 
@@ -3230,12 +3230,6 @@ describe('Sprint 1 backend vertical slice', () => {
       })
       .expect(200);
 
-    await request(ctx.app.getHttpServer())
-      .post('/v1/daily-plans/generate')
-      .set(authHeader(user.accessToken))
-      .send({ forceRegenerate: true })
-      .expect(201);
-
     const blocked = await request(ctx.app.getHttpServer())
       .post('/v1/daily-plans/generate')
       .set(authHeader(user.accessToken))
@@ -3246,17 +3240,17 @@ describe('Sprint 1 backend vertical slice', () => {
       code: 'USAGE_LIMIT_REACHED',
       feature: UsageFeature.DAILY_PLAN_REFRESH,
       currentPlan: SubscriptionPlan.FREE,
-      limit: 1,
-      periodType: UsagePeriodType.DAILY,
+      limit: 0,
+      periodType: UsagePeriodType.MONTHLY,
       upgradeSuggestion: 'PLUS'
     });
     await expect(
       ctx.app.get(UsageLedgerService).getUsage(
         user.user.id,
         UsageFeature.DAILY_PLAN_REFRESH,
-        UsagePeriodType.DAILY
+        UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(1);
+    ).resolves.toBe(0);
   });
 
   it('allows Plus and Pro users to generate and refresh above Free limits', async () => {
@@ -3340,6 +3334,10 @@ describe('Sprint 1 backend vertical slice', () => {
   it('updates usage summary after generation and refresh', async () => {
     const user = await registerTestUser(ctx.app, 'usage-summary-after-actions@example.com');
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'UsageSummary');
+    await createTestSubscription(ctx, user.user.id, {
+      plan: SubscriptionPlan.PLUS,
+      status: SubscriptionStatus.ACTIVE
+    });
 
     await request(ctx.app.getHttpServer())
       .post('/v1/daily-plans/generate')
@@ -3367,13 +3365,15 @@ describe('Sprint 1 backend vertical slice', () => {
         expect.objectContaining({
           feature: UsageFeature.DAILY_PLAN_REFRESH,
           count: 1,
-          remaining: 0
+          limit: 3,
+          periodType: UsagePeriodType.MONTHLY,
+          remaining: 2
         })
       ])
     );
   });
 
-  it('meters full menu regeneration and blocks a second Free menu regeneration without mutating the plan', async () => {
+  it('blocks full menu regeneration for Free without mutating the plan', async () => {
     const user = await registerTestUser(ctx.app, 'menu-regeneration-limit@example.com');
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'MenuLimit');
 
@@ -3382,20 +3382,6 @@ describe('Sprint 1 backend vertical slice', () => {
       .set(authHeader(user.accessToken))
       .send({ forceRegenerate: false })
       .expect(201);
-
-    await request(ctx.app.getHttpServer())
-      .post(`/v1/daily-plans/${generated.body.id}/food/regenerate`)
-      .set(authHeader(user.accessToken))
-      .send({ reason: 'Try another safe menu.' })
-      .expect(201);
-
-    await expect(
-      ctx.app.get(UsageLedgerService).getUsage(
-        user.user.id,
-        UsageFeature.MENU_REGENERATION,
-        UsagePeriodType.DAILY
-      )
-    ).resolves.toBe(1);
 
     const beforeBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
       where: { id: generated.body.id },
@@ -3411,8 +3397,8 @@ describe('Sprint 1 backend vertical slice', () => {
       code: 'USAGE_LIMIT_REACHED',
       feature: UsageFeature.MENU_REGENERATION,
       currentPlan: SubscriptionPlan.FREE,
-      limit: 1,
-      periodType: UsagePeriodType.DAILY,
+      limit: 0,
+      periodType: UsagePeriodType.MONTHLY,
       upgradeSuggestion: 'PLUS'
     });
     const afterBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
@@ -3420,9 +3406,16 @@ describe('Sprint 1 backend vertical slice', () => {
       select: { planJson: true, updatedAt: true }
     });
     expect(afterBlocked).toEqual(beforeBlocked);
+    await expect(
+      ctx.app.get(UsageLedgerService).getUsage(
+        user.user.id,
+        UsageFeature.MENU_REGENERATION,
+        UsagePeriodType.MONTHLY
+      )
+    ).resolves.toBe(0);
   });
 
-  it('meters meal regeneration and blocks a second Free meal regeneration without mutating the plan', async () => {
+  it('allows two monthly Free meal regenerations and blocks the third without mutating the plan', async () => {
     const user = await registerTestUser(ctx.app, 'meal-regeneration-limit@example.com');
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'MealLimit');
 
@@ -3438,14 +3431,19 @@ describe('Sprint 1 backend vertical slice', () => {
       .set(authHeader(user.accessToken))
       .send({ reason: 'Try another safe meal.' })
       .expect(201);
+    await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${generated.body.id}/food/meals/${mealId}/regenerate`)
+      .set(authHeader(user.accessToken))
+      .send({ reason: 'Try one more safe meal.' })
+      .expect(201);
 
     await expect(
       ctx.app.get(UsageLedgerService).getUsage(
         user.user.id,
         UsageFeature.MEAL_REGENERATION,
-        UsagePeriodType.DAILY
+        UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(1);
+    ).resolves.toBe(2);
 
     const beforeBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
       where: { id: generated.body.id },
@@ -3461,8 +3459,8 @@ describe('Sprint 1 backend vertical slice', () => {
       code: 'USAGE_LIMIT_REACHED',
       feature: UsageFeature.MEAL_REGENERATION,
       currentPlan: SubscriptionPlan.FREE,
-      limit: 1,
-      periodType: UsagePeriodType.DAILY,
+      limit: 2,
+      periodType: UsagePeriodType.MONTHLY,
       upgradeSuggestion: 'PLUS'
     });
     const afterBlocked = await ctx.prisma.dailyPlan.findUniqueOrThrow({
@@ -7313,7 +7311,7 @@ function expectedFeaturesForPlan(plan: SubscriptionPlan | 'FREE' | 'PLUS' | 'PRO
 
   return {
     canGenerateDailyPlan: true,
-    canRefreshPlan: true,
+    canRefreshPlan: isPlusOrPro,
     canUseOpenAIProvider: true,
     canUseAdvancedPersonalization: isPlusOrPro,
     canUseFeedbackPersonalization: isPlusOrPro,
@@ -7323,7 +7321,7 @@ function expectedFeaturesForPlan(plan: SubscriptionPlan | 'FREE' | 'PLUS' | 'PRO
     canUseWhoop: isPro,
     canUseAiCoach: isPro,
     canRegenerateMeals: true,
-    canRegenerateMenus: true,
+    canRegenerateMenus: isPlusOrPro,
     canUseAiTrainingLoadAgent: isPlusOrPro,
     canUsePainAwareReplacements: true,
     canUseWorkoutExecution: true,

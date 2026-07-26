@@ -32,7 +32,8 @@
     "exercise-media:thumbnails": "ts-node scripts/exercise-media/thumbnails.ts",
     "exercise-media:thumbnails:validate": "ts-node scripts/exercise-media/thumbnails-validate.ts",
     "exercise-media:package": "ts-node scripts/exercise-media/package.ts",
-    "exercise-media:smoke": "ts-node scripts/exercise-media/smoke.ts"
+    "exercise-media:smoke": "ts-node scripts/exercise-media/smoke.ts",
+    "ai-cost:report": "ts-node scripts/ai-cost-report.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

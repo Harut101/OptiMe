@@ -20,6 +20,24 @@ export class UsageGuardService {
     return this.getLimitForPlan(currentPlan, feature, periodType);
   }
 
+  getConfiguredPeriodType(feature: UsageFeature) {
+    return this.getConfig(feature)?.periodType ?? null;
+  }
+
+  async assertCanUseConfigured(userId: string, feature: UsageFeature) {
+    const periodType = this.requireConfiguredPeriodType(feature);
+    return this.assertCanUse(userId, feature, periodType);
+  }
+
+  async checkAndConsumeConfigured(
+    userId: string,
+    feature: UsageFeature,
+    amount = 1
+  ) {
+    const periodType = this.requireConfiguredPeriodType(feature);
+    return this.checkAndConsume(userId, feature, periodType, amount);
+  }
+
   async getRemaining(userId: string, feature: UsageFeature, periodType: UsagePeriodType) {
     const context = await this.getUsageContext(userId, feature, periodType);
 
@@ -151,11 +169,27 @@ export class UsageGuardService {
     feature: UsageFeature,
     periodType: UsagePeriodType
   ) {
-    const config = USAGE_LIMIT_MATRIX.find(
-      (candidate) => candidate.feature === feature && candidate.periodType === periodType
-    );
+    const config = this.getConfig(feature, periodType);
 
     return config?.limits[plan] ?? null;
+  }
+
+  private getConfig(feature: UsageFeature, periodType?: UsagePeriodType) {
+    return USAGE_LIMIT_MATRIX.find(
+      (candidate) =>
+        candidate.feature === feature &&
+        (periodType === undefined || candidate.periodType === periodType)
+    );
+  }
+
+  private requireConfiguredPeriodType(feature: UsageFeature) {
+    const periodType = this.getConfiguredPeriodType(feature);
+
+    if (!periodType) {
+      throw new Error(`No usage limit configuration exists for ${feature}.`);
+    }
+
+    return periodType;
   }
 
   private getUsageUser(userId: string) {

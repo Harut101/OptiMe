@@ -40,6 +40,7 @@ Current enum values:
 - `DAILY_PLAN_REFRESH`
 - `AI_DAILY_PLAN_GENERATION`
 - `AI_SAFETY_AGENT_REVIEW`
+- `AI_PLAN_CHECKPOINT_PROPOSAL`
 - `MEAL_REGENERATION`
 - `MENU_REGENERATION`
 - `AI_TRAINING_LOAD_AGENT`
@@ -51,16 +52,17 @@ Current enum values:
 
 `UsageGuardService` resolves the user's current plan through backend entitlement logic. It never trusts a client-provided plan.
 
-Current MVP daily limits:
+Current production limits:
 
-| Feature | Free | Plus | Pro |
-|---|---:|---:|---:|
-| `DAILY_PLAN_GENERATION` | 1/day | 5/day | 20/day |
-| `DAILY_PLAN_REFRESH` | 1/day | 5/day | 20/day |
-| `AI_DAILY_PLAN_GENERATION` | 1/day | 5/day | 20/day |
-| `MENU_REGENERATION` | 1/day | 5/day | 20/day |
-| `MEAL_REGENERATION` | 1/day | 5/day | 20/day |
-| `AI_TRAINING_LOAD_AGENT` | 0/day | 5/day | 20/day |
+| Feature | Period | Free | Plus | Pro |
+|---|---|---:|---:|---:|
+| `DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
+| `DAILY_PLAN_REFRESH` | Monthly | 0 | 3 | 10 |
+| `AI_DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
+| `AI_PLAN_CHECKPOINT_PROPOSAL` | Monthly | 0 | 8 | 20 |
+| `MENU_REGENERATION` | Monthly | 0 | 2 | 6 |
+| `MEAL_REGENERATION` | Monthly | 2 | 12 | 30 |
+| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 5 | 20 |
 
 Methods:
 
@@ -69,8 +71,14 @@ Methods:
 - `assertCanUse(userId, feature, periodType)`
 - `consume(userId, feature, periodType, amount)`
 - `checkAndConsume(userId, feature, periodType, amount)`
+- `getConfiguredPeriodType(feature)`
+- `assertCanUseConfigured(userId, feature)`
+- `checkAndConsumeConfigured(userId, feature, amount)`
 
 `checkAndConsume` is the concurrency-safe path for future feature enforcement. It increments atomically, then rolls back the increment and throws a friendly error if the limit is exceeded.
+
+The `Configured` methods use the central entitlement matrix as the source of truth
+for daily versus monthly periods. Callers do not duplicate period decisions.
 
 ## What Counts
 
@@ -84,6 +92,7 @@ These actions count:
 - Full menu regeneration.
 - Individual meal regeneration.
 - AI Training Load Agent calls for `PLUS` and `PRO`.
+- OpenAI Adaptive Plan Checkpoint proposals for `PLUS` and `PRO`.
 
 Fallback still counts after generation starts. This includes:
 
@@ -120,14 +129,26 @@ When a limit is reached, the backend throws:
   code: "USAGE_LIMIT_REACHED",
   feature: "DAILY_PLAN_REFRESH",
   currentPlan: "FREE",
-  limit: 1,
-  periodType: "DAILY",
+    limit: 0,
+    periodType: "MONTHLY",
   resetAt: string,
   upgradeSuggestion: "PLUS"
 }
 ```
 
-Mobile can later render this as a helpful paywall or upgrade prompt.
+Mobile renders daily and monthly wording without exposing raw JSON. A separate
+operational cost ceiling can return:
+
+```ts
+{
+  code: "AI_CAPACITY_LIMIT_REACHED",
+  currentPlan: "FREE",
+  resetAt: string,
+  upgradeSuggestion: "PLUS"
+}
+```
+
+This response intentionally omits internal spend and ceiling values.
 
 ## Usage Summary Endpoint
 
@@ -154,7 +175,23 @@ Returns current limited-feature usage:
 
 This endpoint is JWT protected. It does not count as usage.
 
-After a daily plan generation or refresh, this endpoint reflects the updated usage counters.
+After a counted action, this endpoint reflects the updated usage counters and the
+configured daily or monthly reset.
+
+## Operational AI Cost Ceiling
+
+`UsageLedger` remains the product allowance system. `AiCostControlService` is a
+separate deployment safety valve based on successful priced `AiRequestLog` rows.
+It is disabled by default and does not run in mock mode.
+
+When explicitly enabled, all three positive monthly ceiling values and all route
+input/output prices are required. The current UTC month is used for aggregation.
+If telemetry cannot be written, user-visible generation remains available because
+telemetry is best-effort. Existing unpriced rows do not count toward the ceiling.
+
+The preflight check cannot know the final cost of the next request, so one
+operation may cross the threshold. Subsequent user-visible AI operations are
+blocked until the next UTC month.
 
 ## Safety Is Never Limited
 

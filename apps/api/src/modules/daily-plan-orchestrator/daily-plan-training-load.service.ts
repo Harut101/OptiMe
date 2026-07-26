@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
@@ -44,10 +43,9 @@ export class DailyPlanTrainingLoadService {
 
     let consumedUsage: { id: string; amount: number } | null = null;
     try {
-      const usage = await this.usageGuardService.checkAndConsume(
+      const usage = await this.usageGuardService.checkAndConsumeConfigured(
         input.user.id,
-        UsageFeature.AI_TRAINING_LOAD_AGENT,
-        UsagePeriodType.DAILY
+        UsageFeature.AI_TRAINING_LOAD_AGENT
       );
       consumedUsage = { id: usage.id, amount: 1 };
     } catch (error) {

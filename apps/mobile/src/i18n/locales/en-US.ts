@@ -86,13 +86,17 @@
     }
   },
   limits: {
-    message: "You've reached today's limit for this plan. Your {{plan}} plan includes {{limit}} {{action}} per day. {{reset}}",
+    messageDaily: "You've reached today's limit for this plan. Your {{plan}} plan includes {{limit}} {{action}} per day. {{reset}}",
+    messageMonthly: "You've reached this month's limit for this plan. Your {{plan}} plan includes {{limit}} {{action}} per month. {{reset}}",
+    capacityMessage: 'AI planning is temporarily unavailable for this plan. Your existing plan remains available. {{reset}}',
     tryAfter: 'Try again after {{time}}.',
+    tryAfterDate: 'Try again after {{date}}.',
     tryAfterReset: 'Try again after reset.',
     features: {
       dailyPlanGeneration: 'plan generation',
       dailyPlanRefresh: 'refresh',
       aiDailyPlanGeneration: 'AI plan generation',
+      aiPlanCheckpointProposal: 'adaptive plan proposal',
       mealRegeneration: 'meal regeneration',
       menuRegeneration: 'menu regeneration',
       aiTrainingLoadAgent: 'AI training-load guidance'

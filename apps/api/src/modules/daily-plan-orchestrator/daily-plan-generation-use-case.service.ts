@@ -6,10 +6,10 @@ import {
 import {
   type DailyPlan,
   PlanStatus,
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 
+import { AiCostControlService } from '../ai-operation-logs/ai-cost-control.service';
 import { dailyPlanJsonSchema } from '../daily-plans/daily-plan-json.schema';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { UsageGuardService } from '../usage/usage-guard.service';
@@ -25,7 +25,8 @@ export class DailyPlanGenerationUseCaseService {
   constructor(
     private readonly orchestrator: DailyPlanOrchestratorService,
     private readonly usageGuardService: UsageGuardService,
-    private readonly onboardingService: OnboardingService
+    private readonly onboardingService: OnboardingService,
+    private readonly aiCostControlService: AiCostControlService
   ) {}
 
   async generate(
@@ -43,6 +44,12 @@ export class DailyPlanGenerationUseCaseService {
     const consumedUsage: Array<{ id: string; amount: number }> = [];
 
     try {
+      if (this.orchestrator.getProviderName() === 'openai') {
+        await this.aiCostControlService.assertCanStartAiOperation(
+          input.userId
+        );
+      }
+
       if (!input.recreateForCurrentLanguage) {
         consumedUsage.push(
           ...(await this.consumeUsage(
@@ -319,41 +326,33 @@ export class DailyPlanGenerationUseCaseService {
     const productFeature = isRefresh
       ? UsageFeature.DAILY_PLAN_REFRESH
       : UsageFeature.DAILY_PLAN_GENERATION;
-    const usageChecks: Array<{
-      feature: UsageFeature;
-      periodType: UsagePeriodType;
-    }> = [
-      {
-        feature: productFeature,
-        periodType: UsagePeriodType.DAILY
-      }
-    ];
+    const usageChecks: UsageFeature[] = [productFeature];
 
-    if (this.orchestrator.getProviderName() === 'openai') {
-      usageChecks.push({
-        feature: UsageFeature.AI_DAILY_PLAN_GENERATION,
-        periodType: UsagePeriodType.DAILY
-      });
+    if (
+      !isRefresh &&
+      this.orchestrator.getProviderName() === 'openai'
+    ) {
+      usageChecks.push(
+        UsageFeature.AI_DAILY_PLAN_GENERATION
+      );
     }
 
     await Promise.all(
-      usageChecks.map((check) =>
-        this.usageGuardService.assertCanUse(
+      usageChecks.map((feature) =>
+        this.usageGuardService.assertCanUseConfigured(
           userId,
-          check.feature,
-          check.periodType
+          feature
         )
       )
     );
 
     const consumed: Array<{ id: string; amount: number }> = [];
 
-    for (const check of usageChecks) {
+    for (const feature of usageChecks) {
       const usage =
-        await this.usageGuardService.checkAndConsume(
+        await this.usageGuardService.checkAndConsumeConfigured(
           userId,
-          check.feature,
-          check.periodType
+          feature
         );
       consumed.push({ id: usage.id, amount: 1 });
     }

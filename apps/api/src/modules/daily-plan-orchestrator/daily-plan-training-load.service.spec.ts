@@ -2,8 +2,7 @@ import {
   GoalImpactMode,
   PlanQualityMode,
   TrainingLevel,
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 
 import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.factory';
@@ -28,7 +27,7 @@ describe('DailyPlanTrainingLoadService', () => {
       dependencies.featureAccessService.canUseAiTrainingLoadAgent
     ).not.toHaveBeenCalled();
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).not.toHaveBeenCalled();
     expect(dependencies.trainingLoadAgent.generate).not.toHaveBeenCalled();
   });
@@ -38,7 +37,7 @@ describe('DailyPlanTrainingLoadService', () => {
     dependencies.featureAccessService.canUseAiTrainingLoadAgent.mockResolvedValue(
       true
     );
-    dependencies.usageGuardService.checkAndConsume.mockRejectedValue(
+    dependencies.usageGuardService.checkAndConsumeConfigured.mockRejectedValue(
       new Error('limit reached')
     );
     const fallbackSnapshot = createSnapshot(
@@ -53,11 +52,10 @@ describe('DailyPlanTrainingLoadService', () => {
 
     expect(result.trainingLoadAgentSnapshot).toBe(fallbackSnapshot);
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).toHaveBeenCalledWith(
       'user-1',
-      UsageFeature.AI_TRAINING_LOAD_AGENT,
-      UsagePeriodType.DAILY
+      UsageFeature.AI_TRAINING_LOAD_AGENT
     );
     expect(dependencies.trainingLoadAgent.generate).not.toHaveBeenCalled();
   });
@@ -67,7 +65,7 @@ describe('DailyPlanTrainingLoadService', () => {
     dependencies.featureAccessService.canUseAiTrainingLoadAgent.mockResolvedValue(
       true
     );
-    dependencies.usageGuardService.checkAndConsume.mockResolvedValue({
+    dependencies.usageGuardService.checkAndConsumeConfigured.mockResolvedValue({
       id: 'usage-1'
     });
     const aiSnapshot = createSnapshot('AI_TRAINING_LOAD_AGENT', []);
@@ -93,7 +91,7 @@ describe('DailyPlanTrainingLoadService', () => {
     dependencies.featureAccessService.canUseAiTrainingLoadAgent.mockResolvedValue(
       true
     );
-    dependencies.usageGuardService.checkAndConsume.mockResolvedValue({
+    dependencies.usageGuardService.checkAndConsumeConfigured.mockResolvedValue({
       id: 'usage-1'
     });
     dependencies.trainingLoadAgent.generate.mockResolvedValue(
@@ -120,7 +118,7 @@ function createService() {
     generate: jest.fn()
   };
   const usageGuardService = {
-    checkAndConsume: jest.fn(),
+    checkAndConsumeConfigured: jest.fn(),
     refundById: jest.fn().mockResolvedValue(undefined)
   };
   const service = new DailyPlanTrainingLoadService(

@@ -34,16 +34,16 @@ export class FeatureAccessService {
     return (await this.entitlementsService.getEntitlementSummary(userId)).planQualityMode;
   }
 
-  async canGenerateDailyPlan(_userId: string) {
-    return true;
+  async canGenerateDailyPlan(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canGenerateDailyPlan;
   }
 
-  async canRefreshPlan(_userId: string) {
-    return true;
+  async canRefreshPlan(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canRefreshPlan;
   }
 
-  async canUseOpenAIProvider(_userId: string) {
-    return true;
+  async canUseOpenAIProvider(userId: string) {
+    return this.getFeaturesForPlan(await this.getCurrentPlan(userId)).canUseOpenAIProvider;
   }
 
   async canUseAdvancedPersonalization(userId: string) {

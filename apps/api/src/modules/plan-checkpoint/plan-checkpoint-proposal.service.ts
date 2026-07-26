@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   AiRequestOperation,
   DailyReadinessLevel,
@@ -13,7 +14,8 @@ import {
   PlanQualityMode,
   PlanStatus,
   PregnancyStatus,
-  Prisma
+  Prisma,
+  UsageFeature
 } from '@prisma/client';
 import type {
   DailyPlanCheckpointPendingProposalResponse,
@@ -25,6 +27,7 @@ import type {
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { AiCostControlService } from '../ai-operation-logs/ai-cost-control.service';
 import {
   AiProvider,
   GeneratePlanCheckpointProposalInput
@@ -43,6 +46,7 @@ import {
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
+import { UsageGuardService } from '../usage/usage-guard.service';
 import { EvaluateDailyPlanCheckpointDto } from './dto/evaluate-daily-plan-checkpoint.dto';
 import { PlanCheckpointService } from './plan-checkpoint.service';
 
@@ -77,7 +81,10 @@ export class PlanCheckpointProposalService {
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT) private readonly safetyAgent: SafetyAgent,
     @Inject(SAFETY_AGENT_CONFIG)
-    private readonly safetyAgentConfig: SafetyAgentConfig
+    private readonly safetyAgentConfig: SafetyAgentConfig,
+    private readonly usageGuardService: UsageGuardService,
+    private readonly aiCostControlService: AiCostControlService,
+    private readonly configService: ConfigService
   ) {}
 
   async propose(
@@ -136,6 +143,20 @@ export class PlanCheckpointProposalService {
 
     if (!this.aiProvider.generatePlanCheckpointProposal) {
       return this.failure(context.evaluation, 'provider_unavailable');
+    }
+
+    if (
+      this.configService
+        .get<string>('AI_PROVIDER', 'mock')
+        .toLowerCase() === 'openai'
+    ) {
+      await this.aiCostControlService.assertCanStartAiOperation(
+        userId
+      );
+      await this.usageGuardService.checkAndConsumeConfigured(
+        userId,
+        UsageFeature.AI_PLAN_CHECKPOINT_PROPOSAL
+      );
     }
 
     let providerPlan: DailyPlanJson;

@@ -1,6 +1,13 @@
 import request from 'supertest';
 import type { DailyFoodPlan } from '@optime/shared-types';
-import { FoodCatalogSource, FoodPreparationLevel } from '@prisma/client';
+import {
+  FoodCatalogSource,
+  FoodPreparationLevel,
+  SubscriptionEnvironment,
+  SubscriptionPlan,
+  SubscriptionProvider,
+  SubscriptionStatus
+} from '@prisma/client';
 
 import { dailyFoodPlanSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { CatalogFallbackFoodPlanService } from '../src/modules/nutrition-agent/catalog-fallback-food-plan.service';
@@ -1110,6 +1117,7 @@ describe('Specialized Nutrition Agent food plans', () => {
   it('regenerates the full food menu while preserving nutrition target and non-food plan sections', async () => {
     const user = await registerTestUser(ctx.app, 'full-menu-regeneration@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});
+    await grantPlus(user.user.id);
 
     const generated = await request(ctx.app.getHttpServer())
       .post('/v1/daily-plans/generate')
@@ -1144,6 +1152,7 @@ describe('Specialized Nutrition Agent food plans', () => {
   it('uses confirmed available foods when regenerating the full food menu', async () => {
     const user = await registerTestUser(ctx.app, 'full-menu-availability-regeneration@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});
+    await grantPlus(user.user.id);
     const availableSlugs = [
       'rolled-oats',
       'greek-yogurt-plain',
@@ -1449,6 +1458,22 @@ describe('Specialized Nutrition Agent food plans', () => {
       .expect(200);
 
     return response.body;
+  }
+
+  async function grantPlus(userId: string) {
+    await ctx.prisma.subscription.create({
+      data: {
+        userId,
+        plan: SubscriptionPlan.PLUS,
+        status: SubscriptionStatus.ACTIVE,
+        provider: SubscriptionProvider.DEV,
+        environment: SubscriptionEnvironment.SANDBOX,
+        startsAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1_000
+        )
+      }
+    });
   }
 });
 

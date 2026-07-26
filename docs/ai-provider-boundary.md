@@ -220,7 +220,8 @@ Daily Plan, Plan Checkpoint, Nutrition, Safety, and Training Load requests all u
 estimation rules.
 
 Request telemetry is best-effort observability. It does not replace `UsageLedger`,
-enforce cost ceilings, alter entitlements, or charge users.
+alter entitlements, or charge users. `AiCostControlService` may aggregate the
+priced request rows for a separately configured monthly operational ceiling.
 
 ## OpenAI Provider Rules
 
@@ -236,6 +237,6 @@ The OpenAI provider must:
 
 ## Not Yet Implemented
 
-- Production monthly AI cost ceilings.
+- Production deployment values and representative unit-economics approval.
 - Billing or store receipt validation.
 - Automatic model failover between routes.

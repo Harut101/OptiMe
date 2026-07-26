@@ -15,8 +15,7 @@ This foundation prepares OptiMe for `FREE`, `PLUS`, and `PRO` without adding rea
 
 ## Approved Free-Tier Direction
 
-This is the approved product direction for the production pricing/cost-control
-batch. It is not yet reflected by the current entitlement and usage matrices.
+This direction is now reflected by the backend entitlement and usage matrices.
 
 - Free uses the cost-efficient OpenAI Luna model for its main Basic Daily Plan.
 - Free receives one new Basic Daily Plan per local day.
@@ -32,9 +31,9 @@ batch. It is not yet reflected by the current entitlement and usage matrices.
   hard-coded into mobile.
 - SafetyService and hard safety rules must not use a weaker policy based on tier.
 
-Before these rules are enforced, add per-request token/cost telemetry and validate
-Luna plan quality against the same schemas, catalog constraints, exercise
-constraints, and safety suite used by paid tiers.
+Per-request token/cost telemetry and backend limits are implemented. Production
+model IDs, prices, and monthly cost ceilings still require deployment-specific
+values and representative cost validation before billing is enabled.
 
 ## Provisional Launch Pricing
 
@@ -104,10 +103,9 @@ costs. The corresponding 15% monthly AI budgets are approximately `$2.55` and
 route more work to Luna or Terra, reduce allowances, or raise the price before
 launch.
 
-## Candidate Production Allowances
+## Production Allowances
 
-These allowances replace the current development matrix only after token/cost
-telemetry and product QA are complete:
+The backend enforces these allowances:
 
 | AI-heavy action | Free | Plus | Pro |
 |---|---:|---:|---:|
@@ -121,24 +119,29 @@ Free still receives deterministic safety adjustments and deterministic
 substitutions. Safety behavior is not included in, or restricted by, the paid
 AI allowance.
 
-## Cost Telemetry Gate
+## Cost Telemetry And Ceiling Gate
 
-The existing `AiOperationLog` records provider, model, status, latency, retries,
-and fallback reason, but it does not yet record enough data to approve pricing.
-Before billing implementation, add safe per-call fields or an equivalent internal
-aggregate for:
+`AiRequestLog` records one safe metadata row per OpenAI request or retry. It
+includes route, model, agent, operation, latency, token counts, retry state, and
+optional estimated micro-USD. It never stores prompts, plans, profiles, health
+samples, raw responses, secrets, or private notes.
 
-- input tokens;
-- cached input tokens;
-- output and reasoning tokens where reported;
-- request count;
-- model and agent/workload;
-- retry cost;
-- estimated cost in USD;
-- total cost for one user-visible operation.
+The production ceiling guard is disabled by default. When explicitly enabled in
+OpenAI mode, all route prices and all tier ceilings are required at startup. The
+guard sums successful priced requests for the current UTC month before starting a
+new user-visible AI operation. Reaching the ceiling returns the safe
+`AI_CAPACITY_LIMIT_REACHED` contract without exposing internal costs.
 
-Run at least a 30-day cost simulation using representative Free, Plus, and Pro
-profiles. Approve prices only when median and p95 cost pass the guardrails above.
+Run the internal median/p95 report with:
+
+```powershell
+$env:AI_COST_REPORT_DAYS='30'
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:report
+```
+
+The report contains aggregate distributions only; it never emits user IDs.
+Billing must remain disabled until representative Free, Plus, and Pro data pass
+the profitability guardrails.
 
 ## Tier Contract
 
@@ -161,10 +164,10 @@ Current feature gates:
 | Feature | Free | Plus | Pro |
 |---|---:|---:|---:|
 | Daily plan generation | Yes, limited | Yes, higher limit | Yes, higher limit |
-| Daily plan refresh | Yes, limited | Yes, higher limit | Yes, higher limit |
+| Daily plan refresh | No | Yes, limited | Yes, higher limit |
 | AI Nutrition Agent / food plan | Yes, limited | Yes | Yes |
 | Meal regeneration | Yes, limited | Yes, higher limit | Yes, higher limit |
-| Menu regeneration | Yes, limited | Yes, higher limit | Yes, higher limit |
+| Menu regeneration | No | Yes, limited | Yes, higher limit |
 | AI Training Load Agent | Deterministic fallback | Yes, limited | Yes, higher limit |
 | Pain-aware replacements | Yes | Yes | Yes |
 | Workout execution/history | Yes | Yes | Yes |
@@ -183,16 +186,17 @@ Limited AI-heavy actions use `UsageLedger` with a unique period key:
 userId + feature + periodType + periodStart
 ```
 
-Current development limits (not approved for production):
+Current production limits:
 
-| Feature | Free | Plus | Pro |
-|---|---:|---:|---:|
-| `DAILY_PLAN_GENERATION` | 1 | 5 | 20 |
-| `DAILY_PLAN_REFRESH` | 1 | 5 | 20 |
-| `AI_DAILY_PLAN_GENERATION` | 1 | 5 | 20 |
-| `MENU_REGENERATION` | 1 | 5 | 20 |
-| `MEAL_REGENERATION` | 1 | 5 | 20 |
-| `AI_TRAINING_LOAD_AGENT` | 0 | 5 | 20 |
+| Feature | Period | Free | Plus | Pro |
+|---|---|---:|---:|---:|
+| `DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
+| `DAILY_PLAN_REFRESH` | Monthly | 0 | 3 | 10 |
+| `AI_DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
+| `AI_PLAN_CHECKPOINT_PROPOSAL` | Monthly | 0 | 8 | 20 |
+| `MENU_REGENERATION` | Monthly | 0 | 2 | 6 |
+| `MEAL_REGENERATION` | Monthly | 2 | 12 | 30 |
+| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 5 | 20 |
 
 Daily plan usage is reserved before expensive generation and refunded if the operation throws before returning a plan. Fallback plans still count when generation work completed.
 
@@ -218,6 +222,5 @@ Profile shows the current plan and “upgrade coming soon” placeholder copy. T
 - Customer-facing pricing and regional storefront products.
 - Promo codes.
 - Billing admin UI.
-- Tier-aware OpenAI model routing.
-- Per-agent token and estimated-cost telemetry.
-- The approved production Free limits above.
+- Production model IDs, route prices, and tier cost-ceiling values.
+- Representative 30-day median/p95 unit-economics approval.

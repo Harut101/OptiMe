@@ -428,6 +428,7 @@ export type UsageFeature =
   | 'DAILY_PLAN_GENERATION'
   | 'DAILY_PLAN_REFRESH'
   | 'AI_DAILY_PLAN_GENERATION'
+  | 'AI_PLAN_CHECKPOINT_PROPOSAL'
   | 'AI_SAFETY_AGENT_REVIEW'
   | 'MEAL_REGENERATION'
   | 'MENU_REGENERATION'
@@ -484,6 +485,13 @@ export interface UsageLimitExceededError {
   currentPlan: SubscriptionPlan;
   limit: number;
   periodType: UsagePeriodType;
+  resetAt: string;
+  upgradeSuggestion: 'PLUS' | 'PRO' | null;
+}
+
+export interface AiCapacityLimitReachedError {
+  code: 'AI_CAPACITY_LIMIT_REACHED';
+  currentPlan: SubscriptionPlan;
   resetAt: string;
   upgradeSuggestion: 'PLUS' | 'PRO' | null;
 }

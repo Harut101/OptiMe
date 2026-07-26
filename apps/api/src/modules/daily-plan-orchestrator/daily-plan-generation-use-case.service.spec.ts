@@ -2,10 +2,10 @@ import {
   GoalImpactMode,
   PlanQualityMode,
   PlanStatus,
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 
+import type { AiCostControlService } from '../ai-operation-logs/ai-cost-control.service';
 import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.factory';
 import type { OnboardingService } from '../onboarding/onboarding.service';
 import type { UsageGuardService } from '../usage/usage-guard.service';
@@ -25,7 +25,10 @@ describe('DailyPlanGenerationUseCaseService', () => {
 
     expect(result).toBe(input.existingPlan);
     expect(
-      dependencies.usageGuardService.assertCanUse
+      dependencies.usageGuardService.assertCanUseConfigured
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.aiCostControlService.assertCanStartAiOperation
     ).not.toHaveBeenCalled();
     expect(
       dependencies.orchestrator.prepareGenerationContext
@@ -72,24 +75,25 @@ describe('DailyPlanGenerationUseCaseService', () => {
 
     expect(result).toBe(persistedPlan);
     expect(
-      dependencies.usageGuardService.assertCanUse
+      dependencies.usageGuardService.assertCanUseConfigured
     ).toHaveBeenCalledTimes(2);
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).toHaveBeenNthCalledWith(
       1,
       'user-1',
-      UsageFeature.DAILY_PLAN_GENERATION,
-      UsagePeriodType.DAILY
+      UsageFeature.DAILY_PLAN_GENERATION
     );
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).toHaveBeenNthCalledWith(
       2,
       'user-1',
-      UsageFeature.AI_DAILY_PLAN_GENERATION,
-      UsagePeriodType.DAILY
+      UsageFeature.AI_DAILY_PLAN_GENERATION
     );
+    expect(
+      dependencies.aiCostControlService.assertCanStartAiOperation
+    ).toHaveBeenCalledWith('user-1');
     expect(
       dependencies.orchestrator.finalizeGenerationResult
     ).toHaveBeenCalled();
@@ -141,7 +145,8 @@ function createService(dependencies: ReturnType<typeof createDependencies>) {
   return new DailyPlanGenerationUseCaseService(
     dependencies.orchestrator as unknown as DailyPlanOrchestratorService,
     dependencies.usageGuardService as unknown as UsageGuardService,
-    dependencies.onboardingService as unknown as OnboardingService
+    dependencies.onboardingService as unknown as OnboardingService,
+    dependencies.aiCostControlService as unknown as AiCostControlService
   );
 }
 
@@ -162,12 +167,15 @@ function createDependencies() {
       })
     },
     usageGuardService: {
-      assertCanUse: jest.fn(),
-      checkAndConsume: jest
+      assertCanUseConfigured: jest.fn(),
+      checkAndConsumeConfigured: jest
         .fn()
         .mockResolvedValueOnce({ id: 'usage-plan' })
         .mockResolvedValueOnce({ id: 'usage-ai' }),
       refundById: jest.fn()
+    },
+    aiCostControlService: {
+      assertCanStartAiOperation: jest.fn()
     },
     onboardingService: {
       evaluateStage1Readiness: jest.fn().mockReturnValue({

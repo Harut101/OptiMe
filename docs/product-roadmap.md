@@ -25,7 +25,7 @@ The approved Free-tier production direction is one Basic Daily Plan per local da
 using the cost-efficient OpenAI Luna route, no manual plan refresh, no full-menu
 regeneration, and at most two AI meal regenerations per month. Tracking, workout
 execution/history, deterministic substitutions, health connections, and safety
-remain available. The existing usage matrix has not yet been migrated to these
+remain available. The backend entitlement and usage matrices now enforce these
 limits.
 
 The provisional paid pricing floor is `$19.99/month` or `$199.99/year` for Plus
@@ -453,11 +453,12 @@ For minors:
    adjustments, and history/feedback now have explicit use-case boundaries.
 3. Completed: add tier-aware OpenAI model routing and per-request agent
    token/cost telemetry.
-4. Add monthly cost ceilings and the approved Free production limits, then run
-   the pricing unit-economics gate against median and p95 multi-agent cost;
-   validate the provisional Plus and Pro pricing floors before billing work.
-5. Freeze new product features for the first release.
-6. Complete privacy, account-control, permission, security, environment, and
+4. Completed: add safely configurable monthly AI cost ceilings, approved Free
+   production limits, and an aggregate median/p95 cost report.
+5. Run the representative pricing unit-economics gate and validate the
+   provisional Plus and Pro pricing floors before billing work.
+6. Freeze new product features for the first release.
+7. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
 7. Complete Android Health Connect development-build/device QA and Google Play
    declarations.

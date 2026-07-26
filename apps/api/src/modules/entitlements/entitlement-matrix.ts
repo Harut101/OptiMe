@@ -61,7 +61,7 @@ export const PLAN_QUALITY_BY_TIER: Record<SubscriptionPlan, PlanQualityMode> = {
 export const FEATURE_ACCESS_MATRIX: Record<SubscriptionPlan, FeatureAccessMatrix> = {
   [SubscriptionPlan.FREE]: {
     canGenerateDailyPlan: true,
-    canRefreshPlan: true,
+    canRefreshPlan: false,
     canUseOpenAIProvider: true,
     canUseAdvancedPersonalization: false,
     canUseFeedbackPersonalization: false,
@@ -71,7 +71,7 @@ export const FEATURE_ACCESS_MATRIX: Record<SubscriptionPlan, FeatureAccessMatrix
     canUseWhoop: false,
     canUseAiCoach: false,
     canRegenerateMeals: true,
-    canRegenerateMenus: true,
+    canRegenerateMenus: false,
     canUseAiTrainingLoadAgent: false,
     canUsePainAwareReplacements: true,
     canUseWorkoutExecution: true,
@@ -136,17 +136,17 @@ export const USAGE_LIMIT_MATRIX: UsageLimitMatrixEntry[] = [
     periodType: UsagePeriodType.DAILY,
     limits: {
       [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
+      [SubscriptionPlan.PLUS]: 1,
+      [SubscriptionPlan.PRO]: 1
     }
   },
   {
     feature: UsageFeature.DAILY_PLAN_REFRESH,
-    periodType: UsagePeriodType.DAILY,
+    periodType: UsagePeriodType.MONTHLY,
     limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
+      [SubscriptionPlan.FREE]: 0,
+      [SubscriptionPlan.PLUS]: 3,
+      [SubscriptionPlan.PRO]: 10
     }
   },
   {
@@ -154,26 +154,35 @@ export const USAGE_LIMIT_MATRIX: UsageLimitMatrixEntry[] = [
     periodType: UsagePeriodType.DAILY,
     limits: {
       [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
+      [SubscriptionPlan.PLUS]: 1,
+      [SubscriptionPlan.PRO]: 1
+    }
+  },
+  {
+    feature: UsageFeature.AI_PLAN_CHECKPOINT_PROPOSAL,
+    periodType: UsagePeriodType.MONTHLY,
+    limits: {
+      [SubscriptionPlan.FREE]: 0,
+      [SubscriptionPlan.PLUS]: 8,
       [SubscriptionPlan.PRO]: 20
     }
   },
   {
     feature: UsageFeature.MENU_REGENERATION,
-    periodType: UsagePeriodType.DAILY,
+    periodType: UsagePeriodType.MONTHLY,
     limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
+      [SubscriptionPlan.FREE]: 0,
+      [SubscriptionPlan.PLUS]: 2,
+      [SubscriptionPlan.PRO]: 6
     }
   },
   {
     feature: UsageFeature.MEAL_REGENERATION,
-    periodType: UsagePeriodType.DAILY,
+    periodType: UsagePeriodType.MONTHLY,
     limits: {
-      [SubscriptionPlan.FREE]: 1,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
+      [SubscriptionPlan.FREE]: 2,
+      [SubscriptionPlan.PLUS]: 12,
+      [SubscriptionPlan.PRO]: 30
     }
   },
   {

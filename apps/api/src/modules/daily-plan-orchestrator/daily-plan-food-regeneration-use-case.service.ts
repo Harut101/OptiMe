@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import {
   ProgressiveProfilePromptKey,
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 import type { DailyFoodPlan } from '@optime/shared-types';
 
+import { AiCostControlService } from '../ai-operation-logs/ai-cost-control.service';
 import { FoodAvailabilityService } from '../food-availability/food-availability.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import { UsageGuardService } from '../usage/usage-guard.service';
@@ -33,7 +33,8 @@ export class DailyPlanFoodRegenerationUseCaseService {
     private readonly foodContextService: DailyPlanFoodContextService,
     private readonly foodAvailabilityService: FoodAvailabilityService,
     private readonly nutritionAgent: NutritionAgentService,
-    private readonly usageGuardService: UsageGuardService
+    private readonly usageGuardService: UsageGuardService,
+    private readonly aiCostControlService: AiCostControlService
   ) {}
 
   async regenerateMenu(input: RegenerateDailyFoodPlanInput) {
@@ -41,11 +42,13 @@ export class DailyPlanFoodRegenerationUseCaseService {
       input.userId,
       input.dailyPlanId
     );
+    await this.aiCostControlService.assertCanStartAiOperation(
+      input.userId
+    );
     const consumedUsage =
-      await this.usageGuardService.checkAndConsume(
+      await this.usageGuardService.checkAndConsumeConfigured(
         input.userId,
-        UsageFeature.MENU_REGENERATION,
-        UsagePeriodType.DAILY
+        UsageFeature.MENU_REGENERATION
       );
 
     try {
@@ -90,11 +93,13 @@ export class DailyPlanFoodRegenerationUseCaseService {
       );
     }
 
+    await this.aiCostControlService.assertCanStartAiOperation(
+      input.userId
+    );
     const consumedUsage =
-      await this.usageGuardService.checkAndConsume(
+      await this.usageGuardService.checkAndConsumeConfigured(
         input.userId,
-        UsageFeature.MEAL_REGENERATION,
-        UsagePeriodType.DAILY
+        UsageFeature.MEAL_REGENERATION
       );
 
     try {

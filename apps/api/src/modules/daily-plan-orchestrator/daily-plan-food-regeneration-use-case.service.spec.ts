@@ -1,11 +1,11 @@
 import {
   GoalImpactMode,
   PlanQualityMode,
-  UsageFeature,
-  UsagePeriodType
+  UsageFeature
 } from '@prisma/client';
 import type { DailyFoodPlan } from '@optime/shared-types';
 
+import type { AiCostControlService } from '../ai-operation-logs/ai-cost-control.service';
 import type { FoodAvailabilityService } from '../food-availability/food-availability.service';
 import type { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
 import type { UsageGuardService } from '../usage/usage-guard.service';
@@ -37,11 +37,10 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
 
     expect(result).toEqual({ id: 'updated-plan' });
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).toHaveBeenCalledWith(
       'user-1',
-      UsageFeature.MENU_REGENERATION,
-      UsagePeriodType.DAILY
+      UsageFeature.MENU_REGENERATION
     );
     expect(
       dependencies.nutritionAgent.generateDailyFoodPlan
@@ -96,11 +95,10 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
     });
 
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).toHaveBeenCalledWith(
       'user-1',
-      UsageFeature.MEAL_REGENERATION,
-      UsagePeriodType.DAILY
+      UsageFeature.MEAL_REGENERATION
     );
     const persistedFoodPlan =
       dependencies.foodContextService.persistFoodPlan.mock
@@ -125,7 +123,7 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
       })
     ).rejects.toThrow('Meal not found in this plan.');
     expect(
-      dependencies.usageGuardService.checkAndConsume
+      dependencies.usageGuardService.checkAndConsumeConfigured
     ).not.toHaveBeenCalled();
     expect(
       dependencies.nutritionAgent.generateDailyFoodPlan
@@ -174,7 +172,8 @@ function createService(
     dependencies.foodContextService,
     dependencies.foodAvailabilityService,
     dependencies.nutritionAgent,
-    dependencies.usageGuardService
+    dependencies.usageGuardService,
+    dependencies.aiCostControlService as unknown as AiCostControlService
   );
 }
 
@@ -195,18 +194,22 @@ function createDependencies() {
     generateDailyFoodPlan: jest.fn()
   } as unknown as jest.Mocked<NutritionAgentService>;
   const usageGuardService = {
-    checkAndConsume: jest
+    checkAndConsumeConfigured: jest
       .fn()
       .mockResolvedValue({ id: 'usage-1' }),
     refundById: jest.fn().mockResolvedValue(undefined)
   } as unknown as jest.Mocked<UsageGuardService>;
+  const aiCostControlService = {
+    assertCanStartAiOperation: jest.fn()
+  };
 
   return {
     context,
     foodContextService,
     foodAvailabilityService,
     nutritionAgent,
-    usageGuardService
+    usageGuardService,
+    aiCostControlService
   };
 }
 

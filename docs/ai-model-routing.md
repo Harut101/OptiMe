@@ -68,13 +68,48 @@ OPENAI_SOL_OUTPUT_COST_PER_1M_USD=
 If either route price is configured, the available input/output components are
 estimated and stored as `estimatedCostMicrousd`. If neither is configured, the
 field remains `null`; token counts are still recorded. These estimates support
-unit-economics analysis only. They do not enforce limits or charge users.
+unit-economics analysis and the optional operational cost ceiling. They never
+charge users.
 
-## Next operational gate
+## Operational cost ceiling
 
-Before changing production limits or enabling billing:
+The guard is disabled by default and only becomes active in OpenAI mode:
 
-1. Populate current deployment model IDs and prices.
-2. Run a representative 30-day simulation.
-3. Review median and p95 request cost by route, agent, and operation.
-4. Set monthly cost ceilings and approved production limits separately.
+```env
+AI_COST_CEILING_ENFORCEMENT_ENABLED=false
+AI_MONTHLY_COST_CEILING_FREE_USD=
+AI_MONTHLY_COST_CEILING_PLUS_USD=
+AI_MONTHLY_COST_CEILING_PRO_USD=
+```
+
+When enabled, all route prices and all three positive ceiling values are required.
+The guard checks successful priced requests in the current UTC month before a new
+Daily Plan, food regeneration, or AI Plan Checkpoint operation. It fails closed
+with `AI_CAPACITY_LIMIT_REACHED` when the tier ceiling has already been reached.
+The response contains no internal cost amount.
+
+The check is deliberately separate from `UsageLedger`: usage limits describe
+product allowances, while the ceiling is a deployment safety valve. Because the
+provider cost is known only after a request completes, one final operation may
+cross the configured ceiling before later requests are blocked.
+
+## Unit-economics report
+
+Run:
+
+```powershell
+$env:AI_COST_REPORT_DAYS='30'
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:report
+```
+
+The JSON report shows request counts and median/p95/total micro-USD by route,
+agent, and operation, plus per-user total distributions without emitting user
+identifiers. Existing unpriced historical rows are reported as unpriced and are
+not included in cost distributions.
+
+Before billing:
+
+1. Populate current deployment model IDs, prices, and tier ceilings.
+2. Run representative Free, Plus, and Pro traffic for at least 30 days.
+3. Review median and p95 multi-agent cost against the pricing guardrails.
+4. Approve or revise the provisional paid prices before storefront work.

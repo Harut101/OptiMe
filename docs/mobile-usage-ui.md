@@ -16,7 +16,7 @@ The Profile tab shows backend-resolved entitlement information:
 - Current plan.
 - Plan quality mode.
 - Daily plan generation limit.
-- Daily refresh limit.
+- Monthly refresh limit.
 - `Upgrade options coming soon.`
 
 If entitlement or usage fetch fails, the app shows `Plan details unavailable` and keeps the rest of the app usable.
@@ -26,7 +26,7 @@ If entitlement or usage fetch fails, the app shows `Plan details unavailable` an
 The Today screen fetches `GET /v1/me/usage` and shows a subtle usage card when available:
 
 - Generations left today.
-- Refreshes left today.
+- Refreshes left in the configured period.
 
 The Today screen still works if usage fetch fails.
 
@@ -46,14 +46,17 @@ When the backend returns:
 }
 ```
 
-Mobile shows friendly copy instead of raw JSON:
+Mobile shows period-aware friendly copy instead of raw JSON:
 
-- `You've reached today's limit for this plan.`
-- `Your Free plan includes 1 refresh per day.`
+- `You've reached today's limit for this plan.` for daily limits.
+- `You've reached this month's limit for this plan.` for monthly limits.
 - `Try again after ...`
 - `Upgrade options coming soon.`
 
 If a plan is already visible, the existing plan stays visible after a refresh limit error.
+
+`AI_CAPACITY_LIMIT_REACHED` uses a generic temporary-capacity message and reset
+date. It never exposes the deployment's internal cost or ceiling values.
 
 ## Future Payment Integration
 
