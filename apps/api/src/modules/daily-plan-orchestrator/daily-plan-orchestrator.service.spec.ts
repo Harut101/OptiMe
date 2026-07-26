@@ -9,6 +9,7 @@ import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orc
 import type { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import type { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
 import type { DailyPlanTrainingLoadService } from './daily-plan-training-load.service';
+import type { DailyPlanAgentExecutionService } from './daily-plan-agent-execution.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 
 describe('DailyPlanOrchestratorService', () => {
@@ -44,7 +45,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
       {} as DailyPlanFinalizationService,
-      {} as DailyPlanTrainingLoadService
+      {} as DailyPlanTrainingLoadService,
+      {} as DailyPlanAgentExecutionService
     );
     const plan = createPlan();
 
@@ -104,7 +106,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
       {} as DailyPlanFinalizationService,
-      {} as DailyPlanTrainingLoadService
+      {} as DailyPlanTrainingLoadService,
+      {} as DailyPlanAgentExecutionService
     );
 
     await service.assembleBeforeSafety({
@@ -140,7 +143,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
       {} as DailyPlanFinalizationService,
-      {} as DailyPlanTrainingLoadService
+      {} as DailyPlanTrainingLoadService,
+      {} as DailyPlanAgentExecutionService
     );
     const input = {
       providerPlan: expected.planJson,
@@ -381,6 +385,7 @@ function createWorkflowService() {
     {} as DailyPlanPersistenceService,
     {} as DailyPlanGenerationContextService,
     {} as DailyPlanFinalizationService,
-    {} as DailyPlanTrainingLoadService
+    {} as DailyPlanTrainingLoadService,
+    {} as DailyPlanAgentExecutionService
   );
 }

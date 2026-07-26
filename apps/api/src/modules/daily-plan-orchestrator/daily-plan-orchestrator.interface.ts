@@ -20,6 +20,10 @@ import type {
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
 import type {
+  GenerateDailyFoodPlanInput,
+  GenerateProviderDailyPlanInput
+} from './daily-plan-agent-execution.interface';
+import type {
   FinalizeDailyPlanGenerationInput,
   FinalizedDailyPlanGeneration,
   PrepareProviderPlanDocumentInput
@@ -85,6 +89,13 @@ export interface DailyPlanGenerationWorkflowResult {
 }
 
 export interface DailyPlanOrchestrator {
+  getProviderName(): 'mock' | 'openai';
+  generateProviderPlan(
+    input: GenerateProviderDailyPlanInput
+  ): Promise<TrainingPlanProviderResult>;
+  generateFoodPlan(
+    input: GenerateDailyFoodPlanInput
+  ): Promise<NonNullable<DailyPlanJson['nutrition']['foodPlan']>>;
   prepareProviderPlanDocument(
     input: PrepareProviderPlanDocumentInput
   ): DailyPlanJson;

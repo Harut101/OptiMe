@@ -15,6 +15,11 @@ import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-a
 import type { FinalizeRecoveryPlanInput } from '../recovery-plan-agent/recovery-plan-agent.interface';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import type {
+  GenerateDailyFoodPlanInput,
+  GenerateProviderDailyPlanInput
+} from './daily-plan-agent-execution.interface';
+import { DailyPlanAgentExecutionService } from './daily-plan-agent-execution.service';
+import type {
   FinalizeDailyPlanGenerationInput,
   FinalizedDailyPlanGeneration,
   PrepareProviderPlanDocumentInput
@@ -55,8 +60,21 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     private readonly persistence: DailyPlanPersistenceService,
     private readonly generationContext: DailyPlanGenerationContextService,
     private readonly finalization: DailyPlanFinalizationService,
-    private readonly trainingLoad: DailyPlanTrainingLoadService
+    private readonly trainingLoad: DailyPlanTrainingLoadService,
+    private readonly agentExecution: DailyPlanAgentExecutionService
   ) {}
+
+  getProviderName() {
+    return this.agentExecution.getProviderName();
+  }
+
+  generateProviderPlan(input: GenerateProviderDailyPlanInput) {
+    return this.agentExecution.generateProviderPlan(input);
+  }
+
+  generateFoodPlan(input: GenerateDailyFoodPlanInput) {
+    return this.agentExecution.generateFoodPlan(input);
+  }
 
   prepareGenerationContext(input: PrepareDailyPlanGenerationContextInput) {
     return this.generationContext.prepare(input);

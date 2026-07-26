@@ -30,13 +30,8 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  AiProvider,
-  GenerateDailyPlanExerciseFeedback,
-  GenerateDailyPlanPersonalizationContext,
-  GenerateDailyPlanSafetyFeedback
+  GenerateDailyPlanPersonalizationContext
 } from '../ai/ai-provider.interface';
-import { AI_PROVIDER } from '../ai/ai-provider.token';
-import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import type {
   CreateSafetyFallbackInput,
   DailyPlanSafetyResult
@@ -44,7 +39,6 @@ import type {
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
 import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
-import type { ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { FoodAvailabilityService } from '../food-availability/food-availability.service';
 import { FoodIngredientSwapService } from './food-ingredient-swap.service';
 import { NutritionAgentService } from '../nutrition-agent/nutrition-agent.service';
@@ -52,7 +46,6 @@ import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validati
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
-import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import {
   SAFETY_AGENT_CONFIG,
   SafetyAgentConfig
@@ -98,7 +91,6 @@ export class DailyPlansService {
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
-    @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
     @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
   ) {}
 
@@ -199,8 +191,9 @@ export class DailyPlansService {
       const generationWorkflow =
         await this.dailyPlanOrchestrator.executeGenerationWorkflow({
           generateProviderPlan: ({ safetyFeedback } = {}) =>
-            this.generateProviderPlanOrFallback({
+            this.dailyPlanOrchestrator.generateProviderPlan({
               user,
+              locale: targetLocale,
               planLocalDate,
               planTimezone,
               planQualityMode,
@@ -208,53 +201,18 @@ export class DailyPlansService {
               exerciseSelection,
               safetyFeedback
             }),
-          generateFoodPlan: async () => {
-            const result = await this.nutritionAgent.generateDailyFoodPlan({
+          generateFoodPlan: () =>
+            this.dailyPlanOrchestrator.generateFoodPlan({
+              user,
               planLocalDate,
               locale: targetLocale,
               planQualityMode,
               appMode,
-              safeMode: user.safeMode,
-              isMinor: user.isMinor,
-              pregnancyStatus: user.profile?.pregnancyStatus,
               nutritionTarget,
-              nutritionTargetSnapshot:
-                this.nutritionTargetsService.toSnapshot(nutritionTarget),
-              nutritionPreference: user.nutritionPref
-                ? {
-                    dietType: user.nutritionPref.dietType,
-                    mealsPerDay: user.nutritionPref.mealsPerDay,
-                    notes: user.nutritionPref.notes,
-                    allergies: user.nutritionPref.allergies.map(
-                      (food) => food.name
-                    ),
-                    excludedFoods: user.nutritionPref.excludedFoods.map(
-                      (food) => food.name
-                    ),
-                    dislikedFoods: user.nutritionPref.dislikedFoods.map(
-                      (food) => food.name
-                    ),
-                    preferredFoods: user.nutritionPref.preferredFoods.map(
-                      (food) => food.name
-                    )
-                  }
-                : null,
-              goalSummary: user.goal
-                ? {
-                    primaryGoal: user.goal.primaryGoal,
-                    goalType: user.goal.goalType
-                  }
-                : null,
-              foodAdherenceSummary:
-                personalizationContext.foodAdherenceSummary,
-              mealPracticalityPreference:
-                this.toMealPracticalityPreference(user),
-              mealTimingPreference: this.toMealTimingPreference(user),
+              personalizationContext,
               availableFoodSlugs,
               resolvedTrainingDay
-            });
-            return result.foodPlan;
-          },
+            }),
           buildAssemblyInput: ({
             providerPlanResult,
             foodPlan,
@@ -298,8 +256,9 @@ export class DailyPlansService {
             retryTrainingPlan:
               !isSafetyRetry && this.getProviderDebugName() === 'openai'
                 ? (exerciseFeedback) =>
-                    this.generateProviderPlanOrFallback({
+                    this.dailyPlanOrchestrator.generateProviderPlan({
                       user,
+                      locale: targetLocale,
                       planLocalDate,
                       planTimezone,
                       planQualityMode,
@@ -1418,86 +1377,6 @@ export class DailyPlansService {
     }
   }
 
-  private async generateProviderPlanOrFallback(input: {
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    planLocalDate: string;
-    planTimezone: string;
-    planQualityMode: PlanQualityMode;
-    personalizationContext: GenerateDailyPlanPersonalizationContext;
-    exerciseSelection: ExerciseSelectionResult;
-    exerciseFeedback?: GenerateDailyPlanExerciseFeedback;
-    safetyFeedback?: GenerateDailyPlanSafetyFeedback;
-  }) {
-    try {
-      this.logger.log(`provider called: ${this.getProviderDebugName()}`);
-      const planJson = await this.aiProvider.generateDailyPlan({
-        user: {
-          id: input.user.id,
-          firstName: input.user.firstName,
-          timezone: input.user.timezone,
-          isMinor: input.user.isMinor,
-          safeMode: input.user.safeMode
-        },
-        profile: input.user.profile,
-        goal: input.user.goal,
-        nutritionPreference: input.user.nutritionPref
-          ? {
-              dietType: input.user.nutritionPref.dietType,
-              mealsPerDay: input.user.nutritionPref.mealsPerDay,
-              notes: input.user.nutritionPref.notes,
-              allergies: input.user.nutritionPref.allergies.map((food) => food.name),
-              excludedFoods: input.user.nutritionPref.excludedFoods.map((food) => food.name),
-              dislikedFoods: input.user.nutritionPref.dislikedFoods.map((food) => food.name),
-              preferredFoods: input.user.nutritionPref.preferredFoods.map((food) => food.name)
-            }
-          : null,
-        trainingSchedule: input.user.schedules,
-        safeMode: input.user.safeMode,
-        locale: this.resolvePlanningLocale(input.user),
-        planLocalDate: input.planLocalDate,
-        planTimezone: input.planTimezone,
-        planQualityMode: input.planQualityMode,
-        personalizationContext: input.personalizationContext,
-        exerciseSelection: {
-          candidates: input.exerciseSelection.candidates.map(({
-            internalScore: _score,
-            internalReasonCodes: _reasons,
-            contraindicationTags: _tags,
-            exerciseUpdatedAt: _updatedAt,
-            ...candidate
-          }) => candidate),
-          requestedExerciseCount: input.exerciseSelection.requestedExerciseCount,
-          minExerciseCount: input.exerciseSelection.minExerciseCount,
-          maxExerciseCount: input.exerciseSelection.maxExerciseCount,
-          workoutDurationMinutes: input.exerciseSelection.workoutDurationMinutes,
-          volumePlan: input.exerciseSelection.volumePlan
-        },
-        exerciseFeedback: input.exerciseFeedback,
-        safetyFeedback: input.safetyFeedback
-      });
-
-      return {
-        status: PlanStatus.READY,
-        planJson
-      };
-    } catch (error) {
-      if (error instanceof OpenAiProviderError) {
-        this.logger.warn(`fallback used: true; fallback reason=${error.fallbackReason}`);
-        return {
-          status: PlanStatus.FALLBACK,
-          planJson: createSafeFallbackPlan({
-            planLocalDate: input.planLocalDate,
-            planTimezone: input.planTimezone,
-            locale: this.resolvePlanningLocale(input.user),
-            reasons: [error.fallbackReason]
-          })
-        };
-      }
-
-      throw error;
-    }
-  }
-
   private validateProviderPlan(input: {
     providerPlan: unknown;
     blockedFoods: { allergies: string[]; excludedFoods: string[] };
@@ -1561,7 +1440,7 @@ export class DailyPlansService {
   }
 
   private getProviderDebugName() {
-    return this.aiProvider.constructor?.name === 'OpenAiProviderService' ? 'openai' : 'mock';
+    return this.dailyPlanOrchestrator.getProviderName();
   }
 
   private canUseSafetyFeedbackRetry(providerStatus: PlanStatus) {
