@@ -8,6 +8,7 @@ import type { DailyPlanFinalizationService } from './daily-plan-finalization.ser
 import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import type { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import type { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
+import type { DailyPlanTrainingLoadService } from './daily-plan-training-load.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 
 describe('DailyPlanOrchestratorService', () => {
@@ -42,7 +43,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as DailyPlanSafetyOrchestratorService,
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
-      {} as DailyPlanFinalizationService
+      {} as DailyPlanFinalizationService,
+      {} as DailyPlanTrainingLoadService
     );
     const plan = createPlan();
 
@@ -101,7 +103,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as DailyPlanSafetyOrchestratorService,
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
-      {} as DailyPlanFinalizationService
+      {} as DailyPlanFinalizationService,
+      {} as DailyPlanTrainingLoadService
     );
 
     await service.assembleBeforeSafety({
@@ -136,7 +139,8 @@ describe('DailyPlanOrchestratorService', () => {
       safetyOrchestrator,
       {} as DailyPlanPersistenceService,
       {} as DailyPlanGenerationContextService,
-      {} as DailyPlanFinalizationService
+      {} as DailyPlanFinalizationService,
+      {} as DailyPlanTrainingLoadService
     );
     const input = {
       providerPlan: expected.planJson,
@@ -376,6 +380,7 @@ function createWorkflowService() {
     {} as DailyPlanSafetyOrchestratorService,
     {} as DailyPlanPersistenceService,
     {} as DailyPlanGenerationContextService,
-    {} as DailyPlanFinalizationService
+    {} as DailyPlanFinalizationService,
+    {} as DailyPlanTrainingLoadService
   );
 }

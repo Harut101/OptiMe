@@ -58,7 +58,6 @@ import {
   SafetyAgentConfig
 } from '../safety-agent/safety-agent.token';
 import { UsageGuardService } from '../usage/usage-guard.service';
-import { TrainingLoadAgentService } from '../training-load-agent/training-load-agent.service';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
 import { mapPainAreasToMuscles, normalizePainAreas } from '../workout-sessions/workout-pain-mapping';
@@ -97,7 +96,6 @@ export class DailyPlansService {
     private readonly nutritionAgent: NutritionAgentService,
     private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
-    private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
     @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider,
@@ -285,15 +283,17 @@ export class DailyPlansService {
                 foodPlanToAttach
               ),
             applyTrainingLoad: (planJson) =>
-              this.withTrainingLoadAgentSnapshot({
+              this.dailyPlanOrchestrator.applyTrainingLoad({
                 planJson,
                 user,
+                locale: targetLocale,
                 planLocalDate,
                 planQualityMode,
                 personalizationContext,
                 exerciseSelection,
                 resolvedTrainingDay,
-                appMode
+                appMode,
+                provider: this.getProviderDebugName()
               }),
             retryTrainingPlan:
               !isSafetyRetry && this.getProviderDebugName() === 'openai'
@@ -1558,80 +1558,6 @@ export class DailyPlansService {
       case PreferredLocale.EN_US: return 'en-US';
       default: return resolveSupportedLocale(user.locale);
     }
-  }
-
-  private async withTrainingLoadAgentSnapshot(input: {
-    planJson: DailyPlanJson;
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    planLocalDate: string;
-    planQualityMode: PlanQualityMode;
-    personalizationContext: GenerateDailyPlanPersonalizationContext;
-    exerciseSelection: ExerciseSelectionResult;
-    resolvedTrainingDay: ResolvedTrainingDayContext;
-    appMode: GoalImpactMode;
-  }): Promise<DailyPlanJson> {
-    const agentInput = {
-      planLocalDate: input.planLocalDate,
-      locale: this.resolvePlanningLocale(input.user),
-      appMode: input.appMode,
-      safeMode: input.user.safeMode,
-      isMinor: input.user.isMinor,
-      planQualityMode: input.planQualityMode,
-      trainingLevel: input.user.trainingPreference?.trainingLevel ?? null,
-      resolvedTrainingDay: input.resolvedTrainingDay,
-      personalizationContext: input.personalizationContext,
-      exerciseSelection: input.exerciseSelection,
-      planTraining: input.planJson.training
-    };
-    const canUseAiTrainingLoadAgent =
-      this.getProviderDebugName() === 'openai' &&
-      (await this.featureAccessService.canUseAiTrainingLoadAgent(input.user.id));
-
-    if (!canUseAiTrainingLoadAgent) {
-      return {
-        ...input.planJson,
-        trainingLoadAgentSnapshot: this.trainingLoadAgent.createFallback(agentInput, [
-          'tier_basic_guidance'
-        ])
-      };
-    }
-
-    let consumedUsage: { id: string; amount: number } | null = null;
-    try {
-      const usage = await this.usageGuardService.checkAndConsume(
-        input.user.id,
-        UsageFeature.AI_TRAINING_LOAD_AGENT,
-        UsagePeriodType.DAILY
-      );
-      consumedUsage = { id: usage.id, amount: 1 };
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.warn(
-          `AI TrainingLoadAgent gated; using deterministic fallback; reason=${error.name}`
-        );
-      }
-      return {
-        ...input.planJson,
-        trainingLoadAgentSnapshot: this.trainingLoadAgent.createFallback(agentInput, [
-          'ai_training_load_agent_limit_reached'
-        ])
-      };
-    }
-
-    const snapshot = await this.trainingLoadAgent.generate(agentInput);
-
-    if (
-      consumedUsage &&
-      snapshot.source === 'DETERMINISTIC_FALLBACK' &&
-      snapshot.validation.reasons.includes('training_load_agent_request_failed')
-    ) {
-      await this.refundConsumedUsage([consumedUsage]);
-    }
-
-    return {
-      ...input.planJson,
-      trainingLoadAgentSnapshot: snapshot
-    };
   }
 
   private getProviderDebugName() {

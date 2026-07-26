@@ -24,6 +24,7 @@ import type {
   FinalizedDailyPlanGeneration,
   PrepareProviderPlanDocumentInput
 } from './daily-plan-finalization.interface';
+import type { ApplyDailyPlanTrainingLoadInput } from './daily-plan-training-load.interface';
 
 export interface AssembleDailyPlanInput {
   providerPlanResult: TrainingPlanProviderResult;
@@ -94,6 +95,9 @@ export interface DailyPlanOrchestrator {
   finalizeGenerationResult(
     input: FinalizeDailyPlanGenerationInput
   ): Promise<FinalizedDailyPlanGeneration>;
+  applyTrainingLoad(
+    input: ApplyDailyPlanTrainingLoadInput
+  ): Promise<DailyPlanJson>;
   executeGenerationWorkflow(
     input: ExecuteDailyPlanGenerationWorkflowInput
   ): Promise<DailyPlanGenerationWorkflowResult>;

@@ -41,6 +41,8 @@ import type {
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
 import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
+import type { ApplyDailyPlanTrainingLoadInput } from './daily-plan-training-load.interface';
+import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service';
 
 @Injectable()
 export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
@@ -52,7 +54,8 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService,
     private readonly persistence: DailyPlanPersistenceService,
     private readonly generationContext: DailyPlanGenerationContextService,
-    private readonly finalization: DailyPlanFinalizationService
+    private readonly finalization: DailyPlanFinalizationService,
+    private readonly trainingLoad: DailyPlanTrainingLoadService
   ) {}
 
   prepareGenerationContext(input: PrepareDailyPlanGenerationContextInput) {
@@ -118,6 +121,10 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
         finalized.safePlanResult
       )
     };
+  }
+
+  applyTrainingLoad(input: ApplyDailyPlanTrainingLoadInput) {
+    return this.trainingLoad.apply(input);
   }
 
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput) {
