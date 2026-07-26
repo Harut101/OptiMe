@@ -47,6 +47,7 @@ import {
 import { AI_PROVIDER } from '../ai/ai-provider.token';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import { DailyPlanCheckInsService } from '../daily-plan-check-ins/daily-plan-check-ins.service';
+import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
 import type { ExerciseSelectionContext, ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import { FoodLogsService } from '../food-logs/food-logs.service';
@@ -61,7 +62,6 @@ import { OnboardingService } from '../onboarding/onboarding.service';
 import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.service';
 import { ProtocolSelectorService } from '../protocol/protocol-selector.service';
 import { SelectedProtocols } from '../protocol/protocol.types';
-import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import { createSafeFallbackPlan } from '../safety/safe-fallback-plan.factory';
 import { SafetyService } from '../safety/safety.service';
 import { SafetyAgent, ReviewDailyPlanInput } from '../safety-agent/safety-agent.interface';
@@ -129,6 +129,7 @@ export class DailyPlansService {
     private readonly usageGuardService: UsageGuardService,
     private readonly onboardingService: OnboardingService,
     private readonly checkInsService: DailyPlanCheckInsService,
+    private readonly dailyPlanOrchestrator: DailyPlanOrchestratorService,
     private readonly foodLogsService: FoodLogsService,
     private readonly foodAvailabilityService: FoodAvailabilityService,
     private readonly foodIngredientSwapService: FoodIngredientSwapService,
@@ -138,7 +139,6 @@ export class DailyPlansService {
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly planCheckpointService: PlanCheckpointService,
     private readonly protocolSelector: ProtocolSelectorService,
-    private readonly recoveryPlanAgent: RecoveryPlanAgentService,
     private readonly trainingLoadAgent: TrainingLoadAgentService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
     private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
@@ -272,22 +272,6 @@ export class DailyPlansService {
         personalizationContext,
         exerciseSelection
       });
-      providerPlanResult = {
-        ...providerPlanResult,
-        planJson: this.withRecoveryAwareContext(
-          this.withTrainingStateForAppMode(
-            this.withNutritionTargetSnapshot(
-              this.withTrainingScheduleSnapshot(providerPlanResult.planJson, resolvedTrainingDay),
-              nutritionTarget
-            ),
-            appMode,
-            this.resolvePlanningLocale(user)
-          ),
-          personalizationContext,
-          trainingEnabled,
-          resolvedTrainingDay.isTrainingDay
-        )
-      };
       const foodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
         planLocalDate,
         locale: this.resolvePlanningLocale(user),
@@ -322,14 +306,34 @@ export class DailyPlansService {
         resolvedTrainingDay
       });
       let finalFoodPlan = foodPlanResult.foodPlan;
-      providerPlanResult = {
-        ...providerPlanResult,
-        planJson: this.withFoodPlan(providerPlanResult.planJson, foodPlanResult.foodPlan)
-      };
-      let exercisePreparation = await this.trainingPlanAgent.finalizeGeneratedPlan({
+      const initialAssembly = await this.dailyPlanOrchestrator.assembleBeforeSafety({
         providerPlanResult,
+        foodPlan: foodPlanResult.foodPlan,
         exerciseSelection,
-        retry: this.getProviderDebugName() === 'openai'
+        recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
+        healthPlanningContext: personalizationContext.healthPlanningContext,
+        trainingEnabled,
+        isTrainingDay: resolvedTrainingDay.isTrainingDay,
+        decorateProviderPlan: (planJson) => this.withTrainingStateForAppMode(
+          this.withNutritionTargetSnapshot(
+            this.withTrainingScheduleSnapshot(planJson, resolvedTrainingDay),
+            nutritionTarget
+          ),
+          appMode,
+          this.resolvePlanningLocale(user)
+        ),
+        attachFoodPlan: (planJson, foodPlan) => this.withFoodPlan(planJson, foodPlan),
+        applyTrainingLoad: (planJson) => this.withTrainingLoadAgentSnapshot({
+          planJson,
+          user,
+          planLocalDate,
+          planQualityMode,
+          personalizationContext,
+          exerciseSelection,
+          resolvedTrainingDay,
+          appMode
+        }),
+        retryTrainingPlan: this.getProviderDebugName() === 'openai'
           ? (exerciseFeedback) => this.generateProviderPlanOrFallback({
               user,
               planLocalDate,
@@ -341,23 +345,8 @@ export class DailyPlansService {
             })
           : undefined
       });
-      providerPlanResult = {
-        status: exercisePreparation.status,
-        planJson: this.withFoodPlan(exercisePreparation.planJson, foodPlanResult.foodPlan)
-      };
-      providerPlanResult = {
-        ...providerPlanResult,
-        planJson: await this.withTrainingLoadAgentSnapshot({
-          planJson: providerPlanResult.planJson,
-          user,
-          planLocalDate,
-          planQualityMode,
-          personalizationContext,
-          exerciseSelection,
-          resolvedTrainingDay,
-          appMode
-        })
-      };
+      providerPlanResult = initialAssembly.providerPlanResult;
+      let exercisePreparation = initialAssembly.trainingPreparation;
       let safePlanResult = await this.validateProviderPlan({
         providerPlan: providerPlanResult.planJson,
         blockedFoods,
@@ -383,19 +372,6 @@ export class DailyPlansService {
           exerciseSelection,
           safetyFeedback: safePlanResult.safetyRetryRequest
         });
-        retryProviderPlanResult.planJson = this.withRecoveryAwareContext(
-          this.withTrainingStateForAppMode(
-            this.withNutritionTargetSnapshot(
-              this.withTrainingScheduleSnapshot(retryProviderPlanResult.planJson, resolvedTrainingDay),
-              nutritionTarget
-            ),
-            appMode,
-            this.resolvePlanningLocale(user)
-          ),
-          personalizationContext,
-          trainingEnabled,
-          resolvedTrainingDay.isTrainingDay
-        );
         const retryFoodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
           planLocalDate,
           locale: this.resolvePlanningLocale(user),
@@ -430,15 +406,35 @@ export class DailyPlansService {
           resolvedTrainingDay
         });
         finalFoodPlan = retryFoodPlanResult.foodPlan;
-        retryProviderPlanResult.planJson = this.withFoodPlan(
-          retryProviderPlanResult.planJson,
-          retryFoodPlanResult.foodPlan
-        );
-        const retryExercisePreparation = await this.trainingPlanAgent.finalizeGeneratedPlan({
+        const retryAssembly = await this.dailyPlanOrchestrator.assembleBeforeSafety({
           providerPlanResult: retryProviderPlanResult,
+          foodPlan: retryFoodPlanResult.foodPlan,
           exerciseSelection,
-          retry: undefined
+          recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
+          healthPlanningContext: personalizationContext.healthPlanningContext,
+          trainingEnabled,
+          isTrainingDay: resolvedTrainingDay.isTrainingDay,
+          decorateProviderPlan: (planJson) => this.withTrainingStateForAppMode(
+            this.withNutritionTargetSnapshot(
+              this.withTrainingScheduleSnapshot(planJson, resolvedTrainingDay),
+              nutritionTarget
+            ),
+            appMode,
+            this.resolvePlanningLocale(user)
+          ),
+          attachFoodPlan: (planJson, foodPlan) => this.withFoodPlan(planJson, foodPlan),
+          applyTrainingLoad: (planJson) => this.withTrainingLoadAgentSnapshot({
+            planJson,
+            user,
+            planLocalDate,
+            planQualityMode,
+            personalizationContext,
+            exerciseSelection,
+            resolvedTrainingDay,
+            appMode
+          })
         });
+        const retryExercisePreparation = retryAssembly.trainingPreparation;
         exercisePreparation = {
           ...retryExercisePreparation,
           usedAiRetry: exercisePreparation.usedAiRetry || retryExercisePreparation.usedAiRetry,
@@ -446,22 +442,8 @@ export class DailyPlansService {
             exercisePreparation.usedDeterministicFallback ||
             retryExercisePreparation.usedDeterministicFallback
         };
-        retryExercisePreparation.planJson = await this.withTrainingLoadAgentSnapshot({
-          planJson: retryExercisePreparation.planJson,
-          user,
-          planLocalDate,
-          planQualityMode,
-          personalizationContext,
-          exerciseSelection,
-          resolvedTrainingDay,
-          appMode
-        });
-
         safePlanResult = await this.validateProviderPlan({
-          providerPlan: this.withFoodPlan(
-            retryExercisePreparation.planJson,
-            retryFoodPlanResult.foodPlan
-          ),
+          providerPlan: retryAssembly.providerPlanResult.planJson,
           blockedFoods,
           planLocalDate,
           planTimezone,
@@ -505,15 +487,16 @@ export class DailyPlansService {
         ...safePlanResult,
         planJson: this.withTrainingScheduleSnapshot(
           this.withPlanDebugContext(
-            this.withRecoveryAwareContext(
-              this.withNutritionTargetSnapshot(
+            this.dailyPlanOrchestrator.finalizeRecoveryContext({
+              planJson: this.withNutritionTargetSnapshot(
                 this.ensureFoodPlan(safePlanResult.planJson, finalFoodPlan),
                 nutritionTarget
               ),
-              personalizationContext,
+              recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
+              healthPlanningContext: personalizationContext.healthPlanningContext,
               trainingEnabled,
-              resolvedTrainingDay.isTrainingDay
-            ),
+              isTrainingDay: resolvedTrainingDay.isTrainingDay
+            }).planJson,
             planQualityMode,
             personalizationContext.selectedProtocols,
             personalizationContext.healthPlanningContext
@@ -2448,21 +2431,6 @@ export class DailyPlansService {
     foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
   ): DailyPlanJson {
     return planJson.nutrition.foodPlan ? planJson : this.withFoodPlan(planJson, foodPlan);
-  }
-
-  private withRecoveryAwareContext(
-    planJson: DailyPlanJson,
-    personalizationContext: GenerateDailyPlanPersonalizationContext,
-    trainingEnabled: boolean,
-    isTrainingDay: boolean
-  ): DailyPlanJson {
-    return this.recoveryPlanAgent.finalizeGeneratedPlan({
-      planJson,
-      recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
-      healthPlanningContext: personalizationContext.healthPlanningContext,
-      trainingEnabled,
-      isTrainingDay
-    }).planJson;
   }
 
   private withTrainingStateForAppMode(

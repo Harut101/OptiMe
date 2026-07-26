@@ -4,6 +4,8 @@ OptiMe keeps AI behind the NestJS backend. The mobile app never calls OpenAI dir
 
 ## Daily Plan AI Stages
 
+- `DailyPlanOrchestratorService` coordinates bounded specialized stages before
+  final safety and uses the same sequence for initial generation and safety retry.
 - `AiProvider` creates the general `DailyPlanJson` shell.
 - `NutritionTargetsService` calculates deterministic calories and macros before meal generation.
 - `NutritionAgentService` acts as the specialized AI Nutrition Agent when `AI_PROVIDER=openai`.
@@ -62,6 +64,14 @@ recovery.
 This foundation does not add another OpenAI call and does not rewrite nutrition,
 training, or provider-authored recovery copy. Final hard and semantic safety
 checks still run afterward.
+
+## Orchestrator Boundary
+
+The backend orchestrator controls stage ordering; individual agents cannot call
+each other recursively or persist their own final plan. Initial generation and
+safety-feedback regeneration share one pre-safety assembly method. Deterministic
+`SafetyService`, semantic `SafetyAgent`, fallback selection, usage logging, and
+persistence remain mandatory after assembly.
 
 ## Regeneration Boundary
 

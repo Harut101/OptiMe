@@ -449,7 +449,8 @@ For minors:
 1. Completed: implement and validate the foreground Adaptive Plan Checkpoint.
 2. In progress: formalize bounded Nutrition, Training, Recovery, and Safety agent
    boundaries under a backend orchestrator. Training and Recovery Plan Agent
-   foundations are complete; top-level orchestrator extraction remains.
+   foundations are complete, and the shared pre-safety orchestrator is extracted.
+   Final safety/persistence extraction remains a separate stabilization batch.
 3. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
    cost ceilings, and the approved Free production limits.
 4. Run the pricing unit-economics gate against median and p95 multi-agent cost;
