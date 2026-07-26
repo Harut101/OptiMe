@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PlanStatus } from '@prisma/client';
 
 import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { FinalizeRecoveryPlanInput } from '../recovery-plan-agent/recovery-plan-agent.interface';
@@ -6,7 +7,9 @@ import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-a
 import type {
   AssembleDailyPlanInput,
   AssembledDailyPlan,
-  DailyPlanOrchestrator
+  DailyPlanGenerationWorkflowResult,
+  DailyPlanOrchestrator,
+  ExecuteDailyPlanGenerationWorkflowInput
 } from './daily-plan-orchestrator.interface';
 import type {
   PersistGeneratedDailyPlanInput,
@@ -57,6 +60,85 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
 
   recordGenerationError(input: RecordDailyPlanGenerationErrorInput) {
     return this.persistence.recordGenerationError(input);
+  }
+
+  async executeGenerationWorkflow(
+    input: ExecuteDailyPlanGenerationWorkflowInput
+  ): Promise<DailyPlanGenerationWorkflowResult> {
+    const providerPlanResult = await input.generateProviderPlan();
+    const foodPlan = await input.generateFoodPlan();
+    const initialAssembly = await this.assembleBeforeSafety(
+      input.buildAssemblyInput({
+        providerPlanResult,
+        foodPlan,
+        isSafetyRetry: false
+      })
+    );
+    const initialTrainingPreparation = initialAssembly.trainingPreparation;
+    const initialSafetyResult = await input.validateAttempt({
+      providerPlanResult: initialAssembly.providerPlanResult,
+      allowSafetyRetry: input.canUseSafetyRetry(
+        initialAssembly.providerPlanResult.status
+      ),
+      safetyRetryUsed: false
+    });
+
+    if (!initialSafetyResult.safetyRetryRequest) {
+      this.logger.log('safety retry triggered=false');
+      return {
+        safePlanResult: initialSafetyResult,
+        finalFoodPlan: foodPlan,
+        trainingPreparation: initialTrainingPreparation
+      };
+    }
+
+    this.logger.log(
+      `safety retry triggered=true; reasonCount=${initialSafetyResult.safetyRetryRequest.reasons.length}`
+    );
+    this.logger.log('safety retry generation started');
+
+    const retryProviderPlanResult = await input.generateProviderPlan({
+      safetyFeedback: initialSafetyResult.safetyRetryRequest
+    });
+    const retryFoodPlan = await input.generateFoodPlan();
+    const retryAssembly = await this.assembleBeforeSafety(
+      input.buildAssemblyInput({
+        providerPlanResult: retryProviderPlanResult,
+        foodPlan: retryFoodPlan,
+        isSafetyRetry: true
+      })
+    );
+    const retryTrainingPreparation = retryAssembly.trainingPreparation;
+    const trainingPreparation = {
+      ...retryTrainingPreparation,
+      usedAiRetry:
+        initialTrainingPreparation.usedAiRetry ||
+        retryTrainingPreparation.usedAiRetry,
+      usedDeterministicFallback:
+        initialTrainingPreparation.usedDeterministicFallback ||
+        retryTrainingPreparation.usedDeterministicFallback
+    };
+    let safePlanResult = await input.validateAttempt({
+      providerPlanResult: retryAssembly.providerPlanResult,
+      allowSafetyRetry: false,
+      safetyRetryUsed: true
+    });
+
+    if (retryTrainingPreparation.status === PlanStatus.FALLBACK) {
+      const retryFallbackReason =
+        input.getProviderFallbackReason(retryProviderPlanResult) ===
+        'schema_validation_failed'
+          ? 'safety_agent_retry_invalid_output'
+          : 'safety_agent_retry_failed';
+      safePlanResult =
+        input.createRetryFailureFallback(retryFallbackReason);
+    }
+
+    return {
+      safePlanResult,
+      finalFoodPlan: retryFoodPlan,
+      trainingPreparation
+    };
   }
 
   async assembleBeforeSafety(

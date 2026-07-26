@@ -235,216 +235,154 @@ export class DailyPlansService {
         allergies: user.nutritionPref?.allergies.map((food) => food.name) ?? [],
         excludedFoods: user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
       };
-      let providerPlanResult = await this.generateProviderPlanOrFallback({
-        user,
-        planLocalDate,
-        planTimezone,
-        planQualityMode,
-        personalizationContext,
-        exerciseSelection
-      });
-      const foodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
-        planLocalDate,
-        locale: this.resolvePlanningLocale(user),
-        planQualityMode,
-        appMode,
-        safeMode: user.safeMode,
-        isMinor: user.isMinor,
-        pregnancyStatus: user.profile?.pregnancyStatus,
-        nutritionTarget,
-        nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget),
-        nutritionPreference: user.nutritionPref
-          ? {
-              dietType: user.nutritionPref.dietType,
-              mealsPerDay: user.nutritionPref.mealsPerDay,
-              notes: user.nutritionPref.notes,
-              allergies: user.nutritionPref.allergies.map((food) => food.name),
-              excludedFoods: user.nutritionPref.excludedFoods.map((food) => food.name),
-              dislikedFoods: user.nutritionPref.dislikedFoods.map((food) => food.name),
-              preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
-            }
-          : null,
-        goalSummary: user.goal
-          ? {
-              primaryGoal: user.goal.primaryGoal,
-              goalType: user.goal.goalType
-            }
-          : null,
-        foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
-        mealPracticalityPreference: this.toMealPracticalityPreference(user),
-        mealTimingPreference: this.toMealTimingPreference(user),
-        availableFoodSlugs,
-        resolvedTrainingDay
-      });
-      let finalFoodPlan = foodPlanResult.foodPlan;
-      const initialAssembly = await this.dailyPlanOrchestrator.assembleBeforeSafety({
-        providerPlanResult,
-        foodPlan: foodPlanResult.foodPlan,
-        exerciseSelection,
-        recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
-        healthPlanningContext: personalizationContext.healthPlanningContext,
-        trainingEnabled,
-        isTrainingDay: resolvedTrainingDay.isTrainingDay,
-        decorateProviderPlan: (planJson) => this.withTrainingStateForAppMode(
-          this.withNutritionTargetSnapshot(
-            this.withTrainingScheduleSnapshot(planJson, resolvedTrainingDay),
-            nutritionTarget
-          ),
-          appMode,
-          this.resolvePlanningLocale(user)
-        ),
-        attachFoodPlan: (planJson, foodPlan) => this.withFoodPlan(planJson, foodPlan),
-        applyTrainingLoad: (planJson) => this.withTrainingLoadAgentSnapshot({
-          planJson,
-          user,
-          planLocalDate,
-          planQualityMode,
-          personalizationContext,
-          exerciseSelection,
-          resolvedTrainingDay,
-          appMode
-        }),
-        retryTrainingPlan: this.getProviderDebugName() === 'openai'
-          ? (exerciseFeedback) => this.generateProviderPlanOrFallback({
+      const generationWorkflow =
+        await this.dailyPlanOrchestrator.executeGenerationWorkflow({
+          generateProviderPlan: ({ safetyFeedback } = {}) =>
+            this.generateProviderPlanOrFallback({
               user,
               planLocalDate,
               planTimezone,
               planQualityMode,
               personalizationContext,
               exerciseSelection,
-              exerciseFeedback
-            })
-          : undefined
-      });
-      providerPlanResult = initialAssembly.providerPlanResult;
-      let exercisePreparation = initialAssembly.trainingPreparation;
-      let safePlanResult = await this.validateProviderPlan({
-        providerPlan: providerPlanResult.planJson,
-        blockedFoods,
-        planLocalDate,
-        planTimezone,
-        user,
-        personalizationContext,
-        forcedFallback: providerPlanResult.status === PlanStatus.FALLBACK,
-        allowSafetyRetry: this.canUseSafetyFeedbackRetry(providerPlanResult.status)
-      });
-
-      if (safePlanResult.safetyRetryRequest) {
-        this.logger.log(
-          `safety retry triggered=true; reasonCount=${safePlanResult.safetyRetryRequest.reasons.length}`
-        );
-        this.logger.log('safety retry generation started');
-        const retryProviderPlanResult = await this.generateProviderPlanOrFallback({
-          user,
-          planLocalDate,
-          planTimezone,
-          planQualityMode,
-          personalizationContext,
-          exerciseSelection,
-          safetyFeedback: safePlanResult.safetyRetryRequest
-        });
-        const retryFoodPlanResult = await this.nutritionAgent.generateDailyFoodPlan({
-          planLocalDate,
-          locale: this.resolvePlanningLocale(user),
-          planQualityMode,
-          appMode,
-          safeMode: user.safeMode,
-          isMinor: user.isMinor,
-          pregnancyStatus: user.profile?.pregnancyStatus,
-          nutritionTarget,
-          nutritionTargetSnapshot: this.nutritionTargetsService.toSnapshot(nutritionTarget),
-          nutritionPreference: user.nutritionPref
-            ? {
-                dietType: user.nutritionPref.dietType,
-                mealsPerDay: user.nutritionPref.mealsPerDay,
-                notes: user.nutritionPref.notes,
-                allergies: user.nutritionPref.allergies.map((food) => food.name),
-                excludedFoods: user.nutritionPref.excludedFoods.map((food) => food.name),
-                dislikedFoods: user.nutritionPref.dislikedFoods.map((food) => food.name),
-                preferredFoods: user.nutritionPref.preferredFoods.map((food) => food.name)
-              }
-            : null,
-          goalSummary: user.goal
-            ? {
-                primaryGoal: user.goal.primaryGoal,
-                goalType: user.goal.goalType
-              }
-            : null,
-          foodAdherenceSummary: personalizationContext.foodAdherenceSummary,
-          mealPracticalityPreference: this.toMealPracticalityPreference(user),
-          mealTimingPreference: this.toMealTimingPreference(user),
-          availableFoodSlugs,
-          resolvedTrainingDay
-        });
-        finalFoodPlan = retryFoodPlanResult.foodPlan;
-        const retryAssembly = await this.dailyPlanOrchestrator.assembleBeforeSafety({
-          providerPlanResult: retryProviderPlanResult,
-          foodPlan: retryFoodPlanResult.foodPlan,
-          exerciseSelection,
-          recoveryProtocol: personalizationContext.selectedProtocols?.recoveryProtocol,
-          healthPlanningContext: personalizationContext.healthPlanningContext,
-          trainingEnabled,
-          isTrainingDay: resolvedTrainingDay.isTrainingDay,
-          decorateProviderPlan: (planJson) => this.withTrainingStateForAppMode(
-            this.withNutritionTargetSnapshot(
-              this.withTrainingScheduleSnapshot(planJson, resolvedTrainingDay),
-              nutritionTarget
-            ),
-            appMode,
-            this.resolvePlanningLocale(user)
-          ),
-          attachFoodPlan: (planJson, foodPlan) => this.withFoodPlan(planJson, foodPlan),
-          applyTrainingLoad: (planJson) => this.withTrainingLoadAgentSnapshot({
-            planJson,
-            user,
-            planLocalDate,
-            planQualityMode,
-            personalizationContext,
+              safetyFeedback
+            }),
+          generateFoodPlan: async () => {
+            const result = await this.nutritionAgent.generateDailyFoodPlan({
+              planLocalDate,
+              locale: targetLocale,
+              planQualityMode,
+              appMode,
+              safeMode: user.safeMode,
+              isMinor: user.isMinor,
+              pregnancyStatus: user.profile?.pregnancyStatus,
+              nutritionTarget,
+              nutritionTargetSnapshot:
+                this.nutritionTargetsService.toSnapshot(nutritionTarget),
+              nutritionPreference: user.nutritionPref
+                ? {
+                    dietType: user.nutritionPref.dietType,
+                    mealsPerDay: user.nutritionPref.mealsPerDay,
+                    notes: user.nutritionPref.notes,
+                    allergies: user.nutritionPref.allergies.map(
+                      (food) => food.name
+                    ),
+                    excludedFoods: user.nutritionPref.excludedFoods.map(
+                      (food) => food.name
+                    ),
+                    dislikedFoods: user.nutritionPref.dislikedFoods.map(
+                      (food) => food.name
+                    ),
+                    preferredFoods: user.nutritionPref.preferredFoods.map(
+                      (food) => food.name
+                    )
+                  }
+                : null,
+              goalSummary: user.goal
+                ? {
+                    primaryGoal: user.goal.primaryGoal,
+                    goalType: user.goal.goalType
+                  }
+                : null,
+              foodAdherenceSummary:
+                personalizationContext.foodAdherenceSummary,
+              mealPracticalityPreference:
+                this.toMealPracticalityPreference(user),
+              mealTimingPreference: this.toMealTimingPreference(user),
+              availableFoodSlugs,
+              resolvedTrainingDay
+            });
+            return result.foodPlan;
+          },
+          buildAssemblyInput: ({
+            providerPlanResult,
+            foodPlan,
+            isSafetyRetry
+          }) => ({
+            providerPlanResult,
+            foodPlan,
             exerciseSelection,
-            resolvedTrainingDay,
-            appMode
-          })
-        });
-        const retryExercisePreparation = retryAssembly.trainingPreparation;
-        exercisePreparation = {
-          ...retryExercisePreparation,
-          usedAiRetry: exercisePreparation.usedAiRetry || retryExercisePreparation.usedAiRetry,
-          usedDeterministicFallback:
-            exercisePreparation.usedDeterministicFallback ||
-            retryExercisePreparation.usedDeterministicFallback
-        };
-        safePlanResult = await this.validateProviderPlan({
-          providerPlan: retryAssembly.providerPlanResult.planJson,
-          blockedFoods,
-          planLocalDate,
-          planTimezone,
-          user,
-          personalizationContext,
-          forcedFallback: retryExercisePreparation.status === PlanStatus.FALLBACK,
-          allowSafetyRetry: false,
-          safetyRetryUsed: true
-        });
-
-        if (retryExercisePreparation.status === PlanStatus.FALLBACK) {
-          const retryFallbackReason =
-            this.getFallbackReason(retryProviderPlanResult.planJson) === 'schema_validation_failed'
-              ? 'safety_agent_retry_invalid_output'
-              : 'safety_agent_retry_failed';
-          safePlanResult = {
-            status: PlanStatus.FALLBACK,
-            planJson: this.createSafetyAgentFallback({
+            recoveryProtocol:
+              personalizationContext.selectedProtocols?.recoveryProtocol,
+            healthPlanningContext:
+              personalizationContext.healthPlanningContext,
+            trainingEnabled,
+            isTrainingDay: resolvedTrainingDay.isTrainingDay,
+            decorateProviderPlan: (planJson) =>
+              this.withTrainingStateForAppMode(
+                this.withNutritionTargetSnapshot(
+                  this.withTrainingScheduleSnapshot(
+                    planJson,
+                    resolvedTrainingDay
+                  ),
+                  nutritionTarget
+                ),
+                appMode,
+                targetLocale
+              ),
+            attachFoodPlan: (planJson, foodPlanToAttach) =>
+              this.withFoodPlan(planJson, foodPlanToAttach),
+            applyTrainingLoad: (planJson) =>
+              this.withTrainingLoadAgentSnapshot({
+                planJson,
+                user,
+                planLocalDate,
+                planQualityMode,
+                personalizationContext,
+                exerciseSelection,
+                resolvedTrainingDay,
+                appMode
+              }),
+            retryTrainingPlan:
+              !isSafetyRetry && this.getProviderDebugName() === 'openai'
+                ? (exerciseFeedback) =>
+                    this.generateProviderPlanOrFallback({
+                      user,
+                      planLocalDate,
+                      planTimezone,
+                      planQualityMode,
+                      personalizationContext,
+                      exerciseSelection,
+                      exerciseFeedback
+                    })
+                : undefined
+          }),
+          validateAttempt: ({
+            providerPlanResult,
+            allowSafetyRetry,
+            safetyRetryUsed
+          }) =>
+            this.validateProviderPlan({
+              providerPlan: providerPlanResult.planJson,
+              blockedFoods,
               planLocalDate,
               planTimezone,
-              locale: this.resolvePlanningLocale(user),
-              fallbackReason: retryFallbackReason,
+              user,
+              personalizationContext,
+              forcedFallback:
+                providerPlanResult.status === PlanStatus.FALLBACK,
+              allowSafetyRetry,
+              safetyRetryUsed
+            }),
+          canUseSafetyRetry: (providerStatus) =>
+            this.canUseSafetyFeedbackRetry(providerStatus),
+          getProviderFallbackReason: (providerPlanResult) =>
+            this.getFallbackReason(providerPlanResult.planJson),
+          createRetryFailureFallback: (fallbackReason) =>
+            this.createSafetyAgentFallback({
+              planLocalDate,
+              planTimezone,
+              locale: targetLocale,
+              fallbackReason,
               retryUsed: true,
               retryResult: 'failed'
-            }).planJson
-          };
-        }
-      } else {
-        this.logger.log('safety retry triggered=false');
-      }
+            })
+        });
+      let {
+        safePlanResult,
+        finalFoodPlan,
+        trainingPreparation: exercisePreparation
+      } = generationWorkflow;
       safePlanResult = {
         ...safePlanResult,
         planJson: this.withSafeTrainingDayFallback({

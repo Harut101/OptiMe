@@ -151,6 +151,199 @@ describe('DailyPlanOrchestratorService', () => {
     );
     expect(safetyOrchestrator.validate).toHaveBeenCalledWith(input);
   });
+
+  it('completes one bounded generation attempt when safety does not request a retry', async () => {
+    const service = createWorkflowService();
+    const plan = createPlan();
+    const foodPlan = {} as NonNullable<
+      DailyPlanJson['nutrition']['foodPlan']
+    >;
+    const providerPlanResult = { status: PlanStatus.READY, planJson: plan };
+    const trainingPreparation = {
+      ...providerPlanResult,
+      usedAiRetry: false,
+      usedDeterministicFallback: false
+    };
+    jest.spyOn(service, 'assembleBeforeSafety').mockResolvedValue({
+      providerPlanResult,
+      trainingPreparation
+    });
+    const generateProviderPlan = jest.fn().mockResolvedValue(providerPlanResult);
+    const generateFoodPlan = jest.fn().mockResolvedValue(foodPlan);
+    const validateAttempt = jest.fn().mockResolvedValue(providerPlanResult);
+
+    const result = await service.executeGenerationWorkflow({
+      generateProviderPlan,
+      generateFoodPlan,
+      buildAssemblyInput: jest.fn(() => ({} as never)),
+      validateAttempt,
+      canUseSafetyRetry: () => true,
+      getProviderFallbackReason: () => undefined,
+      createRetryFailureFallback: jest.fn()
+    });
+
+    expect(result).toEqual({
+      safePlanResult: providerPlanResult,
+      finalFoodPlan: foodPlan,
+      trainingPreparation
+    });
+    expect(generateProviderPlan).toHaveBeenCalledTimes(1);
+    expect(generateFoodPlan).toHaveBeenCalledTimes(1);
+    expect(validateAttempt).toHaveBeenCalledWith({
+      providerPlanResult,
+      allowSafetyRetry: true,
+      safetyRetryUsed: false
+    });
+  });
+
+  it('runs exactly one complete retry with safety feedback and aggregates training repair metadata', async () => {
+    const service = createWorkflowService();
+    const initialPlan = createPlan();
+    const retryPlan = addReminder(createPlan(), 'retry');
+    const safetyFeedback = {
+      riskLevel: 'medium' as const,
+      reasons: ['unsafe implication'],
+      requiredChanges: ['use supportive guidance']
+    };
+    const initialProvider = {
+      status: PlanStatus.READY,
+      planJson: initialPlan
+    };
+    const retryProvider = {
+      status: PlanStatus.READY,
+      planJson: retryPlan
+    };
+    const initialTraining = {
+      ...initialProvider,
+      usedAiRetry: true,
+      usedDeterministicFallback: false
+    };
+    const retryTraining = {
+      ...retryProvider,
+      usedAiRetry: false,
+      usedDeterministicFallback: true
+    };
+    jest
+      .spyOn(service, 'assembleBeforeSafety')
+      .mockResolvedValueOnce({
+        providerPlanResult: initialProvider,
+        trainingPreparation: initialTraining
+      })
+      .mockResolvedValueOnce({
+        providerPlanResult: retryProvider,
+        trainingPreparation: retryTraining
+      });
+    const generateProviderPlan = jest
+      .fn()
+      .mockResolvedValueOnce(initialProvider)
+      .mockResolvedValueOnce(retryProvider);
+    const generateFoodPlan = jest
+      .fn()
+      .mockResolvedValueOnce({ id: 'initial-food' })
+      .mockResolvedValueOnce({ id: 'retry-food' });
+    const validateAttempt = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ...initialProvider,
+        safetyRetryRequest: safetyFeedback
+      })
+      .mockResolvedValueOnce(retryProvider);
+
+    const result = await service.executeGenerationWorkflow({
+      generateProviderPlan,
+      generateFoodPlan,
+      buildAssemblyInput: jest.fn(() => ({} as never)),
+      validateAttempt,
+      canUseSafetyRetry: () => true,
+      getProviderFallbackReason: () => undefined,
+      createRetryFailureFallback: jest.fn()
+    });
+
+    expect(generateProviderPlan).toHaveBeenCalledTimes(2);
+    expect(generateProviderPlan).toHaveBeenNthCalledWith(2, {
+      safetyFeedback
+    });
+    expect(generateFoodPlan).toHaveBeenCalledTimes(2);
+    expect(validateAttempt).toHaveBeenNthCalledWith(2, {
+      providerPlanResult: retryProvider,
+      allowSafetyRetry: false,
+      safetyRetryUsed: true
+    });
+    expect(result.trainingPreparation).toEqual(
+      expect.objectContaining({
+        usedAiRetry: true,
+        usedDeterministicFallback: true
+      })
+    );
+    expect(result.finalFoodPlan).toEqual({ id: 'retry-food' });
+  });
+
+  it('uses the bounded retry fallback when the second provider plan remains invalid', async () => {
+    const service = createWorkflowService();
+    const plan = createPlan();
+    const providerPlanResult = {
+      status: PlanStatus.FALLBACK,
+      planJson: plan
+    };
+    const trainingPreparation = {
+      ...providerPlanResult,
+      usedAiRetry: false,
+      usedDeterministicFallback: true
+    };
+    jest
+      .spyOn(service, 'assembleBeforeSafety')
+      .mockResolvedValueOnce({
+        providerPlanResult: {
+          status: PlanStatus.READY,
+          planJson: plan
+        },
+        trainingPreparation: {
+          ...trainingPreparation,
+          status: PlanStatus.READY,
+          usedDeterministicFallback: false
+        }
+      })
+      .mockResolvedValueOnce({
+        providerPlanResult,
+        trainingPreparation
+      });
+    const fallbackResult = {
+      status: PlanStatus.FALLBACK,
+      planJson: addReminder(plan, 'bounded-fallback')
+    };
+    const createRetryFailureFallback = jest
+      .fn()
+      .mockReturnValue(fallbackResult);
+
+    const result = await service.executeGenerationWorkflow({
+      generateProviderPlan: jest
+        .fn()
+        .mockResolvedValueOnce({ status: PlanStatus.READY, planJson: plan })
+        .mockResolvedValueOnce(providerPlanResult),
+      generateFoodPlan: jest.fn().mockResolvedValue({}),
+      buildAssemblyInput: jest.fn(() => ({} as never)),
+      validateAttempt: jest
+        .fn()
+        .mockResolvedValueOnce({
+          status: PlanStatus.FALLBACK,
+          planJson: plan,
+          safetyRetryRequest: {
+            riskLevel: 'high',
+            reasons: ['unsafe'],
+            requiredChanges: ['replace unsafe advice']
+          }
+        })
+        .mockResolvedValueOnce(providerPlanResult),
+      canUseSafetyRetry: () => true,
+      getProviderFallbackReason: () => 'schema_validation_failed',
+      createRetryFailureFallback
+    });
+
+    expect(createRetryFailureFallback).toHaveBeenCalledWith(
+      'safety_agent_retry_invalid_output'
+    );
+    expect(result.safePlanResult).toBe(fallbackResult);
+  });
 });
 
 function createPlan() {
@@ -166,4 +359,13 @@ function addReminder(planJson: DailyPlanJson, reminder: string): DailyPlanJson {
     ...planJson,
     reminders: [...planJson.reminders, reminder]
   };
+}
+
+function createWorkflowService() {
+  return new DailyPlanOrchestratorService(
+    {} as TrainingPlanAgentService,
+    {} as RecoveryPlanAgentService,
+    {} as DailyPlanSafetyOrchestratorService,
+    {} as DailyPlanPersistenceService
+  );
 }

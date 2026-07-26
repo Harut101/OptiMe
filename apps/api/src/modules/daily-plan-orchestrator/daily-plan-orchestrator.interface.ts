@@ -1,4 +1,7 @@
-import type { GenerateDailyPlanExerciseFeedback } from '../ai/ai-provider.interface';
+import type {
+  GenerateDailyPlanExerciseFeedback,
+  GenerateDailyPlanSafetyFeedback
+} from '../ai/ai-provider.interface';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import type { HealthPlanningContext } from '../health/health-planning.types';
@@ -41,7 +44,44 @@ export interface AssembledDailyPlan {
   trainingPreparation: FinalizedTrainingPlan;
 }
 
+export interface ExecuteDailyPlanGenerationWorkflowInput {
+  generateProviderPlan: (input?: {
+    safetyFeedback?: GenerateDailyPlanSafetyFeedback;
+  }) => Promise<TrainingPlanProviderResult>;
+  generateFoodPlan: () => Promise<
+    NonNullable<DailyPlanJson['nutrition']['foodPlan']>
+  >;
+  buildAssemblyInput: (input: {
+    providerPlanResult: TrainingPlanProviderResult;
+    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>;
+    isSafetyRetry: boolean;
+  }) => AssembleDailyPlanInput;
+  validateAttempt: (input: {
+    providerPlanResult: TrainingPlanProviderResult;
+    allowSafetyRetry: boolean;
+    safetyRetryUsed: boolean;
+  }) => DailyPlanSafetyResult | Promise<DailyPlanSafetyResult>;
+  canUseSafetyRetry: (providerStatus: TrainingPlanProviderResult['status']) => boolean;
+  getProviderFallbackReason: (
+    providerPlanResult: TrainingPlanProviderResult
+  ) => string | undefined;
+  createRetryFailureFallback: (
+    fallbackReason:
+      | 'safety_agent_retry_invalid_output'
+      | 'safety_agent_retry_failed'
+  ) => DailyPlanSafetyResult;
+}
+
+export interface DailyPlanGenerationWorkflowResult {
+  safePlanResult: DailyPlanSafetyResult;
+  finalFoodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>;
+  trainingPreparation: FinalizedTrainingPlan;
+}
+
 export interface DailyPlanOrchestrator {
+  executeGenerationWorkflow(
+    input: ExecuteDailyPlanGenerationWorkflowInput
+  ): Promise<DailyPlanGenerationWorkflowResult>;
   assembleBeforeSafety(input: AssembleDailyPlanInput): Promise<AssembledDailyPlan>;
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput): FinalizedRecoveryPlan;
   validateBeforePersistence(
