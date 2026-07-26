@@ -985,6 +985,45 @@ export interface DailyPlanCheckpointEvaluationResponse
   evaluatedAt: string;
 }
 
+export type PlanCheckpointProposalStatus =
+  | 'NOT_NEEDED'
+  | 'READY'
+  | 'INVALID'
+  | 'UNSAFE'
+  | 'UNAVAILABLE';
+
+export type PlanCheckpointProposalFailureReason =
+  | 'provider_unavailable'
+  | 'schema_validation_failed'
+  | 'deterministic_safety_rejected'
+  | 'safety_agent_rejected'
+  | 'safety_agent_invalid_review'
+  | 'safety_agent_unavailable';
+
+export interface DailyPlanCheckpointProposal {
+  proposalVersion: 'adaptive-checkpoint.v1';
+  generatedAt: string;
+  sourceDailyPlanId: string;
+  sourcePlanUpdatedAt: string;
+  trigger: PlanCheckpointTrigger;
+  severity: PlanImpactSeverity;
+  reasonCodes: PlanCheckpointReasonCode[];
+  affectedSections: PlanImpactSection[];
+  summary: {
+    title: string;
+    message: string;
+  };
+  proposedPlan: DailyPlanJson;
+}
+
+export interface DailyPlanCheckpointProposalResponse {
+  evaluation: DailyPlanCheckpointEvaluationResponse;
+  status: PlanCheckpointProposalStatus;
+  proposal: DailyPlanCheckpointProposal | null;
+  failureReason?: PlanCheckpointProposalFailureReason;
+  safeUserMessage?: string;
+}
+
 export interface UpsertWearableSnapshotRequest {
   localDate: string;
   timezone: string;

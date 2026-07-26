@@ -13,6 +13,7 @@ import type {
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { normalizeDailyPlanJson } from '../daily-plans/daily-plan-normalizer';
 import { selectPreferredWearableSnapshot } from '../health/wearable-source-priority';
 import { EvaluateDailyPlanCheckpointDto } from './dto/evaluate-daily-plan-checkpoint.dto';
@@ -25,6 +26,14 @@ type PlanWithCheckpointFacts = Prisma.DailyPlanGetPayload<{
     checkIns: true;
   };
 }>;
+
+export interface PlanCheckpointEvaluationContext {
+  evaluation: DailyPlanCheckpointEvaluationResponse;
+  currentFacts: PlanCheckpointFacts;
+  sourcePlan: DailyPlanJson;
+  sourcePlanTimezone: string;
+  sourcePlanUpdatedAt: string;
+}
 
 @Injectable()
 export class PlanCheckpointService {
@@ -56,6 +65,15 @@ export class PlanCheckpointService {
     dailyPlanId: string,
     dto: EvaluateDailyPlanCheckpointDto
   ): Promise<DailyPlanCheckpointEvaluationResponse> {
+    const context = await this.evaluateWithContext(userId, dailyPlanId, dto);
+    return context.evaluation;
+  }
+
+  async evaluateWithContext(
+    userId: string,
+    dailyPlanId: string,
+    dto: EvaluateDailyPlanCheckpointDto
+  ): Promise<PlanCheckpointEvaluationContext> {
     const plan = await this.getOwnedPlanWithFacts(userId, dailyPlanId);
     const current = await this.captureFacts(userId, plan.planLocalDate, plan);
     const normalizedPlan = normalizeDailyPlanJson({
@@ -88,11 +106,17 @@ export class PlanCheckpointService {
       );
 
       return {
-        dailyPlanId: plan.id,
-        planLocalDate: plan.planLocalDate,
-        baselineInitialized: true,
-        evaluatedAt: current.capturedAt,
-        ...evaluation
+        evaluation: {
+          dailyPlanId: plan.id,
+          planLocalDate: plan.planLocalDate,
+          baselineInitialized: true,
+          evaluatedAt: current.capturedAt,
+          ...evaluation
+        },
+        currentFacts: current,
+        sourcePlan: normalizedPlan,
+        sourcePlanTimezone: plan.planTimezone,
+        sourcePlanUpdatedAt: plan.updatedAt.toISOString()
       };
     }
 
@@ -114,11 +138,17 @@ export class PlanCheckpointService {
     );
 
     return {
-      dailyPlanId: plan.id,
-      planLocalDate: plan.planLocalDate,
-      baselineInitialized: false,
-      evaluatedAt: current.capturedAt,
-      ...evaluation
+      evaluation: {
+        dailyPlanId: plan.id,
+        planLocalDate: plan.planLocalDate,
+        baselineInitialized: false,
+        evaluatedAt: current.capturedAt,
+        ...evaluation
+      },
+      currentFacts: current,
+      sourcePlan: normalizedPlan,
+      sourcePlanTimezone: plan.planTimezone,
+      sourcePlanUpdatedAt: plan.updatedAt.toISOString()
     };
   }
 

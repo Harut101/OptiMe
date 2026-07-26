@@ -13,7 +13,12 @@ import {
   TrainingLevel,
   TrainingOutcome
 } from '@prisma/client';
-import type { NutritionTarget, SupportedLocale } from '@optime/shared-types';
+import type {
+  DailyPlanCheckpointEvaluationResponse,
+  NutritionTarget,
+  PlanCheckpointFacts,
+  SupportedLocale
+} from '@optime/shared-types';
 
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { HealthPlanningContext } from '../health/health-planning.types';
@@ -160,6 +165,28 @@ export interface GenerateDailyPlanInput {
   safetyFeedback?: GenerateDailyPlanSafetyFeedback;
 }
 
+export interface GeneratePlanCheckpointProposalInput {
+  currentPlan: DailyPlanJson;
+  evaluation: DailyPlanCheckpointEvaluationResponse;
+  currentFacts: PlanCheckpointFacts;
+  planLocalDate: string;
+  planTimezone: string;
+  locale: SupportedLocale;
+  planQualityMode: PlanQualityMode;
+  safetyContext: {
+    safeMode: boolean;
+    isMinor: boolean;
+    pregnancyStatus: PregnancyStatus;
+    allergies: string[];
+    excludedFoods: string[];
+    trainingLevel: TrainingLevel | null;
+    limitationsOrPainAreas: string[];
+  };
+}
+
 export interface AiProvider {
   generateDailyPlan(input: GenerateDailyPlanInput): Promise<DailyPlanJson>;
+  generatePlanCheckpointProposal?(
+    input: GeneratePlanCheckpointProposalInput
+  ): Promise<DailyPlanJson>;
 }

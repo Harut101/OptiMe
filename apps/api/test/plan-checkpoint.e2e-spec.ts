@@ -7,7 +7,17 @@ import {
 } from '@prisma/client';
 import type { PlanCheckpointFacts } from '@optime/shared-types';
 
+import type {
+  AiProvider,
+  GenerateDailyPlanInput,
+  GeneratePlanCheckpointProposalInput
+} from '../src/modules/ai/ai-provider.interface';
+import { AI_PROVIDER } from '../src/modules/ai/ai-provider.token';
 import { createSafeFallbackPlan } from '../src/modules/safety/safe-fallback-plan.factory';
+import {
+  SAFETY_AGENT,
+  SAFETY_AGENT_CONFIG
+} from '../src/modules/safety-agent/safety-agent.token';
 import { authHeader, registerTestUser } from './helpers/auth';
 import { cleanupDatabase } from './helpers/cleanup';
 import { createTestApp, TestApp } from './helpers/test-app';
@@ -35,6 +45,37 @@ describe('Adaptive plan checkpoint evaluation', () => {
       .post('/v1/daily-plans/plan-1/checkpoint/evaluate')
       .send({ trigger: 'APP_OPEN' })
       .expect(401);
+  });
+
+  it('does not generate a proposal when no material change is detected', async () => {
+    const user = await registerTestUser(ctx.app);
+    const baseline = createBaseline(480);
+    const plan = await createPlan(user.user.id, baseline);
+    const provider = ctx.app.get<AiProvider>(AI_PROVIDER);
+    const proposalSpy = jest.spyOn(
+      provider,
+      'generatePlanCheckpointProposal'
+    );
+
+    try {
+      const response = await request(ctx.app.getHttpServer())
+        .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+        .set(authHeader(user.accessToken))
+        .send({ trigger: 'APP_OPEN' })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        status: 'NOT_NEEDED',
+        proposal: null,
+        evaluation: {
+          dailyPlanId: plan.id,
+          materialChangeDetected: false
+        }
+      });
+      expect(proposalSpy).not.toHaveBeenCalled();
+    } finally {
+      proposalSpy.mockRestore();
+    }
   });
 
   it('initializes an old plan baseline without a false review prompt', async () => {
@@ -97,6 +138,175 @@ describe('Adaptive plan checkpoint evaluation', () => {
     );
   });
 
+  it('returns a safe preview proposal without changing the saved plan', async () => {
+    const user = await registerTestUser(ctx.app);
+    const baseline = createBaseline(480);
+    const plan = await createPlan(user.user.id, baseline);
+    const provider = ctx.app.get<AiProvider>(AI_PROVIDER);
+    const proposalSpy = jest.spyOn(
+      provider,
+      'generatePlanCheckpointProposal'
+    );
+    await ctx.prisma.wearableDailySnapshot.create({
+      data: {
+        userId: user.user.id,
+        source: HealthProvider.APPLE_HEALTH,
+        localDate: plan.planLocalDate,
+        timezone: 'UTC',
+        sleepMinutes: 300,
+        capturedAt: new Date('2026-07-26T10:00:00.000Z')
+      }
+    });
+
+    const response = await request(ctx.app.getHttpServer())
+      .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+      .set(authHeader(user.accessToken))
+      .send({ trigger: 'HEALTH_SYNC' })
+      .expect(201);
+
+    expect(response.body).toMatchObject({
+      status: 'READY',
+      evaluation: {
+        dailyPlanId: plan.id,
+        materialChangeDetected: true,
+        severity: 'HIGH'
+      },
+      proposal: {
+        proposalVersion: 'adaptive-checkpoint.v1',
+        sourceDailyPlanId: plan.id,
+        trigger: 'HEALTH_SYNC',
+        severity: 'HIGH',
+        proposedPlan: {
+          schemaVersion: 'sprint-2.v1',
+          checkpointBaseline: {
+            health: {
+              sleepMinutes: 300
+            }
+          }
+        }
+      }
+    });
+
+    const saved = await ctx.prisma.dailyPlan.findUniqueOrThrow({
+      where: { id: plan.id }
+    });
+    expect(saved.planJson).toEqual(plan.planJson);
+    expect(saved.updatedAt.toISOString()).toBe(plan.updatedAt.toISOString());
+    expect(proposalSpy).toHaveBeenCalledTimes(1);
+    proposalSpy.mockRestore();
+  });
+
+  it('rejects invalid provider output without changing the saved plan', async () => {
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (_input: GenerateDailyPlanInput) => {
+              throw new Error('Not used by this test.');
+            },
+            generatePlanCheckpointProposal: async (
+              _input: GeneratePlanCheckpointProposalInput
+            ) => ({ invalid: true })
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app);
+      const plan = await createPlan(
+        user.user.id,
+        createBaseline(480),
+        customCtx.prisma
+      );
+      await createLowSleepSnapshot(customCtx, user.user.id, plan.planLocalDate);
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+        .set(authHeader(user.accessToken))
+        .send({ trigger: 'HEALTH_SYNC' })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        status: 'INVALID',
+        proposal: null,
+        failureReason: 'schema_validation_failed'
+      });
+      const saved = await customCtx.prisma.dailyPlan.findUniqueOrThrow({
+        where: { id: plan.id }
+      });
+      expect(saved.planJson).toEqual(plan.planJson);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
+  it('rejects a SafetyAgent-blocked proposal without changing the saved plan', async () => {
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (_input: GenerateDailyPlanInput) => {
+              throw new Error('Not used by this test.');
+            },
+            generatePlanCheckpointProposal: async (
+              input: GeneratePlanCheckpointProposalInput
+            ) => input.currentPlan
+          }
+        },
+        {
+          token: SAFETY_AGENT_CONFIG,
+          value: { enabled: true, provider: 'mock' }
+        },
+        {
+          token: SAFETY_AGENT,
+          value: {
+            reviewDailyPlan: async () => ({
+              approved: false,
+              riskLevel: 'medium',
+              reasons: ['The proposal needs a safer recovery adjustment.'],
+              requiredChanges: ['Reduce the training recommendation.']
+            })
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app);
+      const plan = await createPlan(
+        user.user.id,
+        createBaseline(480),
+        customCtx.prisma
+      );
+      await createLowSleepSnapshot(customCtx, user.user.id, plan.planLocalDate);
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post(`/v1/daily-plans/${plan.id}/checkpoint/propose`)
+        .set(authHeader(user.accessToken))
+        .send({ trigger: 'HEALTH_SYNC' })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        status: 'UNSAFE',
+        proposal: null,
+        failureReason: 'safety_agent_rejected'
+      });
+      const saved = await customCtx.prisma.dailyPlan.findUniqueOrThrow({
+        where: { id: plan.id }
+      });
+      expect(saved.planJson).toEqual(plan.planJson);
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
   it('does not allow another user to evaluate the plan', async () => {
     const owner = await registerTestUser(ctx.app);
     const otherUser = await registerTestUser(ctx.app);
@@ -109,7 +319,11 @@ describe('Adaptive plan checkpoint evaluation', () => {
       .expect(404);
   });
 
-  async function createPlan(userId: string, checkpointBaseline?: PlanCheckpointFacts) {
+  async function createPlan(
+    userId: string,
+    checkpointBaseline?: PlanCheckpointFacts,
+    prisma = ctx.prisma
+  ) {
     const planJson = {
       ...createSafeFallbackPlan({
         planLocalDate: '2026-07-26',
@@ -118,7 +332,7 @@ describe('Adaptive plan checkpoint evaluation', () => {
       ...(checkpointBaseline ? { checkpointBaseline } : {})
     };
 
-    return ctx.prisma.dailyPlan.create({
+    return prisma.dailyPlan.create({
       data: {
         userId,
         planLocalDate: '2026-07-26',
@@ -126,6 +340,23 @@ describe('Adaptive plan checkpoint evaluation', () => {
         status: PlanStatus.READY,
         readinessLevel: DailyReadinessLevel.MAINTAIN,
         planJson: planJson as unknown as Prisma.JsonObject
+      }
+    });
+  }
+
+  async function createLowSleepSnapshot(
+    testContext: TestApp,
+    userId: string,
+    planLocalDate: string
+  ) {
+    return testContext.prisma.wearableDailySnapshot.create({
+      data: {
+        userId,
+        source: HealthProvider.APPLE_HEALTH,
+        localDate: planLocalDate,
+        timezone: 'UTC',
+        sleepMinutes: 300,
+        capturedAt: new Date('2026-07-26T10:00:00.000Z')
       }
     });
   }

@@ -70,10 +70,44 @@ unknown historical state.
 
 Batch 2 does not call AI, change a plan, create a proposal, or add mobile UI.
 
+## Batch 3: Safe Preview Proposal
+
+Authenticated clients can now request a preview after evaluation:
+
+```txt
+POST /v1/daily-plans/:id/checkpoint/propose
+```
+
+The request uses the same foreground trigger contract as evaluation. The backend
+first runs deterministic material-change detection. When no material change is
+present, or an old plan baseline was just initialized, it returns `NOT_NEEDED`
+and does not call the AI provider.
+
+For a material change, `AiProvider` proposes one complete normalized
+`DailyPlanJson`. The proposal pipeline then:
+
+1. restores backend-owned metadata and the current checkpoint facts;
+2. preserves deterministic nutrition targets and catalog-backed food content;
+3. preserves exercise identities and catalog snapshots while allowing bounded
+   prescription and recovery adjustments;
+4. validates the normalized schema;
+5. runs deterministic food, pregnancy-sensitive, and exercise safety checks;
+6. runs the configured Safety Agent after deterministic safety passes.
+
+Only a proposal that passes every enabled check is returned with `READY`.
+Provider, schema, deterministic safety, or Safety Agent failures return
+`UNAVAILABLE`, `INVALID`, or `UNSAFE` with supportive feedback. The endpoint
+does not persist the proposal and never changes the source plan or its
+`updatedAt`.
+
+The OpenAI checkpoint request includes the current normalized plan, structured
+checkpoint evaluation, current normalized facts, and minimal safety context. It
+does not include passwords, tokens, raw health samples, or a full private
+profile. Safe logs record only plan ID, trigger severity, reason count, status,
+and whether persistence occurred.
+
 ## Deferred To Later Batches
 
-- AI adjustment proposal generation.
-- Schema, deterministic safety, and Safety Agent proposal validation.
 - Proposal persistence and explicit apply/keep behavior.
 - Mobile comparison UI.
 - Tier limits and cost accounting.

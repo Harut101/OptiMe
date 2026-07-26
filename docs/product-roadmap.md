@@ -318,11 +318,12 @@ Example:
 
 ### Adaptive Plan Checkpoint
 
-Pre-release feature in progress. Batches 1-2 are implemented: shared checkpoint facts
+Pre-release feature in progress. Batches 1-3 are implemented: shared checkpoint facts
 and result contracts, deterministic material-change thresholds, a reusable
 `PlanCheckpointMaterialChangeDetectorService`, backend-owned plan baselines,
-ownership-safe API evaluation, and focused unit/E2E coverage. AI adjustment
-proposals and mobile review/apply UI remain pending.
+ownership-safe API evaluation, preview-only AI adjustment proposals, complete
+schema and safety validation, and focused unit/E2E coverage. Proposal
+persistence/apply and mobile review/apply UI remain pending.
 
 Purpose:
 

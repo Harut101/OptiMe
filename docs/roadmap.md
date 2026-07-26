@@ -17,12 +17,14 @@ safety pipeline, and present an explicit adjustment proposal. It will not silent
 change plans, diagnose recovery states, add background sync, use unsupported HRV
 signals, or make health data mandatory.
 
-Adaptive Plan Checkpoint Batches 1-2 are complete: shared normalized fact/result
+Adaptive Plan Checkpoint Batches 1-3 are complete: shared normalized fact/result
 contracts and the deterministic material-change detector now cover meaningful
 sleep, activity, workout, meal, check-in, and explicit safety-signal changes.
 New plans store a backend-owned baseline, and an ownership-safe endpoint evaluates
-current structured facts. There is still no checkpoint AI call, adjustment
-proposal, or mobile behavior.
+current structured facts. A second ownership-safe endpoint can now generate a
+preview-only full-plan proposal through `AiProvider`, schema validation,
+deterministic SafetyService, and the configured Safety Agent. No proposal is
+persisted or applied yet, and there is still no mobile checkpoint behavior.
 
 The production Free-tier direction is also approved: route its one Basic Daily
 Plan per local day through the cost-efficient OpenAI Luna model, disable manual

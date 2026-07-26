@@ -6,7 +6,11 @@ import {
   DailyPlanJson,
   dailyPlanJsonSchema
 } from '../daily-plans/daily-plan-json.schema';
-import { AiProvider, GenerateDailyPlanInput } from './ai-provider.interface';
+import {
+  AiProvider,
+  GenerateDailyPlanInput,
+  GeneratePlanCheckpointProposalInput
+} from './ai-provider.interface';
 import { dailyPlanJsonOpenAiSchema } from './daily-plan-json.openai-schema';
 import {
   OpenAiClientFactory,
@@ -52,6 +56,95 @@ export class OpenAiProviderService implements AiProvider {
     throw new OpenAiProviderError(retryAttempt.message, {
       fallbackReason: retryAttempt.fallbackReason
     });
+  }
+
+  async generatePlanCheckpointProposal(
+    input: GeneratePlanCheckpointProposalInput
+  ): Promise<DailyPlanJson> {
+    this.logger.log('OpenAI checkpoint proposal started');
+    const firstAttempt = await this.requestCheckpointProposal(input, false);
+
+    if (firstAttempt.ok) {
+      this.logger.log('OpenAI checkpoint proposal completed without retry');
+      return firstAttempt.plan;
+    }
+
+    this.logger.warn(
+      `OpenAI checkpoint proposal failed; retrying. reason=${firstAttempt.fallbackReason}`
+    );
+    const retryAttempt = await this.requestCheckpointProposal(input, true);
+
+    if (retryAttempt.ok) {
+      this.logger.log('OpenAI checkpoint proposal completed after retry');
+      return retryAttempt.plan;
+    }
+
+    throw new OpenAiProviderError(retryAttempt.message, {
+      fallbackReason: retryAttempt.fallbackReason
+    });
+  }
+
+  private async requestCheckpointProposal(
+    input: GeneratePlanCheckpointProposalInput,
+    retry: boolean
+  ): Promise<OpenAiAttemptResult> {
+    const model = this.getModel();
+
+    try {
+      this.logger.log(
+        `OpenAI checkpoint request started; retryAttempt=${retry}; model=${model}`
+      );
+      const response = await this.getClient().responses.create(
+        {
+          model,
+          max_output_tokens: this.getMaxOutputTokens(),
+          input: [
+            {
+              role: 'system',
+              content: this.buildCheckpointInstructions(retry)
+            },
+            {
+              role: 'user',
+              content: JSON.stringify(this.buildCheckpointContext(input))
+            }
+          ],
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'daily_plan_checkpoint_proposal',
+              strict: true,
+              schema: dailyPlanJsonOpenAiSchema
+            }
+          }
+        },
+        { timeout: this.getRequestTimeoutMs() }
+      );
+
+      this.logger.log(
+        `OpenAI checkpoint response received; retryAttempt=${retry}; model=${model}`
+      );
+      return this.parseAndValidateResponse(
+        response,
+        input.planQualityMode,
+        input.locale
+      );
+    } catch (error) {
+      if (error instanceof OpenAiProviderError) {
+        return {
+          ok: false,
+          fallbackReason: error.fallbackReason,
+          message: error.message
+        };
+      }
+
+      const classified = this.classifyOpenAiError(error);
+      this.logOpenAiSdkError(error, classified, retry, model);
+      return {
+        ok: false,
+        fallbackReason: classified,
+        message: this.messageForFallbackReason(classified)
+      };
+    }
   }
 
   private async requestDailyPlan(
@@ -182,6 +275,53 @@ export class OpenAiProviderService implements AiProvider {
         .find((content) => content.type === 'output_text' && typeof content.text === 'string')
         ?.text ?? null
     );
+  }
+
+  private buildCheckpointInstructions(retry: boolean) {
+    return [
+      'You are a supportive AI wellness planner reviewing an existing plan after a meaningful same-day change.',
+      'Return one complete DailyPlanJson content object that matches the provided JSON schema.',
+      'The proposal is a preview. Do not claim that it has already been applied.',
+      'Change only what is justified by checkpointEvaluation.reasonCodes and affectedSections.',
+      'Keep all user-facing text in outputLanguage.locale.',
+      'The backend owns schemaVersion, generatedAt, mockVersion, contentLocale, debug, checkpointBaseline, nutrition targets, food catalog items, and exercise catalog identities.',
+      'Do not include backend-owned metadata fields.',
+      'Do not invent or replace foods, ingredients, exercise IDs, exercise slugs, exercise names, target muscles, equipment, or exercise snapshots.',
+      'You may adjust training intensity, sets, reps, rest, duration, cues, recovery guidance, summary wording, and reminders when the checkpoint supports it.',
+      'Do not increase training intensity when sleep, fatigue, soreness, pain, illness, dizziness, exhaustion, or high activity suggests recovery.',
+      'Pain, illness, dizziness, and exhaustion require conservative non-diagnostic guidance.',
+      'Allergies and excluded foods remain hard restrictions. Never recommend consuming them.',
+      'Do not use body-shaming, punishment exercise, extreme dieting, or medical diagnosis language.',
+      'Missing wearable data is neutral and must not be treated as poor recovery.',
+      'Preserve a useful complete plan even when only one section changes.',
+      retry
+        ? 'This is a retry. Return every required field and strictly preserve the catalog-backed foods and exercise identities from currentPlan.'
+        : 'Create the smallest useful full-plan adjustment for the detected change.'
+    ].join('\n');
+  }
+
+  private buildCheckpointContext(input: GeneratePlanCheckpointProposalInput) {
+    const { debug: _debug, checkpointBaseline: _checkpointBaseline, ...planContent } =
+      input.currentPlan;
+
+    return {
+      planLocalDate: input.planLocalDate,
+      planTimezone: input.planTimezone,
+      outputLanguage: {
+        locale: input.locale,
+        requirement: 'Generate every user-facing proposal field in this locale.'
+      },
+      checkpointEvaluation: {
+        trigger: input.evaluation.trigger,
+        severity: input.evaluation.severity,
+        reasonCodes: input.evaluation.reasonCodes,
+        affectedSections: input.evaluation.affectedSections,
+        requiresSafetyReview: input.evaluation.requiresSafetyReview
+      },
+      currentFacts: input.currentFacts,
+      currentPlan: planContent,
+      safetyConstraints: input.safetyContext
+    };
   }
 
   private buildSystemInstructions(input: GenerateDailyPlanInput, retry: boolean) {
