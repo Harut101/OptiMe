@@ -73,6 +73,95 @@ export const evaluatePlanImpactSchema = z.object({
   newValues: z.record(z.unknown()).optional()
 });
 
+export const planCheckpointTriggerSchema = z.enum([
+  'APP_OPEN',
+  'HEALTH_SYNC',
+  'PRE_WORKOUT_CHECK',
+  'MANUAL_CHECK_IN'
+]);
+
+export const planCheckpointReasonCodeSchema = z.enum([
+  'NEW_PAIN_OR_LIMITATION',
+  'NEW_ILLNESS_SIGNAL',
+  'NEW_DIZZINESS_SIGNAL',
+  'NEW_EXHAUSTION_SIGNAL',
+  'LOW_SLEEP_DETECTED',
+  'SLEEP_DECREASED',
+  'HIGH_ACTIVITY_DETECTED',
+  'ACTIVITY_INCREASED',
+  'WORKOUT_LOAD_INCREASED',
+  'WORKOUT_COMPLETED',
+  'MEAL_SKIPPED',
+  'LOW_ENERGY_REPORTED',
+  'HIGH_TIREDNESS_REPORTED',
+  'HIGH_SORENESS_REPORTED'
+]);
+
+export const planCheckpointWorkoutStatusSchema = z.enum([
+  'NOT_STARTED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'SKIPPED',
+  'RESTED_INSTEAD'
+]);
+
+export const planCheckpointFactsSchema = z.object({
+  capturedAt: z.string().datetime(),
+  health: z.object({
+    source: z
+      .enum(['APPLE_HEALTH', 'HEALTH_CONNECT', 'WHOOP', 'GARMIN', 'MANUAL', 'MOCK'])
+      .nullable(),
+    localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+    sleepMinutes: z.number().int().min(0).max(1440).nullable(),
+    steps: z.number().int().min(0).max(100000).nullable(),
+    activeCaloriesKcal: z.number().int().min(0).max(10000).nullable(),
+    workoutMinutes: z.number().int().min(0).max(1440).nullable()
+  }),
+  progress: z.object({
+    completedMeals: z.number().int().min(0).max(20),
+    skippedMeals: z.number().int().min(0).max(20),
+    workoutStatus: planCheckpointWorkoutStatusSchema
+  }),
+  checkIn: z.object({
+    energyLevel: z.number().int().min(1).max(10).nullable(),
+    tirednessLevel: z.number().int().min(1).max(10).nullable(),
+    sorenessLevel: z.number().int().min(1).max(10).nullable()
+  }),
+  safetySignals: z.object({
+    painOrLimitation: z.boolean(),
+    illness: z.boolean(),
+    dizziness: z.boolean(),
+    exhaustion: z.boolean()
+  })
+});
+
+export const evaluatePlanCheckpointSchema = z.object({
+  trigger: planCheckpointTriggerSchema,
+  planLocalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  baseline: planCheckpointFactsSchema,
+  current: planCheckpointFactsSchema
+});
+
+export const planCheckpointResultSchema = z.object({
+  trigger: planCheckpointTriggerSchema,
+  materialChangeDetected: z.boolean(),
+  reviewRecommended: z.boolean(),
+  requiresSafetyReview: z.boolean(),
+  severity: z.enum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'SAFETY_CRITICAL']),
+  affectedSections: z.array(
+    z.enum([
+      'NUTRITION_TARGET',
+      'FOOD_PLAN',
+      'TRAINING_PLAN',
+      'RECOVERY',
+      'REMINDERS',
+      'SAFETY',
+      'WEARABLE_CONTEXT'
+    ])
+  ),
+  reasonCodes: z.array(planCheckpointReasonCodeSchema)
+});
+
 export const goalSchema = z.object({
   goalType: z.enum([
     'HEALTHY_LIFESTYLE',

@@ -318,7 +318,11 @@ Example:
 
 ### Adaptive Plan Checkpoint
 
-Pre-release feature, not yet implemented.
+Pre-release feature in progress. Batch 1 is implemented: shared checkpoint facts
+and result contracts, deterministic material-change thresholds, a reusable
+`PlanCheckpointMaterialChangeDetectorService`, and focused unit coverage. Fact
+loading, API orchestration, AI proposals, persistence, and mobile review/apply UI
+remain pending.
 
 Purpose:
 

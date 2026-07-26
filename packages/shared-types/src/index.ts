@@ -899,6 +899,80 @@ export interface EvaluatePlanImpactRequest {
 
 export interface EvaluatePlanImpactResponse extends PlanImpactResult {}
 
+export type PlanCheckpointTrigger =
+  | 'APP_OPEN'
+  | 'HEALTH_SYNC'
+  | 'PRE_WORKOUT_CHECK'
+  | 'MANUAL_CHECK_IN';
+
+export type PlanCheckpointReasonCode =
+  | 'NEW_PAIN_OR_LIMITATION'
+  | 'NEW_ILLNESS_SIGNAL'
+  | 'NEW_DIZZINESS_SIGNAL'
+  | 'NEW_EXHAUSTION_SIGNAL'
+  | 'LOW_SLEEP_DETECTED'
+  | 'SLEEP_DECREASED'
+  | 'HIGH_ACTIVITY_DETECTED'
+  | 'ACTIVITY_INCREASED'
+  | 'WORKOUT_LOAD_INCREASED'
+  | 'WORKOUT_COMPLETED'
+  | 'MEAL_SKIPPED'
+  | 'LOW_ENERGY_REPORTED'
+  | 'HIGH_TIREDNESS_REPORTED'
+  | 'HIGH_SORENESS_REPORTED';
+
+export type PlanCheckpointWorkoutStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'SKIPPED'
+  | 'RESTED_INSTEAD';
+
+export interface PlanCheckpointFacts {
+  capturedAt: string;
+  health: {
+    source: HealthDataSource | null;
+    localDate: string | null;
+    sleepMinutes: number | null;
+    steps: number | null;
+    activeCaloriesKcal: number | null;
+    workoutMinutes: number | null;
+  };
+  progress: {
+    completedMeals: number;
+    skippedMeals: number;
+    workoutStatus: PlanCheckpointWorkoutStatus;
+  };
+  checkIn: {
+    energyLevel: number | null;
+    tirednessLevel: number | null;
+    sorenessLevel: number | null;
+  };
+  safetySignals: {
+    painOrLimitation: boolean;
+    illness: boolean;
+    dizziness: boolean;
+    exhaustion: boolean;
+  };
+}
+
+export interface EvaluatePlanCheckpointRequest {
+  trigger: PlanCheckpointTrigger;
+  planLocalDate: string;
+  baseline: PlanCheckpointFacts;
+  current: PlanCheckpointFacts;
+}
+
+export interface EvaluatePlanCheckpointResponse {
+  trigger: PlanCheckpointTrigger;
+  materialChangeDetected: boolean;
+  reviewRecommended: boolean;
+  requiresSafetyReview: boolean;
+  severity: PlanImpactSeverity;
+  affectedSections: PlanImpactSection[];
+  reasonCodes: PlanCheckpointReasonCode[];
+}
+
 export interface UpsertWearableSnapshotRequest {
   localDate: string;
   timezone: string;
