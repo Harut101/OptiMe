@@ -6,6 +6,7 @@ import type { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-p
 import type { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import type { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import type { DailyPlanPersistenceService } from './daily-plan-persistence.service';
+import type { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
 import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service';
 
 describe('DailyPlanOrchestratorService', () => {
@@ -38,7 +39,8 @@ describe('DailyPlanOrchestratorService', () => {
       trainingPlanAgent,
       recoveryPlanAgent,
       {} as DailyPlanSafetyOrchestratorService,
-      {} as DailyPlanPersistenceService
+      {} as DailyPlanPersistenceService,
+      {} as DailyPlanGenerationContextService
     );
     const plan = createPlan();
 
@@ -95,7 +97,8 @@ describe('DailyPlanOrchestratorService', () => {
       trainingPlanAgent,
       recoveryPlanAgent,
       {} as DailyPlanSafetyOrchestratorService,
-      {} as DailyPlanPersistenceService
+      {} as DailyPlanPersistenceService,
+      {} as DailyPlanGenerationContextService
     );
 
     await service.assembleBeforeSafety({
@@ -128,7 +131,8 @@ describe('DailyPlanOrchestratorService', () => {
       {} as TrainingPlanAgentService,
       {} as RecoveryPlanAgentService,
       safetyOrchestrator,
-      {} as DailyPlanPersistenceService
+      {} as DailyPlanPersistenceService,
+      {} as DailyPlanGenerationContextService
     );
     const input = {
       providerPlan: expected.planJson,
@@ -366,6 +370,7 @@ function createWorkflowService() {
     {} as TrainingPlanAgentService,
     {} as RecoveryPlanAgentService,
     {} as DailyPlanSafetyOrchestratorService,
-    {} as DailyPlanPersistenceService
+    {} as DailyPlanPersistenceService,
+    {} as DailyPlanGenerationContextService
   );
 }

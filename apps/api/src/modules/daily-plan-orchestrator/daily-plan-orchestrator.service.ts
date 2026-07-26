@@ -1,6 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PlanStatus } from '@prisma/client';
+import {
+  PlanStatus,
+  type GoalImpactMode,
+  type PlanQualityMode
+} from '@prisma/client';
+import type {
+  ResolvedTrainingDayContext,
+  SupportedLocale
+} from '@optime/shared-types';
 
+import type { GenerateDailyPlanPersonalizationContext } from '../ai/ai-provider.interface';
 import { RecoveryPlanAgentService } from '../recovery-plan-agent/recovery-plan-agent.service';
 import type { FinalizeRecoveryPlanInput } from '../recovery-plan-agent/recovery-plan-agent.interface';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
@@ -11,6 +20,9 @@ import type {
   DailyPlanOrchestrator,
   ExecuteDailyPlanGenerationWorkflowInput
 } from './daily-plan-orchestrator.interface';
+import type { PrepareDailyPlanGenerationContextInput } from './daily-plan-generation-context.interface';
+import { DailyPlanGenerationContextService } from './daily-plan-generation-context.service';
+import type { DailyPlanPlanningUser } from './daily-plan-planning-user';
 import type {
   PersistGeneratedDailyPlanInput,
   RecordDailyPlanGenerationErrorInput,
@@ -31,8 +43,51 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     private readonly trainingPlanAgent: TrainingPlanAgentService,
     private readonly recoveryPlanAgent: RecoveryPlanAgentService,
     private readonly safetyOrchestrator: DailyPlanSafetyOrchestratorService,
-    private readonly persistence: DailyPlanPersistenceService
+    private readonly persistence: DailyPlanPersistenceService,
+    private readonly generationContext: DailyPlanGenerationContextService
   ) {}
+
+  prepareGenerationContext(input: PrepareDailyPlanGenerationContextInput) {
+    return this.generationContext.prepare(input);
+  }
+
+  resolveAppMode(user: DailyPlanPlanningUser) {
+    return this.generationContext.resolveAppMode(user);
+  }
+
+  preparePersonalizationContext(input: {
+    user: DailyPlanPlanningUser;
+    planQualityMode: PlanQualityMode;
+    planLocalDate: string;
+    resolvedTrainingDay: ResolvedTrainingDayContext;
+    appMode: GoalImpactMode;
+  }) {
+    return this.generationContext.preparePersonalizationContext(
+      input.user,
+      input.planQualityMode,
+      input.planLocalDate,
+      input.resolvedTrainingDay,
+      input.appMode
+    );
+  }
+
+  buildExerciseSelectionContext(input: {
+    user: DailyPlanPlanningUser;
+    locale: SupportedLocale;
+    planLocalDate: string;
+    planQualityMode: PlanQualityMode;
+    personalizationContext: GenerateDailyPlanPersonalizationContext;
+    resolvedTrainingDay: ResolvedTrainingDayContext;
+  }) {
+    return this.generationContext.buildExerciseSelectionContext(
+      input.user,
+      input.locale,
+      input.planLocalDate,
+      input.planQualityMode,
+      input.personalizationContext,
+      input.resolvedTrainingDay
+    );
+  }
 
   finalizeRecoveryContext(input: FinalizeRecoveryPlanInput) {
     return this.recoveryPlanAgent.finalizeGeneratedPlan(input);
