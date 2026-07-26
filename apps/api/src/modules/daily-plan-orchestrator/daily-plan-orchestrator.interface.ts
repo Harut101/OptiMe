@@ -1,3 +1,5 @@
+import type { PlanStatus } from '@prisma/client';
+
 import type {
   GenerateDailyPlanExerciseFeedback,
   GenerateDailyPlanSafetyFeedback
@@ -16,7 +18,9 @@ import type {
 } from '../training-plan-agent/training-plan-agent.interface';
 import type {
   CreateSafetyFallbackInput,
+  DailyPlanSafetyOperationContext,
   DailyPlanSafetyResult,
+  ValidateGeneratedDailyPlanInput,
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
 import type {
@@ -29,6 +33,7 @@ import type {
   PrepareProviderPlanDocumentInput
 } from './daily-plan-finalization.interface';
 import type { ApplyDailyPlanTrainingLoadInput } from './daily-plan-training-load.interface';
+import type { DailyPlanOperationContext } from './daily-plan-persistence.interface';
 
 export interface AssembleDailyPlanInput {
   providerPlanResult: TrainingPlanProviderResult;
@@ -117,5 +122,12 @@ export interface DailyPlanOrchestrator {
   validateBeforePersistence(
     input: ValidateDailyPlanSafetyInput
   ): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult>;
+  validateGeneratedPlan(
+    input: ValidateGeneratedDailyPlanInput
+  ): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult>;
+  canUseSafetyRetry(providerStatus: PlanStatus): boolean;
+  getProviderFallbackReason(planJson: unknown): string | undefined;
+  getSafetyOperationContext(): DailyPlanSafetyOperationContext;
+  getOperationContext(): DailyPlanOperationContext;
   createSafetyFallback(input: CreateSafetyFallbackInput): DailyPlanSafetyResult;
 }

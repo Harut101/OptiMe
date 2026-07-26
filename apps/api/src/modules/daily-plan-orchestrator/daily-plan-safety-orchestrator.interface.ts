@@ -5,8 +5,12 @@ import type {
 } from '@prisma/client';
 import type { SupportedLocale } from '@optime/shared-types';
 
-import type { GenerateDailyPlanSafetyFeedback } from '../ai/ai-provider.interface';
+import type {
+  GenerateDailyPlanPersonalizationContext,
+  GenerateDailyPlanSafetyFeedback
+} from '../ai/ai-provider.interface';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
+import type { DailyPlanPlanningUser } from './daily-plan-planning-user';
 
 export interface DailyPlanSafetyUserContext {
   safeMode: boolean;
@@ -55,4 +59,25 @@ export interface CreateSafetyFallbackInput {
   riskLevel?: 'low' | 'medium' | 'high';
   retryUsed?: boolean;
   retryResult?: 'approved' | 'rejected' | 'failed' | 'not_used';
+}
+
+export interface ValidateGeneratedDailyPlanInput {
+  providerPlan: unknown;
+  blockedFoods: {
+    allergies: string[];
+    excludedFoods: string[];
+  };
+  planLocalDate: string;
+  planTimezone: string;
+  locale: SupportedLocale;
+  user: DailyPlanPlanningUser;
+  personalizationContext: GenerateDailyPlanPersonalizationContext;
+  forcedFallback?: boolean;
+  allowSafetyRetry?: boolean;
+  safetyRetryUsed?: boolean;
+}
+
+export interface DailyPlanSafetyOperationContext {
+  safetyAgentEnabled: boolean;
+  safetyAgentProvider: 'mock' | 'openai';
 }

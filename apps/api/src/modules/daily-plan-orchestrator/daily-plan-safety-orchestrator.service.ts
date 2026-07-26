@@ -24,7 +24,9 @@ import {
 } from '../safety-agent/safety-agent.token';
 import type {
   CreateSafetyFallbackInput,
+  DailyPlanSafetyOperationContext,
   DailyPlanSafetyResult,
+  ValidateGeneratedDailyPlanInput,
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
 
@@ -67,6 +69,71 @@ export class DailyPlanSafetyOrchestratorService {
     @Inject(SAFETY_AGENT_CONFIG)
     private readonly safetyAgentConfig: SafetyAgentConfig
   ) {}
+
+  validateGeneratedPlan(
+    input: ValidateGeneratedDailyPlanInput
+  ): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult> {
+    return this.validate({
+      providerPlan: input.providerPlan,
+      blockedFoods: input.blockedFoods,
+      planLocalDate: input.planLocalDate,
+      planTimezone: input.planTimezone,
+      locale: input.locale,
+      userContext: {
+        safeMode: input.user.safeMode,
+        isMinor: input.user.isMinor,
+        gender: input.user.profile?.gender,
+        pregnancyStatus: input.user.profile?.pregnancyStatus,
+        trainingLevel: input.user.trainingPreference?.trainingLevel,
+        limitationsOrPainAreas:
+          input.user.trainingPreference?.limitationsOrPainAreas ?? [],
+        painOrDiscomfortReported:
+          input.personalizationContext.checkInSummary
+            ?.painOrDiscomfortReported ?? false,
+        highTirednessReported:
+          input.personalizationContext.checkInSummary
+            ?.highTirednessReported ?? false,
+        goal: input.user.goal
+          ? {
+              goalType: input.user.goal.goalType,
+              targetWeightKg: input.user.goal.targetWeightKg,
+              targetTimelineDays: input.user.goal.targetTimelineDays,
+              impactMode: input.user.goal.impactMode
+            }
+          : null
+      },
+      forcedFallback: input.forcedFallback,
+      allowSafetyRetry: input.allowSafetyRetry,
+      safetyRetryUsed: input.safetyRetryUsed
+    });
+  }
+
+  canUseSafetyRetry(
+    providerStatus: PlanStatus,
+    provider: 'mock' | 'openai'
+  ) {
+    return (
+      providerStatus === PlanStatus.READY &&
+      provider === 'openai' &&
+      this.safetyAgentConfig.enabled
+    );
+  }
+
+  getFallbackReason(planJson: unknown) {
+    const debug = (
+      planJson as { debug?: { fallbackReason?: unknown } }
+    )?.debug;
+    return typeof debug?.fallbackReason === 'string'
+      ? debug.fallbackReason
+      : undefined;
+  }
+
+  getOperationContext(): DailyPlanSafetyOperationContext {
+    return {
+      safetyAgentEnabled: this.safetyAgentConfig.enabled,
+      safetyAgentProvider: this.safetyAgentConfig.provider
+    };
+  }
 
   validate(
     input: ValidateDailyPlanSafetyInput

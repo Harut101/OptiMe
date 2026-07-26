@@ -43,6 +43,7 @@ import type {
 import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import type {
   CreateSafetyFallbackInput,
+  ValidateGeneratedDailyPlanInput,
   ValidateDailyPlanSafetyInput
 } from './daily-plan-safety-orchestrator.interface';
 import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
@@ -151,6 +152,32 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
 
   validateBeforePersistence(input: ValidateDailyPlanSafetyInput) {
     return this.safetyOrchestrator.validate(input);
+  }
+
+  validateGeneratedPlan(input: ValidateGeneratedDailyPlanInput) {
+    return this.safetyOrchestrator.validateGeneratedPlan(input);
+  }
+
+  canUseSafetyRetry(providerStatus: PlanStatus) {
+    return this.safetyOrchestrator.canUseSafetyRetry(
+      providerStatus,
+      this.getProviderName()
+    );
+  }
+
+  getProviderFallbackReason(planJson: unknown) {
+    return this.safetyOrchestrator.getFallbackReason(planJson);
+  }
+
+  getSafetyOperationContext() {
+    return this.safetyOrchestrator.getOperationContext();
+  }
+
+  getOperationContext() {
+    return {
+      provider: this.getProviderName(),
+      ...this.getSafetyOperationContext()
+    };
   }
 
   createSafetyFallback(input: CreateSafetyFallbackInput) {

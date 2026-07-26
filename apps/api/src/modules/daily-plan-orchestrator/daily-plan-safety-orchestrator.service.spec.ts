@@ -91,6 +91,119 @@ describe('DailyPlanSafetyOrchestratorService', () => {
       'safety_agent_invalid_review'
     );
   });
+
+  it('maps planning and check-in data into deterministic safety context', async () => {
+    const service = createService(
+      { reviewDailyPlan: jest.fn() } as unknown as SafetyAgent,
+      { enabled: false, provider: 'mock' }
+    );
+    const expected = {
+      status: PlanStatus.READY,
+      planJson: createPlan()
+    };
+    const validate = jest
+      .spyOn(service, 'validate')
+      .mockReturnValue(expected);
+
+    const result = await service.validateGeneratedPlan({
+      providerPlan: expected.planJson,
+      blockedFoods: {
+        allergies: ['avocado'],
+        excludedFoods: ['pork']
+      },
+      planLocalDate: '2026-07-26',
+      planTimezone: 'UTC',
+      locale: 'en-US',
+      user: {
+        safeMode: true,
+        isMinor: true,
+        profile: {
+          gender: 'FEMALE',
+          pregnancyStatus: 'PREGNANT'
+        },
+        trainingPreference: {
+          trainingLevel: 'BEGINNER',
+          limitationsOrPainAreas: ['knee']
+        },
+        goal: {
+          goalType: 'WEIGHT_LOSS',
+          targetWeightKg: 60,
+          targetTimelineDays: 90,
+          impactMode: 'NUTRITION_AND_TRAINING'
+        }
+      } as never,
+      personalizationContext: {
+        checkInSummary: {
+          painOrDiscomfortReported: true,
+          highTirednessReported: true
+        }
+      } as never
+    });
+
+    expect(result).toBe(expected);
+    expect(validate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userContext: {
+          safeMode: true,
+          isMinor: true,
+          gender: 'FEMALE',
+          pregnancyStatus: 'PREGNANT',
+          trainingLevel: 'BEGINNER',
+          limitationsOrPainAreas: ['knee'],
+          painOrDiscomfortReported: true,
+          highTirednessReported: true,
+          goal: {
+            goalType: 'WEIGHT_LOSS',
+            targetWeightKg: 60,
+            targetTimelineDays: 90,
+            impactMode: 'NUTRITION_AND_TRAINING'
+          }
+        }
+      })
+    );
+  });
+
+  it('allows safety retry only for a ready OpenAI plan when enabled', () => {
+    const enabled = createService(
+      { reviewDailyPlan: jest.fn() } as unknown as SafetyAgent,
+      { enabled: true, provider: 'openai' }
+    );
+    const disabled = createService(
+      { reviewDailyPlan: jest.fn() } as unknown as SafetyAgent,
+      { enabled: false, provider: 'openai' }
+    );
+
+    expect(
+      enabled.canUseSafetyRetry(PlanStatus.READY, 'openai')
+    ).toBe(true);
+    expect(
+      enabled.canUseSafetyRetry(PlanStatus.FALLBACK, 'openai')
+    ).toBe(false);
+    expect(
+      enabled.canUseSafetyRetry(PlanStatus.READY, 'mock')
+    ).toBe(false);
+    expect(
+      disabled.canUseSafetyRetry(PlanStatus.READY, 'openai')
+    ).toBe(false);
+  });
+
+  it('owns safe operation metadata and provider fallback extraction', () => {
+    const service = createService(
+      { reviewDailyPlan: jest.fn() } as unknown as SafetyAgent,
+      { enabled: true, provider: 'openai' }
+    );
+
+    expect(service.getOperationContext()).toEqual({
+      safetyAgentEnabled: true,
+      safetyAgentProvider: 'openai'
+    });
+    expect(
+      service.getFallbackReason({
+        debug: { fallbackReason: 'schema_validation_failed' }
+      })
+    ).toBe('schema_validation_failed');
+    expect(service.getFallbackReason({ debug: {} })).toBeUndefined();
+  });
 });
 
 function createService(

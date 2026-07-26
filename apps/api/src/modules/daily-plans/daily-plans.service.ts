@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -29,13 +28,6 @@ import {
 } from '@optime/shared-types';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  GenerateDailyPlanPersonalizationContext
-} from '../ai/ai-provider.interface';
-import type {
-  CreateSafetyFallbackInput,
-  DailyPlanSafetyResult
-} from '../daily-plan-orchestrator/daily-plan-safety-orchestrator.interface';
 import { dailyPlanPlanningUserSelect } from '../daily-plan-orchestrator/daily-plan-planning-user';
 import { DailyPlanOrchestratorService } from '../daily-plan-orchestrator/daily-plan-orchestrator.service';
 import { FeatureAccessService } from '../entitlements/feature-access.service';
@@ -46,10 +38,6 @@ import { FoodPlanValidationService } from '../nutrition-agent/food-plan-validati
 import { normalizeFoodPlanNutrition } from '../nutrition-agent/food-plan-nutrition-normalizer';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
-import {
-  SAFETY_AGENT_CONFIG,
-  SafetyAgentConfig
-} from '../safety-agent/safety-agent.token';
 import { UsageGuardService } from '../usage/usage-guard.service';
 import { TrainingPlanAgentService } from '../training-plan-agent/training-plan-agent.service';
 import { TrainingScheduleResolverService } from '../training-schedule/training-schedule-resolver.service';
@@ -90,8 +78,7 @@ export class DailyPlansService {
     private readonly foodPlanValidator: FoodPlanValidationService,
     private readonly nutritionTargetsService: NutritionTargetsService,
     private readonly trainingScheduleResolver: TrainingScheduleResolverService,
-    private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService,
-    @Inject(SAFETY_AGENT_CONFIG) private readonly safetyAgentConfig: SafetyAgentConfig
+    private readonly painAwareExerciseReplacement: PainAwareExerciseReplacementService
   ) {}
 
   async getTodayPlan(userId: string) {
@@ -273,11 +260,12 @@ export class DailyPlansService {
             allowSafetyRetry,
             safetyRetryUsed
           }) =>
-            this.validateProviderPlan({
+            this.dailyPlanOrchestrator.validateGeneratedPlan({
               providerPlan: providerPlanResult.planJson,
               blockedFoods,
               planLocalDate,
               planTimezone,
+              locale: targetLocale,
               user,
               personalizationContext,
               forcedFallback:
@@ -286,11 +274,15 @@ export class DailyPlansService {
               safetyRetryUsed
             }),
           canUseSafetyRetry: (providerStatus) =>
-            this.canUseSafetyFeedbackRetry(providerStatus),
+            this.dailyPlanOrchestrator.canUseSafetyRetry(
+              providerStatus
+            ),
           getProviderFallbackReason: (providerPlanResult) =>
-            this.getFallbackReason(providerPlanResult.planJson),
+            this.dailyPlanOrchestrator.getProviderFallbackReason(
+              providerPlanResult.planJson
+            ),
           createRetryFailureFallback: (fallbackReason) =>
-            this.createSafetyAgentFallback({
+            this.dailyPlanOrchestrator.createSafetyFallback({
               planLocalDate,
               planTimezone,
               locale: targetLocale,
@@ -1076,16 +1068,18 @@ export class DailyPlansService {
       context.currentPlanJson,
       foodPlan
     );
-    const validation = await this.validateProviderPlan({
-      providerPlan: nextPlanJson,
-      blockedFoods: context.blockedFoods,
-      planLocalDate: context.plan.planLocalDate,
-      planTimezone: context.plan.planTimezone,
-      user: context.user,
-      personalizationContext: context.personalizationContext,
-      forcedFallback: false,
-      allowSafetyRetry: false
-    });
+    const validation =
+      await this.dailyPlanOrchestrator.validateGeneratedPlan({
+        providerPlan: nextPlanJson,
+        blockedFoods: context.blockedFoods,
+        planLocalDate: context.plan.planLocalDate,
+        planTimezone: context.plan.planTimezone,
+        locale: this.resolvePlanningLocale(context.user),
+        user: context.user,
+        personalizationContext: context.personalizationContext,
+        forcedFallback: false,
+        allowSafetyRetry: false
+      });
 
     if (validation.status !== PlanStatus.READY) {
       throw new BadRequestException('Could not safely regenerate this meal plan. Your current plan was kept.');
@@ -1377,58 +1371,6 @@ export class DailyPlansService {
     }
   }
 
-  private validateProviderPlan(input: {
-    providerPlan: unknown;
-    blockedFoods: { allergies: string[]; excludedFoods: string[] };
-    planLocalDate: string;
-    planTimezone: string;
-    user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>;
-    personalizationContext: GenerateDailyPlanPersonalizationContext;
-    forcedFallback?: boolean;
-    allowSafetyRetry?: boolean;
-    safetyRetryUsed?: boolean;
-  }): DailyPlanSafetyResult | Promise<DailyPlanSafetyResult> {
-    return this.dailyPlanOrchestrator.validateBeforePersistence({
-      providerPlan: input.providerPlan,
-      blockedFoods: input.blockedFoods,
-      planLocalDate: input.planLocalDate,
-      planTimezone: input.planTimezone,
-      locale: this.resolvePlanningLocale(input.user),
-      userContext: {
-        safeMode: input.user.safeMode,
-        isMinor: input.user.isMinor,
-        gender: input.user.profile?.gender,
-        pregnancyStatus: input.user.profile?.pregnancyStatus,
-        trainingLevel: input.user.trainingPreference?.trainingLevel,
-        limitationsOrPainAreas:
-          input.user.trainingPreference?.limitationsOrPainAreas ?? [],
-        painOrDiscomfortReported:
-          input.personalizationContext.checkInSummary
-            ?.painOrDiscomfortReported ?? false,
-        highTirednessReported:
-          input.personalizationContext.checkInSummary
-            ?.highTirednessReported ?? false,
-        goal: input.user.goal
-          ? {
-              goalType: input.user.goal.goalType,
-              targetWeightKg: input.user.goal.targetWeightKg,
-              targetTimelineDays: input.user.goal.targetTimelineDays,
-              impactMode: input.user.goal.impactMode
-            }
-          : null
-      },
-      forcedFallback: input.forcedFallback,
-      allowSafetyRetry: input.allowSafetyRetry,
-      safetyRetryUsed: input.safetyRetryUsed
-    });
-  }
-
-  private createSafetyAgentFallback(
-    input: CreateSafetyFallbackInput
-  ): DailyPlanSafetyResult {
-    return this.dailyPlanOrchestrator.createSafetyFallback(input);
-  }
-
   private resolvePlanningLocale(user: Awaited<ReturnType<DailyPlansService['getPlanningUser']>>): SupportedLocale {
     switch (user.settings?.preferredLocale) {
       case PreferredLocale.RU_RU: return 'ru-RU';
@@ -1443,25 +1385,8 @@ export class DailyPlansService {
     return this.dailyPlanOrchestrator.getProviderName();
   }
 
-  private canUseSafetyFeedbackRetry(providerStatus: PlanStatus) {
-    return (
-      providerStatus === PlanStatus.READY &&
-      this.getProviderDebugName() === 'openai' &&
-      this.safetyAgentConfig.enabled
-    );
-  }
-
-  private getFallbackReason(planJson: unknown) {
-    const debug = (planJson as { debug?: { fallbackReason?: unknown } })?.debug;
-    return typeof debug?.fallbackReason === 'string' ? debug.fallbackReason : undefined;
-  }
-
   private getDailyPlanOperationContext() {
-    return {
-      provider: this.getProviderDebugName(),
-      safetyAgentEnabled: this.safetyAgentConfig.enabled,
-      safetyAgentProvider: this.safetyAgentConfig.provider
-    } as const;
+    return this.dailyPlanOrchestrator.getOperationContext();
   }
 
   private toResponse(plan: {
