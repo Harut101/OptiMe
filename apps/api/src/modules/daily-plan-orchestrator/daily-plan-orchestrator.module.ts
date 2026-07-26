@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
+import { PainAwareExerciseReplacementService } from '../daily-plans/pain-aware-exercise-replacement.service';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { FoodAvailabilityModule } from '../food-availability/food-availability.module';
 import { FoodLogsModule } from '../food-logs/food-logs.module';
@@ -29,6 +30,7 @@ import { DailyPlanOrchestratorService } from './daily-plan-orchestrator.service'
 import { DailyPlanPersistenceService } from './daily-plan-persistence.service';
 import { DailyPlanSafetyOrchestratorService } from './daily-plan-safety-orchestrator.service';
 import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service';
+import { DailyPlanTrainingAdjustmentUseCaseService } from './daily-plan-training-adjustment-use-case.service';
 
 @Module({
   imports: [
@@ -62,12 +64,15 @@ import { DailyPlanTrainingLoadService } from './daily-plan-training-load.service
     DailyPlanGenerationContextService,
     DailyPlanPersistenceService,
     DailyPlanSafetyOrchestratorService,
+    DailyPlanTrainingAdjustmentUseCaseService,
+    PainAwareExerciseReplacementService,
     DailyPlanTrainingLoadService
   ],
   exports: [
     DailyPlanFoodContextService,
     DailyPlanFoodRegenerationUseCaseService,
     DailyPlanGenerationUseCaseService,
+    DailyPlanTrainingAdjustmentUseCaseService,
     DailyPlanOrchestratorService
   ]
 })
