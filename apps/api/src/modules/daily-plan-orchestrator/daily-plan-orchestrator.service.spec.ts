@@ -1,4 +1,8 @@
-import { PlanStatus } from '@prisma/client';
+import {
+  AiRequestOperation,
+  PlanQualityMode,
+  PlanStatus
+} from '@prisma/client';
 
 import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.factory';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
@@ -153,6 +157,9 @@ describe('DailyPlanOrchestratorService', () => {
       planTimezone: 'UTC',
       locale: 'en-US' as const,
       userContext: {
+        userId: 'user-1',
+        planQualityMode: PlanQualityMode.BASIC,
+        operation: AiRequestOperation.DAILY_PLAN_GENERATION,
         safeMode: false,
         isMinor: false,
         limitationsOrPainAreas: [],

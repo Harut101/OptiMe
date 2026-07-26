@@ -72,6 +72,9 @@ Provider selection is controlled by environment config:
 AI_PROVIDER=mock
 OPENAI_API_KEY=
 OPENAI_DEFAULT_MODEL=
+OPENAI_MODEL_LUNA=
+OPENAI_MODEL_TERRA=
+OPENAI_MODEL_SOL=
 ```
 
 Rules:
@@ -80,7 +83,11 @@ Rules:
 - `AI_PROVIDER=mock` works without `OPENAI_API_KEY`.
 - `AI_PROVIDER=openai` requires `OPENAI_API_KEY`.
 - If `AI_PROVIDER=openai` is set without `OPENAI_API_KEY`, the API fails fast with a clear config error.
-- `OPENAI_DEFAULT_MODEL` is also required when `AI_PROVIDER=openai`.
+- `OPENAI_DEFAULT_MODEL` remains the backward-compatible model fallback when
+  `AI_PROVIDER=openai`.
+- `OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, and `OPENAI_MODEL_SOL` may override
+  the fallback for `BASIC`, `PERSONALIZED`, and `ADAPTIVE` requests.
+- Route names are internal product aliases, not hard-coded provider model IDs.
 
 ## Provider And Use-Case Boundary
 
@@ -198,6 +205,23 @@ Never log:
 
 If `AiOperationLog` writes fail, daily plan generation must continue. These logs are observability only, not billing, subscription, entitlement, or usage-limit enforcement.
 
+## AI Request Logs
+
+`AiRequestLog` complements the aggregate `AiOperationLog` with one safe row per
+actual OpenAI request or retry. It records agent, operation, internal route,
+resolved model, latency, retry state, token counts, optional estimated micro-USD,
+and a safe error reason. It stores no prompts, plan JSON, profiles, health samples,
+raw responses, secrets, or private notes.
+
+Daily Plan, Plan Checkpoint, Nutrition, Safety, and Training Load requests all use
+`AiModelRouterService`. `BASIC`, `PERSONALIZED`, and `ADAPTIVE` map to the internal
+`LUNA`, `TERRA`, and `SOL` routes. See
+[ai-model-routing.md](./ai-model-routing.md) for deployment config and cost
+estimation rules.
+
+Request telemetry is best-effort observability. It does not replace `UsageLedger`,
+enforce cost ceilings, alter entitlements, or charge users.
+
 ## OpenAI Provider Rules
 
 The OpenAI provider must:
@@ -212,6 +236,6 @@ The OpenAI provider must:
 
 ## Not Yet Implemented
 
-- Model routing.
-- Usage ledger.
-- Subscription or entitlement enforcement.
+- Production monthly AI cost ceilings.
+- Billing or store receipt validation.
+- Automatic model failover between routes.

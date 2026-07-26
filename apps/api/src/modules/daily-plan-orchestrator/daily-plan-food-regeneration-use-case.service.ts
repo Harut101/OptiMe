@@ -151,6 +151,7 @@ export class DailyPlanFoodRegenerationUseCaseService {
       );
     const result =
       await this.nutritionAgent.generateDailyFoodPlan({
+        userId: context.user.id,
         planLocalDate: context.plan.planLocalDate,
         locale: context.locale,
         planQualityMode: context.planQualityMode,

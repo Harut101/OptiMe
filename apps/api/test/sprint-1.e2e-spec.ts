@@ -5,9 +5,12 @@ import {
   resolveSupportedLocale
 } from '@optime/shared-types';
 import {
+  AiModelRoute,
   AiOperationFeature,
   AiOperationProvider,
   AiOperationStatus,
+  AiRequestAgent,
+  AiRequestOperation,
   DailyCheckInType,
   GoalType,
   HealthConnectionStatus,
@@ -5128,7 +5131,11 @@ describe('Sprint 1 backend vertical slice', () => {
 
     await expect(
       safetyAgent.reviewDailyPlan({
+        userId: 'mock-safety-agent-user',
         plan,
+        planQualityMode: PlanQualityMode.BASIC,
+        operation: AiRequestOperation.DAILY_PLAN_GENERATION,
+        retryAttempt: false,
         safeMode: false,
         goalSummary: {
           goalType: 'IMPROVE_FITNESS',
@@ -5950,6 +5957,14 @@ describe('Sprint 1 backend vertical slice', () => {
   });
 
   it('uses OpenAiProviderService and sends a structured-output request when AI_PROVIDER=openai', async () => {
+    const previousLunaModel = process.env.OPENAI_MODEL_LUNA;
+    const previousLunaInputCost =
+      process.env.OPENAI_LUNA_INPUT_COST_PER_1M_USD;
+    const previousLunaOutputCost =
+      process.env.OPENAI_LUNA_OUTPUT_COST_PER_1M_USD;
+    process.env.OPENAI_MODEL_LUNA = 'test-luna-model';
+    process.env.OPENAI_LUNA_INPUT_COST_PER_1M_USD = '0.25';
+    process.env.OPENAI_LUNA_OUTPUT_COST_PER_1M_USD = '2';
     const requests: Array<Record<string, unknown>> = [];
     const customCtx = await createOpenAiModeTestApp({
       responses: [
@@ -5961,7 +5976,12 @@ describe('Sprint 1 backend vertical slice', () => {
               firstName: 'OpenAI',
               isMinor: false
             })
-          )
+          ),
+          usage: {
+            input_tokens: 1_000,
+            output_tokens: 500,
+            total_tokens: 1_500
+          }
         })
       ],
       requests
@@ -5987,7 +6007,7 @@ describe('Sprint 1 backend vertical slice', () => {
       });
       const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
       expect(dailyPlanRequests).toHaveLength(1);
-      expect(dailyPlanRequests[0].model).toBe('test-openai-model');
+      expect(dailyPlanRequests[0].model).toBe('test-luna-model');
       expect(dailyPlanRequests[0].max_output_tokens).toBe(4000);
       expect(dailyPlanRequests[0].requestTimeout).toBe(45000);
       expect(dailyPlanRequests[0]).toMatchObject({
@@ -6003,10 +6023,40 @@ describe('Sprint 1 backend vertical slice', () => {
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('outputLanguage');
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Do not include schemaVersion');
       expect(JSON.stringify(dailyPlanRequests[0].input)).toContain('Never derive user-facing dates from generatedAt');
+
+      const requestLog =
+        await customCtx.prisma.aiRequestLog.findFirstOrThrow({
+          where: {
+            userId: user.user.id,
+            operation:
+              AiRequestOperation.DAILY_PLAN_GENERATION
+          }
+        });
+      expect(requestLog).toMatchObject({
+        agent: AiRequestAgent.DAILY_PLAN,
+        route: AiModelRoute.LUNA,
+        model: 'test-luna-model',
+        status: AiOperationStatus.SUCCESS,
+        retryAttempt: false,
+        inputTokens: 1_000,
+        outputTokens: 500,
+        totalTokens: 1_500,
+        estimatedCostMicrousd: 1_250,
+        errorReason: null
+      });
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
       restoreOpenAiEnv(undefined, undefined, undefined);
+      restoreOptionalEnv('OPENAI_MODEL_LUNA', previousLunaModel);
+      restoreOptionalEnv(
+        'OPENAI_LUNA_INPUT_COST_PER_1M_USD',
+        previousLunaInputCost
+      );
+      restoreOptionalEnv(
+        'OPENAI_LUNA_OUTPUT_COST_PER_1M_USD',
+        previousLunaOutputCost
+      );
     }
   });
 
@@ -7385,7 +7435,27 @@ function restoreSafetyAgentEnv(enabled: string | undefined, provider: string | u
   }
 }
 
-type MockOpenAiResponse = { output_text?: string } | { throw: unknown };
+function restoreOptionalEnv(
+  key: string,
+  value: string | undefined
+) {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+}
+
+type MockOpenAiResponse =
+  | {
+      output_text?: string;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        total_tokens?: number;
+      };
+    }
+  | { throw: unknown };
 
 function hydrateLegacyDailyPlanResponse(
   response: MockOpenAiResponse,
@@ -7431,7 +7501,10 @@ function hydrateLegacyDailyPlanResponse(
       }
       return { ...common, sets: undefined, reps: undefined, rest: undefined, duration: '5 minutes' };
     });
-  return { output_text: JSON.stringify(plan) };
+  return {
+    ...response,
+    output_text: JSON.stringify(plan)
+  };
   } catch {
     return response;
   }

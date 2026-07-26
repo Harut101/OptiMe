@@ -14,6 +14,7 @@ import type {
 } from '@optime/shared-types';
 
 export interface NutritionAgentInput {
+  userId: string;
   planLocalDate: string;
   locale: SupportedLocale;
   planQualityMode: PlanQualityMode;

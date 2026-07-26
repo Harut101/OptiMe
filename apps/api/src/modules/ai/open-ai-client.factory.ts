@@ -13,6 +13,11 @@ export interface OpenAiResponsesClient {
 
 export interface OpenAiResponse {
   output_text?: string;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
   output?: Array<{
     content?: Array<{
       type?: string;

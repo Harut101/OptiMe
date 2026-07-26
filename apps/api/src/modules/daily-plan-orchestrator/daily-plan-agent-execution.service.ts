@@ -128,6 +128,7 @@ export class DailyPlanAgentExecutionService
     input: GenerateDailyFoodPlanInput
   ) {
     const result = await this.nutritionAgent.generateDailyFoodPlan({
+      userId: input.user.id,
       planLocalDate: input.planLocalDate,
       locale: input.locale,
       planQualityMode: input.planQualityMode,

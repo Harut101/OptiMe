@@ -166,6 +166,7 @@ export interface GenerateDailyPlanInput {
 }
 
 export interface GeneratePlanCheckpointProposalInput {
+  userId: string;
   currentPlan: DailyPlanJson;
   evaluation: DailyPlanCheckpointEvaluationResponse;
   currentFacts: PlanCheckpointFacts;

@@ -7,6 +7,7 @@ import {
   UnauthorizedException
 } from '@nestjs/common';
 import {
+  AiRequestOperation,
   DailyReadinessLevel,
   PlanCheckpointProposalStatus,
   PlanQualityMode,
@@ -111,6 +112,7 @@ export class PlanCheckpointProposalService {
         user.nutritionPref?.excludedFoods.map((food) => food.name) ?? []
     };
     const providerInput: GeneratePlanCheckpointProposalInput = {
+      userId,
       currentPlan: context.sourcePlan,
       evaluation: context.evaluation,
       currentFacts: context.currentFacts,
@@ -203,7 +205,9 @@ export class PlanCheckpointProposalService {
     }
 
     const safetyReview = await this.reviewWithSafetyAgent({
+      userId,
       plan: finalSchema.data,
+      planQualityMode: providerInput.planQualityMode,
       user,
       blockedFoods
     });
@@ -503,7 +507,9 @@ export class PlanCheckpointProposalService {
   }
 
   private async reviewWithSafetyAgent(input: {
+    userId: string;
     plan: DailyPlanJson;
+    planQualityMode: PlanQualityMode;
     user: Awaited<ReturnType<PlanCheckpointProposalService['getSafetyContext']>>;
     blockedFoods: { allergies: string[]; excludedFoods: string[] };
   }): Promise<PlanCheckpointProposalFailureReason | null> {
@@ -511,7 +517,11 @@ export class PlanCheckpointProposalService {
 
     try {
       const review = await this.safetyAgent.reviewDailyPlan({
+        userId: input.userId,
         plan: input.plan,
+        planQualityMode: input.planQualityMode,
+        operation: AiRequestOperation.PLAN_CHECKPOINT,
+        retryAttempt: false,
         safeMode: input.user.safeMode,
         goalSummary: input.user.goal
           ? {

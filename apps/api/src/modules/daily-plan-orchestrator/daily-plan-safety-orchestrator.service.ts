@@ -1,5 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PlanStatus } from '@prisma/client';
+import {
+  AiRequestOperation,
+  PlanStatus
+} from '@prisma/client';
 
 import { normalizeDailyPlanFoodNames } from '../daily-plans/daily-plan-food-name-normalizer';
 import {
@@ -80,6 +83,9 @@ export class DailyPlanSafetyOrchestratorService {
       planTimezone: input.planTimezone,
       locale: input.locale,
       userContext: {
+        userId: input.user.id,
+        planQualityMode: input.planQualityMode,
+        operation: AiRequestOperation.DAILY_PLAN_GENERATION,
         safeMode: input.user.safeMode,
         isMinor: input.user.isMinor,
         gender: input.user.profile?.gender,
@@ -476,7 +482,11 @@ export class DailyPlanSafetyOrchestratorService {
     input: ValidateDailyPlanSafetyInput & { planJson: DailyPlanJson }
   ): ReviewDailyPlanInput {
     return {
+      userId: input.userContext.userId,
       plan: input.planJson,
+      planQualityMode: input.userContext.planQualityMode,
+      operation: input.userContext.operation,
+      retryAttempt: Boolean(input.safetyRetryUsed),
       safeMode: input.userContext.safeMode,
       goalSummary: input.userContext.goal,
       deterministicSafetyContext: {

@@ -1,6 +1,8 @@
 import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { AiModelRoutingModule } from '../ai-model-routing/ai-model-routing.module';
+import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { AI_PROVIDER } from './ai-provider.token';
 import { MockAiProviderService } from './mock-ai-provider.service';
 import {
@@ -10,6 +12,7 @@ import {
 import { OpenAiProviderService } from './open-ai-provider.service';
 
 @Module({
+  imports: [AiModelRoutingModule, AiOperationLogsModule],
   providers: [
     {
       provide: OPENAI_CLIENT_FACTORY,
@@ -54,6 +57,11 @@ import { OpenAiProviderService } from './open-ai-provider.service';
       }
     }
   ],
-  exports: [AI_PROVIDER, OPENAI_CLIENT_FACTORY]
+  exports: [
+    AI_PROVIDER,
+    OPENAI_CLIENT_FACTORY,
+    AiModelRoutingModule,
+    AiOperationLogsModule
+  ]
 })
 export class AiModule {}

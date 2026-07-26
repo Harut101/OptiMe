@@ -1,4 +1,8 @@
-import { PlanStatus } from '@prisma/client';
+import {
+  AiRequestOperation,
+  PlanQualityMode,
+  PlanStatus
+} from '@prisma/client';
 
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { createMockDailyPlan } from '../daily-plans/templates/mock-daily-plan.factory';
@@ -114,7 +118,9 @@ describe('DailyPlanSafetyOrchestratorService', () => {
       planLocalDate: '2026-07-26',
       planTimezone: 'UTC',
       locale: 'en-US',
+      planQualityMode: PlanQualityMode.BASIC,
       user: {
+        id: 'user-1',
         safeMode: true,
         isMinor: true,
         profile: {
@@ -144,6 +150,9 @@ describe('DailyPlanSafetyOrchestratorService', () => {
     expect(validate).toHaveBeenCalledWith(
       expect.objectContaining({
         userContext: {
+          userId: expect.any(String),
+          planQualityMode: PlanQualityMode.BASIC,
+          operation: AiRequestOperation.DAILY_PLAN_GENERATION,
           safeMode: true,
           isMinor: true,
           gender: 'FEMALE',
@@ -237,6 +246,9 @@ function createInput(
     planTimezone: 'UTC',
     locale: 'en-US',
     userContext: {
+      userId: 'user-1',
+      planQualityMode: PlanQualityMode.BASIC,
+      operation: AiRequestOperation.DAILY_PLAN_GENERATION,
       safeMode: false,
       isMinor: false,
       gender: null,

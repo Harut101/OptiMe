@@ -451,9 +451,10 @@ For minors:
    boundaries under a backend orchestrator. Generation context, agent execution,
    safety, finalization, persistence, Today resolution, food mutations, training
    adjustments, and history/feedback now have explicit use-case boundaries.
-3. Add tier-aware OpenAI model routing, per-agent token/cost telemetry, monthly
-   cost ceilings, and the approved Free production limits.
-4. Run the pricing unit-economics gate against median and p95 multi-agent cost;
+3. Completed: add tier-aware OpenAI model routing and per-request agent
+   token/cost telemetry.
+4. Add monthly cost ceilings and the approved Free production limits, then run
+   the pricing unit-economics gate against median and p95 multi-agent cost;
    validate the provisional Plus and Pro pricing floors before billing work.
 5. Freeze new product features for the first release.
 6. Complete privacy, account-control, permission, security, environment, and

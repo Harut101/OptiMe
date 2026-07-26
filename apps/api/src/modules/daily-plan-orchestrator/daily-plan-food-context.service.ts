@@ -130,6 +130,7 @@ export class DailyPlanFoodContextService {
         planLocalDate: context.plan.planLocalDate,
         planTimezone: context.plan.planTimezone,
         locale: context.locale,
+        planQualityMode: context.planQualityMode,
         user: context.user,
         personalizationContext:
           context.personalizationContext,

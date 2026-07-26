@@ -136,6 +136,30 @@ enum AiOperationStatus {
   ERROR
 }
 
+enum AiRequestAgent {
+  DAILY_PLAN
+  PLAN_CHECKPOINT
+  NUTRITION
+  SAFETY
+  TRAINING_LOAD
+}
+
+enum AiRequestOperation {
+  DAILY_PLAN_GENERATION
+  PLAN_CHECKPOINT
+  NUTRITION_GENERATION
+  MENU_REGENERATION
+  MEAL_REGENERATION
+  SAFETY_REVIEW
+  TRAINING_LOAD
+}
+
+enum AiModelRoute {
+  LUNA
+  TERRA
+  SOL
+}
+
 enum SubscriptionPlan {
   FREE
   PLUS
@@ -484,6 +508,7 @@ model User {
   foodDayLogs FoodDayLog[]
   checkpointProposals DailyPlanCheckpointProposal[]
   aiOperationLogs AiOperationLog[]
+  aiRequestLogs AiRequestLog[]
   subscriptions Subscription[]
   usageLedger   UsageLedger[]
   progressiveProfilePrompts UserProgressiveProfilePrompt[]
@@ -887,6 +912,33 @@ model AiOperationLog {
   @@index([userId, createdAt])
   @@index([feature, createdAt])
   @@index([provider, createdAt])
+  @@index([status, createdAt])
+}
+
+model AiRequestLog {
+  id                     String             @id @default(cuid())
+  userId                 String
+  agent                  AiRequestAgent
+  operation              AiRequestOperation
+  route                  AiModelRoute
+  provider               AiOperationProvider
+  model                  String
+  status                 AiOperationStatus
+  latencyMs              Int
+  retryAttempt           Boolean            @default(false)
+  inputTokens            Int                @default(0)
+  outputTokens           Int                @default(0)
+  totalTokens            Int                @default(0)
+  estimatedCostMicrousd  Int?
+  errorReason            String?
+  createdAt              DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([agent, createdAt])
+  @@index([operation, createdAt])
+  @@index([route, createdAt])
   @@index([status, createdAt])
 }
 

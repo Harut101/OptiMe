@@ -1,7 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  AiRequestAgent,
+  AiRequestOperation
+} from '@prisma/client';
 import type { DailyFoodPlan } from '@optime/shared-types';
 
+import { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
+import { AiRequestTelemetryService } from '../ai-operation-logs/ai-request-telemetry.service';
 import {
   OpenAiClientFactory,
   OpenAiResponse,
@@ -74,6 +80,8 @@ export class NutritionAgentService {
     private readonly portionSolver: FoodPlanPortionSolverService,
     private readonly recipeComposer: FoodPlanRecipeComposerService,
     private readonly recipeTemplates: FoodPlanRecipeTemplateService,
+    private readonly modelRouter: AiModelRouterService,
+    private readonly requestTelemetry: AiRequestTelemetryService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -86,8 +94,7 @@ export class NutritionAgentService {
           ? await this.requestOpenAiSingleMealCopy(
               input,
               regeneratedMealPlan,
-              selectedMealId,
-              this.getModel()
+              selectedMealId
             )
           : regeneratedMealPlan;
         this.logResult(input, foodPlan, 0, []);
@@ -226,7 +233,11 @@ export class NutritionAgentService {
     previousRepairFeedback?: FoodPlanRepairFeedback
   ): Promise<NutritionAgentAttemptResult> {
     const previousValidationReasons = previousRepairFeedback?.reasonCodes ?? [];
-    const model = this.getModel();
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.NUTRITION,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
     const selectionSeed = input.regeneration?.mode === 'FULL_MENU_REGENERATION'
       ? this.fullMenuRegenerationSelectionSeed(input)
       : undefined;
@@ -272,37 +283,48 @@ export class NutritionAgentService {
       this.logger.log(
         `nutrition agent OpenAI request started; retry=${previousValidationReasons.length > 0}; model=${model}`
       );
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: this.getRequestOperation(input),
+        selection,
+        retryAttempt: previousValidationReasons.length > 0,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'system',
-              content: this.buildSystemInstructions(previousRepairFeedback)
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildSystemInstructions(
+                    previousRepairFeedback
+                  )
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildPlanningContext(
+                      input,
+                      previousRepairFeedback,
+                      catalogSelection,
+                      catalogFeasibility,
+                      recipeTemplates
+                    )
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'daily_food_plan_content',
+                  strict: true,
+                  schema: nutritionAgentFoodPlanOpenAiSchema
+                }
+              }
             },
-            {
-              role: 'user',
-              content: JSON.stringify(this.buildPlanningContext(
-                input,
-                previousRepairFeedback,
-                catalogSelection,
-                catalogFeasibility,
-                recipeTemplates
-              ))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'daily_food_plan_content',
-              strict: true,
-              schema: nutritionAgentFoodPlanOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       this.logger.log('nutrition agent OpenAI response received');
       return this.parseAndValidateResponse(
@@ -557,33 +579,53 @@ export class NutritionAgentService {
 
   private async requestOpenAiMealCopy(
     input: NutritionAgentInput,
-    composedPlan: DailyFoodPlan,
-    model: string
+    composedPlan: DailyFoodPlan
   ): Promise<NutritionAgentAttemptResult> {
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.NUTRITION,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
+
     try {
       this.logger.log(`nutrition agent OpenAI meal-copy request started; model=${model}`);
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
-            { role: 'system', content: this.buildMealCopySystemInstructions() },
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: this.getRequestOperation(input),
+        selection,
+        retryAttempt: false,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'user',
-              content: JSON.stringify(this.buildMealCopyPlanningContext(input, composedPlan))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'daily_food_plan_copy',
-              strict: true,
-              schema: nutritionAgentMealCopyOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildMealCopySystemInstructions()
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildMealCopyPlanningContext(
+                      input,
+                      composedPlan
+                    )
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'daily_food_plan_copy',
+                  strict: true,
+                  schema: nutritionAgentMealCopyOpenAiSchema
+                }
+              }
+            },
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       const foodPlan = this.applyMealCopy(response, input, composedPlan);
       if (foodPlan) {
@@ -606,40 +648,56 @@ export class NutritionAgentService {
   private async requestOpenAiSingleMealCopy(
     input: NutritionAgentInput,
     foodPlan: DailyFoodPlan,
-    selectedMealId: string,
-    model: string
+    selectedMealId: string
   ): Promise<DailyFoodPlan> {
     const selectedMeal = foodPlan.meals.find((meal) => meal.id === selectedMealId);
     if (!selectedMeal) return foodPlan;
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.NUTRITION,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
 
     try {
       this.logger.log(`nutrition agent OpenAI single-meal copy request started; mealId=${selectedMealId}; model=${model}`);
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
-            { role: 'system', content: this.buildMealCopySystemInstructions() },
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: AiRequestOperation.MEAL_REGENERATION,
+        selection,
+        retryAttempt: false,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'user',
-              content: JSON.stringify(this.buildMealCopyPlanningContext(input, {
-                ...foodPlan,
-                meals: [selectedMeal],
-                totals: mealTotals(selectedMeal)
-              }))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'daily_food_plan_copy',
-              strict: true,
-              schema: nutritionAgentMealCopyOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildMealCopySystemInstructions()
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildMealCopyPlanningContext(input, {
+                      ...foodPlan,
+                      meals: [selectedMeal],
+                      totals: mealTotals(selectedMeal)
+                    })
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'daily_food_plan_copy',
+                  strict: true,
+                  schema: nutritionAgentMealCopyOpenAiSchema
+                }
+              }
+            },
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       const copiedMealPlan = this.applyMealCopy(
         response,
@@ -1090,12 +1148,15 @@ export class NutritionAgentService {
     return apiKey;
   }
 
-  private getModel() {
-    const model = this.configService.get<string>('OPENAI_DEFAULT_MODEL');
-    if (!model) {
-      throw new Error('OPENAI_DEFAULT_MODEL is required when AI_PROVIDER=openai.');
+  private getRequestOperation(input: NutritionAgentInput) {
+    switch (input.regeneration?.mode) {
+      case 'FULL_MENU_REGENERATION':
+        return AiRequestOperation.MENU_REGENERATION;
+      case 'MEAL_REGENERATION':
+        return AiRequestOperation.MEAL_REGENERATION;
+      default:
+        return AiRequestOperation.NUTRITION_GENERATION;
     }
-    return model;
   }
 
   private getRequestTimeoutMs() {

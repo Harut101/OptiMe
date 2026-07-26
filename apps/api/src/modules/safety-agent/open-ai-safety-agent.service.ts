@@ -1,6 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  AiRequestAgent,
+  AiRequestOperation
+} from '@prisma/client';
 
+import { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
+import { AiRequestTelemetryService } from '../ai-operation-logs/ai-request-telemetry.service';
 import {
   OpenAiClientFactory,
   OpenAiResponse,
@@ -22,39 +28,52 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly modelRouter: AiModelRouterService,
+    private readonly requestTelemetry: AiRequestTelemetryService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
   async reviewDailyPlan(input: ReviewDailyPlanInput): Promise<SafetyAgentReview> {
-    const model = this.getModel();
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.SAFETY,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
 
     try {
       this.logger.log(`SafetyAgent OpenAI request started; provider=openai; model=${model}`);
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: AiRequestOperation.SAFETY_REVIEW,
+        selection,
+        retryAttempt: input.retryAttempt,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'system',
-              content: this.buildSystemInstructions()
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildSystemInstructions()
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(this.buildReviewContext(input))
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'safety_agent_review',
+                  strict: true,
+                  schema: safetyAgentReviewOpenAiSchema
+                }
+              }
             },
-            {
-              role: 'user',
-              content: JSON.stringify(this.buildReviewContext(input))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'safety_agent_review',
-              strict: true,
-              schema: safetyAgentReviewOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       this.logger.log('SafetyAgent OpenAI response received; provider=openai');
       const review = this.parseAndValidateResponse(response);
@@ -223,19 +242,6 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
     }
 
     return apiKey;
-  }
-
-  private getModel() {
-    const model = this.configService.get<string>('OPENAI_DEFAULT_MODEL');
-
-    if (!model) {
-      throw new SafetyAgentError(
-        'OPENAI_DEFAULT_MODEL is required when SAFETY_AGENT_PROVIDER=openai.',
-        'safety_agent_unavailable'
-      );
-    }
-
-    return model;
   }
 
   private getRequestTimeoutMs() {

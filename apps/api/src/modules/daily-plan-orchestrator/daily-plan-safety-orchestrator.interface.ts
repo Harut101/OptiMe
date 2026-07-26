@@ -1,4 +1,6 @@
-import type {
+import {
+  AiRequestOperation,
+  PlanQualityMode,
   PlanStatus,
   PregnancyStatus,
   TrainingLevel
@@ -13,6 +15,12 @@ import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { DailyPlanPlanningUser } from './daily-plan-planning-user';
 
 export interface DailyPlanSafetyUserContext {
+  userId: string;
+  planQualityMode: PlanQualityMode;
+  operation: Extract<
+    AiRequestOperation,
+    'DAILY_PLAN_GENERATION' | 'PLAN_CHECKPOINT'
+  >;
   safeMode: boolean;
   isMinor: boolean;
   gender?: string | null;
@@ -70,6 +78,7 @@ export interface ValidateGeneratedDailyPlanInput {
   planLocalDate: string;
   planTimezone: string;
   locale: SupportedLocale;
+  planQualityMode: PlanQualityMode;
   user: DailyPlanPlanningUser;
   personalizationContext: GenerateDailyPlanPersonalizationContext;
   forcedFallback?: boolean;

@@ -1,3 +1,8 @@
+import {
+  AiRequestOperation,
+  PlanQualityMode
+} from '@prisma/client';
+
 import { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import { SafetyAgentReview } from './safety-agent-review.schema';
 
@@ -19,7 +24,14 @@ export interface DeterministicSafetyContext {
 }
 
 export interface ReviewDailyPlanInput {
+  userId: string;
   plan: DailyPlanJson;
+  planQualityMode: PlanQualityMode;
+  operation: Extract<
+    AiRequestOperation,
+    'DAILY_PLAN_GENERATION' | 'PLAN_CHECKPOINT'
+  >;
+  retryAttempt: boolean;
   safeMode: boolean;
   goalSummary: SafetyAgentGoalSummary | null;
   deterministicSafetyContext: DeterministicSafetyContext;

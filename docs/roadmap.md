@@ -33,8 +33,11 @@ Recovery, and Safety responsibilities now run under an explicit backend
 orchestrator with separate generation-context, provider execution, safety,
 finalization, persistence, Today, food mutation, training adjustment, and
 history/feedback boundaries. `DailyPlansService` is now a thin API facade. The
-next active batch should improve production model routing and cost telemetry,
-not continue structural extraction without a measured need.
+Tier-aware model routing and request-level token/cost telemetry are now implemented
+for Daily Plan, Plan Checkpoint, Nutrition, Safety, and Training Load OpenAI calls.
+The next active operational batch should use collected median and p95 costs to set
+monthly cost ceilings and approved production limits, not continue structural
+extraction without a measured need.
 
 The production Free-tier direction is also approved: route its one Basic Daily
 Plan per local day through the cost-efficient OpenAI Luna model, disable manual

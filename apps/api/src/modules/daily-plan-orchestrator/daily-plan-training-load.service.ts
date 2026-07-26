@@ -80,6 +80,7 @@ export class DailyPlanTrainingLoadService {
     input: ApplyDailyPlanTrainingLoadInput
   ): GenerateTrainingLoadAgentInput {
     return {
+      userId: input.user.id,
       planLocalDate: input.planLocalDate,
       locale: input.locale,
       appMode: input.appMode,

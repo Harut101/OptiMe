@@ -3,6 +3,7 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 export async function cleanupDatabase(prisma: PrismaService) {
   assertTestDatabase();
 
+  await prisma.aiRequestLog.deleteMany();
   await prisma.aiOperationLog.deleteMany();
   await prisma.usageLedger.deleteMany();
   await prisma.healthDailySummary.deleteMany();

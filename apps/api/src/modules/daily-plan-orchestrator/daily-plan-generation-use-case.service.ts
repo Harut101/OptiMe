@@ -168,6 +168,7 @@ export class DailyPlanGenerationUseCaseService {
               planLocalDate: input.planLocalDate,
               planTimezone: input.planTimezone,
               locale: input.locale,
+              planQualityMode,
               user: input.user,
               personalizationContext,
               forcedFallback:

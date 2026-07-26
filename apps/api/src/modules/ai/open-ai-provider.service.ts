@@ -1,7 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PlanQualityMode } from '@prisma/client';
+import {
+  AiRequestAgent,
+  AiRequestOperation,
+  PlanQualityMode
+} from '@prisma/client';
 
+import { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
+import { AiRequestTelemetryService } from '../ai-operation-logs/ai-request-telemetry.service';
 import {
   DailyPlanJson,
   dailyPlanJsonSchema
@@ -31,6 +37,8 @@ export class OpenAiProviderService implements AiProvider {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly modelRouter: AiModelRouterService,
+    private readonly requestTelemetry: AiRequestTelemetryService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -88,37 +96,50 @@ export class OpenAiProviderService implements AiProvider {
     input: GeneratePlanCheckpointProposalInput,
     retry: boolean
   ): Promise<OpenAiAttemptResult> {
-    const model = this.getModel();
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.PLAN_CHECKPOINT,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
 
     try {
       this.logger.log(
         `OpenAI checkpoint request started; retryAttempt=${retry}; model=${model}`
       );
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: AiRequestOperation.PLAN_CHECKPOINT,
+        selection,
+        retryAttempt: retry,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'system',
-              content: this.buildCheckpointInstructions(retry)
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildCheckpointInstructions(retry)
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildCheckpointContext(input)
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'daily_plan_checkpoint_proposal',
+                  strict: true,
+                  schema: dailyPlanJsonOpenAiSchema
+                }
+              }
             },
-            {
-              role: 'user',
-              content: JSON.stringify(this.buildCheckpointContext(input))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'daily_plan_checkpoint_proposal',
-              strict: true,
-              schema: dailyPlanJsonOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       this.logger.log(
         `OpenAI checkpoint response received; retryAttempt=${retry}; model=${model}`
@@ -151,35 +172,48 @@ export class OpenAiProviderService implements AiProvider {
     input: GenerateDailyPlanInput,
     retry: boolean
   ): Promise<OpenAiAttemptResult> {
-    const model = this.getModel();
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.DAILY_PLAN,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
 
     try {
       this.logger.log(`OpenAI request started; retryAttempt=${retry}; model=${model}`);
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
+      const response = await this.requestTelemetry.execute({
+        userId: input.user.id,
+        operation: AiRequestOperation.DAILY_PLAN_GENERATION,
+        selection,
+        retryAttempt: retry,
+        request: () =>
+          this.getClient().responses.create(
             {
-              role: 'system',
-              content: this.buildSystemInstructions(input, retry)
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildSystemInstructions(input, retry)
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildPlanningContext(input)
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'daily_plan_json',
+                  strict: true,
+                  schema: dailyPlanJsonOpenAiSchema
+                }
+              }
             },
-            {
-              role: 'user',
-              content: JSON.stringify(this.buildPlanningContext(input))
-            }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'daily_plan_json',
-              strict: true,
-              schema: dailyPlanJsonOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
 
       this.logger.log(`OpenAI response received; retryAttempt=${retry}; model=${model}`);
       return this.parseAndValidateResponse(response, input.planQualityMode, input.locale);
@@ -567,18 +601,6 @@ export class OpenAiProviderService implements AiProvider {
     }
 
     return apiKey;
-  }
-
-  private getModel() {
-    const model = this.configService.get<string>('OPENAI_DEFAULT_MODEL');
-
-    if (!model) {
-      throw new OpenAiProviderError('OPENAI_DEFAULT_MODEL is required when AI_PROVIDER=openai.', {
-        fallbackReason: 'openai_invalid_model'
-      });
-    }
-
-    return model;
   }
 
   private getRequestTimeoutMs() {

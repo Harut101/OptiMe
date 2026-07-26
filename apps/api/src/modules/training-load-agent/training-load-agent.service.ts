@@ -1,7 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoalImpactMode, PlanQualityMode, TrainingLevel } from '@prisma/client';
+import {
+  AiRequestAgent,
+  AiRequestOperation,
+  GoalImpactMode,
+  PlanQualityMode,
+  TrainingLevel
+} from '@prisma/client';
 
+import { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
+import { AiRequestTelemetryService } from '../ai-operation-logs/ai-request-telemetry.service';
 import type { GenerateDailyPlanPersonalizationContext } from '../ai/ai-provider.interface';
 import {
   OpenAiClientFactory,
@@ -19,6 +27,7 @@ import type { ResolvedTrainingDayContext, SupportedLocale } from '@optime/shared
 import { trainingLoadAgentOpenAiSchema } from './training-load-agent.openai-schema';
 
 export interface GenerateTrainingLoadAgentInput {
+  userId: string;
   planLocalDate: string;
   locale: SupportedLocale;
   appMode: GoalImpactMode;
@@ -43,6 +52,8 @@ export class TrainingLoadAgentService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly modelRouter: AiModelRouterService,
+    private readonly requestTelemetry: AiRequestTelemetryService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
@@ -140,29 +151,48 @@ export class TrainingLoadAgentService {
     retry: boolean,
     validationFeedback: string[] = []
   ): Promise<AgentAttemptResult> {
-    const model = this.getModel();
+    const selection = this.modelRouter.resolve({
+      agent: AiRequestAgent.TRAINING_LOAD,
+      planQualityMode: input.planQualityMode
+    });
+    const model = selection.model;
 
     try {
       this.logger.log(`TrainingLoadAgent OpenAI request started; retryAttempt=${retry}; model=${model}`);
-      const response = await this.getClient().responses.create(
-        {
-          model,
-          max_output_tokens: this.getMaxOutputTokens(),
-          input: [
-            { role: 'system', content: this.buildSystemInstructions(retry) },
-            { role: 'user', content: JSON.stringify(this.buildContext(input, validationFeedback)) }
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'training_load_agent_snapshot',
-              strict: true,
-              schema: trainingLoadAgentOpenAiSchema
-            }
-          }
-        },
-        { timeout: this.getRequestTimeoutMs() }
-      );
+      const response = await this.requestTelemetry.execute({
+        userId: input.userId,
+        operation: AiRequestOperation.TRAINING_LOAD,
+        selection,
+        retryAttempt: retry,
+        request: () =>
+          this.getClient().responses.create(
+            {
+              model,
+              max_output_tokens: this.getMaxOutputTokens(),
+              input: [
+                {
+                  role: 'system',
+                  content: this.buildSystemInstructions(retry)
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify(
+                    this.buildContext(input, validationFeedback)
+                  )
+                }
+              ],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'training_load_agent_snapshot',
+                  strict: true,
+                  schema: trainingLoadAgentOpenAiSchema
+                }
+              }
+            },
+            { timeout: this.getRequestTimeoutMs() }
+          )
+      });
       this.logger.log(`TrainingLoadAgent OpenAI response received; retryAttempt=${retry}; model=${model}`);
       return this.parseAndValidateResponse(response, input);
     } catch (error) {
@@ -351,10 +381,6 @@ export class TrainingLoadAgentService {
 
   private getApiKey() {
     return this.configService.get<string>('OPENAI_API_KEY') ?? '';
-  }
-
-  private getModel() {
-    return this.configService.get<string>('OPENAI_DEFAULT_MODEL') ?? 'missing-openai-model';
   }
 
   private getRequestTimeoutMs() {
