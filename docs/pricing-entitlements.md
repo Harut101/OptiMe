@@ -136,12 +136,14 @@ Run the internal median/p95 report with:
 
 ```powershell
 $env:AI_COST_REPORT_DAYS='30'
-& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:report
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:benchmark
 ```
 
-The report contains aggregate distributions only; it never emits user IDs.
-Billing must remain disabled until representative Free, Plus, and Pro data pass
-the profitability guardrails.
+The report contains aggregate distributions and a `PASS`, `FAIL`, or
+`INSUFFICIENT_DATA` verdict; it never emits user IDs. The strict
+`ai-cost:gate` command fails unless all tiers pass. Billing must remain disabled
+until representative Free, Plus, and Pro data pass the profitability guardrails.
+See [ai-unit-economics.md](./ai-unit-economics.md).
 
 ## Tier Contract
 

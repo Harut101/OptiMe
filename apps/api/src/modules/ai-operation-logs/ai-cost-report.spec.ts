@@ -32,6 +32,14 @@ describe('buildAiCostReport', () => {
           medianCostMicrousd: 300,
           p95CostMicrousd: 900
         }
+      },
+      coverageByRoute: {
+        LUNA: {
+          requestCount: 4,
+          pricedRequestCount: 3,
+          unpricedRequestCount: 1,
+          pricedCoveragePercent: 75
+        }
       }
     });
     expect(JSON.stringify(report)).not.toContain('user-1');

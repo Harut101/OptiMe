@@ -19,6 +19,13 @@ export interface AiCostDistribution {
   p95CostMicrousd: number;
 }
 
+export interface AiCostCoverage {
+  requestCount: number;
+  pricedRequestCount: number;
+  unpricedRequestCount: number;
+  pricedCoveragePercent: number;
+}
+
 export function buildAiCostReport(rows: AiCostReportRow[]) {
   const pricedRows = rows.filter(
     (
@@ -47,6 +54,7 @@ export function buildAiCostReport(rows: AiCostReportRow[]) {
       pricedRows,
       (row) => row.operation
     ),
+    coverageByRoute: groupCoverage(rows, (row) => row.route),
     monthlyUserCostByRoute: buildMonthlyUserCostByRoute(
       pricedRows
     )
@@ -103,6 +111,48 @@ function groupDistribution<T>(
   );
 }
 
+function groupCoverage<T extends { estimatedCostMicrousd: number | null }>(
+  rows: T[],
+  keyFor: (row: T) => string
+) {
+  const groups = new Map<string, T[]>();
+
+  for (const row of rows) {
+    const key = keyFor(row);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+
+  return Object.fromEntries(
+    [...groups.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, groupRows]) => {
+        const pricedRequestCount = groupRows.filter(
+          (row) => row.estimatedCostMicrousd !== null
+        ).length;
+
+        return [
+          key,
+          coverage(groupRows.length, pricedRequestCount)
+        ];
+      })
+  );
+}
+
+function coverage(
+  requestCount: number,
+  pricedRequestCount: number
+): AiCostCoverage {
+  return {
+    requestCount,
+    pricedRequestCount,
+    unpricedRequestCount: requestCount - pricedRequestCount,
+    pricedCoveragePercent:
+      requestCount === 0
+        ? 0
+        : round((pricedRequestCount / requestCount) * 100, 2)
+  };
+}
+
 function distribution(values: number[]): AiCostDistribution {
   const sorted = [...values].sort(
     (left, right) => left - right
@@ -126,4 +176,9 @@ function percentile(sorted: number[], percentileValue: number) {
     Math.ceil(sorted.length * percentileValue) - 1
   );
   return sorted[index];
+}
+
+function round(value: number, decimals: number) {
+  const scale = 10 ** decimals;
+  return Math.round(value * scale) / scale;
 }

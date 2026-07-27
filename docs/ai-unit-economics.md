@@ -1,0 +1,118 @@
+# AI Unit Economics Gate
+
+OptiMe validates AI cost before implementing real billing. This gate is internal
+release tooling, not a payment system, customer paywall, or usage charge.
+
+## Source Data
+
+The benchmark reads successful `AiRequestLog` rows for a rolling period, 30 days
+by default. It uses:
+
+- internal route: `LUNA`, `TERRA`, or `SOL`;
+- agent and operation;
+- retry-aware request rows;
+- input/output token counts;
+- estimated integer micro-USD.
+
+It does not read or print prompts, plan JSON, profiles, health samples, user
+notes, API keys, raw provider responses, or user IDs.
+
+The tier mapping is:
+
+| Tier | Route |
+|---|---|
+| `FREE` | `LUNA` |
+| `PLUS` | `TERRA` |
+| `PRO` | `SOL` |
+
+## Configuration
+
+Model IDs and provider prices remain deployment-owned:
+
+```env
+OPENAI_MODEL_LUNA=
+OPENAI_MODEL_TERRA=
+OPENAI_MODEL_SOL=
+OPENAI_LUNA_INPUT_COST_PER_1M_USD=
+OPENAI_LUNA_OUTPUT_COST_PER_1M_USD=
+OPENAI_TERRA_INPUT_COST_PER_1M_USD=
+OPENAI_TERRA_OUTPUT_COST_PER_1M_USD=
+OPENAI_SOL_INPUT_COST_PER_1M_USD=
+OPENAI_SOL_OUTPUT_COST_PER_1M_USD=
+```
+
+Benchmark assumptions:
+
+```env
+AI_COST_REPORT_DAYS=30
+AI_COST_MIN_TIER_SAMPLES=30
+AI_COST_MIN_PRICED_COVERAGE_PERCENT=95
+AI_STOREFRONT_COMMISSION_PERCENT=20
+AI_MEDIAN_COST_MAX_PERCENT_NET=15
+AI_P95_COST_MAX_PERCENT_NET=25
+AI_PRICE_PLUS_MONTHLY_USD=19.99
+AI_PRICE_PRO_MONTHLY_USD=39.99
+AI_MONTHLY_COST_CEILING_FREE_USD=
+AI_MONTHLY_COST_CEILING_PLUS_USD=
+AI_MONTHLY_COST_CEILING_PRO_USD=
+```
+
+The documented prices are provisional internal assumptions, not customer-facing
+storefront products. Route prices must be copied from the current provider
+pricing for the exact deployment model IDs before collecting benchmark data.
+
+## Commands
+
+Inspect the report without failing the shell:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:benchmark
+```
+
+Use the strict release gate:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:gate
+```
+
+The strict command exits non-zero unless the overall result is `PASS`.
+
+## Verdicts
+
+- `PASS`: each tier has enough priced samples and stays inside all configured
+  guardrails.
+- `FAIL`: data is sufficient, but a p95 ceiling or paid-tier median/p95
+  net-receipt guardrail is exceeded.
+- `INSUFFICIENT_DATA`: the gate is missing tier samples, priced coverage, or a
+  monthly ceiling. It never converts missing data into a green result.
+
+For `PLUS` and `PRO`, median AI cost must be at most 15% of estimated net receipt
+and p95 must be at most 25%. The net receipt applies the configured conservative
+storefront commission.
+
+`FREE` has no subscription receipt, so it is evaluated against its configured
+monthly cost ceiling instead of a revenue percentage.
+
+## Representative Run
+
+A valid pricing decision needs representative full user-visible operations, not
+isolated single prompts. The staging sample should include:
+
+- nutrition-only and nutrition-plus-training users;
+- training and rest days;
+- all supported locales;
+- plans with and without wearable context;
+- safety review and bounded retry paths;
+- meal and menu regeneration within each tier allowance;
+- Adaptive Plan Checkpoint proposals for paid tiers.
+
+Each route needs at least the configured number of distinct monthly user samples.
+Partial or artificial data may test the command, but it must not approve launch
+pricing.
+
+## Current Limitation
+
+The pre-request operational ceiling and this reporting gate use priced telemetry.
+Historical unpriced rows are excluded from cost distributions and reduce priced
+coverage. A provider request may cross the ceiling because its exact cost is only
+known after completion; later requests are then blocked.

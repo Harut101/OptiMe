@@ -455,18 +455,20 @@ For minors:
    token/cost telemetry.
 4. Completed: add safely configurable monthly AI cost ceilings, approved Free
    production limits, and an aggregate median/p95 cost report.
-5. Run the representative pricing unit-economics gate and validate the
-   provisional Plus and Pro pricing floors before billing work.
+5. In progress: the strict pricing unit-economics gate is implemented. Populate
+   current deployment model IDs/prices/ceilings, collect representative 30-day
+   Free/Plus/Pro telemetry, and require `ai-cost:gate` to pass before billing
+   work.
 6. Freeze new product features for the first release.
 7. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
-7. Complete Android Health Connect development-build/device QA and Google Play
+8. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
-8. Run iOS/Android release builds, full automated regression, localization QA, and
+9. Run iOS/Android release builds, full automated regression, localization QA, and
    physical-device QA.
-9. Release the stable first version.
-10. Add Recovery Trend and Photo Food Logging based on real user feedback.
-11. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+10. Release the stable first version.
+11. Add Recovery Trend and Photo Food Logging based on real user feedback.
+12. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
 12. Add WHOOP as the first specialized post-release wearable integration.
     Garmin remains deferred until after release and a separate provider review.

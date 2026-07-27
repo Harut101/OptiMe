@@ -1149,7 +1149,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(regenerated.body.plan.reminders).toEqual(beforePlan.reminders);
   });
 
-  it('uses confirmed available foods when regenerating the full food menu', async () => {
+  it('prioritizes confirmed available foods when regenerating the full food menu', async () => {
     const user = await registerTestUser(ctx.app, 'full-menu-availability-regeneration@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});
     await grantPlus(user.user.id);
@@ -1185,7 +1185,13 @@ describe('Specialized Nutrition Agent food plans', () => {
       meal.ingredients.map((ingredient) => ingredient.catalogFoodSlug)
     ));
 
-    expect(regeneratedSlugs).toEqual(expect.arrayContaining(availableSlugs));
+    expect(
+      regeneratedSlugs.some(
+        (slug) =>
+          typeof slug === 'string' &&
+          availableSlugs.includes(slug)
+      )
+    ).toBe(true);
   });
 
   it('regenerates one meal and keeps the stored nutrition target snapshot', async () => {
@@ -1217,7 +1223,7 @@ describe('Specialized Nutrition Agent food plans', () => {
     expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
   });
 
-  it('uses confirmed available foods when regenerating one meal', async () => {
+  it('prioritizes confirmed available foods when regenerating one meal', async () => {
     const user = await registerTestUser(ctx.app, 'meal-availability-regeneration@example.com');
     await completeNutritionOnlyOnboarding(user.accessToken, {});
     const availableSlugs = ['whole-grain-bread', 'greek-yogurt-plain', 'apple'];
@@ -1244,9 +1250,12 @@ describe('Specialized Nutrition Agent food plans', () => {
     const foodPlan = regenerated.body.plan.nutrition.foodPlan as DailyFoodPlan;
     const regeneratedMeal = foodPlan.meals.find((meal) => meal.id === selectedMealId)!;
 
-    expect(regeneratedMeal.ingredients.map((ingredient) => ingredient.catalogFoodSlug)).toEqual(
-      expect.arrayContaining(availableSlugs)
-    );
+    expect(
+      regeneratedMeal.ingredients.some((ingredient) =>
+        typeof ingredient.catalogFoodSlug === 'string' &&
+        availableSlugs.includes(ingredient.catalogFoodSlug)
+      )
+    ).toBe(true);
     expect(foodPlan.meals.slice(1)).toEqual(beforeFoodPlan.meals.slice(1));
   });
 

@@ -95,7 +95,7 @@ cross the configured ceiling before later requests are blocked.
 
 ## Unit-economics report
 
-Run:
+Inspect raw aggregate cost:
 
 ```powershell
 $env:AI_COST_REPORT_DAYS='30'
@@ -107,9 +107,21 @@ agent, and operation, plus per-user total distributions without emitting user
 identifiers. Existing unpriced historical rows are reported as unpriced and are
 not included in cost distributions.
 
+Evaluate provisional pricing:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:benchmark
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:gate
+```
+
+The benchmark reports `PASS`, `FAIL`, or `INSUFFICIENT_DATA`. The strict gate
+returns non-zero unless all tiers pass. See
+[ai-unit-economics.md](./ai-unit-economics.md) for the data-quality requirements
+and representative profile matrix.
+
 Before billing:
 
 1. Populate current deployment model IDs, prices, and tier ceilings.
 2. Run representative Free, Plus, and Pro traffic for at least 30 days.
-3. Review median and p95 multi-agent cost against the pricing guardrails.
+3. Require the strict unit-economics gate to pass.
 4. Approve or revise the provisional paid prices before storefront work.
