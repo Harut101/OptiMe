@@ -489,7 +489,22 @@ export const zhCN = createLocaleResource({
       swapAlternativeServing: '{{quantity}} {{unit}}',
       noSafeAlternatives: '目前没有可用的安全替代品。',
       ingredientSwapped: '食材已更新。',
-      couldNotSwapIngredient: '无法更新此食材。已保留当前餐食。'
+      couldNotSwapIngredient: '无法更新此食材。已保留当前餐食。',
+      ingredientRoles: {
+        MAIN: '主要食材',
+        BASE: '餐食基础',
+        SIDE: '配菜',
+        COOKING_FAT: '烹饪用',
+        DRESSING: '调味汁',
+        SEASONING: '调味料',
+        GARNISH: '点缀'
+      },
+      measurementStates: {
+        RAW: '生重',
+        COOKED: '熟重',
+        READY_TO_EAT: '按上桌状态',
+        AS_LISTED: '按标示状态'
+      }
     }
   }
 );

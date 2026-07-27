@@ -237,6 +237,30 @@ type DailyFoodPlan = {
 
 Food meals include stable `id`, `mealType`, title, calories/macros, ingredients with quantities/units, preparation steps, display-only substitutions, and reason-code explanations.
 
+Catalog-backed ingredients may also include backend-owned clarity metadata:
+
+```ts
+type FoodIngredient = {
+  catalogFoodSlug?: string;
+  name: string;
+  quantity: number;
+  unit: "g" | "ml" | "piece" | "tbsp" | "tsp" | "cup" | "serving";
+  isOptional: boolean;
+  role?: "MAIN" | "BASE" | "SIDE" | "COOKING_FAT" | "DRESSING" | "SEASONING" | "GARNISH";
+  measurementState?: "RAW" | "COOKED" | "READY_TO_EAT" | "AS_LISTED";
+  preparation?: string | null;
+  usage?: string;
+  caloriesKcal: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+};
+```
+
+`role` explains why the ingredient is present. `measurementState` explains how its quantity should be measured. `preparation` and `usage` make cooking fats, meal bases, sides, and other components unambiguous. For example, olive oil can be marked `COOKING_FAT` with guidance that the measured amount is used during cooking or as dressing and is already included in nutrition totals.
+
+These clarity fields are optional only for backward compatibility. New catalog-backed plans populate them in the backend after AI output. Old stored plans without them remain valid and mobile simply renders the existing ingredient name and quantity.
+
 Old plans without `nutrition.foodPlan` remain valid and should continue rendering legacy `nutrition.meals`.
 
 `debug` is internal development metadata. Mobile must not render it.

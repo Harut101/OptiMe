@@ -47,11 +47,21 @@ export const FOOD_CATALOG_SELECTION_ROLES = [
 
 export type FoodCatalogSelectionRole = (typeof FOOD_CATALOG_SELECTION_ROLES)[number];
 
+export interface RecentFoodCatalogUsage {
+  catalogFoodSlug: string;
+  occurrenceCount: number;
+  daysUsed: number;
+  lastUsedLocalDate: string;
+  daysSinceLastUse: number;
+}
+
 export interface SelectDailyFoodCatalogInput extends Omit<ListFoodCatalogCandidatesInput, 'limit'> {
   planLocalDate: string;
   /** User-confirmed catalog foods available on this local date. Soft ranking only. */
   availableFoodSlugs?: string[];
   preferredFoods?: string[];
+  /** Recent generated-plan usage. Soft diversity ranking only. */
+  recentFoodUsage?: RecentFoodCatalogUsage[];
   /** Soft ranking only. Restrictions and food preferences still take priority. */
   prioritizePreparationForRoles?: FoodCatalogSelectionRole[];
   maxPerRole?: number;

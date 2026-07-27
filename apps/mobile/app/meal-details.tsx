@@ -229,8 +229,30 @@ export default function MealDetailsScreen() {
         {meal.ingredients.map((ingredient) => (
           <View key={`${ingredient.name}-${ingredient.quantity}`} style={styles.ingredientRow}>
             <View style={styles.ingredientCopy}>
-              <Text variant="bodyStrong">{ingredient.name}</Text>
-              <Text variant="caption">{ingredient.quantity} {ingredient.unit}</Text>
+              <View style={styles.ingredientHeading}>
+                <Text variant="bodyStrong" style={styles.ingredientName}>
+                  {ingredient.name}
+                </Text>
+                {ingredient.role ? (
+                  <View style={styles.ingredientRole}>
+                    <Text variant="caption" style={styles.ingredientRoleText}>
+                      {t(`food.ingredientRoles.${ingredient.role}`)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text variant="caption">
+                {ingredient.quantity} {ingredient.unit}
+                {ingredient.measurementState
+                  ? ` · ${t(`food.measurementStates.${ingredient.measurementState}`)}`
+                  : ''}
+              </Text>
+              {ingredient.preparation ? (
+                <Text variant="muted">{ingredient.preparation}</Text>
+              ) : null}
+              {ingredient.usage ? (
+                <Text variant="body">{ingredient.usage}</Text>
+              ) : null}
             </View>
             <View style={styles.ingredientActions}>
               {ingredient.catalogFoodSlug ? (
@@ -398,6 +420,25 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 13
   },
   ingredientCopy: { flex: 1, gap: 2, minWidth: 0 },
+  ingredientHeading: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  ingredientName: {
+    flexShrink: 1
+  },
+  ingredientRole: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3
+  },
+  ingredientRoleText: {
+    color: colors.textSecondary,
+    fontWeight: '700'
+  },
   ingredientActions: {
     alignItems: 'center',
     flexDirection: 'row',

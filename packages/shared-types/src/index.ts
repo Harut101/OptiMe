@@ -1117,6 +1117,19 @@ export type FoodMealType =
   | 'PRE_WORKOUT'
   | 'POST_WORKOUT';
 export type FoodIngredientUnit = 'g' | 'ml' | 'piece' | 'tbsp' | 'tsp' | 'cup' | 'serving';
+export type FoodIngredientRole =
+  | 'MAIN'
+  | 'BASE'
+  | 'SIDE'
+  | 'COOKING_FAT'
+  | 'DRESSING'
+  | 'SEASONING'
+  | 'GARNISH';
+export type FoodIngredientMeasurementState =
+  | 'RAW'
+  | 'COOKED'
+  | 'READY_TO_EAT'
+  | 'AS_LISTED';
 export type FoodMealReasonCode =
   | 'TARGET_ALIGNED'
   | 'PREFERENCE_ALIGNED'
@@ -1145,6 +1158,14 @@ export interface FoodIngredient extends FoodNutritionTotals {
   quantity: number;
   unit: FoodIngredientUnit;
   isOptional: boolean;
+  /**
+   * Optional only for backward compatibility with saved plans. New
+   * catalog-backed plans always provide these clarity fields.
+   */
+  role?: FoodIngredientRole;
+  measurementState?: FoodIngredientMeasurementState;
+  preparation?: string | null;
+  usage?: string;
 }
 
 export interface FoodSubstitution {

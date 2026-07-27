@@ -27,7 +27,7 @@ Before an AI request or deterministic fallback is composed, FoodCatalogService m
 
 This is an additional hard filter; deterministic SafetyService still remains the authority for validating the final plan. Unknown or ambiguous user-entered restrictions are not silently treated as safe catalog matches.
 
-The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. The fallback templates rotate allowed proteins, grains, vegetables, fruits, and fats deterministically by local date, so they provide practical variation without relying on model arithmetic. Existing legacy plans remain readable because `catalogFoodSlug` is optional in the shared plan contract.
+The catalog is currently used for Nutrition Agent ingredient selection and deterministic food-plan fallback. The fallback templates rotate allowed proteins, grains, vegetables, fruits, and fats deterministically by local date, so they provide practical variation without relying on model arithmetic. Existing legacy plans remain readable because `catalogFoodSlug` and the newer ingredient clarity fields are optional in the shared plan contract.
 
 Catalog-backed meals use their actual selected ingredient names for the meal title, while `Breakfast`, `Lunch`, `Dinner`, and `Snack` remain structured meal-type labels. This gives Food and Meal Details a useful dish name without letting a model invent ingredients or hiding the products that were selected.
 
@@ -49,11 +49,13 @@ Meal preparation time is also catalog-derived. A meal composed entirely of ready
 
 ## Current generation behavior
 
-When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Preference matches are ranked first; remaining safe choices rotate deterministically by local date. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names or nutrition values.
+When the OpenAI Nutrition Agent is enabled, it receives only a compact, allowed catalog shortlist for the user. The backend derives shortlist roles from existing food categories: breakfast base, main protein, carbohydrate, vegetable, fruit, fat, and dairy/alternative. Confirmed availability, recent-plan variety, preferences, preparation practicality, and a deterministic local-date score rank the already-safe choices in that order. This keeps prompts practical without hardcoding menus for each user. The AI output can select only a `catalogFoodSlug`, gram quantity, and optional flag for each ingredient; it cannot supply ingredient names, roles, measurement guidance, or nutrition values.
+
+Recent-plan variety uses a 14-day summary of catalog usage. Foods used across several recent days are softly demoted when a safe alternative fits. The rule is intentionally not a hard ban: limited diets, explicitly available foods, allergy safety, and target feasibility always take priority.
 
 The shortlist is not a second source of truth. The full active catalog remains authoritative, and the backend still recalculates nutrition and applies every restriction before a plan is saved. A future recipe-template layer can add finer cooking-state or cuisine metadata if the product needs it.
 
-The backend then resolves each slug, replaces the display name with the catalog translation, and recalculates ingredient, meal, and day totals from catalog values. Unknown slugs or non-gram units are rejected and can trigger the existing single retry. This removes AI arithmetic as the source of meal-total mismatches.
+The backend then resolves each slug, replaces the display name with the catalog translation, assigns the approved recipe role, adds conservative measurement and usage guidance, and recalculates ingredient, meal, and day totals from catalog values. Unknown slugs, ingredient positions outside the template role structure, or non-gram units are rejected and can trigger the existing single retry. This removes AI arithmetic and free-text ingredient semantics as sources of ambiguity.
 
 `food-catalog:coverage` audits baseline diets plus common diet-and-restriction bundles, including dairy/fish-free omnivore, egg/soy-free vegetarian, soy/tree-nut-free vegan, gluten-free omnivore, dairy-free low-carb, and dairy/tree-nut-free keto. The report is diagnostic only: `READY` means at least two candidates for every required role, `LIMITED` means a role has one candidate, and `BLOCKED` means a required role has none. Role counts are always shown, including optional roles such as dairy/alternative in a dairy-free bundle. It uses the same catalog restriction filters as daily-plan generation.
 

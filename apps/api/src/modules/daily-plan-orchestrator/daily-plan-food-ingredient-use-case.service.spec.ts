@@ -122,7 +122,11 @@ describe('DailyPlanFoodIngredientUseCaseService', () => {
             ingredients: [
               expect.objectContaining({
                 catalogFoodSlug: 'quinoa-cooked',
-                isOptional: true
+                isOptional: true,
+                role: 'BASE',
+                measurementState: 'COOKED',
+                preparation: 'Measure after cooking.',
+                usage: 'Use as the meal base.'
               })
             ],
             substitutions: [
@@ -358,6 +362,10 @@ function createSuggestion() {
     proteinGrams: 13.8,
     carbsGrams: 67,
     fatGrams: 6,
-    preparationLevel: FoodPreparationLevel.QUICK_ASSEMBLY
+    preparationLevel: FoodPreparationLevel.QUICK_ASSEMBLY,
+    role: 'BASE' as const,
+    measurementState: 'COOKED' as const,
+    preparation: 'Measure after cooking.',
+    usage: 'Use as the meal base.'
   };
 }

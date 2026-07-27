@@ -101,7 +101,11 @@ export class FoodPlanValidationService {
           meal.title,
           meal.shortDescription ?? '',
           meal.servingSummary,
-          ...meal.ingredients.map((ingredient) => ingredient.name),
+          ...meal.ingredients.flatMap((ingredient) => [
+            ingredient.name,
+            ingredient.preparation ?? '',
+            ingredient.usage ?? ''
+          ]),
           ...meal.preparationSteps,
           ...meal.substitutions.flatMap((substitution) => [
             substitution.originalItem,
@@ -280,7 +284,11 @@ export class FoodPlanValidationService {
       meal.title,
       meal.shortDescription ?? '',
       meal.servingSummary,
-      ...meal.ingredients.map((ingredient) => ingredient.name),
+      ...meal.ingredients.flatMap((ingredient) => [
+        ingredient.name,
+        ingredient.preparation ?? '',
+        ingredient.usage ?? ''
+      ]),
       ...meal.preparationSteps,
       ...meal.substitutions.flatMap((substitution) => [
         substitution.originalItem,
@@ -303,6 +311,10 @@ export class FoodPlanValidationService {
         meal.title,
         meal.shortDescription ?? '',
         meal.servingSummary,
+        ...meal.ingredients.flatMap((ingredient) => [
+          ingredient.preparation ?? '',
+          ingredient.usage ?? ''
+        ]),
         ...meal.preparationSteps,
         ...meal.substitutions.map((substitution) => substitution.servingSummary)
       ])

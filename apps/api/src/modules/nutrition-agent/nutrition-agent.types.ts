@@ -58,12 +58,26 @@ export interface NutritionAgentInput {
   // User-confirmed catalog foods that are available on the plan's local date.
   // They are safe ranking hints only, never an inventory or nutrition source.
   availableFoodSlugs?: string[];
+  foodRotationContext?: FoodRotationContext;
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;
     existingFoodPlan: DailyFoodPlan;
     selectedMealId?: string;
   };
+}
+
+export interface FoodRotationUsage {
+  catalogFoodSlug: string;
+  occurrenceCount: number;
+  daysUsed: number;
+  lastUsedLocalDate: string;
+  daysSinceLastUse: number;
+}
+
+export interface FoodRotationContext {
+  lookbackDays: number;
+  usage: FoodRotationUsage[];
 }
 
 export interface NutritionAgentResult {

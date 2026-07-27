@@ -489,7 +489,22 @@ export const frFR = createLocaleResource({
       swapAlternativeServing: '{{quantity}} {{unit}}',
       noSafeAlternatives: 'Aucune alternative sûre n’est disponible pour le moment.',
       ingredientSwapped: 'Ingrédient mis à jour.',
-      couldNotSwapIngredient: 'Impossible de mettre à jour cet ingrédient. Votre repas actuel a été conservé.'
+      couldNotSwapIngredient: 'Impossible de mettre à jour cet ingrédient. Votre repas actuel a été conservé.',
+      ingredientRoles: {
+        MAIN: 'Ingrédient principal',
+        BASE: 'Base du repas',
+        SIDE: 'Accompagnement',
+        COOKING_FAT: 'Pour la cuisson',
+        DRESSING: 'Assaisonnement',
+        SEASONING: 'Épice',
+        GARNISH: 'Garniture'
+      },
+      measurementStates: {
+        RAW: 'poids cru',
+        COOKED: 'poids cuit',
+        READY_TO_EAT: 'tel que servi',
+        AS_LISTED: 'sous la forme indiquée'
+      }
     }
   }
 );

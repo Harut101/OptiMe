@@ -140,7 +140,11 @@ export class DailyPlanFoodIngredientUseCaseService {
       proteinGrams: suggestion.proteinGrams,
       carbsGrams: suggestion.carbsGrams,
       fatGrams: suggestion.fatGrams,
-      isOptional: originalIngredient.isOptional
+      isOptional: originalIngredient.isOptional,
+      role: suggestion.role,
+      measurementState: suggestion.measurementState,
+      preparation: suggestion.preparation,
+      usage: suggestion.usage
     };
     const nextFoodPlan = normalizeFoodPlanNutrition({
       ...context.currentFoodPlan,

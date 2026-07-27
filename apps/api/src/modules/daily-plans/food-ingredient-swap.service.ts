@@ -4,6 +4,7 @@ import type { FoodIngredient } from '@optime/shared-types';
 import type { SupportedLocale } from '@optime/shared-types';
 
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
+import { refreshFoodIngredientClarity } from '../food-catalog/food-ingredient-clarity';
 
 type FoodIngredientSwapInput = {
   ingredient: FoodIngredient;
@@ -59,6 +60,11 @@ export class FoodIngredientSwapService {
           carbsGrams: nutrition.carbsGrams,
           fatGrams: nutrition.fatGrams,
           preparationLevel: candidate.preparationLevel,
+          ...refreshFoodIngredientClarity({
+            candidate,
+            existingRole: input.ingredient.role,
+            locale: input.locale
+          }),
           macroDistance
         };
       })

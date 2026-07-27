@@ -611,7 +611,24 @@ export const foodIngredientSchema = foodNutritionTotalsSchema.extend({
   name: z.string().trim().min(1).max(120),
   quantity: z.number().positive().max(10000),
   unit: z.enum(['g', 'ml', 'piece', 'tbsp', 'tsp', 'cup', 'serving']),
-  isOptional: z.boolean()
+  isOptional: z.boolean(),
+  role: z.enum([
+    'MAIN',
+    'BASE',
+    'SIDE',
+    'COOKING_FAT',
+    'DRESSING',
+    'SEASONING',
+    'GARNISH'
+  ]).optional(),
+  measurementState: z.enum([
+    'RAW',
+    'COOKED',
+    'READY_TO_EAT',
+    'AS_LISTED'
+  ]).optional(),
+  preparation: z.string().trim().min(1).max(180).nullable().optional(),
+  usage: z.string().trim().min(1).max(240).optional()
 });
 
 export const foodSubstitutionSchema = z.object({

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { DailyFoodPlan, FoodIngredient, FoodNutritionTotals } from '@optime/shared-types';
 
 import { FoodCatalogService } from '../food-catalog/food-catalog.service';
+import { refreshFoodIngredientClarity } from '../food-catalog/food-ingredient-clarity';
 import type { FoodCatalogCandidate } from '../food-catalog/food-catalog.types';
 import {
   calculateFoodPlanPortionScore,
@@ -108,7 +109,12 @@ function replaceIngredient(
         caloriesKcal: nutrition.caloriesKcal,
         proteinGrams: nutrition.proteinGrams,
         carbsGrams: nutrition.carbsGrams,
-        fatGrams: nutrition.fatGrams
+        fatGrams: nutrition.fatGrams,
+        ...refreshFoodIngredientClarity({
+          candidate: replacement,
+          existingRole: ingredient.role,
+          locale: foodPlan.locale
+        })
       } satisfies FoodIngredient;
     });
     return { ...meal, ...sumNutrition(ingredients), ingredients };

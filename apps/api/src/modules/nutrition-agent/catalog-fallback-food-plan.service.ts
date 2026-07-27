@@ -17,6 +17,7 @@ import {
   FoodPlanPortionSolverService,
   type FoodPlanPortionSolverTarget
 } from './food-plan-portion-solver.service';
+import { createFoodIngredientClarity } from '../food-catalog/food-ingredient-clarity';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import { foodPracticalityRoles } from './food-adherence-practicality';
 import { mealTimingMultiplier } from './food-meal-timing';
@@ -84,6 +85,7 @@ export class CatalogFallbackFoodPlanService {
         : input.planLocalDate,
       availableFoodSlugs: input.availableFoodSlugs,
       preferredFoods: input.nutritionPreference?.preferredFoods,
+      recentFoodUsage: input.foodRotationContext?.usage,
       prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,
       restrictions: {
@@ -248,7 +250,12 @@ export class CatalogFallbackFoodPlanService {
         proteinGrams: nutrition.proteinGrams,
         carbsGrams: nutrition.carbsGrams,
         fatGrams: nutrition.fatGrams,
-        isOptional: false
+        isOptional: false,
+        ...createFoodIngredientClarity({
+          candidate,
+          selectionRole: template.role,
+          locale
+        })
       } satisfies FoodIngredient;
     });
     const totals = sumNutrition(ingredients);

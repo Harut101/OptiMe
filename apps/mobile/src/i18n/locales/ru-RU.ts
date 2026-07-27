@@ -491,7 +491,22 @@ export const ruRU = createLocaleResource({
       swapAlternativeServing: '{{quantity}} {{unit}}',
       noSafeAlternatives: 'Сейчас нет безопасных вариантов замены.',
       ingredientSwapped: 'Ингредиент обновлён.',
-      couldNotSwapIngredient: 'Не удалось обновить ингредиент. Текущий приём пищи сохранён.'
+      couldNotSwapIngredient: 'Не удалось обновить ингредиент. Текущий приём пищи сохранён.',
+      ingredientRoles: {
+        MAIN: 'Основной продукт',
+        BASE: 'Основа блюда',
+        SIDE: 'Дополнение',
+        COOKING_FAT: 'Для приготовления',
+        DRESSING: 'Заправка',
+        SEASONING: 'Приправа',
+        GARNISH: 'Украшение'
+      },
+      measurementStates: {
+        RAW: 'в сыром виде',
+        COOKED: 'в готовом виде',
+        READY_TO_EAT: 'как подано',
+        AS_LISTED: 'в указанном виде'
+      }
     }
   }
 );

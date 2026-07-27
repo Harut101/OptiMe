@@ -28,6 +28,7 @@ import {
 } from './food-plan-catalog-feasibility.service';
 import { FoodPlanCatalogRebalancerService } from './food-plan-catalog-rebalancer.service';
 import { createDeterministicFoodPlan } from './deterministic-food-plan.factory';
+import { createFoodIngredientClarity } from '../food-catalog/food-ingredient-clarity';
 import { normalizeFoodPlanNutrition } from './food-plan-nutrition-normalizer';
 import { foodPracticalityRoles } from './food-adherence-practicality';
 import { FoodPlanPortionSolverService } from './food-plan-portion-solver.service';
@@ -38,6 +39,7 @@ import {
 } from './food-plan-recipe-template.service';
 import { FoodPlanTargetedMealRepairService } from './food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
+import { FoodRotationContextService } from './food-rotation-context.service';
 import {
   nutritionAgentMealCopyDraftSchema,
   nutritionAgentMealCopyOpenAiSchema,
@@ -80,12 +82,23 @@ export class NutritionAgentService {
     private readonly portionSolver: FoodPlanPortionSolverService,
     private readonly recipeComposer: FoodPlanRecipeComposerService,
     private readonly recipeTemplates: FoodPlanRecipeTemplateService,
+    private readonly foodRotationContext: FoodRotationContextService,
     private readonly modelRouter: AiModelRouterService,
     private readonly requestTelemetry: AiRequestTelemetryService,
     @Inject(OPENAI_CLIENT_FACTORY) private readonly clientFactory: OpenAiClientFactory
   ) {}
 
   async generateDailyFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
+    input = {
+      ...input,
+      foodRotationContext:
+        input.foodRotationContext ??
+        (await this.foodRotationContext.getContext(
+          input.userId,
+          input.planLocalDate
+        ))
+    };
+
     if (input.regeneration?.mode === 'MEAL_REGENERATION') {
       const regeneratedMealPlan = await this.composeSingleMealRegeneration(input);
       if (regeneratedMealPlan) {
@@ -515,6 +528,7 @@ export class NutritionAgentService {
         : input.planLocalDate,
       availableFoodSlugs: input.availableFoodSlugs,
       preferredFoods: input.nutritionPreference?.preferredFoods,
+      recentFoodUsage: input.foodRotationContext?.usage,
       prioritizePreparationForRoles: foodPracticalityRoles(input),
       maxPerRole: 8,
       restrictions: {
@@ -900,7 +914,8 @@ export class NutritionAgentService {
       'Respect the requested mealsPerDay exactly when provided.',
       'Never include allergies, intolerances, or excluded foods in ingredients, meal titles, substitutions, or preparation steps.',
       'Treat disliked foods as strong avoid preferences unless there is no safe practical alternative.',
-      'Use preferred foods when they fit safely.',
+      'Preferred foods are ranking hints, not daily requirements. Use them when they fit safely without making the menu repetitive.',
+      'Respect recentFoodUsage: avoid recently repeated main proteins and meal bases when another safe catalog option fits the fixed target.',
       'Keep meal titles localized to the requested locale when possible.',
       'Use supportive, practical, non-shaming language.',
       'Do not include fasting protocols, detox claims, starvation messaging, medical diagnosis, or aggressive weight-loss promises.',
@@ -982,6 +997,16 @@ export class NutritionAgentService {
           }
         : null,
       goalSummary: input.goalSummary,
+      recentFoodUsage: {
+        lookbackDays:
+          input.foodRotationContext?.lookbackDays ?? 0,
+        foods:
+          input.foodRotationContext?.usage.map((usage) => ({
+            catalogFoodSlug: usage.catalogFoodSlug,
+            daysUsed: usage.daysUsed,
+            daysSinceLastUse: usage.daysSinceLastUse
+          })) ?? []
+      },
       trainingContext: {
         isTrainingDay: input.resolvedTrainingDay.isTrainingDay,
         durationMinutes: input.resolvedTrainingDay.durationMinutes,
@@ -1036,10 +1061,13 @@ export class NutritionAgentService {
       const template = templatesById.get(meal.recipeTemplateId);
       if (!template || template.mealType !== meal.mealType) return null;
       const ingredients: DailyFoodPlan['meals'][number]['ingredients'] = [];
-      for (const ingredient of meal.ingredients) {
+      for (const [ingredientIndex, ingredient] of meal.ingredients.entries()) {
         if (!ingredient.catalogFoodSlug || ingredient.unit !== 'g') return null;
         const candidate = bySlug.get(ingredient.catalogFoodSlug);
         if (!candidate) return null;
+        const templateIngredient =
+          template.ingredients[ingredientIndex];
+        if (!templateIngredient) return null;
         const nutrition = this.foodCatalog.calculateNutrition(candidate, ingredient.quantity);
         ingredients.push({
           ...ingredient,
@@ -1047,7 +1075,12 @@ export class NutritionAgentService {
           caloriesKcal: nutrition.caloriesKcal,
           proteinGrams: nutrition.proteinGrams,
           carbsGrams: nutrition.carbsGrams,
-          fatGrams: nutrition.fatGrams
+          fatGrams: nutrition.fatGrams,
+          ...createFoodIngredientClarity({
+            candidate,
+            selectionRole: templateIngredient.role,
+            locale: input.locale
+          })
         });
       }
       const totals = sumFoodNutrition(ingredients);

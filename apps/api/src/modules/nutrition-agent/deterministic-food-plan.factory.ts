@@ -106,7 +106,10 @@ function createMeal(input: {
         quantity: 1,
         unit: 'serving' as FoodIngredientUnit,
         ...totals,
-        isOptional: false
+        isOptional: false,
+        role: 'MAIN',
+        measurementState: 'AS_LISTED',
+        ...fallbackIngredientClarity(input.locale)
       }
     ],
     preparationSteps: [
@@ -228,6 +231,27 @@ const FOOD_PLAN_COPY: Record<SupportedLocale, DeterministicFoodPlanCopy> = {
 
 function getFoodPlanCopy(locale: SupportedLocale) {
   return FOOD_PLAN_COPY[locale];
+}
+
+function fallbackIngredientClarity(locale: SupportedLocale) {
+  return {
+    'en-US': {
+      preparation: 'Use the serving guidance shown for this meal.',
+      usage: 'Use as the main balanced component of this fallback meal.'
+    },
+    'ru-RU': {
+      preparation: 'Ориентируйтесь на указанную порцию.',
+      usage: 'Используйте как основной сбалансированный компонент этого приёма пищи.'
+    },
+    'fr-FR': {
+      preparation: 'Suivez la portion indiquée pour ce repas.',
+      usage: 'Utilisez comme composant équilibré principal de ce repas de remplacement.'
+    },
+    'zh-CN': {
+      preparation: '请按本餐标示的份量准备。',
+      usage: '作为这份安全备用餐的主要均衡组成部分。'
+    }
+  }[locale];
 }
 
 function roundTotals<T extends { caloriesKcal: number; proteinGrams: number; carbsGrams: number; fatGrams: number }>(

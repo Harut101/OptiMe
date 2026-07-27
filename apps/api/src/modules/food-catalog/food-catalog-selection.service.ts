@@ -43,6 +43,12 @@ export class FoodCatalogSelectionService {
     });
     const preferredFoods = normalizePreferenceTerms(input.preferredFoods ?? []);
     const availableFoodSlugs = new Set(input.availableFoodSlugs ?? []);
+    const recentFoodUsage = new Map(
+      (input.recentFoodUsage ?? []).map((usage) => [
+        usage.catalogFoodSlug,
+        usage
+      ])
+    );
     const preparationPriorityRoles = new Set(input.prioritizePreparationForRoles ?? []);
     const candidatesByRole = groupFoodCatalogCandidatesByRole(allCandidates);
     const byRole = {} as DailyFoodCatalogSelection['byRole'];
@@ -53,6 +59,7 @@ export class FoodCatalogSelectionService {
         role,
         input.planLocalDate,
         availableFoodSlugs,
+        recentFoodUsage,
         preferredFoods,
         preparationPriorityRoles.has(role)
       ).slice(0, maxPerRole);
@@ -76,6 +83,10 @@ function rankCandidates(
   role: FoodCatalogSelectionRole,
   planLocalDate: string,
   availableFoodSlugs: Set<string>,
+  recentFoodUsage: Map<
+    string,
+    NonNullable<SelectDailyFoodCatalogInput['recentFoodUsage']>[number]
+  >,
   preferredFoods: string[],
   prioritizePreparation: boolean
 ) {
@@ -85,6 +96,11 @@ function rankCandidates(
 
     const availabilityDelta = Number(availableFoodSlugs.has(right.slug)) - Number(availableFoodSlugs.has(left.slug));
     if (availabilityDelta !== 0) return availabilityDelta;
+
+    const rotationDelta =
+      rotationPenalty(recentFoodUsage.get(left.slug)) -
+      rotationPenalty(recentFoodUsage.get(right.slug));
+    if (rotationDelta !== 0) return rotationDelta;
 
     const preferenceDelta = Number(matchesPreference(right, preferredFoods)) - Number(matchesPreference(left, preferredFoods));
     if (preferenceDelta !== 0) return preferenceDelta;
@@ -99,6 +115,21 @@ function rankCandidates(
     if (leftScore !== rightScore) return leftScore - rightScore;
     return left.slug.localeCompare(right.slug);
   });
+}
+
+function rotationPenalty(
+  usage:
+    | NonNullable<
+        SelectDailyFoodCatalogInput['recentFoodUsage']
+      >[number]
+    | undefined
+) {
+  if (!usage) return 0;
+
+  // A food used yesterday receives the strongest penalty. Repeated days count
+  // more than several appearances inside one meal or day.
+  const recencyPenalty = Math.max(0, 8 - usage.daysSinceLastUse);
+  return usage.daysUsed * 20 + recencyPenalty;
 }
 
 function roleCategoryRank(role: FoodCatalogSelectionRole, category: FoodCatalogCategory) {

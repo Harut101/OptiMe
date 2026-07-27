@@ -10,6 +10,7 @@ import { FoodPlanRecipeComposerService } from './food-plan-recipe-composer.servi
 import { FoodPlanRecipeTemplateService } from './food-plan-recipe-template.service';
 import { FoodPlanTargetedMealRepairService } from './food-plan-targeted-meal-repair.service';
 import { FoodPlanValidationService } from './food-plan-validation.service';
+import { FoodRotationContextService } from './food-rotation-context.service';
 import { NutritionAgentService } from './nutrition-agent.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { NutritionAgentService } from './nutrition-agent.service';
     FoodPlanRecipeTemplateService,
     FoodPlanTargetedMealRepairService,
     FoodPlanValidationService,
+    FoodRotationContextService,
     NutritionAgentService
   ],
   exports: [FoodPlanValidationService, NutritionAgentService]

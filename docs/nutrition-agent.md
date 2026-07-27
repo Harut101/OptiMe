@@ -7,7 +7,7 @@ The AI Nutrition Agent creates a structured daily food plan after the determinis
 - `NutritionTargetsService` remains the numeric source of truth.
 - The AI Nutrition Agent must not calculate or override target calories, protein, carbs, or fat.
 - The agent may choose meals, ingredients, portions, preparation notes, and display-only substitutions inside the deterministic target.
-- For every ingredient, the agent returns only an approved catalog slug, a gram quantity, and whether it is optional. The backend resolves the localized name and recalculates every ingredient, meal, and day nutrition value.
+- For every ingredient, the agent returns only an approved catalog slug, a gram quantity, and whether it is optional. The backend resolves the localized name, assigns its recipe role and measurement guidance, and recalculates every ingredient, meal, and day nutrition value.
 - Mobile never calls OpenAI directly.
 - The agent uses the existing backend OpenAI client factory and Structured Outputs when `AI_PROVIDER=openai`; mock mode stays deterministic.
 
@@ -37,8 +37,29 @@ The food plan includes:
 - daily calories/macros
 - validation status and safe reason codes
 - meals with IDs, meal types, calories/macros, ingredients, preparation steps, and substitutions
+- backend-owned ingredient role, measurement state, preparation guidance, and usage guidance for new catalog-backed plans
 
 Legacy `nutrition.meals` remains readable and is still present for backward compatibility.
+
+## Food variety
+
+Preferred foods are positive hints, not a request to include the same food every day. Before selecting the compact catalog shortlist, `FoodRotationContextService` summarizes the previous 14 local dates from the user's saved plans. It retains only catalog slugs, occurrence counts, distinct days used, last-used date, and days since last use.
+
+Recently repeated foods receive a deterministic soft ranking penalty. This encourages variety in main proteins, meal bases, and other catalog roles while preserving safety and practicality:
+
+- allergies, excluded foods, and diet compatibility remain hard filters;
+- foods explicitly marked available today outrank rotation;
+- a safe unused alternative may outrank a recently repeated preferred food;
+- preferred foods remain useful after the rotation penalty has cooled;
+- rotation never changes the fixed calorie or macro target and never causes a plan to fail by itself.
+
+The model receives only the compact usage summary, not previous plan content, user IDs, profile records, or private notes.
+
+## Ingredient clarity
+
+The backend derives each catalog ingredient's purpose from its approved recipe-template role. The model does not decide whether an item is a main component, base, side, or cooking fat. The backend also derives a conservative measurement state from curated catalog identity and preparation metadata.
+
+Meal Details can therefore explain both amount and use. An entry such as `Olive oil · 15 g` is accompanied by `For cooking` and guidance that the measured amount is used during cooking or as dressing and is already included in nutrition totals. If raw/cooked state is not certain, the backend uses `AS_LISTED` rather than inventing certainty.
 
 ## Validation
 
