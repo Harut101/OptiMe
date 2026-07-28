@@ -22,6 +22,7 @@ export type WearablePlanningReasonCode =
   | 'HIGH_ACTIVITY'
   | 'MODERATE_ACTIVITY'
   | 'RECENT_WORKOUT_LOAD'
+  | 'LOW_RECOVERY'
   | 'RECOVERY_DATA_AVAILABLE'
   | 'LIMITED_RECOVERY_DATA'
   | 'APPLE_HEALTH_NO_RECOVERY_SCORE';
@@ -33,6 +34,7 @@ export type TrainingLoadReadinessHint =
   | 'UNKNOWN';
 export type TrainingLoadReasonCode =
   | 'LOW_SLEEP'
+  | 'LOW_RECOVERY'
   | 'HIGH_ACTIVITY'
   | 'RECENT_WORKOUT_LOAD'
   | 'PARTIAL_WEARABLE_DATA'

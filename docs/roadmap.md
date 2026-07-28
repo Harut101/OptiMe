@@ -58,7 +58,7 @@ After Adaptive Plan Checkpoint, the active path is release readiness: privacy an
 account controls, production configuration and monitoring, Android Health Connect
 device QA and Google Play declarations, native release builds, full regression, and
 physical-device QA. Post-release product candidates are Recovery Trend, confirmed
-Photo Food Logging, Smart Shopping, WHOOP, and later Audio Co-Pilot. Smart Shopping
+Photo Food Logging, Smart Shopping, and later Audio Co-Pilot. Smart Shopping
 starts with ingredient lists and provider deep links; exact product matching and
 prefilled carts require deterministic catalog safety plus an approved commercial
 provider integration. A user-facing fictional "council of experts" is not planned;
@@ -109,9 +109,9 @@ Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact
 
 ## Health Integrations Foundation
 
-Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Apple Health sync is implemented. WHOOP is a staged pre-release Pro integration: Batch 3 completes secure OAuth, encrypted rotating credentials, manual recovery/sleep/strain/workout sync, normalized snapshots, and mobile connection actions. Production WHOOP account QA and conservative planning verification remain next. Background sync, Garmin, and analytics dashboards remain deferred.
+Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Apple Health sync is implemented. WHOOP is a staged pre-release Pro integration: secure OAuth, encrypted rotating credentials, manual recovery/sleep/strain/workout sync, normalized snapshots, mobile connection actions, and conservative low-Recovery planning are implemented. Provider approval and physical-account QA remain external release gates. Background sync, Garmin, and analytics dashboards remain deferred.
 
-Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, Health Connections UI states, friendly last-sync display, and Apple Health-specific snapshot metrics. The MVP permission scope is intentionally limited to activity and sleep signals; respiratory rate, resting heart rate, and HRV remain future nullable fields until advanced recovery/training-load UX is introduced. Health Connect real sync, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
+Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, Health Connections UI states, friendly last-sync display, and Apple Health-specific snapshot metrics. The MVP permission scope is intentionally limited to activity and sleep signals; respiratory rate, resting heart rate, and HRV remain future nullable fields until advanced recovery/training-load UX is introduced. Health Connect production rollout, background sync, and analytics dashboards remain deferred; WHOOP now follows the separate pre-release path documented below.
 
 ## UI/UX Polish Sprint
 
@@ -203,3 +203,12 @@ Safety remains available for every tier. Nutrition-only users can still receive 
 The mobile presentation layer now has an Apple Health-inspired premium direction: stronger light/dark tokens, dashboard widgets, compact AI Coach entry with bottom sheet, provider cards, meal/workout widgets, and settings-list rows.
 
 Physical-device QA accepted this presentation layer, including auth/onboarding hierarchy, themed form controls, floating tab navigation, responsive bottom sheets, and localized content behavior. Future roadmap work should build on this system rather than adding one-off screen styles.
+
+## WHOOP Pre-release Integration
+
+WHOOP now has secure backend OAuth, encrypted rotating credentials, explicit
+foreground recovery/sleep/cycle/workout sync, mobile connection controls, and
+conservative low-Recovery planning. Recovery is used only when it is scored,
+cycle-matched, fresh, and no longer calibrating. Provider approval and
+physical-account release QA remain external gates. Background sync, webhooks,
+long-term trends, and Garmin remain deferred.

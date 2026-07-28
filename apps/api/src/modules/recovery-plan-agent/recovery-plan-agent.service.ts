@@ -62,7 +62,8 @@ export class RecoveryPlanAgentService implements RecoveryPlanAgent {
     if (wearable?.hasWearableData && !wearable.isStale) {
       if (
         wearable.sleep.sleepHint === 'LOW_SLEEP' ||
-        wearable.activity.activityLevelHint === 'HIGH'
+        wearable.activity.activityLevelHint === 'HIGH' ||
+        wearable.reasonCodes.includes('LOW_RECOVERY')
       ) {
         return 'GENTLE';
       }

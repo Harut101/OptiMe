@@ -19,7 +19,9 @@ describe('WhoopApiClientService', () => {
           {
             cycle_id: 42,
             created_at: '2026-07-28T08:00:00.000Z',
+            score_state: 'SCORED',
             score: {
+              user_calibrating: false,
               recovery_score: 78,
               resting_heart_rate: 52,
               hrv_rmssd_milli: 67

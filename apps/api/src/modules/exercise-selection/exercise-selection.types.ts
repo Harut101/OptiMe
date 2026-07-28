@@ -51,6 +51,7 @@ export type WorkoutVolumeReasonCode =
   | 'PREGNANCY_CONTEXT_REDUCTION'
   | 'LIMITATION_REDUCTION'
   | 'LOW_SLEEP_REDUCTION'
+  | 'LOW_RECOVERY_REDUCTION'
   | 'HIGH_ACTIVITY_REDUCTION'
   | 'RECOVERY_PROTOCOL_REDUCTION'
   | 'NO_TRAINING_PLANNED'
@@ -85,6 +86,7 @@ export interface ExerciseSelectionContext {
   isMinor: boolean;
   healthSignals: {
     lowSleep: boolean;
+    lowRecovery: boolean;
     highActivity: boolean;
     lowStepTrend: boolean;
   };

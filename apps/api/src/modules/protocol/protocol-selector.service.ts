@@ -34,8 +34,12 @@ export class ProtocolSelectorService {
       input.checkInSummary?.highTirednessReported ||
       ((input.checkInSummary?.recentAverageTiredness ?? 0) >= 4 && input.checkInSummary?.recentAverageTiredness !== null);
     const healthSignals = input.healthPlanningContext?.signals;
+    const trainingLoadReasons =
+      input.healthPlanningContext?.trainingLoadContext.reasons ?? [];
     const hasHealthRecoverySignal = Boolean(
-      healthSignals?.lowSleep || healthSignals?.highActivityYesterday
+      healthSignals?.lowSleep ||
+      healthSignals?.highActivityYesterday ||
+      trainingLoadReasons.includes('LOW_RECOVERY')
     );
     const hasRecentWorkoutSignal = Boolean(healthSignals?.recentWorkout);
 
@@ -235,7 +239,9 @@ export class ProtocolSelectorService {
     }
 
     if (input.hasHealthRecoverySignal) {
-      input.selectionReasons.push('Summarized low sleep or high activity selects recovery-aware recovery.');
+      input.selectionReasons.push(
+        'Summarized low sleep, low recovery, or high activity selects recovery-aware recovery.'
+      );
       return 'HIGH_TIREDNESS';
     }
 

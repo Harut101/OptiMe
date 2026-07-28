@@ -283,6 +283,9 @@ export class DailyPlanGenerationContextService {
   ): ExerciseSelectionContext {
     const healthSignals =
       personalizationContext.healthPlanningContext?.signals;
+    const trainingLoadReasons =
+      personalizationContext.healthPlanningContext?.trainingLoadContext.reasons ??
+      [];
     return {
       locale,
       planDate: planLocalDate,
@@ -302,6 +305,7 @@ export class DailyPlanGenerationContextService {
       isMinor: user.isMinor,
       healthSignals: {
         lowSleep: healthSignals?.lowSleep ?? false,
+        lowRecovery: trainingLoadReasons.includes('LOW_RECOVERY'),
         highActivity: healthSignals?.highActivityYesterday ?? false,
         lowStepTrend: healthSignals?.lowStepTrend ?? false
       },

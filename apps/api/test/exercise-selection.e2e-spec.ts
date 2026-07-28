@@ -119,7 +119,12 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     const lowSleep = await service.selectCandidates(baseContext({
       workoutDurationMinutes: 45,
       targetMuscles: [],
-      healthSignals: { lowSleep: true, highActivity: false, lowStepTrend: false }
+      healthSignals: {
+        lowSleep: true,
+        lowRecovery: false,
+        highActivity: false,
+        lowStepTrend: false
+      }
     }));
     expect(lowSleep.requestedExerciseCount).toBe(4);
     expect(['MOBILITY', 'RECOVERY']).toContain(lowSleep.candidates[0].category);
@@ -152,7 +157,12 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
       const highActivity = await service.selectCandidates(baseContext({
         workoutDurationMinutes: 45,
         targetMuscles: [],
-        healthSignals: { lowSleep: false, highActivity: true, lowStepTrend: false }
+        healthSignals: {
+          lowSleep: false,
+          lowRecovery: false,
+          highActivity: true,
+          lowStepTrend: false
+        }
       }));
       expect(highActivity.requestedExerciseCount).toBe(4);
       expect(['MOBILITY', 'RECOVERY']).toContain(highActivity.candidates[0].category);
@@ -165,7 +175,12 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     const result = await service.selectCandidates(baseContext({
       protocol: trainingProtocols.ENDURANCE,
       targetMuscles: [],
-      healthSignals: { lowSleep: false, highActivity: false, lowStepTrend: true }
+      healthSignals: {
+        lowSleep: false,
+        lowRecovery: false,
+        highActivity: false,
+        lowStepTrend: true
+      }
     }));
     expect(result.candidates.some((candidate) =>
       candidate.internalReasonCodes.includes('LOW_STEP_ACCESSIBLE_MOVEMENT')
@@ -421,7 +436,12 @@ function baseContext(overrides: Partial<ExerciseSelectionContext> = {}): Exercis
     targetMuscles: [TargetMuscleGroup.QUADRICEPS], workoutDurationMinutes: 30,
     limitationsPresent: false, pregnancyStatus: PregnancyStatus.NOT_PREGNANT,
     safeMode: false, isMinor: false,
-    healthSignals: { lowSleep: false, highActivity: false, lowStepTrend: false },
+    healthSignals: {
+      lowSleep: false,
+      lowRecovery: false,
+      highActivity: false,
+      lowStepTrend: false
+    },
     qualityMode: PlanQualityMode.PERSONALIZED,
     ...overrides
   };

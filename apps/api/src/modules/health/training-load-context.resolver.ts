@@ -44,8 +44,10 @@ export class TrainingLoadContextResolver {
     }
 
     const recoveryFocused =
-      reasons.includes('LOW_SLEEP') &&
-      (reasons.includes('HIGH_ACTIVITY') || reasons.includes('RECENT_WORKOUT_LOAD'));
+      reasons.includes('LOW_RECOVERY') ||
+      (reasons.includes('LOW_SLEEP') &&
+        (reasons.includes('HIGH_ACTIVITY') ||
+          reasons.includes('RECENT_WORKOUT_LOAD')));
 
     return {
       hasTrainingLoadContext: true,
@@ -70,6 +72,9 @@ export class TrainingLoadContextResolver {
     }
     if (wearableContext.sleep.sleepHint === 'LOW_SLEEP') {
       reasons.add('LOW_SLEEP');
+    }
+    if (wearableContext.reasonCodes.includes('LOW_RECOVERY')) {
+      reasons.add('LOW_RECOVERY');
     }
     if (wearableContext.activity.activityLevelHint === 'HIGH') {
       reasons.add('HIGH_ACTIVITY');

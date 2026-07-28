@@ -107,9 +107,10 @@ Apple Health iOS MVP result:
 - Synced daily Apple Health data is normalized into `WearableDailySnapshot`.
 - Recovery and strain scores remain `null`; OptiMe does not invent WHOOP-style scores from Apple Health.
 - Health Connect and Garmin remain represented but not implemented.
-- WHOOP Batch 2 now provides a disabled-by-default secure backend OAuth flow,
-  encrypted credentials, scope verification, status, and disconnect/revoke.
-  Provider health-data sync and mobile connection UX are not implemented yet.
+- WHOOP Batch 4 provides disabled-by-default secure backend OAuth, encrypted
+  rotating credentials, foreground recovery/sleep/cycle/workout sync, mobile
+  connection controls, and conservative planning from validated normalized
+  signals.
 - See `docs/apple-health-integration.md` and `docs/apple-health-mobile-qa.md`.
 
 ## WHOOP Pre-release Foundation
@@ -120,10 +121,12 @@ and planning models are reused rather than creating a separate daily-plan path.
 
 Batch 1 added fail-fast backend configuration, short-lived single-use OAuth
 state, AES-256-GCM token encryption, and encrypted credential persistence.
-Batch 2 adds Pro-gated authorization, backend callback exchange, strict scope
-verification, safe status, and disconnect/revoke behavior. WHOOP remains
-disabled by default and mobile behavior is unchanged. External requests occur
-only during an explicitly started enabled WHOOP authorization or disconnect.
+Batch 2 added Pro-gated authorization, backend callback exchange, strict scope
+verification, safe status, and disconnect/revoke behavior. Batch 3 added
+foreground sync and mobile controls. Batch 4 adds calibrated, cycle-matched
+Recovery normalization and deterministic low-Recovery planning boundaries.
+WHOOP remains disabled by default. External requests occur only during explicit
+authorization, foreground sync, or disconnect.
 See `docs/whoop-integration.md`.
 
 Garmin remains explicitly deferred until after release.
@@ -284,7 +287,7 @@ Today can show a compact wearable summary from the existing `WearableDailySnapsh
 - workout minutes
 - last synced day label
 
-The widget intentionally does not show HRV, resting heart rate, respiratory rate, raw provider payloads, or medical interpretations. If no source is connected, it shows a calm empty state with a Health Data entry point. This does not implement real Health Connect sync, WHOOP OAuth, background sync, or new native permissions.
+The widget intentionally does not show HRV, resting heart rate, respiratory rate, raw provider payloads, or medical interpretations. If no source is connected, it shows a calm empty state with a Health Data entry point. WHOOP authorization and sync remain on the dedicated Health Data surface; the widget does not add background sync or new native permissions.
 
 ## Generate Plan Readiness Prompt
 

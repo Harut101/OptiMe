@@ -2,10 +2,11 @@
 
 ## Status
 
-WHOOP is a staged pre-release Pro integration. Batch 3 adds explicit foreground
-sync, refresh-token rotation, normalized wearable snapshots, and mobile
-Connect/Sync/Disconnect actions. It does not add background sync, webhooks,
-continuous monitoring, or raw provider data storage.
+WHOOP is a staged pre-release Pro integration. Batch 4 completes the bounded
+application path: explicit foreground sync, refresh-token rotation, normalized
+wearable snapshots, mobile Connect/Sync/Disconnect actions, and conservative
+planning rules for a fresh scored Recovery. It does not add background sync,
+webhooks, continuous monitoring, or raw provider data storage.
 
 Garmin remains post-release.
 
@@ -86,6 +87,27 @@ The resulting `WearableDailySnapshot` automatically participates in the
 existing provider-neutral wearable source priority. Daily Plan generation still
 works when WHOOP has no data or is unavailable.
 
+Recovery normalization is deliberately strict:
+
+- a Recovery must have `score_state=SCORED`;
+- data from a user who is still calibrating is not used for recovery planning;
+- Recovery must belong to the selected physiological cycle;
+- pending, unscorable, mismatched-cycle, stale, or missing Recovery stays
+  neutral.
+
+## Conservative Planning
+
+OptiMe treats a fresh WHOOP Recovery score from `0` through `33` as a
+deterministic `LOW_RECOVERY` signal. It may select recovery-aware protocols,
+reduce the workout exercise range and sets, and increase rest time. It never
+uses a higher Recovery score to exceed the user's schedule, deterministic
+volume plan, exercise catalog, or safety limits.
+
+The rule does not diagnose fatigue, illness, overtraining, or any medical
+condition. Missing data is neutral. Exact Recovery, HRV, resting-heart-rate,
+respiratory-rate, and Strain values are not written to Daily Plan debug metadata
+or user-facing copy. Deterministic `SafetyService` remains authoritative.
+
 ## Security Rules
 
 - OAuth state plaintext is returned only for the authorization redirect.
@@ -162,18 +184,13 @@ Safety is never paywalled. Users without WHOOP, users who disconnect it, and use
 whose WHOOP data is unavailable must still receive a safe plan from existing
 profile, schedule, check-in, and Apple Health context.
 
-## Next Batches
+## Release Gate
 
-### Batch 4: Planning integration and release QA
-
-- Verify the provider-neutral planning path uses only validated normalized
-  WHOOP signals.
-- Keep deterministic safety authoritative.
-- Add conservative recovery-aware behavior without medical diagnosis.
-- Complete disconnect/delete privacy QA.
-- Complete WHOOP developer app approval and physical-account smoke tests.
-- Define a production multi-instance refresh lock before horizontally scaling
-  foreground WHOOP sync.
+The automated Batch 4 planning path is complete. Before release, complete the
+external checklist in `docs/whoop-release-qa.md`, including WHOOP developer app
+approval and physical-account testing. A production multi-instance refresh lock
+must be implemented before horizontally scaling WHOOP sync; the current
+per-user refresh coalescing protects one API process only.
 
 Background sync, webhooks, long-term recovery trends, continuous monitoring, and
 Garmin are not part of the initial release integration.

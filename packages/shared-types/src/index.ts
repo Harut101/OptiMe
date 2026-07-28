@@ -484,6 +484,7 @@ export type WearablePlanningReasonCode =
   | 'HIGH_ACTIVITY'
   | 'MODERATE_ACTIVITY'
   | 'RECENT_WORKOUT_LOAD'
+  | 'LOW_RECOVERY'
   | 'RECOVERY_DATA_AVAILABLE'
   | 'LIMITED_RECOVERY_DATA'
   | 'APPLE_HEALTH_NO_RECOVERY_SCORE';
@@ -523,6 +524,7 @@ export type TrainingLoadReadinessHint =
 export type TrainingLoadAdjustment = 'NORMAL' | 'REDUCE' | 'INCREASE' | 'UNKNOWN';
 export type TrainingLoadReasonCode =
   | 'LOW_SLEEP'
+  | 'LOW_RECOVERY'
   | 'HIGH_ACTIVITY'
   | 'RECENT_WORKOUT_LOAD'
   | 'PARTIAL_WEARABLE_DATA'
@@ -553,6 +555,7 @@ export type TrainingLoadAgentValidationStatus = 'VALID' | 'FALLBACK' | 'INVALID'
 export type TrainingLoadAgentReasonCode =
   | 'NORMAL_ROUTINE'
   | 'LOW_SLEEP_CONTEXT'
+  | 'LOW_RECOVERY_CONTEXT'
   | 'HIGH_ACTIVITY_CONTEXT'
   | 'RECENT_WORKOUT_LOAD'
   | 'RECOVERY_FOCUSED_CONTEXT'

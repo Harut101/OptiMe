@@ -50,6 +50,11 @@ export class WorkoutVolumePlanner {
       reasons.push('LOW_SLEEP_REDUCTION');
     }
 
+    if (context.healthSignals.lowRecovery) {
+      range = reduceRange(range, 1, 2);
+      reasons.push('LOW_RECOVERY_REDUCTION');
+    }
+
     if (context.healthSignals.highActivity) {
       range = reduceRange(range, 1, 2);
       reasons.push('HIGH_ACTIVITY_REDUCTION');
@@ -143,7 +148,13 @@ function getSuggestedSets(duration: number, trainingLevel: TrainingLevel, reason
 }
 
 function getSuggestedRestSeconds(duration: number, reasons: WorkoutVolumeReasonCode[]) {
-  if (reasons.includes('LOW_SLEEP_REDUCTION') || reasons.includes('HIGH_ACTIVITY_REDUCTION')) return 90;
+  if (
+    reasons.includes('LOW_SLEEP_REDUCTION') ||
+    reasons.includes('LOW_RECOVERY_REDUCTION') ||
+    reasons.includes('HIGH_ACTIVITY_REDUCTION')
+  ) {
+    return 90;
+  }
   return duration >= 60 ? 75 : 60;
 }
 

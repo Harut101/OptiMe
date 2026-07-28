@@ -18,14 +18,24 @@ const cycleRecordSchema = z.object({
 const recoveryRecordSchema = z.object({
   cycle_id: z.number().int(),
   created_at: isoDateTime,
+  score_state: z.enum(['SCORED', 'PENDING_SCORE', 'UNSCORABLE']),
   score: z.object({
+    user_calibrating: z.boolean(),
     recovery_score: finiteNumber,
     resting_heart_rate: finiteNumber,
     hrv_rmssd_milli: finiteNumber,
     spo2_percentage: finiteNumber.nullable().optional(),
     skin_temp_celsius: finiteNumber.nullable().optional()
   }).passthrough().nullable().optional()
-}).passthrough();
+}).passthrough().superRefine((record, context) => {
+  if (record.score_state === 'SCORED' && !record.score) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['score'],
+      message: 'A scored WHOOP recovery record must include score data.'
+    });
+  }
+});
 
 const sleepRecordSchema = z.object({
   id: z.string().min(1),

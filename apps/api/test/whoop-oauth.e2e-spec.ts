@@ -236,7 +236,9 @@ describe('WHOOP OAuth (e2e)', () => {
           records: [{
             cycle_id: 1,
             created_at: iso,
+            score_state: 'SCORED',
             score: {
+              user_calibrating: false,
               recovery_score: 76,
               resting_heart_rate: 54,
               hrv_rmssd_milli: 62
@@ -263,7 +265,8 @@ describe('WHOOP OAuth (e2e)', () => {
           }]
         })
       )
-      .mockResolvedValueOnce(jsonResponse({ records: [] }));
+      .mockResolvedValueOnce(jsonResponse({ records: [] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
 
     const connect = await request(ctx.app.getHttpServer())
       .post('/v1/whoop/connect')
@@ -311,6 +314,37 @@ describe('WHOOP OAuth (e2e)', () => {
       where: { userId_provider: { userId: user.user.id, provider: 'WHOOP' } }
     });
     expect(status.lastSyncAt).not.toBeNull();
+
+    await ctx.prisma.subscription.deleteMany({
+      where: { userId: user.user.id }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/whoop/disconnect')
+      .set(authHeader(user.accessToken))
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          provider: 'WHOOP',
+          status: 'NOT_CONNECTED',
+          providerRevoked: true
+        });
+      });
+
+    await request(ctx.app.getHttpServer())
+      .delete('/v1/health/data')
+      .set(authHeader(user.accessToken))
+      .send({ provider: 'WHOOP' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.summaryCountDeleted).toBe(1);
+      });
+
+    await expect(
+      ctx.prisma.wearableDailySnapshot.count({
+        where: { userId: user.user.id, source: 'WHOOP' }
+      })
+    ).resolves.toBe(0);
   });
 
   async function createProSubscription(userId: string) {

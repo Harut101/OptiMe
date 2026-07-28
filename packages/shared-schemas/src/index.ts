@@ -697,6 +697,7 @@ export const wearablePlanningReasonCodeSchema = z.enum([
   'HIGH_ACTIVITY',
   'MODERATE_ACTIVITY',
   'RECENT_WORKOUT_LOAD',
+  'LOW_RECOVERY',
   'RECOVERY_DATA_AVAILABLE',
   'LIMITED_RECOVERY_DATA',
   'APPLE_HEALTH_NO_RECOVERY_SCORE'
@@ -712,6 +713,7 @@ export const trainingLoadReadinessHintSchema = z.enum([
 
 export const trainingLoadReasonCodeSchema = z.enum([
   'LOW_SLEEP',
+  'LOW_RECOVERY',
   'HIGH_ACTIVITY',
   'RECENT_WORKOUT_LOAD',
   'PARTIAL_WEARABLE_DATA',
@@ -722,6 +724,7 @@ export const trainingLoadReasonCodeSchema = z.enum([
 export const trainingLoadAgentReasonCodeSchema = z.enum([
   'NORMAL_ROUTINE',
   'LOW_SLEEP_CONTEXT',
+  'LOW_RECOVERY_CONTEXT',
   'HIGH_ACTIVITY_CONTEXT',
   'RECENT_WORKOUT_LOAD',
   'RECOVERY_FOCUSED_CONTEXT',

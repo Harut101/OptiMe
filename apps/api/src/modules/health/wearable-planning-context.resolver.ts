@@ -11,6 +11,7 @@ import {
 } from './health-planning.types';
 
 export const WEARABLE_LOW_SLEEP_MINUTES = 360;
+export const WEARABLE_LOW_RECOVERY_SCORE = 33;
 export const WEARABLE_HIGH_ACTIVITY_STEPS = 12000;
 export const WEARABLE_MODERATE_ACTIVITY_STEPS = 6000;
 export const WEARABLE_HIGH_ACTIVE_CALORIES_KCAL = 900;
@@ -137,6 +138,12 @@ export class WearablePlanningContextResolver {
     if (this.isPartialSnapshot(snapshot)) reasonCodes.add('PARTIAL_WEARABLE_DATA');
     if (hints.sleepHint === 'LOW_SLEEP') reasonCodes.add('LOW_SLEEP');
     if (hints.sleepHint === 'OK_SLEEP') reasonCodes.add('OK_SLEEP');
+    if (
+      snapshot.recoveryScore !== null &&
+      snapshot.recoveryScore <= WEARABLE_LOW_RECOVERY_SCORE
+    ) {
+      reasonCodes.add('LOW_RECOVERY');
+    }
     if (hints.activityLevelHint === 'HIGH') reasonCodes.add('HIGH_ACTIVITY');
     if (hints.activityLevelHint === 'MODERATE') reasonCodes.add('MODERATE_ACTIVITY');
     if ((snapshot.workoutMinutes ?? 0) > 0) reasonCodes.add('RECENT_WORKOUT_LOAD');

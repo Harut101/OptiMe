@@ -24,7 +24,13 @@ describe('WhoopSyncService', () => {
       records: [{
         cycle_id: 1,
         created_at: iso,
-        score: { recovery_score: 78.4, resting_heart_rate: 52.2, hrv_rmssd_milli: 67.1 }
+        score_state: 'SCORED',
+        score: {
+          user_calibrating: false,
+          recovery_score: 78.4,
+          resting_heart_rate: 52.2,
+          hrv_rmssd_milli: 67.1
+        }
       }]
     });
     dependencies.api.getSleep.mockResolvedValue({
@@ -86,6 +92,107 @@ describe('WhoopSyncService', () => {
     });
     expect(dependencies.prisma.wearableDailySnapshot.upsert).not.toHaveBeenCalled();
     expect(dependencies.prisma.healthConnection.upsert).toHaveBeenCalled();
+  });
+
+  it('ignores a recovery score while WHOOP is still calibrating', async () => {
+    const now = new Date();
+    const iso = now.toISOString();
+    const dependencies = createDependencies();
+    dependencies.api.getCycles.mockResolvedValue({
+      records: [{
+        id: 1,
+        start: iso,
+        end: iso,
+        score: {
+          strain: 8,
+          kilojoule: 500,
+          average_heart_rate: 100,
+          max_heart_rate: 140
+        }
+      }]
+    });
+    dependencies.api.getRecovery.mockResolvedValue({
+      records: [{
+        cycle_id: 1,
+        created_at: iso,
+        score_state: 'SCORED',
+        score: {
+          user_calibrating: true,
+          recovery_score: 20,
+          resting_heart_rate: 55,
+          hrv_rmssd_milli: 60
+        }
+      }]
+    });
+    dependencies.api.getSleep.mockResolvedValue({ records: [] });
+    dependencies.api.getWorkouts.mockResolvedValue({ records: [] });
+
+    await createService(dependencies).syncToday('user-1');
+
+    expect(
+      dependencies.prisma.wearableDailySnapshot.upsert.mock.calls[0][0].create
+    ).toMatchObject({
+      recoveryScore: null,
+      restingHeartRateBpm: null,
+      hrvMs: null
+    });
+  });
+
+  it('uses recovery only from the selected physiological cycle', async () => {
+    const now = new Date();
+    const iso = now.toISOString();
+    const dependencies = createDependencies();
+    dependencies.api.getCycles.mockResolvedValue({
+      records: [{
+        id: 10,
+        start: iso,
+        end: iso,
+        score: {
+          strain: 8,
+          kilojoule: 500,
+          average_heart_rate: 100,
+          max_heart_rate: 140
+        }
+      }]
+    });
+    dependencies.api.getRecovery.mockResolvedValue({
+      records: [
+        {
+          cycle_id: 99,
+          created_at: new Date(now.getTime() + 1_000).toISOString(),
+          score_state: 'SCORED',
+          score: {
+            user_calibrating: false,
+            recovery_score: 90,
+            resting_heart_rate: 50,
+            hrv_rmssd_milli: 80
+          }
+        },
+        {
+          cycle_id: 10,
+          created_at: iso,
+          score_state: 'SCORED',
+          score: {
+            user_calibrating: false,
+            recovery_score: 30,
+            resting_heart_rate: 60,
+            hrv_rmssd_milli: 40
+          }
+        }
+      ]
+    });
+    dependencies.api.getSleep.mockResolvedValue({ records: [] });
+    dependencies.api.getWorkouts.mockResolvedValue({ records: [] });
+
+    await createService(dependencies).syncToday('user-1');
+
+    expect(
+      dependencies.prisma.wearableDailySnapshot.upsert.mock.calls[0][0].create
+    ).toMatchObject({
+      recoveryScore: 30,
+      restingHeartRateBpm: 60,
+      hrvMs: 40
+    });
   });
 
   it('blocks foreground sync for a non-Pro user', async () => {

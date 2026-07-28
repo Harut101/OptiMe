@@ -31,6 +31,7 @@ export const trainingLoadAgentOpenAiSchema = {
         enum: [
           'NORMAL_ROUTINE',
           'LOW_SLEEP_CONTEXT',
+          'LOW_RECOVERY_CONTEXT',
           'HIGH_ACTIVITY_CONTEXT',
           'RECENT_WORKOUT_LOAD',
           'RECOVERY_FOCUSED_CONTEXT',

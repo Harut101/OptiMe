@@ -100,6 +100,7 @@ export class TrainingLoadAgentService {
     if (readiness === 'NORMAL') reasonCodes.add('NORMAL_ROUTINE');
     if (!hasWearableData) reasonCodes.add('NO_RECENT_WEARABLE_DATA');
     if (context?.reasons.includes('LOW_SLEEP')) reasonCodes.add('LOW_SLEEP_CONTEXT');
+    if (context?.reasons.includes('LOW_RECOVERY')) reasonCodes.add('LOW_RECOVERY_CONTEXT');
     if (context?.reasons.includes('HIGH_ACTIVITY')) reasonCodes.add('HIGH_ACTIVITY_CONTEXT');
     if (context?.reasons.includes('RECENT_WORKOUT_LOAD')) reasonCodes.add('RECENT_WORKOUT_LOAD');
     if (context?.reasons.includes('PARTIAL_WEARABLE_DATA')) reasonCodes.add('PARTIAL_WEARABLE_DATA');

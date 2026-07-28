@@ -60,6 +60,7 @@ export function buildDailyPlanContextNotes(options: {
     !wearable.isStale &&
     (wearable.sleep.sleepHint === 'LOW_SLEEP' ||
       wearable.activity.activityLevelHint === 'HIGH' ||
+      wearable.reasonCodes.includes('LOW_RECOVERY') ||
       wearable.reasonCodes.includes('RECENT_WORKOUT_LOAD'))
   ) {
     notes.recovery = {

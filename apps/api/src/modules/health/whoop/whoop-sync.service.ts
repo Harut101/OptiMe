@@ -228,7 +228,17 @@ export class WhoopSyncService {
         )
       : undefined;
     const recovery = results.recovery.ok
-      ? this.latest(results.recovery.value.records, (record) => record.created_at)
+      ? this.latest(
+          results.recovery.value.records.filter((record) =>
+            cycle
+              ? record.cycle_id === cycle.id
+              : this.getLocalDate(
+                  new Date(record.created_at),
+                  timezone
+                ) === localDate
+          ),
+          (record) => record.created_at
+        )
       : undefined;
     const sleep = results.sleep.ok
       ? this.latest(
@@ -263,6 +273,13 @@ export class WhoopSyncService {
       .map((workout) => workout.score?.kilojoule)
       .filter((value): value is number => typeof value === 'number');
 
+    const scoredRecovery =
+      recovery?.score_state === 'SCORED' &&
+      recovery.score &&
+      !recovery.score.user_calibrating
+        ? recovery.score
+        : null;
+
     return {
       steps: null,
       activeCaloriesKcal: workoutKilojoules.length > 0
@@ -271,10 +288,18 @@ export class WhoopSyncService {
       workoutMinutes,
       sleepMinutes: sleepMillis === null ? null : Math.round(sleepMillis / 60_000),
       sleepQualityScore: this.roundBounded(sleep?.score?.sleep_performance_percentage, 0, 100),
-      recoveryScore: this.roundBounded(recovery?.score?.recovery_score, 0, 100),
+      recoveryScore: this.roundBounded(
+        scoredRecovery?.recovery_score,
+        0,
+        100
+      ),
       strainScore: this.bounded(cycle?.score?.strain, 0, 21),
-      restingHeartRateBpm: this.roundBounded(recovery?.score?.resting_heart_rate, 20, 250),
-      hrvMs: this.roundBounded(recovery?.score?.hrv_rmssd_milli, 0, 1000),
+      restingHeartRateBpm: this.roundBounded(
+        scoredRecovery?.resting_heart_rate,
+        20,
+        250
+      ),
+      hrvMs: this.roundBounded(scoredRecovery?.hrv_rmssd_milli, 0, 1000),
       respiratoryRate: this.bounded(sleep?.score?.respiratory_rate, 1, 80)
     };
   }

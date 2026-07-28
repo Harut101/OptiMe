@@ -2975,6 +2975,102 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
+  it('uses fresh WHOOP low recovery to constrain training without exposing the score in plan debug', async () => {
+    const capturedInputs: GenerateDailyPlanInput[] = [];
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async (input: GenerateDailyPlanInput) => {
+              capturedInputs.push(input);
+              return createMockDailyPlan({
+                firstName: input.user.firstName,
+                isMinor: input.user.isMinor,
+                planLocalDate: input.planLocalDate,
+                planTimezone: input.planTimezone,
+                planQualityMode: input.planQualityMode,
+                healthPlanningContext:
+                  input.personalizationContext.healthPlanningContext
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(
+        customCtx.app,
+        'whoop-low-recovery-plan@example.com'
+      );
+      await completeRequiredOnboarding(
+        customCtx.app,
+        user.accessToken,
+        'WhoopRecovery'
+      );
+      const planLocalDate = getUtcLocalDate();
+
+      await customCtx.prisma.wearableDailySnapshot.create({
+        data: {
+          userId: user.user.id,
+          source: HealthProvider.WHOOP,
+          localDate: planLocalDate,
+          timezone: 'UTC',
+          recoveryScore: 25,
+          strainScore: 8,
+          capturedAt: new Date()
+        }
+      });
+
+      const response = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const input = capturedInputs[0];
+      expect(
+        input.personalizationContext.healthPlanningContext
+          ?.wearablePlanningContext
+      ).toMatchObject({
+        source: HealthProvider.WHOOP,
+        isStale: false,
+        reasonCodes: expect.arrayContaining(['LOW_RECOVERY'])
+      });
+      expect(
+        input.personalizationContext.healthPlanningContext?.trainingLoadContext
+      ).toMatchObject({
+        readinessHint: 'RECOVERY_FOCUSED',
+        reasons: expect.arrayContaining(['LOW_RECOVERY']),
+        suggestedAdjustment: {
+          intensity: 'REDUCE',
+          volume: 'REDUCE',
+          restTime: 'INCREASE'
+        }
+      });
+      expect(
+        input.personalizationContext.selectedProtocols
+      ).toMatchObject({
+        trainingProtocol: { id: 'RECOVERY' },
+        recoveryProtocol: { id: 'HIGH_TIREDNESS' }
+      });
+      expect(input.exerciseSelection?.volumePlan.volumeReasonCodes).toContain(
+        'LOW_RECOVERY_REDUCTION'
+      );
+      expect(response.body.status).toBe('READY');
+      expect(response.body.plan.debug.trainingLoadContext).toMatchObject({
+        readinessHint: 'RECOVERY_FOCUSED',
+        reasons: expect.arrayContaining(['LOW_RECOVERY'])
+      });
+      expect(response.body.plan.debug.wearableContext.recoveryScore).toBeUndefined();
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
+  });
+
   it('resolves wearable planning and training load hints conservatively', () => {
     const wearableResolver = ctx.app.get(WearablePlanningContextResolver);
     const trainingLoadResolver = ctx.app.get(TrainingLoadContextResolver);

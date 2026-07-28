@@ -49,6 +49,7 @@ describe('DailyPlanGenerationContextService', () => {
         trainingLevel: TrainingLevel.INTERMEDIATE,
         healthSignals: {
           lowSleep: true,
+          lowRecovery: false,
           highActivity: false,
           lowStepTrend: false
         }
