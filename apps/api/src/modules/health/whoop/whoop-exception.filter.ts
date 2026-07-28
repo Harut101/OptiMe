@@ -21,10 +21,17 @@ export class WhoopExceptionFilter implements ExceptionFilter {
       case 'WHOOP_OAUTH_STATE_INVALID':
       case 'WHOOP_AUTHORIZATION_DENIED':
       case 'WHOOP_TOKEN_EXCHANGE_FAILED':
+      case 'WHOOP_TOKEN_REFRESH_FAILED':
       case 'WHOOP_TOKEN_RESPONSE_INVALID':
       case 'WHOOP_REQUIRED_SCOPES_MISSING':
       case 'WHOOP_REVOCATION_FAILED':
+      case 'WHOOP_DATA_REQUEST_FAILED':
+      case 'WHOOP_DATA_RESPONSE_INVALID':
         return HttpStatus.BAD_REQUEST;
+      case 'WHOOP_NOT_CONNECTED':
+        return HttpStatus.CONFLICT;
+      case 'WHOOP_REAUTH_REQUIRED':
+        return HttpStatus.UNAUTHORIZED;
       case 'WHOOP_INTEGRATION_DISABLED':
       case 'WHOOP_PROVIDER_UNAVAILABLE':
         return HttpStatus.SERVICE_UNAVAILABLE;

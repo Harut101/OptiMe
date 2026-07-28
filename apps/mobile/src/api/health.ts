@@ -14,7 +14,10 @@ import type {
   UpdateHealthConnectionStatusRequest,
   UpsertWearableSnapshotRequest,
   UpsertHealthDailySummaryResponse,
-  WearableSnapshotResponse
+  WearableSnapshotResponse,
+  WhoopAuthorizationResponse,
+  WhoopStatusResponse,
+  WhoopSyncResponse
 } from '@/types/api';
 
 export function getHealthStatus() {
@@ -82,5 +85,23 @@ export function upsertWearableSnapshot(request: UpsertWearableSnapshotRequest) {
   return apiRequest<WearableSnapshotResponse>('/health/wearable-snapshots', {
     method: 'POST',
     body: JSON.stringify(request)
+  });
+}
+
+export function connectWhoop() {
+  return apiRequest<WhoopAuthorizationResponse>('/whoop/connect', {
+    method: 'POST'
+  });
+}
+
+export function syncWhoop() {
+  return apiRequest<WhoopSyncResponse>('/whoop/sync', {
+    method: 'POST'
+  });
+}
+
+export function disconnectWhoop() {
+  return apiRequest<WhoopStatusResponse>('/whoop/disconnect', {
+    method: 'POST'
   });
 }

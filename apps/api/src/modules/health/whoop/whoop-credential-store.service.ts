@@ -25,6 +25,19 @@ export class WhoopCredentialStoreService {
     });
   }
 
+  async rotate(userId: string, credential: WhoopCredentialInput) {
+    const data = this.encrypt(credential);
+
+    const result = await this.prisma.whoopOAuthCredential.updateMany({
+      where: { userId },
+      data
+    });
+
+    if (result.count !== 1) {
+      throw new Error('WHOOP credential rotation target was not found.');
+    }
+  }
+
   async saveAndMarkConnected(userId: string, credential: WhoopCredentialInput) {
     const data = this.encrypt(credential);
     const now = new Date();

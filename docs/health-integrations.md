@@ -218,7 +218,7 @@ Planning does not use weight, heart-rate fields, raw samples, or permission payl
 
 ## Health Integrations Foundation + WearableDailySnapshot
 
-The current foundation adds a provider-neutral `WearableDailySnapshot` path for Apple Health and future Health Connect, WHOOP, Garmin, manual, and mock sources. WHOOP Batch 2 can authorize and securely retain provider access, but it does not yet read or normalize WHOOP health data.
+The current foundation adds a provider-neutral `WearableDailySnapshot` path for Apple Health, Health Connect, WHOOP, Garmin, manual, and mock sources. WHOOP Batch 3 can authorize, securely retain and rotate provider access, manually read recovery/sleep/strain/workout summaries, and normalize them into the same daily snapshot contract.
 
 Backend sources:
 
@@ -257,7 +257,7 @@ Safe observability:
 - Logs may include source, status, local date, stale/fresh, and whether wearable context was used.
 - Logs must not include provider tokens, auth tokens, raw provider responses, full profiles, exact HRV/RHR values, or medical interpretations.
 
-The mobile Health Connections screen shows foundation cards for Apple Health, Health Connect, WHOOP, and future Garmin support, plus a development-only mock snapshot action. It does not request native permissions or start OAuth.
+The mobile Health Connections screen shows provider cards for Apple Health, Health Connect, WHOOP, and future Garmin support, plus a development-only mock snapshot action. WHOOP authorization opens in the system browser and its connection status refreshes when the user returns to OptiMe.
 
 ## Official Documentation References
 
@@ -272,7 +272,7 @@ The mobile Health Connections screen shows foundation cards for Apple Health, He
 
 Health Connections now presents Apple Health, Health Connect, WHOOP, and future Garmin support as consistent provider cards with readable status pills, localized sync/connect/disconnect actions, and a compact wearable snapshot grid. Health Connect wording remains `Health Connect`; the app does not call it `Google Health`.
 
-This polish does not add real Health Connect sync, WHOOP OAuth, background sync, provider tokens, or new native permission flows.
+This polish does not add background sync, WHOOP webhooks, Garmin authorization, or new native permission flows.
 
 ## Today wearable summary widget
 
@@ -302,9 +302,9 @@ Provider scope remains unchanged:
 
 - Apple Health is the only real provider path in this sprint.
 - Health Connect remains represented for Android but deferred.
-- WHOOP secure OAuth authorization is present; foreground sync, token refresh,
-  mobile connection completion, and planning integration remain in the next
-  pre-release batches.
+- WHOOP secure OAuth, encrypted rotating credentials, Pro-only foreground sync,
+  mobile actions, and normalized recovery/sleep/strain/workout snapshots are
+  present. Provider approval and release-account QA remain.
 - Garmin remains represented as a future source only; OAuth, provider API calls, background sync, and token storage are deferred. The public mobile API cannot mark Garmin as `CONNECTED`: it returns `HEALTH_PROVIDER_OAUTH_REQUIRED` until a server-side Garmin authorization callback exists.
 - No background sync, provider tokens, OAuth, or automatic app-launch sync is added.
 

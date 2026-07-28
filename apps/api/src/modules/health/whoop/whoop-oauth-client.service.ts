@@ -60,33 +60,12 @@ export class WhoopOAuthClientService {
       );
     }
 
-    let payload: unknown;
+    const token = await this.parseTokenResponse(response);
 
-    try {
-      payload = await response.json();
-    } catch {
-      throw new WhoopError(
-        'WHOOP_TOKEN_RESPONSE_INVALID',
-        'WHOOP returned an invalid token response.'
-      );
-    }
-
-    const parsed = tokenResponseSchema.safeParse(payload);
-
-    if (!parsed.success || parsed.data.token_type !== 'bearer') {
-      throw new WhoopError(
-        'WHOOP_TOKEN_RESPONSE_INVALID',
-        'WHOOP returned an invalid token response.'
-      );
-    }
-
-    const scopes = parsed.data.scope.split(/\s+/).filter(Boolean);
-    const missingScopes = this.config.scopes.filter((scope) => !scopes.includes(scope));
-
-    if (missingScopes.length > 0) {
-      this.logger.warn(`WHOOP required scopes missing; missingCount=${missingScopes.length}`);
+    if (token.missingScopes.length > 0) {
+      this.logger.warn(`WHOOP required scopes missing; missingCount=${token.missingScopes.length}`);
       try {
-        await this.revokeAccess(parsed.data.access_token);
+        await this.revokeAccess(token.response.accessToken);
       } catch {
         this.logger.warn('WHOOP incomplete authorization could not be revoked immediately');
       }
@@ -97,13 +76,62 @@ export class WhoopOAuthClientService {
     }
 
     this.logger.log('WHOOP token exchange completed');
-    return {
-      accessToken: parsed.data.access_token,
-      refreshToken: parsed.data.refresh_token,
-      expiresInSeconds: parsed.data.expires_in,
-      scopes,
-      tokenType: 'bearer'
-    };
+    return token.response;
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<WhoopTokenResponse> {
+    this.assertEnabled();
+    this.logger.log('WHOOP token refresh started');
+
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: this.config.clientId!,
+      client_secret: this.config.clientSecret!,
+      scope: 'offline'
+    });
+    const response = await this.request(
+      this.config.tokenUrl,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body.toString()
+      },
+      'token_refresh'
+    );
+
+    if (!response.ok) {
+      this.logger.warn(`WHOOP token refresh failed; status=${response.status}`);
+      throw new WhoopError(
+        response.status === 400 || response.status === 401
+          ? 'WHOOP_REAUTH_REQUIRED'
+          : response.status >= 500 || response.status === 429
+            ? 'WHOOP_PROVIDER_UNAVAILABLE'
+            : 'WHOOP_TOKEN_REFRESH_FAILED',
+        response.status === 400 || response.status === 401
+          ? 'WHOOP authorization needs to be renewed.'
+          : 'WHOOP access could not be refreshed.',
+        response.status
+      );
+    }
+
+    const token = await this.parseTokenResponse(response);
+
+    if (token.missingScopes.length > 0) {
+      this.logger.warn(
+        `WHOOP refreshed token scopes missing; missingCount=${token.missingScopes.length}`
+      );
+      throw new WhoopError(
+        'WHOOP_REQUIRED_SCOPES_MISSING',
+        'WHOOP authorization no longer grants all required permissions.'
+      );
+    }
+
+    this.logger.log('WHOOP token refresh completed');
+    return token.response;
   }
 
   async revokeAccess(accessToken: string) {
@@ -144,7 +172,7 @@ export class WhoopOAuthClientService {
   private async request(
     url: string,
     init: RequestInit,
-    stage: 'token_exchange' | 'access_revocation'
+    stage: 'token_exchange' | 'token_refresh' | 'access_revocation'
   ) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
@@ -167,6 +195,41 @@ export class WhoopOAuthClientService {
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private async parseTokenResponse(response: Response) {
+    let payload: unknown;
+
+    try {
+      payload = await response.json();
+    } catch {
+      throw new WhoopError(
+        'WHOOP_TOKEN_RESPONSE_INVALID',
+        'WHOOP returned an invalid token response.'
+      );
+    }
+
+    const parsed = tokenResponseSchema.safeParse(payload);
+
+    if (!parsed.success || parsed.data.token_type !== 'bearer') {
+      throw new WhoopError(
+        'WHOOP_TOKEN_RESPONSE_INVALID',
+        'WHOOP returned an invalid token response.'
+      );
+    }
+
+    const scopes = parsed.data.scope.split(/\s+/).filter(Boolean);
+
+    return {
+      response: {
+        accessToken: parsed.data.access_token,
+        refreshToken: parsed.data.refresh_token,
+        expiresInSeconds: parsed.data.expires_in,
+        scopes,
+        tokenType: 'bearer' as const
+      },
+      missingScopes: this.config.scopes.filter((scope) => !scopes.includes(scope))
+    };
   }
 
   private assertEnabled() {

@@ -6,11 +6,14 @@ import { WHOOP_CONFIG, WHOOP_HTTP_CLIENT } from './whoop.constants';
 import { createWhoopConfig } from './whoop-config.factory';
 import { WhoopConnectionService } from './whoop-connection.service';
 import { WhoopCredentialStoreService } from './whoop-credential-store.service';
+import { WhoopAccessTokenService } from './whoop-access-token.service';
+import { WhoopApiClientService } from './whoop-api-client.service';
 import { WhoopOAuthClientService } from './whoop-oauth-client.service';
 import { WhoopOAuthStateService } from './whoop-oauth-state.service';
 import { WhoopOAuthService } from './whoop-oauth.service';
 import { WhoopTokenEncryptionService } from './whoop-token-encryption.service';
 import { WhoopController } from './whoop.controller';
+import { WhoopSyncService } from './whoop-sync.service';
 
 @Module({
   imports: [EntitlementsModule],
@@ -32,7 +35,10 @@ import { WhoopController } from './whoop.controller';
     WhoopOAuthStateService,
     WhoopOAuthService,
     WhoopOAuthClientService,
-    WhoopConnectionService
+    WhoopConnectionService,
+    WhoopAccessTokenService,
+    WhoopApiClientService,
+    WhoopSyncService
   ],
   exports: [
     WHOOP_CONFIG,
@@ -41,7 +47,10 @@ import { WhoopController } from './whoop.controller';
     WhoopOAuthStateService,
     WhoopOAuthService,
     WhoopOAuthClientService,
-    WhoopConnectionService
+    WhoopConnectionService,
+    WhoopAccessTokenService,
+    WhoopApiClientService,
+    WhoopSyncService
   ]
 })
 export class WhoopModule {}

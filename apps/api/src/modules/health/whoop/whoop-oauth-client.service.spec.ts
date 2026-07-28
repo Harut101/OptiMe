@@ -91,6 +91,31 @@ describe('WhoopOAuthClientService', () => {
     });
   });
 
+  it('rotates access and refresh tokens using the documented refresh form', async () => {
+    const fetch = jest.fn().mockResolvedValue(
+      jsonResponse({
+        access_token: 'rotated-access-token',
+        refresh_token: 'rotated-refresh-token',
+        expires_in: 3600,
+        scope: config.scopes.join(' '),
+        token_type: 'bearer'
+      })
+    );
+    const service = createService(fetch);
+
+    await expect(service.refreshAccessToken('old-refresh-token')).resolves.toMatchObject({
+      accessToken: 'rotated-access-token',
+      refreshToken: 'rotated-refresh-token'
+    });
+
+    const [url, init] = fetch.mock.calls[0];
+    const body = new URLSearchParams(init.body);
+    expect(url).toBe(config.tokenUrl);
+    expect(body.get('grant_type')).toBe('refresh_token');
+    expect(body.get('refresh_token')).toBe('old-refresh-token');
+    expect(body.get('scope')).toBe('offline');
+  });
+
   it('revokes access with a bearer token and accepts an already invalid token', async () => {
     const fetch = jest
       .fn()

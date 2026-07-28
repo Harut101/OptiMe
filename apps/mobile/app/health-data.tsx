@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, Apple, Bed, Flame, Footprints, HeartPulse, Timer, Watch } from 'lucide-react-native';
-import { Platform, StyleSheet, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -12,11 +12,15 @@ import {
 } from '@/api/daily-plans';
 import {
   createMockWearableSnapshot,
+  connectWhoop,
   deleteHealthData,
+  disconnectWhoop,
   getHealthConnections,
   getTodayWearableSnapshot,
+  syncWhoop,
   updateHealthConnectionStatus
 } from '@/api/health';
+import { ApiError } from '@/api/client';
 import { evaluatePlanImpact } from '@/api/plan-impact';
 import { Button } from '@/components/Button';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
@@ -140,6 +144,54 @@ export default function HealthDataScreen() {
       setActionMessage(t('health.syncError'));
     }
   });
+  const whoopConnect = useMutation({
+    mutationFn: async () => {
+      const result = await connectWhoop();
+      const canOpen = await Linking.canOpenURL(result.authorizationUrl);
+
+      if (!canOpen) {
+        throw new Error('WHOOP_AUTHORIZATION_URL_UNAVAILABLE');
+      }
+
+      await Linking.openURL(result.authorizationUrl);
+      return result;
+    },
+    onSuccess: () => {
+      setActionMessage(t('health.whoopAuthorizationOpened'));
+    },
+    onError: (error) => {
+      setActionMessage(getWhoopErrorMessage(t, error));
+    }
+  });
+  const whoopSync = useMutation({
+    mutationFn: syncWhoop,
+    onSuccess: async (result) => {
+      await refreshHealthQueries(queryClient);
+      setActionMessage(
+        result.snapshot
+          ? result.sync.partial
+            ? t('health.whoopPartialData')
+            : t('health.whoopSynced')
+          : t('health.whoopNoData')
+      );
+      if (result.snapshot) {
+        await evaluateHealthPlanImpact('WEARABLE_SNAPSHOT_CHANGED');
+      }
+    },
+    onError: (error) => {
+      setActionMessage(getWhoopErrorMessage(t, error));
+    }
+  });
+  const whoopDisconnect = useMutation({
+    mutationFn: disconnectWhoop,
+    onSuccess: async () => {
+      await refreshHealthQueries(queryClient);
+      setActionMessage(t('health.whoopDisconnected'));
+    },
+    onError: (error) => {
+      setActionMessage(getWhoopErrorMessage(t, error));
+    }
+  });
   const deleteSyncedData = useMutation({
     mutationFn: (source: HealthProvider) => deleteHealthData({ provider: source }),
     onSuccess: async (result) => {
@@ -171,6 +223,17 @@ export default function HealthDataScreen() {
       );
     }
   });
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void refreshHealthQueries(queryClient);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [queryClient]);
+
   if (connections.isLoading) {
     return <HealthConnectionsSkeleton />;
   }
@@ -189,21 +252,27 @@ export default function HealthDataScreen() {
               ? () => appleHealthSync.mutate()
               : source === 'HEALTH_CONNECT' && canUseHealthConnect
                 ? () => healthConnectSync.mutate()
-                : undefined
+                : source === 'WHOOP'
+                  ? () => whoopConnect.mutate()
+                  : undefined
           }
           onSync={
             source === 'APPLE_HEALTH' && canUseAppleHealth
               ? () => appleHealthSync.mutate()
               : source === 'HEALTH_CONNECT' && canUseHealthConnect
                 ? () => healthConnectSync.mutate()
-                : undefined
+                : source === 'WHOOP'
+                  ? () => whoopSync.mutate()
+                  : undefined
           }
           onDisconnect={
             source === 'APPLE_HEALTH' && canUseAppleHealth
               ? () => appleHealthDisconnect.mutate()
               : source === 'HEALTH_CONNECT' && canUseHealthConnect
                 ? () => healthConnectDisconnect.mutate()
-                : undefined
+                : source === 'WHOOP'
+                  ? () => whoopDisconnect.mutate()
+                  : undefined
           }
           onManage={
             source === 'HEALTH_CONNECT' && canUseHealthConnect
@@ -219,6 +288,7 @@ export default function HealthDataScreen() {
           onDelete={
             (source === 'APPLE_HEALTH' && canUseAppleHealth)
             || (source === 'HEALTH_CONNECT' && canUseHealthConnect)
+            || source === 'WHOOP'
               ? () => setDeleteSource(source)
               : undefined
           }
@@ -228,21 +298,27 @@ export default function HealthDataScreen() {
               ? appleHealthSync.isPending || appleHealthDisconnect.isPending || deleteSyncedData.isPending
               : source === 'HEALTH_CONNECT'
                 ? healthConnectSync.isPending || healthConnectDisconnect.isPending || deleteSyncedData.isPending
-                : false
+                : source === 'WHOOP'
+                  ? whoopConnect.isPending || whoopSync.isPending || whoopDisconnect.isPending || deleteSyncedData.isPending
+                  : false
           }
           primaryActionPending={
             source === 'APPLE_HEALTH'
               ? appleHealthSync.isPending
               : source === 'HEALTH_CONNECT'
                 ? healthConnectSync.isPending
-                : false
+                : source === 'WHOOP'
+                  ? whoopConnect.isPending || whoopSync.isPending
+                  : false
           }
           disconnectPending={
             source === 'APPLE_HEALTH'
               ? appleHealthDisconnect.isPending
               : source === 'HEALTH_CONNECT'
                 ? healthConnectDisconnect.isPending
-                : false
+                : source === 'WHOOP'
+                  ? whoopDisconnect.isPending
+                  : false
           }
         />
       ))}
@@ -256,6 +332,9 @@ export default function HealthDataScreen() {
             || appleHealthDisconnect.isError
             || healthConnectSync.isError
             || healthConnectDisconnect.isError
+            || whoopConnect.isError
+            || whoopSync.isError
+            || whoopDisconnect.isError
             || deleteSyncedData.isError
               ? 'warning'
               : 'success'
@@ -444,7 +523,7 @@ function ConnectionCard({
         })}
       >
       </View>
-      {source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT' ? (
+      {source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT' || source === 'WHOOP' ? (
         <>
           {!isConnected && source === 'APPLE_HEALTH' && isSupportedNativeSource ? (
             <Text variant="muted">{t('health.appleHealthIosOnly')}</Text>
@@ -461,7 +540,9 @@ function ConnectionCard({
                 accessibilityLabel={
                   source === 'APPLE_HEALTH'
                     ? t('health.connectAppleHealth')
-                    : t('health.connectHealthConnect')
+                    : source === 'HEALTH_CONNECT'
+                      ? t('health.connectHealthConnect')
+                      : t('health.connectWhoop')
                 }
                 onPress={onConnect}
                 style={styles.actionButton}
@@ -474,7 +555,9 @@ function ConnectionCard({
                 accessibilityLabel={
                   source === 'APPLE_HEALTH'
                     ? t('health.syncAppleHealth')
-                    : t('health.syncHealthConnect')
+                    : source === 'HEALTH_CONNECT'
+                      ? t('health.syncHealthConnect')
+                      : t('health.syncWhoop')
                 }
                 onPress={onSync}
                 style={styles.actionButton}
@@ -490,7 +573,9 @@ function ConnectionCard({
                   accessibilityLabel={
                     source === 'APPLE_HEALTH'
                       ? t('health.disconnectAppleHealth')
-                      : t('health.disconnectHealthConnect')
+                      : source === 'HEALTH_CONNECT'
+                        ? t('health.disconnectHealthConnect')
+                        : t('health.disconnectWhoop')
                   }
                   onPress={onDisconnect}
                   style={styles.actionButton}
@@ -617,6 +702,10 @@ function getConnectionBodyCopy(source: HealthProvider, isConnected: boolean, t: 
     return t('health.healthConnectConnected');
   }
 
+  if (source === 'WHOOP' && isConnected) {
+    return t('health.whoopConnected');
+  }
+
   return getProviderDescription(source, t);
 }
 
@@ -626,12 +715,16 @@ function getConnectionHelperCopy(
   isSupportedNativeSource: boolean,
   t: TFunction
 ) {
-  if ((source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT') && isConnected) {
+  if ((source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT' || source === 'WHOOP') && isConnected) {
     return t('health.wearableDataConnected');
   }
 
   if (source === 'APPLE_HEALTH' || source === 'HEALTH_CONNECT') {
     return isSupportedNativeSource ? t('health.beforeConnect') : t('health.providerUnavailable');
+  }
+
+  if (source === 'WHOOP') {
+    return t('health.whoopProHelp');
   }
 
   return t('health.comingSoon');
@@ -899,6 +992,28 @@ function getHealthConnectUnavailableMessage(t: TFunction, code?: string | null) 
   }
 
   return t('health.healthConnectUnavailable');
+}
+
+function getWhoopErrorMessage(t: TFunction, error: unknown) {
+  const code =
+    error instanceof ApiError
+      && typeof error.body === 'object'
+      && error.body !== null
+      && 'code' in error.body
+      ? String((error.body as { code?: unknown }).code)
+      : error instanceof Error
+        ? error.message
+        : null;
+
+  if (code === 'WHOOP_PRO_REQUIRED') return t('health.whoopProRequired');
+  if (code === 'WHOOP_NOT_CONNECTED' || code === 'WHOOP_REAUTH_REQUIRED') {
+    return t('health.whoopReconnectRequired');
+  }
+  if (code === 'WHOOP_AUTHORIZATION_URL_UNAVAILABLE') {
+    return t('health.whoopAuthorizationUnavailable');
+  }
+
+  return t('health.whoopSyncFailed');
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({

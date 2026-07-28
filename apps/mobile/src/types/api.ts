@@ -632,6 +632,32 @@ export interface WearableSnapshotResponse {
   messageCode: 'NO_WEARABLE_DATA' | 'WEARABLE_DATA_CONNECTED' | 'WEARABLE_DATA_STALE';
 }
 
+export type WhoopDataset = 'cycles' | 'recovery' | 'sleep' | 'workouts';
+
+export interface WhoopSyncResponse extends WearableSnapshotResponse {
+  sync: {
+    partial: boolean;
+    refreshedToken: boolean;
+    datasetsAvailable: WhoopDataset[];
+    datasetsUnavailable: WhoopDataset[];
+  };
+}
+
+export interface WhoopAuthorizationResponse {
+  authorizationUrl: string;
+}
+
+export interface WhoopStatusResponse {
+  provider: 'WHOOP';
+  status: WearableConnectionStatus;
+  enabled: boolean;
+  requiredPlan: 'PRO';
+  connectedAt: string | null;
+  lastSyncAt: string | null;
+  errorCode: string | null;
+  providerRevoked?: boolean;
+}
+
 export interface CreateMockWearableSnapshotRequest {
   localDate?: string;
   timezone?: string;

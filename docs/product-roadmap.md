@@ -458,12 +458,13 @@ For minors:
    30-day Free/Plus/Pro telemetry, and require `ai-release:gate` to pass before
    billing work. A cheaper Free route is not accepted if READY rate falls or
    fallback/retry rates exceed the shared quality thresholds.
-6. Complete WHOOP as the first specialized pre-release Pro integration: secure
+6. In progress: complete WHOOP as the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative
-   planning integration. Batch 2 backend OAuth completion is implemented;
-   foreground provider data sync, refresh-token rotation, mobile connection UX,
-   and planning integration remain.
+   planning integration. Batch 3 implements backend OAuth, refresh-token
+   rotation, foreground provider data sync, normalized snapshots, and mobile
+   connection UX. Provider approval, physical-account QA, and final conservative
+   planning verification remain.
 7. Freeze new product features for the first release.
 8. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.

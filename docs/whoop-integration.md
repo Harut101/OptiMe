@@ -2,9 +2,10 @@
 
 ## Status
 
-WHOOP is now planned as a pre-release Pro integration. Batch 2 completes the
-backend authorization-code flow with mocked-test coverage. It does not sync
-WHOOP recovery data, expose new mobile actions, or change daily-plan behavior.
+WHOOP is a staged pre-release Pro integration. Batch 3 adds explicit foreground
+sync, refresh-token rotation, normalized wearable snapshots, and mobile
+Connect/Sync/Disconnect actions. It does not add background sync, webhooks,
+continuous monitoring, or raw provider data storage.
 
 Garmin remains post-release.
 
@@ -27,7 +28,14 @@ The WHOOP services are:
 - `WhoopOAuthStateService`: creates cryptographically random, short-lived,
   single-use OAuth state.
 - `WhoopOAuthClientService`: exchanges authorization codes and revokes provider
-  access through backend-only requests.
+  access through backend-only requests, and rotates expired token pairs.
+- `WhoopAccessTokenService`: serializes refresh for each user so concurrent
+  foreground requests do not race a rotating refresh token.
+- `WhoopApiClientService`: reads schema-validated cycle, recovery, sleep, and
+  workout collections.
+- `WhoopSyncService`: normalizes provider records into the existing
+  `WearableDailySnapshot` contract and persists one snapshot for the user's
+  current local date.
 - `WhoopTokenEncryptionService`: encrypts provider tokens with AES-256-GCM.
 - `WhoopCredentialStoreService`: stores and retrieves encrypted credentials for
   backend-only use.
@@ -49,9 +57,34 @@ successful server-side WHOOP callback can create a connected state.
 - `POST /v1/whoop/disconnect`: authenticated and available after downgrade;
   attempts provider revocation, always deletes local credentials, and stops
   local sync eligibility.
+- `POST /v1/whoop/sync`: authenticated and Pro-only; refreshes credentials when
+  needed, reads WHOOP data, and returns a provider-neutral normalized snapshot.
 
-The callback currently returns a backend JSON result. Mobile browser/deep-link
-completion remains a later batch.
+The callback returns a backend result in the system browser. When the user
+returns to OptiMe, the Health Data screen refreshes connection state.
+
+## Foreground Sync
+
+Sync is user initiated. It reads a bounded 48-hour window and makes four
+independent requests: cycles, recovery, sleep, and workouts. One failed dataset
+does not discard valid datasets. The response marks the sync as partial and
+unavailable metrics stay `null`. If every dataset request fails, no snapshot is
+saved and the connection records a safe error code.
+
+OptiMe does not invent WHOOP values:
+
+- `steps` remains `null` because this integration does not read a WHOOP step
+  endpoint;
+- active calories are derived only from energy attached to today's WHOOP
+  workout records, using `kilojoules / 4.184`;
+- an empty workout collection does not imply a fabricated zero;
+- malformed, non-finite, or out-of-range values are rejected or bounded before
+  persistence;
+- raw WHOOP samples and raw JSON responses are never stored.
+
+The resulting `WearableDailySnapshot` automatically participates in the
+existing provider-neutral wearable source priority. Daily Plan generation still
+works when WHOOP has no data or is unavailable.
 
 ## Security Rules
 
@@ -61,6 +94,9 @@ completion remains a later batch.
 - State expires after 10 minutes by default.
 - State consumption is single-use and race-safe through a conditional update.
 - Access and refresh tokens are encrypted before Prisma receives them.
+- A refresh replaces both tokens because WHOOP rotates access and refresh
+  tokens together.
+- Refreshes are coalesced per user within one API process to avoid local races.
 - Token ciphertext uses AES-256-GCM with a random IV and authentication tag.
 - API keys, client secrets, tokens, OAuth state, raw WHOOP responses, and raw
   health samples must never be logged.
@@ -117,9 +153,10 @@ No write scopes are requested.
 ## Entitlements
 
 WHOOP remains Pro-only through the existing `FeatureAccessService.canUseWhoop`
-contract. Authorization and callback completion enforce Pro. Status remains
-readable for upgrade and disconnected-state UX. Disconnect deliberately remains
-available after downgrade so users can always remove access.
+contract. Authorization, callback completion, and foreground sync enforce Pro.
+Status remains readable for upgrade and disconnected-state UX. Disconnect and
+deleting imported WHOOP snapshots deliberately remain available after downgrade
+so users can always remove access and stored summaries.
 
 Safety is never paywalled. Users without WHOOP, users who disconnect it, and users
 whose WHOOP data is unavailable must still receive a safe plan from existing
@@ -127,23 +164,16 @@ profile, schedule, check-in, and Apple Health context.
 
 ## Next Batches
 
-### Batch 3: Foreground sync
-
-- Add authenticated manual sync.
-- Refresh expired access tokens server-side.
-- Read WHOOP recovery, cycle/strain, sleep, and workout data.
-- Normalize provider data into backend-owned daily signals and
-  `WearableDailySnapshot`.
-- Treat missing individual metrics as `null`.
-- Never block plan generation when WHOOP is unavailable.
-
 ### Batch 4: Planning integration and release QA
 
-- Feed only validated normalized signals into recovery and planning boundaries.
+- Verify the provider-neutral planning path uses only validated normalized
+  WHOOP signals.
 - Keep deterministic safety authoritative.
 - Add conservative recovery-aware behavior without medical diagnosis.
 - Complete disconnect/delete privacy QA.
 - Complete WHOOP developer app approval and physical-account smoke tests.
+- Define a production multi-instance refresh lock before horizontally scaling
+  foreground WHOOP sync.
 
 Background sync, webhooks, long-term recovery trends, continuous monitoring, and
 Garmin are not part of the initial release integration.

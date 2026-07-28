@@ -270,6 +270,16 @@ assertIncludes(health, [
   "t('health.appleHealthIosOnly')"
 ], 'Apple Health connection polish');
 assertIncludes(health, [
+  'connectWhoop',
+  'syncWhoop',
+  'disconnectWhoop',
+  "source === 'WHOOP'",
+  "t('health.connectWhoop')",
+  "t('health.syncWhoop')",
+  "t('health.disconnectWhoop')",
+  'AppState.addEventListener'
+], 'WHOOP foreground sync');
+assertIncludes(health, [
   'getSnapshotMetrics',
   "snapshot.source === 'APPLE_HEALTH'",
   'hasMissingAppleHealthMetric',

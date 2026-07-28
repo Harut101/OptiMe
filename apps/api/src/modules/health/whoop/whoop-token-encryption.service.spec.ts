@@ -26,7 +26,11 @@ describe('WhoopTokenEncryptionService', () => {
   it('rejects a tampered ciphertext with a typed safe error', () => {
     const service = new WhoopTokenEncryptionService(config);
     const encrypted = service.encrypt('private-access-token');
-    const tampered = `${encrypted.slice(0, -1)}${encrypted.endsWith('A') ? 'B' : 'A'}`;
+    const parts = encrypted.split('.');
+    const ciphertext = Buffer.from(parts[3], 'base64url');
+    ciphertext[0] ^= 1;
+    parts[3] = ciphertext.toString('base64url');
+    const tampered = parts.join('.');
 
     expect(() => service.decrypt(tampered)).toThrow(
       expect.objectContaining<Partial<WhoopError>>({

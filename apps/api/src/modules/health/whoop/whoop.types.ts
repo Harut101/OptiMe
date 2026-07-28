@@ -45,3 +45,18 @@ export interface WhoopAuthorizationCallback {
   code?: string;
   error?: string;
 }
+
+export interface WhoopCollectionQuery {
+  start: string;
+  end: string;
+  limit?: number;
+}
+
+export type WhoopDataset = 'cycles' | 'recovery' | 'sleep' | 'workouts';
+
+export interface WhoopSyncMetadata {
+  partial: boolean;
+  refreshedToken: boolean;
+  datasetsAvailable: WhoopDataset[];
+  datasetsUnavailable: WhoopDataset[];
+}

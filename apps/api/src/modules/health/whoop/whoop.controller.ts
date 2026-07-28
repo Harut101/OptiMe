@@ -5,11 +5,15 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { WhoopCallbackQueryDto } from './dto/whoop-callback-query.dto';
 import { WhoopConnectionService } from './whoop-connection.service';
 import { WhoopExceptionFilter } from './whoop-exception.filter';
+import { WhoopSyncService } from './whoop-sync.service';
 
 @UseFilters(WhoopExceptionFilter)
 @Controller('whoop')
 export class WhoopController {
-  constructor(private readonly connection: WhoopConnectionService) {}
+  constructor(
+    private readonly connection: WhoopConnectionService,
+    private readonly sync: WhoopSyncService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('connect')
@@ -30,6 +34,12 @@ export class WhoopController {
   @Get('status')
   getStatus(@CurrentUser() user: AuthenticatedUser) {
     return this.connection.getStatus(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('sync')
+  syncToday(@CurrentUser() user: AuthenticatedUser) {
+    return this.sync.syncToday(user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
