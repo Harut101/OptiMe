@@ -461,15 +461,16 @@ For minors:
 6. Complete WHOOP as the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative
-   planning integration. Batch 1 OAuth/config/storage foundation is complete;
-   provider calls and mobile connect UX remain.
+   planning integration. Batch 2 backend OAuth completion is implemented;
+   foreground provider data sync, refresh-token rotation, mobile connection UX,
+   and planning integration remain.
 7. Freeze new product features for the first release.
 8. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
 9. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
 10. Run iOS/Android release builds, full automated regression, localization QA, and
-   physical-device QA.
+    physical-device QA.
 11. Release the stable first version.
 12. Add Recovery Trend and Photo Food Logging based on real user feedback.
 13. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
@@ -480,6 +481,7 @@ For minors:
 
 This order adds one differentiated closed-loop feature before release, then protects
 release quality by preventing further scope expansion.
+
 ## Food Tracking MVP
 
 Completed: lightweight food completion tracking for structured meal plans. Users can mark meals as planned, eaten, partially eaten, or skipped from Food and Meal Details, while Today shows a compact progress summary.

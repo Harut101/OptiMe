@@ -2,13 +2,13 @@
 
 ## Status
 
-WHOOP is now planned as a pre-release Pro integration. Batch 1 adds the secure
-backend OAuth foundation only. It does not call WHOOP, exchange authorization
-codes, sync health data, expose new mobile actions, or change daily-plan behavior.
+WHOOP is now planned as a pre-release Pro integration. Batch 2 completes the
+backend authorization-code flow with mocked-test coverage. It does not sync
+WHOOP recovery data, expose new mobile actions, or change daily-plan behavior.
 
 Garmin remains post-release.
 
-## Batch 1 Architecture
+## Architecture
 
 The WHOOP foundation lives under:
 
@@ -21,22 +21,43 @@ stack remains provider-neutral through `HealthConnection`,
 `WearableDailySnapshot`, wearable source priority, and planning context
 resolvers.
 
-The Batch 1 services are:
+The WHOOP services are:
 
-- `WhoopOAuthService`: builds a WHOOP authorization URL only.
+- `WhoopOAuthService`: builds an authorization URL and consumes OAuth state.
 - `WhoopOAuthStateService`: creates cryptographically random, short-lived,
   single-use OAuth state.
+- `WhoopOAuthClientService`: exchanges authorization codes and revokes provider
+  access through backend-only requests.
 - `WhoopTokenEncryptionService`: encrypts provider tokens with AES-256-GCM.
 - `WhoopCredentialStoreService`: stores and retrieves encrypted credentials for
   backend-only use.
+- `WhoopConnectionService`: enforces entitlements and coordinates connection,
+  status, callback completion, and disconnect behavior.
 
-No controller endpoint invokes these services yet. The public client still
-cannot mark WHOOP as connected.
+The public generic health endpoint still cannot mark WHOOP as connected. Only a
+successful server-side WHOOP callback can create a connected state.
+
+## Backend Endpoints
+
+- `POST /v1/whoop/connect`: authenticated and Pro-only; returns a short-lived
+  WHOOP authorization URL.
+- `GET /v1/whoop/callback`: validates and consumes OAuth state, exchanges the
+  authorization code server-side, verifies scopes, encrypts tokens, and marks
+  the connection connected.
+- `GET /v1/whoop/status`: authenticated and available to every tier for
+  connection and upgrade UX; never returns credentials.
+- `POST /v1/whoop/disconnect`: authenticated and available after downgrade;
+  attempts provider revocation, always deletes local credentials, and stops
+  local sync eligibility.
+
+The callback currently returns a backend JSON result. Mobile browser/deep-link
+completion remains a later batch.
 
 ## Security Rules
 
 - OAuth state plaintext is returned only for the authorization redirect.
 - The database stores only a SHA-256 state hash.
+- Generated state is exactly eight characters to match the WHOOP contract.
 - State expires after 10 minutes by default.
 - State consumption is single-use and race-safe through a conditional update.
 - Access and refresh tokens are encrypted before Prisma receives them.
@@ -46,6 +67,11 @@ cannot mark WHOOP as connected.
 - WHOOP credentials and state rows are deleted when the owning user is deleted.
 - The public health connection endpoint continues rejecting client attempts to
   set WHOOP to `CONNECTED`.
+- Token responses are schema-validated and all requested scopes must be present.
+- Incomplete grants are revoked when possible and are never persisted.
+- Credential storage and the connected status update occur in one database
+  transaction.
+- Reusing, racing, or replaying callback state is rejected.
 
 Generate a local encryption key with a cryptographically secure tool and store it
 only in the backend secret manager. It must decode to exactly 32 bytes. Never
@@ -65,6 +91,7 @@ WHOOP_OAUTH_AUTH_URL=https://api.prod.whoop.com/oauth/oauth2/auth
 WHOOP_OAUTH_TOKEN_URL=https://api.prod.whoop.com/oauth/oauth2/token
 WHOOP_API_BASE_URL=https://api.prod.whoop.com/developer
 WHOOP_OAUTH_STATE_TTL_SECONDS=600
+WHOOP_REQUEST_TIMEOUT_MS=15000
 ```
 
 When disabled, the API starts without WHOOP credentials. When enabled,
@@ -90,26 +117,15 @@ No write scopes are requested.
 ## Entitlements
 
 WHOOP remains Pro-only through the existing `FeatureAccessService.canUseWhoop`
-contract. Batch 2 endpoints must enforce that entitlement on authorization,
-callback completion, sync, and reconnect operations. Status may remain readable
-for upgrade and disconnected-state UX.
+contract. Authorization and callback completion enforce Pro. Status remains
+readable for upgrade and disconnected-state UX. Disconnect deliberately remains
+available after downgrade so users can always remove access.
 
 Safety is never paywalled. Users without WHOOP, users who disconnect it, and users
 whose WHOOP data is unavailable must still receive a safe plan from existing
 profile, schedule, check-in, and Apple Health context.
 
 ## Next Batches
-
-### Batch 2: OAuth completion
-
-- Add Pro-gated authorization endpoint.
-- Add backend callback endpoint.
-- Exchange authorization code server-side.
-- Verify granted scopes.
-- Store encrypted access and refresh tokens.
-- Create/update `HealthConnection` only after successful provider authorization.
-- Add disconnect, token deletion, and provider revocation behavior.
-- Keep secrets and raw responses out of logs.
 
 ### Batch 3: Foreground sync
 
@@ -131,3 +147,8 @@ profile, schedule, check-in, and Apple Health context.
 
 Background sync, webhooks, long-term recovery trends, continuous monitoring, and
 Garmin are not part of the initial release integration.
+
+Provider references:
+
+- [WHOOP OAuth 2.0](https://developer.whoop.com/docs/developing/oauth/)
+- [WHOOP API](https://developer.whoop.com/api/)

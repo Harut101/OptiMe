@@ -18,7 +18,8 @@ describe('createWhoopConfig', () => {
       authUrl: WHOOP_DEFAULT_AUTH_URL,
       tokenUrl: WHOOP_DEFAULT_TOKEN_URL,
       apiBaseUrl: WHOOP_DEFAULT_API_BASE_URL,
-      stateTtlSeconds: WHOOP_DEFAULT_STATE_TTL_SECONDS
+      stateTtlSeconds: WHOOP_DEFAULT_STATE_TTL_SECONDS,
+      requestTimeoutMs: 15_000
     });
     expect(config.clientSecret).toBeUndefined();
     expect(config.tokenEncryptionKey).toBeUndefined();
@@ -46,9 +47,7 @@ describe('createWhoopConfig', () => {
           WHOOP_INTEGRATION_ENABLED: 'yes'
         })
       )
-    ).toThrow(
-      'WHOOP_INTEGRATION_ENABLED must be either "true" or "false".'
-    );
+    ).toThrow('WHOOP_INTEGRATION_ENABLED must be either "true" or "false".');
   });
 
   it('loads enabled config with a 32-byte encryption key', () => {
@@ -80,9 +79,7 @@ describe('createWhoopConfig', () => {
         })
       );
 
-    expect(create).toThrow(
-      'WHOOP_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.'
-    );
+    expect(create).toThrow('WHOOP_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.');
     expect(() => create()).not.toThrow('not-a-secret-key');
   });
 });

@@ -11,6 +11,7 @@ describe('WhoopCredentialStoreService', () => {
     tokenUrl: 'https://example.test/token',
     apiBaseUrl: 'https://example.test/api',
     stateTtlSeconds: 600,
+    requestTimeoutMs: 15_000,
     scopes: []
   };
 

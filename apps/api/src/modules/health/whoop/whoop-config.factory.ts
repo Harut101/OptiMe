@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   WHOOP_DEFAULT_API_BASE_URL,
   WHOOP_DEFAULT_AUTH_URL,
+  WHOOP_DEFAULT_REQUEST_TIMEOUT_MS,
   WHOOP_DEFAULT_SCOPES,
   WHOOP_DEFAULT_STATE_TTL_SECONDS,
   WHOOP_DEFAULT_TOKEN_URL
@@ -27,12 +28,18 @@ export function createWhoopConfig(configService: ConfigService): WhoopConfig {
     WHOOP_DEFAULT_STATE_TTL_SECONDS,
     'WHOOP_OAUTH_STATE_TTL_SECONDS'
   );
+  const requestTimeoutMs = parsePositiveInteger(
+    configService.get<string>('WHOOP_REQUEST_TIMEOUT_MS'),
+    WHOOP_DEFAULT_REQUEST_TIMEOUT_MS,
+    'WHOOP_REQUEST_TIMEOUT_MS'
+  );
   const baseConfig = {
     enabled,
     authUrl: readUrl(configService, 'WHOOP_OAUTH_AUTH_URL', WHOOP_DEFAULT_AUTH_URL),
     tokenUrl: readUrl(configService, 'WHOOP_OAUTH_TOKEN_URL', WHOOP_DEFAULT_TOKEN_URL),
     apiBaseUrl: readUrl(configService, 'WHOOP_API_BASE_URL', WHOOP_DEFAULT_API_BASE_URL),
     stateTtlSeconds,
+    requestTimeoutMs,
     scopes: [...WHOOP_DEFAULT_SCOPES]
   };
 
@@ -76,17 +83,10 @@ function parseBoolean(rawValue: string, key: string) {
     return false;
   }
 
-  throw new WhoopError(
-    'WHOOP_CONFIG_INVALID',
-    `${key} must be either "true" or "false".`
-  );
+  throw new WhoopError('WHOOP_CONFIG_INVALID', `${key} must be either "true" or "false".`);
 }
 
-function readUrl(
-  configService: ConfigService,
-  key: string,
-  fallback: string
-) {
+function readUrl(configService: ConfigService, key: string, fallback: string) {
   const value = configService.get<string>(key, fallback).trim();
 
   try {
@@ -102,15 +102,11 @@ function validateRedirectUri(value: string) {
   try {
     url = new URL(value);
   } catch {
-    throw new WhoopError(
-      'WHOOP_CONFIG_INVALID',
-      'WHOOP_REDIRECT_URI must be a valid URL.'
-    );
+    throw new WhoopError('WHOOP_CONFIG_INVALID', 'WHOOP_REDIRECT_URI must be a valid URL.');
   }
 
   const isLocalHttp =
-    url.protocol === 'http:' &&
-    (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+    url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
 
   if (url.protocol !== 'https:' && !isLocalHttp) {
     throw new WhoopError(
@@ -120,11 +116,7 @@ function validateRedirectUri(value: string) {
   }
 }
 
-function parsePositiveInteger(
-  rawValue: string | undefined,
-  fallback: number,
-  key: string
-) {
+function parsePositiveInteger(rawValue: string | undefined, fallback: number, key: string) {
   if (!rawValue) {
     return fallback;
   }
@@ -132,10 +124,7 @@ function parsePositiveInteger(
   const value = Number(rawValue);
 
   if (!Number.isInteger(value) || value <= 0) {
-    throw new WhoopError(
-      'WHOOP_CONFIG_INVALID',
-      `${key} must be a positive integer.`
-    );
+    throw new WhoopError('WHOOP_CONFIG_INVALID', `${key} must be a positive integer.`);
   }
 
   return value;

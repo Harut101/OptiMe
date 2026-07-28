@@ -8,7 +8,20 @@ export interface WhoopConfig {
   tokenUrl: string;
   apiBaseUrl: string;
   stateTtlSeconds: number;
+  requestTimeoutMs: number;
   scopes: string[];
+}
+
+export interface WhoopHttpClient {
+  fetch(input: string | URL, init?: RequestInit): Promise<Response>;
+}
+
+export interface WhoopTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresInSeconds: number;
+  scopes: string[];
+  tokenType: 'bearer';
 }
 
 export interface WhoopCredentialInput {
@@ -25,4 +38,10 @@ export interface WhoopCredential {
   accessTokenExpiresAt?: Date;
   scopes: string[];
   externalUserId?: string;
+}
+
+export interface WhoopAuthorizationCallback {
+  state: string;
+  code?: string;
+  error?: string;
 }

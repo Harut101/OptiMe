@@ -15,6 +15,7 @@ describe('WHOOP OAuth foundation', () => {
     tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
     apiBaseUrl: 'https://api.prod.whoop.com/developer',
     stateTtlSeconds: 600,
+    requestTimeoutMs: 15_000,
     scopes: ['offline', 'read:recovery', 'read:sleep']
   };
 
@@ -32,10 +33,9 @@ describe('WHOOP OAuth foundation', () => {
     expect(url.searchParams.get('client_id')).toBe('client-id');
     expect(url.searchParams.get('redirect_uri')).toBe(config.redirectUri);
     expect(url.searchParams.get('response_type')).toBe('code');
-    expect(url.searchParams.get('scope')).toBe(
-      'offline read:recovery read:sleep'
-    );
+    expect(url.searchParams.get('scope')).toBe('offline read:recovery read:sleep');
     expect(state).toBeTruthy();
+    expect(state).toHaveLength(8);
     expect(stored.userId).toBe('user-1');
     expect(stored.redirectUri).toBe(config.redirectUri);
     expect(stored.stateHash).not.toBe(state);
@@ -57,9 +57,7 @@ describe('WHOOP OAuth foundation', () => {
       consumedAt: null,
       createdAt: new Date()
     });
-    prisma.updateMany
-      .mockResolvedValueOnce({ count: 1 })
-      .mockResolvedValueOnce({ count: 0 });
+    prisma.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
 
     await expect(states.consume(created.state)).resolves.toEqual({
       userId: 'user-1',

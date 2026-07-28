@@ -15,10 +15,9 @@ export class WhoopOAuthStateService {
 
   async create(userId: string) {
     this.assertEnabled();
-    const state = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(
-      Date.now() + this.config.stateTtlSeconds * 1000
-    );
+    // WHOOP documents an eight-character state requirement for self-generated state.
+    const state = randomBytes(6).toString('base64url');
+    const expiresAt = new Date(Date.now() + this.config.stateTtlSeconds * 1000);
 
     await this.prisma.whoopOAuthState.create({
       data: {
@@ -71,10 +70,7 @@ export class WhoopOAuthStateService {
 
   private assertEnabled() {
     if (!this.config.enabled) {
-      throw new WhoopError(
-        'WHOOP_INTEGRATION_DISABLED',
-        'WHOOP integration is disabled.'
-      );
+      throw new WhoopError('WHOOP_INTEGRATION_DISABLED', 'WHOOP integration is disabled.');
     }
   }
 

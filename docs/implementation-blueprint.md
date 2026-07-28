@@ -1079,7 +1079,10 @@ Use shared Zod schemas in `packages/shared-schemas` and derive JSON schema from 
       "required": ["plan_date", "readiness_level", "goal_alignment"],
       "properties": {
         "plan_date": { "type": "string", "format": "date" },
-        "readiness_level": { "type": "string", "enum": ["RECOVER", "MAINTAIN", "PUSH"] },
+        "readiness_level": {
+          "type": "string",
+          "enum": ["RECOVER", "MAINTAIN", "PUSH"]
+        },
         "goal_alignment": { "type": "string" }
       }
     },
@@ -1088,7 +1091,11 @@ Use shared Zod schemas in `packages/shared-schemas` and derive JSON schema from 
       "additionalProperties": false,
       "required": ["target_calories", "reason"],
       "properties": {
-        "target_calories": { "type": "integer", "minimum": 1000, "maximum": 6000 },
+        "target_calories": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 6000
+        },
         "reason": { "type": "string" }
       }
     },
@@ -1127,7 +1134,11 @@ Use shared Zod schemas in `packages/shared-schemas` and derive JSON schema from 
               }
             }
           },
-          "approx_calories": { "type": "integer", "minimum": 0, "maximum": 2000 },
+          "approx_calories": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000
+          },
           "notes": { "type": "string" }
         }
       }
@@ -1252,13 +1263,7 @@ Input to Safety Agent:
 {
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "decision",
-    "reason_codes",
-    "blocked_fields",
-    "safe_edits",
-    "user_message"
-  ],
+  "required": ["decision", "reason_codes", "blocked_fields", "safe_edits", "user_message"],
   "properties": {
     "decision": {
       "type": "string",
@@ -1294,7 +1299,10 @@ Input to Safety Agent:
         "required": ["path", "action", "value"],
         "properties": {
           "path": { "type": "string" },
-          "action": { "type": "string", "enum": ["REPLACE", "REMOVE", "ADD_WARNING"] },
+          "action": {
+            "type": "string",
+            "enum": ["REPLACE", "REMOVE", "ADD_WARNING"]
+          },
           "value": {}
         }
       }
@@ -1373,20 +1381,20 @@ Keep entitlement logic backend-owned.
 
 ### Entitlement matrix
 
-| Feature | Free | Plus | Pro |
-|---|---|---|---|
-| Profile and goals | Yes | Yes | Yes |
-| Training schedule | Yes | Yes | Yes |
-| Nutrition preferences | Yes | Yes | Yes |
-| Daily plan generation | Limited | Expanded | Expanded |
-| Short history | Yes | Yes | Yes |
-| Long history | No | Yes | Yes |
-| Weekly reports | No | Yes | Yes |
-| Meal swaps | No | Yes | Yes |
-| WHOOP connect | No | No | Yes |
-| Recovery-based adaptation | No | No | Yes |
-| AI Coach chat | No | No | Yes |
-| Advanced analytics | No | No | Yes |
+| Feature                   | Free    | Plus     | Pro      |
+| ------------------------- | ------- | -------- | -------- |
+| Profile and goals         | Yes     | Yes      | Yes      |
+| Training schedule         | Yes     | Yes      | Yes      |
+| Nutrition preferences     | Yes     | Yes      | Yes      |
+| Daily plan generation     | Limited | Expanded | Expanded |
+| Short history             | Yes     | Yes      | Yes      |
+| Long history              | No      | Yes      | Yes      |
+| Weekly reports            | No      | Yes      | Yes      |
+| Meal swaps                | No      | Yes      | Yes      |
+| WHOOP connect             | No      | No       | Yes      |
+| Recovery-based adaptation | No      | No       | Yes      |
+| AI Coach chat             | No      | No       | Yes      |
+| Advanced analytics        | No      | No       | Yes      |
 
 ## 14. Usage Limit Design
 
@@ -1511,8 +1519,11 @@ Avoid prompt-building from free-form concatenated strings where possible.
 ## 16. WHOOP Integration Design
 
 WHOOP is now the first specialized wearable planned before release for Pro users.
-Batch 1 implements only the secure OAuth/configuration/storage foundation; token
-exchange, provider sync, and planning integration remain staged follow-up work.
+Batch 1 established secure configuration, one-time OAuth state, encrypted token
+storage, and the provider boundary. Batch 2 adds Pro-gated authorization, backend
+code exchange, strict scope validation, safe connection status, and
+disconnect/revoke behavior. Foreground metric sync, refresh-token rotation,
+mobile connection UX, and planning integration remain staged follow-up work.
 
 ### Pro-only rules
 
@@ -1520,6 +1531,8 @@ exchange, provider sync, and planning integration remain staged follow-up work.
 - sync job requires Pro
 - adaptation features require Pro
 - downgrading from Pro disables sync and hides recovery-specific coaching
+- status remains readable for disconnected/upsell UX
+- disconnect remains available after downgrade so users can revoke access
 
 ### Normalized WHOOP signals
 

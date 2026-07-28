@@ -82,9 +82,11 @@ Daily Plan Food/Training views, library-backed exercise cards, and the Exercise 
 Exercise-media filename reconciliation now gates ingestion with strict parsing, explicit reviewed aliases, deterministic coverage reports, and conflict-safe optional renames. Ingestion remains blocked until every approved image identity and every catalog exercise has an explicit decision. The next media batch begins only after reconciliation reports zero blockers.
 
 Exercise-media catalog expansion is applied: the seed now contains 77 exercises and 308 translations, while preserving all original slugs. Approved aliases were applied and reconciliation now reports 47 canonical WebPs, 46 media-covered exercise identities, and zero filename blockers. The five 2:3 WebP assets were normalized to exact 4:5 with private byte-identical backups, and ExerciseMedia ingestion now registers 47 media rows plus 188 localized media translations. Optimized `480x600` WebP thumbnails are generated for list/card views, while Exercise Details keeps full-size media. Production CDN upload remains pending provider selection.
+
 ## Sprint 9A Batch 2 complete
 
 Core mobile UI localization and typed domain-enum labels now cover English, Russian, French, and Simplified Chinese. Historical/AI plan localization, ExerciseLibrary translations, Spanish, German, and RTL remain deferred.
+
 # Roadmap Notes
 
 Completed foundation: app modes and primary goal switching. Nutrition-only is now a first-class mode, and training can be enabled or disabled without deleting saved training settings. Goal and mode changes affect future plans only.
@@ -100,13 +102,14 @@ Still deferred: ingredient database, food tracking, meal completion, grocery lis
 Workout Execution MVP adds plan-linked workout sessions, set completion, duration exercise completion, partial-finish confirmation, and Plan Details Training entry points. Still deferred: workout history screens, rest timers, workout notes, RPE, replacing exercises during execution, and analytics.
 
 Workout History + Session Summary MVP adds completed workout summaries, completed-only history, Today/Profile/Training entry points, and read-only completed details. Still deferred: analytics, streaks, achievements, rest timers, RPE, load tracking, and workout notes.
+
 ## Food Tracking MVP
 
 Food Tracking / Meal Completion MVP is implemented as a lightweight plan-to-fact loop for structured meal plans. It records planned/eaten/partial/skipped meal statuses without custom calorie logging, photo analysis, or AI personalization from history yet.
 
 ## Health Integrations Foundation
 
-Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Apple Health sync is implemented. WHOOP is now a staged pre-release Pro integration: Batch 1 adds secure OAuth state, configuration, and encrypted token storage, while callback exchange, foreground sync, and planning integration remain next. Background sync, Garmin, and analytics dashboards remain deferred.
+Wearable integration foundation adds provider-neutral HealthConnection statuses and `WearableDailySnapshot` for Apple Health, Health Connect, WHOOP, manual, and mock sources. Daily Plan generation can now receive optional wearable context for conservative nutrition/training/recovery planning. Apple Health sync is implemented. WHOOP is now a staged pre-release Pro integration: Batch 2 completes secure backend OAuth, encrypted credentials, status, and disconnect/revoke, while foreground sync, refresh-token rotation, mobile UX, and planning integration remain next. Background sync, Garmin, and analytics dashboards remain deferred.
 
 Apple Health iOS MVP adds the first real provider path: iOS HealthKit permission request, read-only manual sync, normalized `WearableDailySnapshot` storage, Health Connections UI states, friendly last-sync display, and Apple Health-specific snapshot metrics. The MVP permission scope is intentionally limited to activity and sleep signals; respiratory rate, resting heart rate, and HRV remain future nullable fields until advanced recovery/training-load UX is introduced. Health Connect real sync, WHOOP OAuth, background sync, provider tokens, and analytics dashboards remain deferred.
 
@@ -194,6 +197,7 @@ If no safe replacements exist, the app keeps the current plan unchanged and offe
 OptiMe now has a backend-owned Free / Plus / Pro entitlement foundation without real billing. A central entitlement matrix defines `PlanQualityMode`, feature access, and usage limits for daily plan generation, refresh, meal regeneration, menu regeneration, and AI Training Load Agent calls.
 
 Safety remains available for every tier. Nutrition-only users can still receive paid value through nutrition planning, food preferences, meal/menu regeneration, food tracking, and health-aware nutrition context. Mobile shows contextual limit/upgrade placeholders only when an action is blocked; no real App Store, Google Play, Stripe, receipt validation, pricing amounts, or production purchase flow is implemented yet.
+
 # Visual Design v2 Completion Note
 
 The mobile presentation layer now has an Apple Health-inspired premium direction: stronger light/dark tokens, dashboard widgets, compact AI Coach entry with bottom sheet, provider cards, meal/workout widgets, and settings-list rows.

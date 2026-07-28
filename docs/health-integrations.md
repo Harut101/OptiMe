@@ -107,9 +107,9 @@ Apple Health iOS MVP result:
 - Synced daily Apple Health data is normalized into `WearableDailySnapshot`.
 - Recovery and strain scores remain `null`; OptiMe does not invent WHOOP-style scores from Apple Health.
 - Health Connect and Garmin remain represented but not implemented.
-- WHOOP Batch 1 now provides a disabled-by-default secure OAuth foundation only;
-  authorization callback, provider API sync, and mobile connection UX are not
-  implemented yet.
+- WHOOP Batch 2 now provides a disabled-by-default secure backend OAuth flow,
+  encrypted credentials, scope verification, status, and disconnect/revoke.
+  Provider health-data sync and mobile connection UX are not implemented yet.
 - See `docs/apple-health-integration.md` and `docs/apple-health-mobile-qa.md`.
 
 ## WHOOP Pre-release Foundation
@@ -118,10 +118,13 @@ WHOOP is the first specialized wearable planned before release and remains
 Pro-only. The existing provider-neutral connection, snapshot, source-priority,
 and planning models are reused rather than creating a separate daily-plan path.
 
-Batch 1 adds fail-fast backend configuration, short-lived single-use OAuth state,
-AES-256-GCM token encryption, encrypted credential persistence, and authorization
-URL construction. WHOOP remains disabled by default, no external request is made,
-and mobile behavior is unchanged. See `docs/whoop-integration.md`.
+Batch 1 added fail-fast backend configuration, short-lived single-use OAuth
+state, AES-256-GCM token encryption, and encrypted credential persistence.
+Batch 2 adds Pro-gated authorization, backend callback exchange, strict scope
+verification, safe status, and disconnect/revoke behavior. WHOOP remains
+disabled by default and mobile behavior is unchanged. External requests occur
+only during an explicitly started enabled WHOOP authorization or disconnect.
+See `docs/whoop-integration.md`.
 
 Garmin remains explicitly deferred until after release.
 
@@ -215,7 +218,7 @@ Planning does not use weight, heart-rate fields, raw samples, or permission payl
 
 ## Health Integrations Foundation + WearableDailySnapshot
 
-The current foundation adds a provider-neutral `WearableDailySnapshot` path for Apple Health and future Health Connect, WHOOP, Garmin, manual, and mock sources. WHOOP Batch 1 adds secure OAuth state and encrypted token-storage architecture, but it does not yet exchange tokens, call provider APIs, or sync WHOOP data.
+The current foundation adds a provider-neutral `WearableDailySnapshot` path for Apple Health and future Health Connect, WHOOP, Garmin, manual, and mock sources. WHOOP Batch 2 can authorize and securely retain provider access, but it does not yet read or normalize WHOOP health data.
 
 Backend sources:
 
@@ -299,8 +302,9 @@ Provider scope remains unchanged:
 
 - Apple Health is the only real provider path in this sprint.
 - Health Connect remains represented for Android but deferred.
-- WHOOP secure OAuth foundation is present; callback, token exchange, foreground
-  sync, and planning integration remain in the next pre-release batches.
+- WHOOP secure OAuth authorization is present; foreground sync, token refresh,
+  mobile connection completion, and planning integration remain in the next
+  pre-release batches.
 - Garmin remains represented as a future source only; OAuth, provider API calls, background sync, and token storage are deferred. The public mobile API cannot mark Garmin as `CONNECTED`: it returns `HEALTH_PROVIDER_OAUTH_REQUIRED` until a server-side Garmin authorization callback exists.
 - No background sync, provider tokens, OAuth, or automatic app-launch sync is added.
 
@@ -311,6 +315,7 @@ Health Data owns connection status, provider actions, and wearable snapshot visi
 Today may show a compact wearable summary and a soft readiness prompt before plan generation, but it should not duplicate the full Health Data screen. Health copy must stay non-medical and should not imply diagnosis, guaranteed recovery scoring, or plan invalidity when health data is missing.
 
 Profile may link to Connections, but it should not show permanent provider warning text unless the user is actively managing health sources.
+
 # Health Visual Design v2
 
 Health Connections uses compact provider cards with icon, provider name, status chip, short description, last sync when available, and primary action.
