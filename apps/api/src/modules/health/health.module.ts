@@ -4,10 +4,17 @@ import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 import { TrainingLoadContextResolver } from './training-load-context.resolver';
 import { WearablePlanningContextResolver } from './wearable-planning-context.resolver';
+import { WhoopModule } from './whoop/whoop.module';
 
 @Module({
+  imports: [WhoopModule],
   controllers: [HealthController],
   providers: [HealthService, WearablePlanningContextResolver, TrainingLoadContextResolver],
-  exports: [HealthService, WearablePlanningContextResolver, TrainingLoadContextResolver]
+  exports: [
+    HealthService,
+    WearablePlanningContextResolver,
+    TrainingLoadContextResolver,
+    WhoopModule
+  ]
 })
 export class HealthModule {}

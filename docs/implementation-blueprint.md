@@ -1510,7 +1510,9 @@ Avoid prompt-building from free-form concatenated strings where possible.
 
 ## 16. WHOOP Integration Design
 
-WHOOP is not an MVP day-one feature, but the backend shape should allow it later.
+WHOOP is now the first specialized wearable planned before release for Pro users.
+Batch 1 implements only the secure OAuth/configuration/storage foundation; token
+exchange, provider sync, and planning integration remain staged follow-up work.
 
 ### Pro-only rules
 

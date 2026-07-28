@@ -409,8 +409,6 @@ After the first release:
   nutrition, allergies, and exclusions. Full prefilled carts or checkout require
   an approved commercial provider integration. AI may interpret and rank options,
   but it must not invent products, stock, prices, nutrition, or availability.
-- WHOOP: add OAuth, secure token lifecycle, sleep/recovery/strain normalization,
-  disconnect/delete controls, and safe planning integration.
 - Audio Co-Pilot: explore voice set logging and non-medical workout guidance only
   after wearable, latency, privacy, and safety feasibility work.
 - Transparent Plan Checks: explain that nutrition, training, catalog, and safety
@@ -460,20 +458,24 @@ For minors:
    30-day Free/Plus/Pro telemetry, and require `ai-release:gate` to pass before
    billing work. A cheaper Free route is not accepted if READY rate falls or
    fallback/retry rates exceed the shared quality thresholds.
-6. Freeze new product features for the first release.
-7. Complete privacy, account-control, permission, security, environment, and
+6. Complete WHOOP as the first specialized pre-release Pro integration: secure
+   OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
+   sync, normalized signals, disconnect/delete controls, and conservative
+   planning integration. Batch 1 OAuth/config/storage foundation is complete;
+   provider calls and mobile connect UX remain.
+7. Freeze new product features for the first release.
+8. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.
-8. Complete Android Health Connect development-build/device QA and Google Play
+9. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
-9. Run iOS/Android release builds, full automated regression, localization QA, and
+10. Run iOS/Android release builds, full automated regression, localization QA, and
    physical-device QA.
-10. Release the stable first version.
-11. Add Recovery Trend and Photo Food Logging based on real user feedback.
-12. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+11. Release the stable first version.
+12. Add Recovery Trend and Photo Food Logging based on real user feedback.
+13. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
-12. Add WHOOP as the first specialized post-release wearable integration.
-    Garmin remains deferred until after release and a separate provider review.
-13. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+14. Evaluate Garmin only after release and a separate provider review.
+15. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
     advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects
