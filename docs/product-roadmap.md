@@ -7,10 +7,11 @@ The mobile UI/UX consolidation and physical-device visual QA are accepted. The s
 The next active phase is release readiness:
 
 1. Keep the accepted UI stable and fix only verified regressions.
-2. Add the foreground-only Adaptive Plan Checkpoint described below.
-3. Freeze new product features after the Adaptive Plan Checkpoint.
-4. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
-5. Run release-focused privacy, permission, native-build, and end-to-end QA.
+2. Keep the completed foreground-only Adaptive Plan Checkpoint stable.
+3. Complete production email verification and password-recovery delivery configuration.
+4. Freeze new product features.
+5. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
+6. Run release-focused privacy, permission, native-build, and end-to-end QA.
 
 Garmin integration is intentionally deferred until after the first release. Do not add Garmin OAuth, API sync, provider tokens, or background sync to the release-critical path.
 
@@ -56,7 +57,7 @@ Safety is never paywalled. Paid tiers improve personalization depth, choice, ada
 
 Built the mobile and backend foundation:
 
-- Register/login and JWT auth.
+- Register/login, email verification, password recovery, and versioned JWT auth.
 - Onboarding profile, goal, nutrition preferences, and training schedule.
 - Mock daily plan generation.
 - Today screen and plan details.

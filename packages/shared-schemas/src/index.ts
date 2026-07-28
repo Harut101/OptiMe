@@ -15,6 +15,23 @@ export const loginSchema = z.object({
   password: z.string().min(8)
 });
 
+export const authCodeSchema = z.string().regex(/^\d{6}$/);
+
+export const verifyEmailSchema = z.object({
+  email: emailSchema,
+  code: authCodeSchema
+});
+
+export const emailRequestSchema = z.object({
+  email: emailSchema
+});
+
+export const resetPasswordSchema = z.object({
+  email: emailSchema,
+  code: authCodeSchema,
+  newPassword: z.string().min(8)
+});
+
 export const profileSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),

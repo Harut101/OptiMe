@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 
 import { loginUser } from '@/api/auth';
+import { ApiError } from '@/api/client';
 import { AppFeedbackSheet } from '@/components/AppFeedbackSheet';
 import { BrandLogo } from '@/components/BrandLogo';
 import { Button } from '@/components/Button';
@@ -43,7 +44,19 @@ export default function LoginScreen() {
       await setSession(data.accessToken, data.user);
       router.replace('/');
     },
-    onError: () => setErrorSheetVisible(true)
+    onError: (error) => {
+      const code =
+        error instanceof ApiError && typeof error.body === 'object' && error.body
+          ? (error.body as { code?: string }).code
+          : undefined;
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        router.push(
+          `/(auth)/verify-email?email=${encodeURIComponent(form.getValues('email'))}` as Href
+        );
+        return;
+      }
+      setErrorSheetVisible(true);
+    }
   });
 
   return (
@@ -92,6 +105,11 @@ export default function LoginScreen() {
           disabled={mutation.isPending}
           loading={mutation.isPending}
           onPress={form.handleSubmit((values) => mutation.mutate(values))}
+        />
+        <Button
+          title={t('auth.forgotPassword')}
+          variant="ghost"
+          onPress={() => router.push('/(auth)/forgot-password' as Href)}
         />
       </Card>
       <Button title={t('auth.createAccount')} variant="ghost" onPress={() => router.push('/(auth)/register')} />

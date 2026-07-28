@@ -23,6 +23,9 @@ export default function AuthLayout() {
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ title: t('auth.login') }} />
       <Stack.Screen name="register" options={{ title: t('auth.createAccount') }} />
+      <Stack.Screen name="verify-email" options={{ title: t('auth.verifyEmail') }} />
+      <Stack.Screen name="forgot-password" options={{ title: t('auth.forgotPassword') }} />
+      <Stack.Screen name="reset-password" options={{ title: t('auth.resetPassword') }} />
     </Stack>
   );
 }

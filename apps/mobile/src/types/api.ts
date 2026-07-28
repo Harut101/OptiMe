@@ -160,6 +160,19 @@ export interface AuthResponse {
   user: UserDto;
 }
 
+export interface RegistrationResponse {
+  verificationRequired: true;
+  email: string;
+  messageCode: 'VERIFICATION_EMAIL_SENT';
+}
+
+export interface AuthMessageResponse {
+  messageCode:
+    | 'VERIFICATION_EMAIL_SENT'
+    | 'PASSWORD_RESET_EMAIL_SENT'
+    | 'PASSWORD_RESET_COMPLETE';
+}
+
 export interface UserSettingsResponse {
   preferredLocale: SupportedLocale;
   measurementSystem: MeasurementSystem;

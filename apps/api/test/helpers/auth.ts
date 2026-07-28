@@ -1,8 +1,9 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 export async function registerTestUser(app: INestApplication, email = uniqueEmail()) {
-  const response = await request(app.getHttpServer())
+  await request(app.getHttpServer())
     .post('/v1/auth/register')
     .send({
       email,
@@ -11,6 +12,16 @@ export async function registerTestUser(app: INestApplication, email = uniqueEmai
       locale: 'en-US',
       privacyConsentAccepted: true
     })
+    .expect(201);
+
+  const prisma = app.get(PrismaService);
+  await prisma.user.update({
+    where: { email },
+    data: { emailVerifiedAt: new Date() }
+  });
+  const response = await request(app.getHttpServer())
+    .post('/v1/auth/login')
+    .send({ email, password: 'password123' })
     .expect(201);
 
   return {

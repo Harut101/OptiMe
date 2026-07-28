@@ -141,6 +141,9 @@ const onboardingTrainingNextStep = read('app/(onboarding)/training-next-step.tsx
 const authWelcome = read('app/(auth)/welcome.tsx');
 const authLogin = read('app/(auth)/login.tsx');
 const authRegister = read('app/(auth)/register.tsx');
+const authVerifyEmail = read('app/(auth)/verify-email.tsx');
+const authForgotPassword = read('app/(auth)/forgot-password.tsx');
+const authResetPassword = read('app/(auth)/reset-password.tsx');
 const appLayout = read('app/_layout.tsx');
 const authLayout = read('app/(auth)/_layout.tsx');
 const appHeader = read('src/components/AppHeader.tsx');
@@ -154,6 +157,12 @@ assert(onboardingGoal.includes('GoalsForm'), 'Onboarding must reuse GoalsForm.')
 assertIncludes(authWelcome, ["t('auth.valueNutrition')", "t('auth.valueTraining')", "t('auth.valueHealth')", "t('auth.trustNote')"], 'Auth welcome redesign');
 assertIncludes(authLogin, ['AppFeedbackSheet', "t('auth.signInSecurely')", "t('auth.checkDetails')"], 'Auth login redesign');
 assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t('auth.checkDetails')"], 'Auth register redesign');
+assertIncludes(authRegister, ['/(auth)/verify-email?email=', 'data.email'], 'Registration verification routing');
+assert(!authRegister.includes('setSession('), 'Registration must not create a session before email verification.');
+assertIncludes(authLogin, ['EMAIL_NOT_VERIFIED', '/(auth)/verify-email?email=', "t('auth.forgotPassword')"], 'Unverified login routing');
+assertIncludes(authVerifyEmail, ['verifyEmailSchema', 'textContentType="oneTimeCode"', 'setSession', "t('auth.resendCode')"], 'Email verification');
+assertIncludes(authForgotPassword, ['emailRequestSchema', 'requestPasswordReset', '/(auth)/reset-password?email='], 'Password reset request');
+assertIncludes(authResetPassword, ['resetPasswordSchema', 'confirmPassword', 'textContentType="oneTimeCode"'], 'Password reset completion');
 assertIncludes(authWelcome, ['BrandLogo', 'width={252}', 'variant="title"'], 'Welcome branding');
 assertIncludes(authLogin, ['BrandLogo', 'width={252}'], 'Login branding');
 assertIncludes(authRegister, ['BrandLogo', 'width={252}'], 'Register branding');
@@ -169,6 +178,7 @@ assertIncludes(launchSplash, ['BrandLogo', 'variant="icon"', 'justifyContent: \'
 assertIncludes(appLayout, ['AppLaunchSplash', 'setTimeout(() => setShowLaunchSplash(false), 1600)', 'useAuthStore'], 'Launch splash timing');
 assertIncludes(appLayout, ['AppHeader', 'header: ({ options })', 'contentStyle: { backgroundColor: colors.background }'], 'Root stack navigation');
 assertIncludes(authLayout, ['AppHeader', 'fallbackHref="/(auth)/welcome"', "t('auth.login')", "t('auth.createAccount')"], 'Auth stack navigation');
+assertIncludes(authLayout, ['name="verify-email"', 'name="forgot-password"', 'name="reset-password"'], 'Auth recovery routes');
 assertIncludes(appHeader, ['SafeAreaView', 'AppBackButton', "backgroundColor: colors.background", "textAlign: 'center'"], 'Custom app header');
 assertIncludes(field, [
   'useState',

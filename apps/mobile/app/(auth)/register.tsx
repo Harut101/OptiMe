@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -17,7 +17,6 @@ import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { useAuthStore } from '@/store/auth-store';
 import { detectDeviceLocale } from '@/i18n/locale-detection';
 import { useTheme } from '@/theme/theme-provider';
 import type { ThemeColors } from '@/theme/colors';
@@ -28,7 +27,6 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const setSession = useAuthStore((state) => state.setSession);
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -43,9 +41,10 @@ export default function RegisterScreen() {
 
   const mutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: async (data) => {
-      await setSession(data.accessToken, data.user);
-      router.replace('/(onboarding)/profile');
+    onSuccess: (data) => {
+      router.replace(
+        `/(auth)/verify-email?email=${encodeURIComponent(data.email)}` as Href
+      );
     },
     onError: () => setErrorSheetVisible(true)
   });
