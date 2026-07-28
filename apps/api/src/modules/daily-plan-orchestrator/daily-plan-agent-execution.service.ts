@@ -152,7 +152,8 @@ export class DailyPlanAgentExecutionService
         this.toMealPracticalityPreference(input.user),
       mealTimingPreference: this.toMealTimingPreference(input.user),
       availableFoodSlugs: input.availableFoodSlugs,
-      resolvedTrainingDay: input.resolvedTrainingDay
+      resolvedTrainingDay: input.resolvedTrainingDay,
+      safetyFeedback: input.safetyFeedback
     });
 
     return result.foodPlan;

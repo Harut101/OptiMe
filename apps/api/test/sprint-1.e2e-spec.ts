@@ -5713,7 +5713,7 @@ describe('Sprint 1 backend vertical slice', () => {
         retryResult: 'approved'
       });
       expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_copy')).toHaveLength(0);
-      expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(2);
+      expect(filterOpenAiRequestsBySchema(requests, 'daily_food_plan_content')).toHaveLength(1);
       expect(filterOpenAiRequestsBySchema(requests, 'training_load_agent_snapshot')).toHaveLength(2);
       const retryRequestInput = filterOpenAiRequestsBySchema(requests, 'daily_plan_json')[1]
         .input as Array<{ content?: string }>;

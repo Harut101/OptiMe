@@ -4,6 +4,7 @@ import {
   PlanStatus
 } from '@prisma/client';
 
+import type { DailyPlanSafetyFeedbackSection } from '../ai/ai-provider.interface';
 import { normalizeDailyPlanFoodNames } from '../daily-plans/daily-plan-food-name-normalizer';
 import {
   type DailyPlanJson,
@@ -397,7 +398,8 @@ export class DailyPlanSafetyOrchestratorService {
         `provider=${this.safetyAgentConfig.provider}`,
         `riskLevel=${review.riskLevel}`,
         `reasonCount=${review.reasons.length}`,
-        `categories=${rejection.categories.join(',')}`
+        `categories=${rejection.categories.join(',')}`,
+        `affectedSections=${rejection.affectedSections.join(',')}`
       ].join('; ')
     );
     for (const category of rejection.categories) {
@@ -422,7 +424,8 @@ export class DailyPlanSafetyOrchestratorService {
         safetyRetryRequest: {
           riskLevel: review.riskLevel,
           reasons: review.reasons,
-          requiredChanges: review.requiredChanges
+          requiredChanges: review.requiredChanges,
+          affectedSections: rejection.affectedSections
         }
       };
     }
@@ -506,11 +509,58 @@ export class DailyPlanSafetyOrchestratorService {
     const categories = MATERIAL_SAFETY_REVIEW_PATTERNS
       .filter(({ pattern }) => pattern.test(reviewText))
       .map(({ category }) => category);
+    const affectedSections =
+      this.classifyAffectedSections(categories, reviewText);
 
     return {
       categories,
+      affectedSections,
       isBlocking: review.riskLevel === 'high' || categories.length > 0
     };
+  }
+
+  private classifyAffectedSections(
+    categories: string[],
+    reviewText: string
+  ): DailyPlanSafetyFeedbackSection[] {
+    const sections = new Set<DailyPlanSafetyFeedbackSection>();
+
+    if (
+      categories.includes('unsafe_diet') ||
+      /\b(?:food|meal|nutrition|diet|calor|protein|carb|fat|fasting|detox|starv)\w*/i.test(
+        reviewText
+      )
+    ) {
+      sections.add('nutrition');
+    }
+    if (
+      categories.includes('unsafe_training') ||
+      /\b(?:training|workout|exercise|set|sets|rep|reps|repetition|repetitions|intensity|lifting|cardio)\b/i.test(
+        reviewText
+      )
+    ) {
+      sections.add('training');
+    }
+    if (
+      /\b(?:recovery|sleep|hydration|mobility|rest day)\w*/i.test(reviewText)
+    ) {
+      sections.add('recovery');
+    }
+    if (
+      categories.includes('body_shaming') ||
+      categories.includes('medical_claim')
+    ) {
+      // These semantic risks can occur in any user-facing section.
+      sections.add('summary');
+      sections.add('nutrition');
+      sections.add('training');
+      sections.add('recovery');
+    }
+
+    // Unknown high-risk wording must keep the conservative full-retry behavior.
+    return sections.size
+      ? Array.from(sections)
+      : ['summary', 'nutrition', 'training', 'recovery'];
   }
 
   private withSafetyAgentDebug(

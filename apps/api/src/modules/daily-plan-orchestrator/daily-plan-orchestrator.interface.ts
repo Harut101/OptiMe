@@ -63,7 +63,9 @@ export interface ExecuteDailyPlanGenerationWorkflowInput {
   generateProviderPlan: (input?: {
     safetyFeedback?: GenerateDailyPlanSafetyFeedback;
   }) => Promise<TrainingPlanProviderResult>;
-  generateFoodPlan: () => Promise<
+  generateFoodPlan: (input?: {
+    safetyFeedback?: GenerateDailyPlanSafetyFeedback;
+  }) => Promise<
     NonNullable<DailyPlanJson['nutrition']['foodPlan']>
   >;
   buildAssemblyInput: (input: {

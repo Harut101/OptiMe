@@ -30,6 +30,32 @@ The router is used by Daily Plan, Plan Checkpoint, Nutrition, Safety, and Traini
 Load OpenAI requests. Deterministic nutrition targets, exercise boundaries,
 entitlements, safety, and fallback behavior remain backend-owned and unchanged.
 
+## Daily Plan request budget
+
+Daily Plan generation minimizes provider calls without weakening validation:
+
+- the general Daily Plan request and specialized Nutrition Agent request start
+  in parallel because they use the same immutable planning context;
+- schema validation, deterministic safety, and semantic safety still review the
+  fully assembled result;
+- a Safety Agent rejection is classified into affected sections:
+  `nutrition`, `training`, `recovery`, or `summary`;
+- a nutrition-only repair reruns only the Nutrition Agent and reuses the
+  accepted general/training output;
+- a training, recovery, or summary repair reruns the general provider and reuses
+  the accepted catalog-backed food plan;
+- mixed or unclassified high-risk feedback uses one conservative full retry;
+- no retry bypasses schema validation, deterministic safety, or the Safety
+  Agent.
+
+This is bounded repair, not an autonomous retry loop. The orchestrator logs which
+sections were affected and which provider calls were repeated, without logging
+the plan, prompt, profile, or safety text.
+
+The next efficiency gate is a staging benchmark of complete user-visible
+operations. Model changes must be approved from measured READY rate, fallback
+rate, request count, token cost, and latency rather than provider price alone.
+
 ## Request telemetry
 
 `AiRequestLog` records one metadata-only row for each OpenAI Responses API request,
@@ -122,6 +148,7 @@ and representative profile matrix.
 Before billing:
 
 1. Populate current deployment model IDs, prices, and tier ceilings.
-2. Run representative Free, Plus, and Pro traffic for at least 30 days.
-3. Require the strict unit-economics gate to pass.
-4. Approve or revise the provisional paid prices before storefront work.
+2. Benchmark candidate models against the same representative plan fixtures.
+3. Run representative Free, Plus, and Pro traffic for at least 30 days.
+4. Require the strict unit-economics gate to pass.
+5. Approve or revise the provisional paid prices before storefront work.

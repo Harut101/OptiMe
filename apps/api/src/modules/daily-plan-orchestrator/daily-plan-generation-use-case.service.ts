@@ -95,7 +95,7 @@ export class DailyPlanGenerationUseCaseService {
               exerciseSelection,
               safetyFeedback
             }),
-          generateFoodPlan: () =>
+          generateFoodPlan: ({ safetyFeedback } = {}) =>
             this.orchestrator.generateFoodPlan({
               user: input.user,
               planLocalDate: input.planLocalDate,
@@ -105,7 +105,8 @@ export class DailyPlanGenerationUseCaseService {
               nutritionTarget,
               personalizationContext,
               availableFoodSlugs,
-              resolvedTrainingDay
+              resolvedTrainingDay,
+              safetyFeedback
             }),
           buildAssemblyInput: ({
             providerPlanResult,

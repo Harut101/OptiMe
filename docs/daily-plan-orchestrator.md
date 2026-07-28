@@ -16,7 +16,8 @@ agent. `DailyPlanOrchestratorService` coordinates specialized stages, while
    selected protocols, blocked foods, and trusted exercise candidates.
 4. `DailyPlanAgentExecutionService` calls the configured `AiProvider` for the
    general structured plan and `NutritionAgentService` for the catalog-backed
-   food plan.
+   food plan. These independent initial requests run in parallel against the
+   same immutable context.
 5. `DailyPlanOrchestratorService` assembles the plan before safety:
    recovery context is finalized, the food plan is attached, training is
    validated or repaired, and training load is applied.
@@ -24,8 +25,13 @@ agent. `DailyPlanOrchestratorService` coordinates specialized stages, while
    normalizes safe food-name exclusions, runs deterministic `SafetyService`,
    and then runs the optional semantic `SafetyAgent`.
 7. A single bounded safety-feedback regeneration may run only for an eligible
-   OpenAI plan rejected by the Safety Agent with actionable changes. The full
-   assembly and safety sequence runs again.
+   OpenAI plan rejected by the Safety Agent with actionable changes. The
+   orchestrator retries only the affected section when it can classify the
+   feedback safely: nutrition-only feedback reruns Nutrition Agent, while
+   training/recovery/summary feedback reruns the general provider and preserves
+   the catalog-backed food plan. Mixed or unknown high-risk feedback uses one
+   conservative full retry. The complete assembly and safety sequence then runs
+   again.
 8. `DailyPlanFinalizationService` guarantees a complete normalized plan,
    restores deterministic catalog-backed sections when required, adds the
    recovery result and checkpoint baseline, and records safe debug provenance.
@@ -34,7 +40,8 @@ agent. `DailyPlanOrchestratorService` coordinates specialized stages, while
 10. `daily-plan-response.mapper.ts` returns the stable API response.
 
 Initial generation and safety-feedback regeneration use the same assembly and
-validation stages so the two paths cannot silently drift.
+validation stages so the two paths cannot silently drift. Reused sections are
+never accepted without the complete post-assembly schema and safety checks.
 
 ## Agent Responsibilities
 

@@ -40,6 +40,7 @@ export interface GenerateDailyFoodPlanInput {
   personalizationContext: GenerateDailyPlanPersonalizationContext;
   availableFoodSlugs: string[];
   resolvedTrainingDay: ResolvedTrainingDayContext;
+  safetyFeedback?: GenerateDailyPlanSafetyFeedback;
 }
 
 export interface DailyPlanAgentExecution {

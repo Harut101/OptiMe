@@ -12,6 +12,7 @@ import type {
   ResolvedTrainingDayContext,
   SupportedLocale
 } from '@optime/shared-types';
+import type { GenerateDailyPlanSafetyFeedback } from '../ai/ai-provider.interface';
 
 export interface NutritionAgentInput {
   userId: string;
@@ -59,6 +60,7 @@ export interface NutritionAgentInput {
   // They are safe ranking hints only, never an inventory or nutrition source.
   availableFoodSlugs?: string[];
   foodRotationContext?: FoodRotationContext;
+  safetyFeedback?: GenerateDailyPlanSafetyFeedback;
   regeneration?: {
     mode: 'FULL_MENU_REGENERATION' | 'MEAL_REGENERATION';
     reason?: string;

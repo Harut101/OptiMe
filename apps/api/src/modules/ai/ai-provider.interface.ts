@@ -25,10 +25,17 @@ import { HealthPlanningContext } from '../health/health-planning.types';
 import { SelectedProtocols } from '../protocol/protocol.types';
 import type { ExerciseCandidate, WorkoutVolumePlan } from '../exercise-selection/exercise-selection.types';
 
+export type DailyPlanSafetyFeedbackSection =
+  | 'nutrition'
+  | 'training'
+  | 'recovery'
+  | 'summary';
+
 export interface GenerateDailyPlanSafetyFeedback {
   riskLevel: 'low' | 'medium' | 'high';
   reasons: string[];
   requiredChanges: string[];
+  affectedSections?: DailyPlanSafetyFeedbackSection[];
 }
 
 export interface GenerateDailyPlanExerciseFeedback {

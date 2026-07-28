@@ -203,8 +203,10 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
   async executeGenerationWorkflow(
     input: ExecuteDailyPlanGenerationWorkflowInput
   ): Promise<DailyPlanGenerationWorkflowResult> {
-    const providerPlanResult = await input.generateProviderPlan();
-    const foodPlan = await input.generateFoodPlan();
+    const [providerPlanResult, foodPlan] = await Promise.all([
+      input.generateProviderPlan(),
+      input.generateFoodPlan()
+    ]);
     const initialAssembly = await this.assembleBeforeSafety(
       input.buildAssemblyInput({
         providerPlanResult,
@@ -235,17 +237,44 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     );
     this.logger.log('safety retry generation started');
 
-    const retryProviderPlanResult = await input.generateProviderPlan({
-      safetyFeedback: initialSafetyResult.safetyRetryRequest
-    });
-    const retryFoodPlan = await input.generateFoodPlan();
-    const retryAssembly = await this.assembleBeforeSafety(
-      input.buildAssemblyInput({
-        providerPlanResult: retryProviderPlanResult,
-        foodPlan: retryFoodPlan,
-        isSafetyRetry: true
-      })
+    const safetyFeedback = initialSafetyResult.safetyRetryRequest;
+    const affectedSections = safetyFeedback.affectedSections ?? [];
+    const useConservativeFullRetry = affectedSections.length === 0;
+    const retryNutrition =
+      useConservativeFullRetry ||
+      affectedSections.includes('nutrition');
+    const retryProvider =
+      useConservativeFullRetry ||
+      affectedSections.some((section) => section !== 'nutrition');
+    this.logger.log(
+      [
+        'safety retry request budget',
+        `affectedSections=${affectedSections.join(',') || 'unknown'}`,
+        `providerRetry=${retryProvider}`,
+        `nutritionRetry=${retryNutrition}`
+      ].join('; ')
     );
+
+    const [retryProviderPlanResult, retryFoodPlan] = await Promise.all([
+      retryProvider
+        ? input.generateProviderPlan({ safetyFeedback })
+        : Promise.resolve(initialAssembly.providerPlanResult),
+      retryNutrition
+        ? input.generateFoodPlan({ safetyFeedback })
+        : Promise.resolve(foodPlan)
+    ]);
+    const retryAssemblyInput = input.buildAssemblyInput({
+      providerPlanResult: retryProviderPlanResult,
+      foodPlan: retryFoodPlan,
+      isSafetyRetry: true
+    });
+    const retryAssembly = retryProvider
+      ? await this.assembleBeforeSafety(retryAssemblyInput)
+      : this.replaceFoodPlanWithoutRebuildingTraining(
+          initialAssembly,
+          retryAssemblyInput,
+          retryFoodPlan
+        );
     const retryTrainingPreparation = retryAssembly.trainingPreparation;
     const trainingPreparation = {
       ...retryTrainingPreparation,
@@ -276,6 +305,31 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
       safePlanResult,
       finalFoodPlan: retryFoodPlan,
       trainingPreparation
+    };
+  }
+
+  private replaceFoodPlanWithoutRebuildingTraining(
+    initialAssembly: AssembledDailyPlan,
+    retryAssemblyInput: AssembleDailyPlanInput,
+    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
+  ): AssembledDailyPlan {
+    const planJson = retryAssemblyInput.attachFoodPlan(
+      initialAssembly.providerPlanResult.planJson,
+      foodPlan
+    );
+    this.logger.log(
+      'safety retry reused provider and training output; nutritionRetry=true'
+    );
+
+    return {
+      providerPlanResult: {
+        ...initialAssembly.providerPlanResult,
+        planJson
+      },
+      trainingPreparation: {
+        ...initialAssembly.trainingPreparation,
+        planJson
+      }
     };
   }
 

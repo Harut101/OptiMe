@@ -310,7 +310,8 @@ export class NutritionAgentService {
                 {
                   role: 'system',
                   content: this.buildSystemInstructions(
-                    previousRepairFeedback
+                    previousRepairFeedback,
+                    input.safetyFeedback
                   )
                 },
                 {
@@ -899,7 +900,10 @@ export class NutritionAgentService {
     };
   }
 
-  private buildSystemInstructions(previousRepairFeedback?: FoodPlanRepairFeedback) {
+  private buildSystemInstructions(
+    previousRepairFeedback?: FoodPlanRepairFeedback,
+    safetyFeedback?: NutritionAgentInput['safetyFeedback']
+  ) {
     return [
       'You are the OptiMe Specialized Nutrition Agent.',
       'Return only structured JSON matching the provided daily food plan content schema.',
@@ -928,7 +932,15 @@ export class NutritionAgentService {
             `Validator reason codes: ${previousRepairFeedback.reasonCodes.join(', ')}.`,
             ...previousRepairFeedback.instructions
           ].join(' ')
-        : 'Create one complete daily food plan.'
+        : 'Create one complete daily food plan.',
+      safetyFeedback
+        ? [
+            'This is a targeted safety correction. Regenerate the complete food plan while correcting only the identified nutrition safety issues.',
+            `Safety risk level: ${safetyFeedback.riskLevel}.`,
+            `Safety reasons: ${safetyFeedback.reasons.join(' | ')}.`,
+            `Required changes: ${safetyFeedback.requiredChanges.join(' | ')}.`
+          ].join(' ')
+        : ''
     ].join('\n');
   }
 
@@ -1041,6 +1053,13 @@ export class NutritionAgentService {
             reason: input.regeneration.reason ?? null,
             selectedMealId: input.regeneration.selectedMealId ?? null,
             existingFoodPlan: input.regeneration.existingFoodPlan
+          }
+        : null,
+      safetyCorrectionFeedback: input.safetyFeedback
+        ? {
+            riskLevel: input.safetyFeedback.riskLevel,
+            reasons: input.safetyFeedback.reasons,
+            requiredChanges: input.safetyFeedback.requiredChanges
           }
         : null,
       repairFeedback: previousRepairFeedback ?? null

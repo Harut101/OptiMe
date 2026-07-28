@@ -69,9 +69,59 @@ describe('DailyPlanSafetyOrchestratorService', () => {
     expect(result.safetyRetryRequest).toEqual({
       riskLevel: 'medium',
       reasons: ['The plan includes unsafe training advice.'],
-      requiredChanges: ['Replace unsafe training advice with a light option.']
+      requiredChanges: ['Replace unsafe training advice with a light option.'],
+      affectedSections: ['training']
     });
     expect(result.planJson.debug?.safetyAgent?.retryUsed).toBe(false);
+  });
+
+  it('classifies unsafe diet feedback as a targeted nutrition retry', async () => {
+    const safetyAgent = {
+      reviewDailyPlan: jest.fn().mockResolvedValue({
+        approved: false,
+        riskLevel: 'medium',
+        reasons: ['The meal uses extreme calorie restriction.'],
+        requiredChanges: ['Replace the unsafe diet advice with balanced meals.']
+      })
+    } as unknown as SafetyAgent;
+    const service = createService(safetyAgent, {
+      enabled: true,
+      provider: 'openai'
+    });
+
+    const result = await service.validate(
+      createInput(createPlan(), undefined, { allowSafetyRetry: true })
+    );
+
+    expect(result.safetyRetryRequest?.affectedSections).toEqual([
+      'nutrition'
+    ]);
+  });
+
+  it('uses a conservative full retry for semantic risks that can span sections', async () => {
+    const safetyAgent = {
+      reviewDailyPlan: jest.fn().mockResolvedValue({
+        approved: false,
+        riskLevel: 'medium',
+        reasons: ['The plan contains body-shaming language.'],
+        requiredChanges: ['Use supportive, non-shaming language throughout.']
+      })
+    } as unknown as SafetyAgent;
+    const service = createService(safetyAgent, {
+      enabled: true,
+      provider: 'openai'
+    });
+
+    const result = await service.validate(
+      createInput(createPlan(), undefined, { allowSafetyRetry: true })
+    );
+
+    expect(result.safetyRetryRequest?.affectedSections).toEqual([
+      'summary',
+      'nutrition',
+      'training',
+      'recovery'
+    ]);
   });
 
   it('fails closed when a Safety Agent review is invalid', async () => {

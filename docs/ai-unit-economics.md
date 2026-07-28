@@ -110,6 +110,43 @@ Each route needs at least the configured number of distinct monthly user samples
 Partial or artificial data may test the command, but it must not approve launch
 pricing.
 
+## Model Recalibration Gate
+
+`LUNA`, `TERRA`, and `SOL` remain internal routes, not fixed provider model
+names. A cheaper Free model is desirable, but it must not be deployed based on
+list price alone.
+
+For each candidate model, replay the same anonymized structured fixtures and
+compare:
+
+- valid structured output on the first request;
+- final READY rate and fallback rate;
+- deterministic and semantic safety outcomes;
+- mean and p95 request count per complete operation;
+- input/output tokens and estimated cost;
+- p50/p95 latency;
+- supported locale quality;
+- catalog-food and trusted-exercise compliance.
+
+A candidate is accepted only if its lower token price is not offset by more
+retries, fallbacks, or incomplete plans. Current examples worth benchmarking
+from the provider's model catalog are:
+
+| Internal route | Candidate role |
+|---|---|
+| `LUNA` / Free | low-cost structured-output model |
+| `TERRA` / Plus | balanced planning model |
+| `SOL` / Pro | highest-quality adaptive planning model |
+
+Exact provider model IDs and current prices must be verified immediately before
+the benchmark and set through environment configuration. Documentation must not
+silently pin a model that has not passed OptiMe's plan-quality fixtures.
+
+Daily Plan request counts should also be evaluated after section-scoped safety
+repair: nutrition-only feedback must not repeat the general/training generation,
+and training-only feedback must not repeat nutrition generation. Unclassified
+high-risk feedback intentionally retains one conservative full retry.
+
 ## Current Limitation
 
 The pre-request operational ceiling and this reporting gate use priced telemetry.
