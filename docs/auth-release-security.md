@@ -9,6 +9,11 @@
 - Verification resend is limited to once per minute and five codes per hour.
 - Password-reset requests return the same response for known and unknown email addresses.
 - A successful password reset increments `User.authVersion`, invalidating earlier JWTs.
+- Public auth endpoints use bounded in-process IP and normalized-email rate limits.
+- Auth rate-limit keys are SHA-256 digests and responses never expose an email address or IP.
+- Authenticated account deletion requires the current password and cascades through local user data.
+- WHOOP provider revocation is attempted before local account deletion. A provider outage is logged
+  safely but cannot prevent deletion of the user's local OptiMe data.
 
 Existing users are marked verified by the migration so an upgrade does not lock them out.
 
@@ -32,9 +37,19 @@ EMAIL_PROVIDER=resend
 RESEND_API_KEY=...
 EMAIL_FROM=...
 AUTH_CODE_SECRET=...
+CORS_ALLOWED_ORIGINS=https://your-approved-web-origin.example
+TRUST_PROXY_HOPS=1
+AUTH_RATE_LIMIT_ENABLED=true
 ```
 
 `AUTH_CODE_SECRET` and `JWT_SECRET` must be separate high-entropy secrets. Do not set `AUTH_DEV_CODE` in production. API keys, codes, password hashes, and complete email payloads must never be logged.
+
+Production startup also rejects placeholder/short secrets, a wildcard or missing CORS
+allowlist, malformed proxy settings, and a configured development auth code.
+
+`TRUST_PROXY_HOPS` must match the actual number of trusted reverse proxies. A wrong value can
+make IP-based protection ineffective. The in-process limiter is appropriate for the initial
+single API instance; add an edge or shared-store limiter before horizontally scaling.
 
 ## API endpoints
 
@@ -44,10 +59,20 @@ AUTH_CODE_SECRET=...
 - `POST /v1/auth/login`
 - `POST /v1/auth/request-password-reset`
 - `POST /v1/auth/reset-password`
+- `DELETE /v1/me/account` with `{ "currentPassword": "..." }`
+
+## Account deletion
+
+The Profile privacy sheet explains the scope, asks for the current password, and requires a
+second destructive confirmation. A successful `204` response clears the local mobile session.
+Prisma cascade relations remove profile, plans, check-ins, history, imported health summaries,
+provider credentials, and other user-owned rows.
+
+Account export is not implemented yet and remains a separate release decision.
 
 ## Remaining release work
 
 - Configure and verify the production email domain and sender identity in Resend.
-- Add infrastructure-level IP rate limiting in front of public auth endpoints.
-- Add account deletion password re-entry and audit-safe security event telemetry.
+- Add infrastructure-level IP rate limiting before using more than one API process.
+- Decide and document the support workflow for account-data export requests.
 - Run deliverability QA for all supported locales before release.

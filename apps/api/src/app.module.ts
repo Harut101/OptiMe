@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { validateEnvironment } from './config/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { DailyPlanCheckInsModule } from './modules/daily-plan-check-ins/daily-plan-check-ins.module';
 import { DailyPlansModule } from './modules/daily-plans/daily-plans.module';
@@ -30,10 +31,14 @@ import { WeightModule } from './modules/weight/weight.module';
 import { WorkoutSessionsModule } from './modules/workout-sessions/workout-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 
+const isTestEnvironment = process.env.NODE_ENV === 'test';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true
+      isGlobal: true,
+      ignoreEnvFile: isTestEnvironment,
+      validate: isTestEnvironment ? undefined : validateEnvironment
     }),
     PrismaModule,
     AuthModule,

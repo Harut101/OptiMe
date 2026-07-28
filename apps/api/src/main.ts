@@ -7,17 +7,30 @@ import helmet from 'helmet';
 import { join } from 'node:path';
 
 import { AppModule } from './app.module';
+import { parseCsv, parseInteger } from './config/environment.validation';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
   const apiPrefix = config.get<string>('API_PREFIX', 'v1');
   const port = config.get<number>('PORT', 3000);
+  const trustProxyHops = parseInteger(
+    config.get('TRUST_PROXY_HOPS'),
+    'TRUST_PROXY_HOPS',
+    0,
+    10
+  );
+  const allowedOrigins = parseCsv(config.get('CORS_ALLOWED_ORIGINS'));
 
   app.setGlobalPrefix(apiPrefix);
+  if (trustProxyHops > 0) {
+    app.set('trust proxy', trustProxyHops);
+  }
   app.use(helmet());
   app.use(compression());
-  app.enableCors();
+  app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true
+  });
   app.useStaticAssets(join(process.cwd(), 'public', 'exercise-media'), {
     prefix: '/exercise-media/',
     index: false,

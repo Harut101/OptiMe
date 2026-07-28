@@ -17,12 +17,13 @@ import {
   Scale,
   Settings,
   Target,
+  Trash2,
   UserRound,
   Utensils,
   Watch
 } from 'lucide-react-native';
 
-import { getEntitlements } from '@/api/account';
+import { deleteAccount, getEntitlements } from '@/api/account';
 import { generateTodayPlan, getTodayPlan, recreateTodayPlanForCurrentLanguage } from '@/api/daily-plans';
 import { getGoal, saveGoal } from '@/api/goals';
 import { getHealthStatus } from '@/api/health';
@@ -43,6 +44,7 @@ import { SelectChips } from '@/components/SelectChips';
 import { SettingsListItem } from '@/components/SettingsListItem';
 import { CardSkeleton } from '@/components/ScreenSkeleton';
 import { StateBlock } from '@/components/StateBlock';
+import { Field } from '@/components/Field';
 import { Text } from '@/components/Text';
 import {
   getPlatformHealthProvider
@@ -815,6 +817,7 @@ function SettingsSection() {
   const styles = createStyles(colors);
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
   const applySettings = useSettingsStore((state) => state.applySettings);
   const currentLocale = useSettingsStore((state) => state.preferredLocale);
   const currentMeasurementSystem = useSettingsStore((state) => state.measurementSystem);
@@ -830,6 +833,10 @@ function SettingsSection() {
   const [errorSheetVisible, setErrorSheetVisible] = useState(false);
   const [languageRecreateVisible, setLanguageRecreateVisible] = useState(false);
   const [languageRecreateErrorVisible, setLanguageRecreateErrorVisible] = useState(false);
+  const [accountSheetVisible, setAccountSheetVisible] = useState(false);
+  const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
+  const [deleteErrorVisible, setDeleteErrorVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
 
   useEffect(() => {
     if (!settings.data) return;
@@ -869,6 +876,21 @@ function SettingsSection() {
       setSavedMessage('languageRecreated');
     },
     onError: () => setLanguageRecreateErrorVisible(true)
+  });
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => deleteAccount(currentPassword),
+    onSuccess: async () => {
+      setDeleteConfirmationVisible(false);
+      setAccountSheetVisible(false);
+      setCurrentPassword('');
+      await clearSession();
+      queryClient.clear();
+      router.replace('/(auth)/welcome');
+    },
+    onError: () => {
+      setDeleteConfirmationVisible(false);
+      setDeleteErrorVisible(true);
+    }
   });
 
   const closeSettingsSheet = () => {
@@ -1016,6 +1038,10 @@ function SettingsSection() {
           tone="support"
           title={t('settings.privacyAccount')}
           subtitle={t('settings.privacyCopy')}
+          onPress={() => {
+            setCurrentPassword('');
+            setAccountSheetVisible(true);
+          }}
         />
       </Card>
       {savedMessage ? (
@@ -1047,6 +1073,92 @@ function SettingsSection() {
         tone="warning"
         onClose={() => setLanguageRecreateErrorVisible(false)}
         actions={[{ label: t('common.close'), variant: 'secondary', onPress: () => setLanguageRecreateErrorVisible(false) }]}
+      />
+      <BottomSheet
+        visible={accountSheetVisible}
+        title={t('settings.privacyAccount')}
+        subtitle={t('settings.accountControlHelp')}
+        presentation="form"
+        onClose={() => {
+          if (deleteAccountMutation.isPending) return;
+          setAccountSheetVisible(false);
+          setCurrentPassword('');
+        }}
+      >
+        <View style={styles.accountControlContent}>
+          <View style={styles.accountControlCopy}>
+            <Trash2 size={22} color={colors.danger} />
+            <Text variant="heading">{t('settings.deleteAccount')}</Text>
+            <Text variant="muted">{t('settings.deleteAccountHelp')}</Text>
+          </View>
+          <Field
+            label={t('settings.currentPassword')}
+            value={currentPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="current-password"
+            textContentType="password"
+            editable={!deleteAccountMutation.isPending}
+            onChangeText={setCurrentPassword}
+          />
+          <View style={styles.accountControlActions}>
+            <Button
+              title={t('settings.deleteAccount')}
+              variant="danger"
+              disabled={currentPassword.length < 8 || deleteAccountMutation.isPending}
+              onPress={() => setDeleteConfirmationVisible(true)}
+            />
+            <Button
+              title={t('common.cancel')}
+              variant="secondary"
+              disabled={deleteAccountMutation.isPending}
+              onPress={() => {
+                setAccountSheetVisible(false);
+                setCurrentPassword('');
+              }}
+            />
+          </View>
+        </View>
+      </BottomSheet>
+      <AppFeedbackSheet
+        visible={deleteConfirmationVisible}
+        title={t('settings.deleteAccountConfirmTitle')}
+        message={t('settings.deleteAccountConfirmMessage')}
+        tone="danger"
+        onClose={() => {
+          if (!deleteAccountMutation.isPending) setDeleteConfirmationVisible(false);
+        }}
+        actions={[
+          {
+            label: deleteAccountMutation.isPending
+              ? t('settings.deletingAccount')
+              : t('settings.deleteAccountConfirmAction'),
+            variant: 'danger',
+            loading: deleteAccountMutation.isPending,
+            disabled: deleteAccountMutation.isPending,
+            onPress: () => deleteAccountMutation.mutate()
+          },
+          {
+            label: t('common.cancel'),
+            variant: 'secondary',
+            disabled: deleteAccountMutation.isPending,
+            onPress: () => setDeleteConfirmationVisible(false)
+          }
+        ]}
+      />
+      <AppFeedbackSheet
+        visible={deleteErrorVisible}
+        title={t('settings.deleteAccountFailed')}
+        message={t('settings.deleteAccountFailedHelp')}
+        tone="danger"
+        onClose={() => setDeleteErrorVisible(false)}
+        actions={[
+          {
+            label: t('common.close'),
+            variant: 'secondary',
+            onPress: () => setDeleteErrorVisible(false)
+          }
+        ]}
       />
     </View>
   );
@@ -1125,6 +1237,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   personalAccountCard: {
     gap: 10
+  },
+  accountControlContent: {
+    flex: 1,
+    gap: 20
+  },
+  accountControlCopy: {
+    gap: 10
+  },
+  accountControlActions: {
+    gap: 10,
+    marginTop: 'auto'
   },
   error: { color: colors.danger, fontWeight: '600' }
 });

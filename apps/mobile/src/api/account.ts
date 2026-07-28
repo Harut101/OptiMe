@@ -8,3 +8,10 @@ export function getEntitlements() {
 export function getUsageSummary() {
   return apiRequest<UsageSummary>('/me/usage');
 }
+
+export function deleteAccount(currentPassword: string) {
+  return apiRequest<void>('/me/account', {
+    method: 'DELETE',
+    body: JSON.stringify({ currentPassword })
+  });
+}

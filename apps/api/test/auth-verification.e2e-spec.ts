@@ -123,6 +123,43 @@ describe('Email verification and password recovery', () => {
     expect(newSession.body.accessToken).toEqual(expect.any(String));
   });
 
+  it('requires the current password and deletes the authenticated account data', async () => {
+    const session = await registerAndVerify('delete-account@example.com');
+    const user = await ctx.prisma.user.findUniqueOrThrow({
+      where: { email: 'delete-account@example.com' }
+    });
+    await ctx.prisma.weightLog.create({
+      data: {
+        userId: user.id,
+        localDate: '2026-07-29',
+        measuredAt: new Date('2026-07-29T08:00:00.000Z'),
+        weightKg: 80,
+        source: 'MANUAL'
+      }
+    });
+
+    await request(ctx.app.getHttpServer())
+      .delete('/v1/me/account')
+      .set(authHeader(session.accessToken))
+      .send({ currentPassword: 'wrong-password' })
+      .expect(401);
+    expect(await ctx.prisma.user.count({ where: { id: user.id } })).toBe(1);
+
+    await request(ctx.app.getHttpServer())
+      .delete('/v1/me/account')
+      .set(authHeader(session.accessToken))
+      .send({ currentPassword: 'password123' })
+      .expect(204);
+
+    expect(await ctx.prisma.user.count({ where: { id: user.id } })).toBe(0);
+    expect(await ctx.prisma.weightLog.count({ where: { userId: user.id } })).toBe(0);
+    expect(await ctx.prisma.authCode.count({ where: { userId: user.id } })).toBe(0);
+    await request(ctx.app.getHttpServer())
+      .get('/v1/profile')
+      .set(authHeader(session.accessToken))
+      .expect(401);
+  });
+
   async function register(email: string) {
     return request(ctx.app.getHttpServer())
       .post('/v1/auth/register')

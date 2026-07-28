@@ -68,6 +68,10 @@ assertIncludes(profile, [
   'AppFeedbackSheet',
   'PlanImpactPromptCard',
   'GoalsForm',
+  'deleteAccount',
+  "t('settings.deleteAccount')",
+  'currentPassword',
+  'clearSession',
   "router.push('/health-data')",
   'useUnsavedChangesGuard',
   'setValue(savedValue)'

@@ -5,10 +5,12 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './auth.controller';
 import { AuthCodeService } from './auth-code.service';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 import { AuthService } from './auth.service';
 import { DevelopmentEmailDeliveryService } from './development-email-delivery.service';
 import { EMAIL_DELIVERY_SERVICE } from './email-delivery.token';
 import { ResendEmailDeliveryService } from './resend-email-delivery.service';
+import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -29,6 +31,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   providers: [
     AuthService,
     AuthCodeService,
+    AuthRateLimitService,
+    AuthRateLimitGuard,
     JwtStrategy,
     DevelopmentEmailDeliveryService,
     ResendEmailDeliveryService,

@@ -514,7 +514,18 @@ export const frFR = createLocaleResource({
     languagePlanRecreateAction: 'Recreer le plan',
     languagePlanKeepCurrentAction: 'Garder le plan actuel',
     languagePlanRecreated: 'Le plan du jour a ete recree dans la langue choisie.',
-    languagePlanRecreateFailed: 'Impossible de recreer le plan du jour. Votre plan actuel reste disponible.'
+    languagePlanRecreateFailed: 'Impossible de recreer le plan du jour. Votre plan actuel reste disponible.',
+    privacyCopy: 'Gerez vos donnees de sante ou supprimez definitivement votre compte OptiMe.',
+    accountControlHelp: 'La suppression du compte efface votre profil, vos plans, votre historique et les donnees de sante importees.',
+    deleteAccount: 'Supprimer le compte',
+    deleteAccountHelp: 'Saisissez votre mot de passe actuel pour supprimer definitivement ce compte et ses donnees OptiMe.',
+    currentPassword: 'Mot de passe actuel',
+    deleteAccountConfirmTitle: 'Supprimer definitivement votre compte ?',
+    deleteAccountConfirmMessage: 'Cette action est irreversible. Votre profil, vos plans, votre historique et vos donnees de sante importees seront supprimes.',
+    deleteAccountConfirmAction: 'Supprimer definitivement',
+    deletingAccount: 'Suppression du compte...',
+    deleteAccountFailed: "Le compte n'a pas ete supprime",
+    deleteAccountFailedHelp: 'Verifiez votre mot de passe actuel et votre connexion, puis reessayez.'
   },
   food: {
       swapIngredient: 'Remplacer',
