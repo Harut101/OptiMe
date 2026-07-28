@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { resolveSupportedLocale } from '@optime/shared-types';
 
@@ -147,6 +147,7 @@ export default function WorkoutSessionScreen() {
           title={t('workout.unavailable')}
           message={t('errors.unableLoad')}
           actionTitle={t('common.retry')}
+          actionLoading={session.isRefetching}
           onAction={() => session.refetch()}
         />
       </Screen>
@@ -210,6 +211,14 @@ export default function WorkoutSessionScreen() {
           completed={completed}
           thumbnailUrl={progress.exerciseId ? summaryById.get(progress.exerciseId)?.thumbnail?.url : undefined}
           saving={setMutation.isPending || exerciseMutation.isPending}
+          pendingSetIndex={
+            setMutation.isPending && setMutation.variables?.progressId === progress.id
+              ? setMutation.variables.setIndex
+              : undefined
+          }
+          exercisePending={
+            exerciseMutation.isPending && exerciseMutation.variables?.progressId === progress.id
+          }
           onToggleSet={(setIndex, nextCompleted) =>
             setMutation.mutate({ progressId: progress.id, setIndex, completed: nextCompleted })
           }
@@ -226,7 +235,7 @@ export default function WorkoutSessionScreen() {
       {!completed ? (
         <Button
           title={completeMutation.isPending ? t('workout.saving') : t('workout.finishWorkout')}
-          disabled={completeMutation.isPending}
+          loading={completeMutation.isPending}
           onPress={() => {
             if (isPartial) {
               setPartialFinishVisible(true);
@@ -244,7 +253,7 @@ export default function WorkoutSessionScreen() {
         tone="warning"
         onClose={() => setPartialFinishVisible(false)}
         actions={[
-          { label: t('workout.finishEarly'), onPress: () => completeMutation.mutate(true), variant: 'primary', disabled: completeMutation.isPending },
+          { label: t('workout.finishEarly'), onPress: () => completeMutation.mutate(true), variant: 'primary', disabled: completeMutation.isPending, loading: completeMutation.isPending },
           { label: t('common.cancel'), onPress: () => setPartialFinishVisible(false), variant: 'secondary', disabled: completeMutation.isPending }
         ]}
       />
@@ -257,6 +266,8 @@ function WorkoutExerciseCard({
   completed,
   thumbnailUrl,
   saving,
+  pendingSetIndex,
+  exercisePending,
   onToggleSet,
   onToggleExercise,
   onOpenExercise
@@ -265,6 +276,8 @@ function WorkoutExerciseCard({
   completed: boolean;
   thumbnailUrl?: string;
   saving: boolean;
+  pendingSetIndex?: number;
+  exercisePending: boolean;
   onToggleSet: (setIndex: number, completed: boolean) => void;
   onToggleExercise: (completed: boolean) => void;
   onOpenExercise?: () => void;
@@ -296,11 +309,12 @@ function WorkoutExerciseCard({
           <View style={styles.setGrid}>
             {Array.from({ length: progress.plannedSets! }, (_, index) => {
               const checked = progress.completedSetIndexes.includes(index);
+              const loading = pendingSetIndex === index;
               return (
                 <Pressable
                   key={index}
                   accessibilityRole="checkbox"
-                  accessibilityState={{ checked, disabled: completed || saving }}
+                  accessibilityState={{ checked, disabled: completed || saving, busy: loading }}
                   accessibilityLabel={t('workout.setAccessibility', {
                     exercise: progress.exerciseNameSnapshot,
                     index: String(index + 1),
@@ -316,7 +330,14 @@ function WorkoutExerciseCard({
                     pressed && !completed && styles.pressed
                   ]}
                 >
-                  <Text style={checked ? styles.setTextChecked : styles.setText}>{index + 1}</Text>
+                  {loading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={checked ? colors.textOnAccent : colors.textPrimary}
+                    />
+                  ) : (
+                    <Text style={checked ? styles.setTextChecked : styles.setText}>{index + 1}</Text>
+                  )}
                 </Pressable>
               );
             })}
@@ -327,6 +348,7 @@ function WorkoutExerciseCard({
           title={progress.isExerciseCompleted ? t('workout.markExerciseIncomplete') : t('workout.markExerciseComplete')}
           variant={progress.isExerciseCompleted ? 'primary' : 'secondary'}
           disabled={completed || saving}
+          loading={exercisePending}
           accessibilityLabel={progress.isExerciseCompleted ? t('workout.markExerciseIncomplete') : t('workout.markExerciseComplete')}
           onPress={() => onToggleExercise(!progress.isExerciseCompleted)}
         />
@@ -353,6 +375,11 @@ function PostWorkoutCheckInCard({
   const [feeling, setFeeling] = useState<PostWorkoutFeeling>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
   const [note, setNote] = useState('');
+  const [pendingAction, setPendingAction] = useState<'save' | 'skip' | null>(null);
+
+  useEffect(() => {
+    if (!saving) setPendingAction(null);
+  }, [saving]);
 
   if (session.postWorkoutCheckIn) {
     return (
@@ -414,14 +441,21 @@ function PostWorkoutCheckInCard({
           <View style={styles.postWorkoutActions}>
             <Button
               title={saving ? t('workout.saving') : t('workout.saveFeedback')}
-              disabled={saving || (feeling === 'PAIN_DURING_WORKOUT' && painAreas.length === 0)}
-              onPress={() => onSubmit({ feeling, painAreas, note: note.trim() || null })}
+              loading={saving && pendingAction === 'save'}
+              disabled={feeling === 'PAIN_DURING_WORKOUT' && painAreas.length === 0}
+              onPress={() => {
+                setPendingAction('save');
+                onSubmit({ feeling, painAreas, note: note.trim() || null });
+              }}
             />
             <Button
               title={t('workout.skipCheckIn')}
               variant="secondary"
-              disabled={saving}
-              onPress={() => onSubmit({ feeling: 'SKIPPED', painAreas: [], note: null })}
+              loading={saving && pendingAction === 'skip'}
+              onPress={() => {
+                setPendingAction('skip');
+                onSubmit({ feeling: 'SKIPPED', painAreas: [], note: null });
+              }}
             />
           </View>
         </View>

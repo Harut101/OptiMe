@@ -60,7 +60,12 @@ export default function ExerciseDetailsScreen() {
       ) : detail.isError ? (
         <View style={styles.mediaLoading}>
           <Text variant="muted">{t('plan.imageUnavailable')}</Text>
-          <Button title={t('common.retry')} variant="secondary" onPress={() => detail.refetch()} />
+          <Button
+            title={t('common.retry')}
+            variant="secondary"
+            loading={detail.isRefetching}
+            onPress={() => detail.refetch()}
+          />
         </View>
       ) : <ExerciseMediaCarousel media={detail.data?.media ?? []} t={t} />}
 

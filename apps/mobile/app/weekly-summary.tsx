@@ -30,6 +30,7 @@ export default function WeeklySummaryScreen() {
           title={t('weeklySummary.unavailable')}
           message={t('errors.unableLoad')}
           actionTitle={t('common.retry')}
+          actionLoading={plans.isRefetching || workouts.isRefetching || reflections.isRefetching}
           onAction={() => {
             void plans.refetch();
             void workouts.refetch();

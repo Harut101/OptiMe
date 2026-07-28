@@ -39,6 +39,7 @@ export default function EditTrainingScheduleScreen() {
       title={t('schedule.editWorkout')}
       submitTitle={mutation.isPending ? t('common.saving') : t('schedule.saveChanges')}
       disabled={mutation.isPending}
+      loading={mutation.isPending}
       defaultValues={{
         dayOfWeek: params.dayOfWeek ?? '1',
         localTime: params.localTime ?? '07:30',

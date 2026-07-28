@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight, CircleCheck, Flame, Utensils } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -144,12 +144,14 @@ export function PremiumMealCard({
   meal,
   foodLog,
   disabled,
+  loadingStatus,
   onPress,
   onUpdateStatus
 }: {
   meal: FoodMeal;
   foodLog?: FoodDayLogResponse;
   disabled?: boolean;
+  loadingStatus?: FoodMealProgressStatus;
   onPress: () => void;
   onUpdateStatus: (status: FoodMealProgressStatus) => void;
 }) {
@@ -197,6 +199,7 @@ export function PremiumMealCard({
       <MealStatusControl
         currentStatus={status}
         disabled={disabled}
+        loadingStatus={loadingStatus}
         compact
         onChange={onUpdateStatus}
       />
@@ -207,12 +210,14 @@ export function PremiumMealCard({
 export function MealStatusControl({
   currentStatus,
   disabled,
+  loadingStatus,
   compact = false,
   onChange,
   trailing
 }: {
   currentStatus: FoodMealProgressStatus;
   disabled?: boolean;
+  loadingStatus?: FoodMealProgressStatus;
   compact?: boolean;
   onChange?: (status: FoodMealProgressStatus) => void;
   trailing?: ReactNode;
@@ -225,17 +230,29 @@ export function MealStatusControl({
     <View style={[styles.statusControl, compact ? styles.statusControlCompact : null]}>
       {FOOD_STATUSES.map((status) => {
         const selected = status === currentStatus;
+        const loading = status === loadingStatus;
         return (
           <Pressable
             key={status}
             disabled={disabled || selected || !onChange}
             accessibilityRole="button"
-            accessibilityState={{ selected, disabled: disabled || selected || !onChange }}
+            accessibilityState={{
+              selected,
+              disabled: disabled || selected || !onChange,
+              busy: loading
+            }}
             accessibilityLabel={getMealStatusActionLabel(status, t)}
             onPress={() => onChange?.(status)}
             style={[styles.statusChip, selected ? styles.statusChipSelected : null]}
           >
-            {selected ? <CircleCheck size={13} color={colors.textInverse} /> : null}
+            {loading ? (
+              <ActivityIndicator
+                size="small"
+                color={selected ? colors.textInverse : colors.textPrimary}
+              />
+            ) : selected ? (
+              <CircleCheck size={13} color={colors.textInverse} />
+            ) : null}
             <Text variant="caption" style={[styles.statusChipText, selected ? styles.statusChipTextSelected : null]}>
               {getMealStatusLabel(status, t)}
             </Text>

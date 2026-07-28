@@ -233,7 +233,7 @@ export default function FoodScreen() {
   if (preferences.isError) {
     return (
       <Screen>
-        <StateBlock title={t('food.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => preferences.refetch()} />
+        <StateBlock title={t('food.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} actionLoading={preferences.isRefetching} onAction={() => preferences.refetch()} />
       </Screen>
     );
   }
@@ -306,7 +306,8 @@ export default function FoodScreen() {
           foodPlan={todayPlan.data.plan.nutrition.foodPlan}
           foodLog={foodLog.data}
           isRegenerating={regenerateMenu.isPending}
-          isUpdatingStatus={updateMealStatus.isPending}
+          updatingMealId={updateMealStatus.variables?.mealId}
+          updatingStatus={updateMealStatus.variables?.status}
           onRegenerateMenu={() => setMenuConfirmVisible(true)}
           onOpenMeal={(mealId) =>
             router.push({
@@ -480,7 +481,7 @@ export default function FoodScreen() {
         {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
         {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
         <View style={styles.actions}>
-          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
+          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} loading={mutation.isPending} disabled={mutation.isPending || !dirty} onPress={save} />
           <Button
             title={t('common.cancel')}
             variant="secondary"
@@ -542,7 +543,8 @@ function DailyFoodPlanCard({
   foodPlan,
   foodLog,
   isRegenerating,
-  isUpdatingStatus,
+  updatingMealId,
+  updatingStatus,
   onRegenerateMenu,
   onOpenMeal,
   onUpdateMealStatus
@@ -551,7 +553,8 @@ function DailyFoodPlanCard({
   foodPlan: DailyFoodPlan;
   foodLog?: FoodDayLogResponse;
   isRegenerating: boolean;
-  isUpdatingStatus: boolean;
+  updatingMealId?: string;
+  updatingStatus?: FoodMealProgressStatus;
   onRegenerateMenu: () => void;
   onOpenMeal: (mealId: string) => void;
   onUpdateMealStatus: (mealId: string, status: FoodMealProgressStatus) => void;
@@ -577,7 +580,7 @@ function DailyFoodPlanCard({
           <Button
             title={isRegenerating ? t('food.regeneratingMenu') : t('food.regenerateMenu')}
             variant="secondary"
-            disabled={isRegenerating}
+            loading={isRegenerating}
             accessibilityLabel={t('food.regenerateMenu')}
             onPress={onRegenerateMenu}
             style={styles.compactActionButton}
@@ -589,7 +592,8 @@ function DailyFoodPlanCard({
               key={meal.id}
               meal={meal}
               foodLog={foodLog}
-              disabled={isUpdatingStatus}
+              disabled={Boolean(updatingMealId)}
+              loadingStatus={updatingMealId === meal.id ? updatingStatus : undefined}
               onPress={() => onOpenMeal(meal.id)}
               onUpdateStatus={(status) => onUpdateMealStatus(meal.id, status)}
             />

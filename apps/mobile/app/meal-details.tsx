@@ -84,6 +84,7 @@ export default function MealDetailsScreen() {
         reason: 'User requested a different meal option.'
       }),
     onSuccess: async (data) => {
+      setRegenerateSheetVisible(false);
       setErrorMessage(null);
       setMessage(t('food.mealRegenerated'));
       queryClient.setQueryData(['today-plan'], data);
@@ -104,6 +105,7 @@ export default function MealDetailsScreen() {
     mutationFn: (ingredientName: string) =>
       excludeDailyFoodIngredient(String(params.dailyPlanId), ingredientName),
     onSuccess: async () => {
+      setIngredientToExclude(null);
       setErrorMessage(null);
       setMessage(t('food.ingredientExcluded'));
       await queryClient.invalidateQueries({ queryKey: ['nutrition-preferences'] });
@@ -193,6 +195,7 @@ export default function MealDetailsScreen() {
             <MealStatusControl
               currentStatus={status}
               disabled={updateMealStatus.isPending}
+              loadingStatus={updateMealStatus.variables}
               onChange={(nextStatus) => updateMealStatus.mutate(nextStatus)}
             />
           )}
@@ -202,7 +205,7 @@ export default function MealDetailsScreen() {
         </View>
         <Button
           title={regenerateMeal.isPending ? t('food.regeneratingMeal') : t('food.regenerateMeal')}
-          disabled={regenerateMeal.isPending}
+          loading={regenerateMeal.isPending}
           accessibilityLabel={t('food.regenerateMeal')}
           onPress={() => setRegenerateSheetVisible(true)}
         />
@@ -323,10 +326,8 @@ export default function MealDetailsScreen() {
           {
             label: regenerateMeal.isPending ? t('food.regeneratingMeal') : t('food.regenerateMeal'),
             disabled: regenerateMeal.isPending,
-            onPress: () => {
-              setRegenerateSheetVisible(false);
-              regenerateMeal.mutate();
-            }
+            loading: regenerateMeal.isPending,
+            onPress: () => regenerateMeal.mutate()
           },
           {
             label: t('food.keepCurrentMeal'),
@@ -347,11 +348,10 @@ export default function MealDetailsScreen() {
             label: t('food.excludeIngredient'),
             variant: 'danger',
             disabled: excludeIngredient.isPending || !ingredientToExclude,
+            loading: excludeIngredient.isPending,
             onPress: () => {
               if (!ingredientToExclude) return;
-              const ingredient = ingredientToExclude;
-              setIngredientToExclude(null);
-              excludeIngredient.mutate(ingredient);
+              excludeIngredient.mutate(ingredientToExclude);
             }
           },
           {
@@ -388,6 +388,7 @@ export default function MealDetailsScreen() {
               title={applyIngredientSwap.isPending ? t('common.loading') : t('food.swapIngredient')}
               variant="secondary"
               disabled={applyIngredientSwap.isPending}
+              loading={applyIngredientSwap.isPending && applyIngredientSwap.variables === suggestion.slug}
               accessibilityLabel={t('food.swapIngredientAccessibility', { ingredient: suggestion.name })}
               onPress={() => applyIngredientSwap.mutate(suggestion.slug)}
             />

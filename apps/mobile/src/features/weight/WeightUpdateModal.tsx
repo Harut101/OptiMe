@@ -91,7 +91,7 @@ export function WeightUpdateModal({
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button
           title={isSaving ? t('common.saving') : t('weight.saveWeight')}
-          disabled={isSaving}
+          loading={isSaving}
           style={styles.footerStart}
           onPress={submit}
         />

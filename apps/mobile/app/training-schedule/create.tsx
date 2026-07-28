@@ -26,6 +26,7 @@ export default function CreateTrainingScheduleScreen() {
       title={t('schedule.addWorkout')}
       submitTitle={mutation.isPending ? t('common.saving') : t('schedule.saveWorkout')}
       disabled={mutation.isPending}
+      loading={mutation.isPending}
       defaultValues={{
         dayOfWeek: '1', localTime: '07:30', sportType: 'STRENGTH',
         durationMinutes: '45', intensity: 'MODERATE', description: ''

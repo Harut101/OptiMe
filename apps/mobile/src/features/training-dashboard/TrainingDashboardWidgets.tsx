@@ -245,6 +245,7 @@ export function WorkoutActionCard({
   onAction,
   tone = 'training',
   disabled,
+  loading,
   errorMessage
 }: {
   title: string;
@@ -254,6 +255,7 @@ export function WorkoutActionCard({
   onAction: () => void;
   tone?: Tone;
   disabled?: boolean;
+  loading?: boolean;
   errorMessage?: string | null;
 }) {
   const { colors } = useTheme();
@@ -273,7 +275,7 @@ export function WorkoutActionCard({
       </View>
       <Text variant="muted" style={styles.workoutActionMessage}>{message}</Text>
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      <Button title={actionLabel} onPress={onAction} disabled={disabled} accessibilityLabel={actionLabel} />
+      <Button title={actionLabel} onPress={onAction} disabled={disabled} loading={loading} accessibilityLabel={actionLabel} />
     </Card>
   );
 }

@@ -230,6 +230,20 @@ export default function HealthDataScreen() {
                 ? healthConnectSync.isPending || healthConnectDisconnect.isPending || deleteSyncedData.isPending
                 : false
           }
+          primaryActionPending={
+            source === 'APPLE_HEALTH'
+              ? appleHealthSync.isPending
+              : source === 'HEALTH_CONNECT'
+                ? healthConnectSync.isPending
+                : false
+          }
+          disconnectPending={
+            source === 'APPLE_HEALTH'
+              ? appleHealthDisconnect.isPending
+              : source === 'HEALTH_CONNECT'
+                ? healthConnectDisconnect.isPending
+                : false
+          }
         />
       ))}
 
@@ -274,7 +288,7 @@ export default function HealthDataScreen() {
           <Text variant="muted">{t('health.mockDataHelp')}</Text>
           <Button
             title={mockSnapshot.isPending ? t('health.syncing') : t('health.createMockSnapshot')}
-            disabled={mockSnapshot.isPending}
+            loading={mockSnapshot.isPending}
             accessibilityLabel={t('health.createMockSnapshot')}
             onPress={() => mockSnapshot.mutate()}
           />
@@ -301,6 +315,7 @@ export default function HealthDataScreen() {
             label: deleteSyncedData.isPending ? t('health.deleting') : t('health.deleteData'),
             variant: 'danger',
             disabled: deleteSyncedData.isPending,
+            loading: deleteSyncedData.isPending,
             onPress: () => {
               if (deleteSource) deleteSyncedData.mutate(deleteSource);
             }
@@ -387,7 +402,9 @@ function ConnectionCard({
   onManage,
   onDelete,
   locale,
-  isActionPending = false
+  isActionPending = false,
+  primaryActionPending = false,
+  disconnectPending = false
 }: {
   source: HealthProvider;
   connection?: HealthConnectionFoundation;
@@ -398,6 +415,8 @@ function ConnectionCard({
   onDelete?: () => void;
   locale: string;
   isActionPending?: boolean;
+  primaryActionPending?: boolean;
+  disconnectPending?: boolean;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -436,8 +455,9 @@ function ConnectionCard({
           {isSupportedNativeSource ? <View style={styles.actionRow}>
             {!isConnected ? (
               <Button
-                title={isActionPending ? t('health.connecting') : t('health.connect')}
+                title={primaryActionPending ? t('health.connecting') : t('health.connect')}
                 disabled={isActionPending}
+                loading={primaryActionPending}
                 accessibilityLabel={
                   source === 'APPLE_HEALTH'
                     ? t('health.connectAppleHealth')
@@ -448,8 +468,9 @@ function ConnectionCard({
               />
             ) : (
               <Button
-                title={isActionPending ? t('health.syncing') : t('health.sync')}
+                title={primaryActionPending ? t('health.syncing') : t('health.sync')}
                 disabled={isActionPending}
+                loading={primaryActionPending}
                 accessibilityLabel={
                   source === 'APPLE_HEALTH'
                     ? t('health.syncAppleHealth')
@@ -465,6 +486,7 @@ function ConnectionCard({
                   title={t('health.disconnect')}
                   variant="secondary"
                   disabled={isActionPending}
+                  loading={disconnectPending}
                   accessibilityLabel={
                     source === 'APPLE_HEALTH'
                       ? t('health.disconnectAppleHealth')

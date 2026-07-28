@@ -202,7 +202,7 @@ export default function DailyTrainingOverrideDayScreen() {
       <View style={styles.actions}>
         <Button
           title={saveOverride.isPending ? t('common.saving') : t('common.save')}
-          disabled={saveOverride.isPending}
+          loading={saveOverride.isPending}
           onPress={handleSave}
         />
         <Button

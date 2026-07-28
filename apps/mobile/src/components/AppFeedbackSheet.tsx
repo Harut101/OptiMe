@@ -11,6 +11,7 @@ interface FeedbackAction {
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
+  loading?: boolean;
 }
 
 interface AppFeedbackSheetProps {
@@ -63,6 +64,7 @@ export function AppFeedbackSheet({
             title={action.label}
             variant={action.variant ?? 'primary'}
             disabled={action.disabled}
+            loading={action.loading}
             accessibilityLabel={action.label}
             onPress={action.onPress}
           />

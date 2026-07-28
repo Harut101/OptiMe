@@ -50,7 +50,10 @@ export default function PlanDetailsScreen() {
         tags: selectedTags
       });
     },
-    onSuccess: () => setFeedbackMessage(t('plan.feedbackThanks')),
+    onSuccess: () => {
+      setFeedbackVisible(false);
+      setFeedbackMessage(t('plan.feedbackThanks'));
+    },
     onError: () => setFeedbackErrorVisible(true)
   });
   const handleRefresh = async () => {
@@ -161,11 +164,9 @@ export default function PlanDetailsScreen() {
         {feedbackMessage ? <ContextNoteCard title={t('common.saved')} message={feedbackMessage} tone="success" /> : null}
         <Button
           title={feedback.isPending ? t('common.saving') : t('plan.sendFeedback')}
-          disabled={!rating || feedback.isPending}
-          onPress={() => {
-            feedback.mutate();
-            setFeedbackVisible(false);
-          }}
+          loading={feedback.isPending}
+          disabled={!rating}
+          onPress={() => feedback.mutate()}
         />
       </BottomSheet>
       <AppFeedbackSheet

@@ -362,6 +362,12 @@ assertIncludes(nativeHealthUtils, [
 
 const today = read('app/(tabs)/today.tsx');
 assertIncludes(today, ['ScreenHeader', 'AppToast', "t('today.noPlan')"], 'Today polish');
+assertIncludes(today, [
+  'const planFlowLock = useRef(false)',
+  'planFlowLock.current || planFlowPending || generate.isPending',
+  'actionLoading={planFlowPending || generate.isPending}',
+  'loading={planFlowPending || generate.isPending}'
+], 'Today generation loading guard');
 assert(!today.includes('<ContextNoteCard'), 'Today must not render health sync feedback as permanent page content.');
 assertIncludes(today, [
   "title={t('health.updated')}",
@@ -460,6 +466,24 @@ assertIncludes(mealDetails, [
   "t('food.excludeIngredient')"
 ], 'Meal Details food redesign');
 assert(!mealDetails.includes('Alert.alert'), 'Meal Details must use unified feedback sheets instead of raw alerts.');
+const button = read('src/components/Button.tsx');
+assertIncludes(button, [
+  'const isDisabled = disabled || loading',
+  'accessibilityState={{ disabled: isDisabled, busy: loading }}',
+  '<ActivityIndicator'
+], 'Shared async button loading state');
+const foodDashboardWidgets = read('src/features/food-dashboard/FoodDashboardWidgets.tsx');
+assertIncludes(foodDashboardWidgets, [
+  'loadingStatus?: FoodMealProgressStatus',
+  'busy: loading',
+  '<ActivityIndicator'
+], 'Meal status loading state');
+const workoutSessionAsync = read('app/workout-session.tsx');
+assertIncludes(workoutSessionAsync, [
+  'pendingSetIndex',
+  'busy: loading',
+  '<ActivityIndicator'
+], 'Workout set loading state');
 assertIncludes(training, [
   'ScreenHeader',
   'DailyTrainingPlanContent',

@@ -73,6 +73,7 @@ export default function GoalEditorScreen() {
   const mutation = useMutation({
     mutationFn: saveGoal,
     onSuccess: async (savedGoal) => {
+      setPendingConfirmation(null);
       const next = fromGoalResponse(savedGoal);
       queryClient.setQueryData(['goal'], savedGoal);
       setValue(next);
@@ -109,7 +110,7 @@ export default function GoalEditorScreen() {
   }
 
   if (goal.isError) {
-    return <Screen topSafeArea={false}><StateBlock title={t('goals.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => goal.refetch()} /></Screen>;
+    return <Screen topSafeArea={false}><StateBlock title={t('goals.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} actionLoading={goal.isRefetching} onAction={() => goal.refetch()} /></Screen>;
   }
 
   const save = () => {
@@ -158,7 +159,7 @@ export default function GoalEditorScreen() {
           {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
           {mutation.isError ? <Text style={styles.error}>{getFriendlyGoalErrorMessage(mutation.error, t)}</Text> : null}
           <View style={styles.actions}>
-            <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
+            <Button title={mutation.isPending ? t('common.saving') : t('common.save')} loading={mutation.isPending} disabled={mutation.isPending || !dirty} onPress={save} />
             <Button
               title={t('common.cancel')}
               variant="secondary"
@@ -221,11 +222,10 @@ export default function GoalEditorScreen() {
           {
             label: t('common.save'),
             disabled: mutation.isPending,
+            loading: mutation.isPending,
             onPress: () => {
               if (!pendingConfirmation) return;
-              const payload = pendingConfirmation.payload;
-              setPendingConfirmation(null);
-              mutation.mutate(payload);
+              mutation.mutate(pendingConfirmation.payload);
             }
           },
           {

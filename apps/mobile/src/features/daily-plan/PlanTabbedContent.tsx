@@ -13,7 +13,7 @@ import { WORKOUT_PAIN_AREAS } from '@optime/shared-types';
 import type { WorkoutSessionResponse } from '@optime/shared-types';
 import { useRouter } from 'expo-router';
 import type { TFunction } from 'i18next';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getExerciseSummaries } from '@/api/exercises';
@@ -130,6 +130,7 @@ export function DailyTrainingPlanContent(props: PlanTabbedContentProps) {
       exercises={exercises}
       summaryById={summaryById}
       summariesFailed={summaries.isError}
+      summariesRetrying={summaries.isRefetching}
       onRetrySummaries={() => summaries.refetch()}
       workoutSession={workoutSession.data ?? null}
       workoutSessionUnavailable={workoutSession.isError}
@@ -138,6 +139,9 @@ export function DailyTrainingPlanContent(props: PlanTabbedContentProps) {
       workoutStartPending={startWorkout.isPending}
       workoutStartFailed={startWorkout.isError || preflight.isError || loadReplacementProposals.isError || applyReplacements.isError}
       preWorkoutSaving={startWorkout.isPending || preflight.isPending || loadReplacementProposals.isPending || applyReplacements.isPending}
+      preWorkoutSubmitPending={startWorkout.isPending || preflight.isPending}
+      preWorkoutAdjustPending={loadReplacementProposals.isPending}
+      preWorkoutApplyPending={applyReplacements.isPending}
       preWorkoutConflict={preWorkoutConflict}
       replacementProposals={replacementProposals}
       onStartWorkout={() => setPreWorkoutOpen(true)}
@@ -183,6 +187,7 @@ function TrainingContent(props: PlanTabbedContentProps & {
   exercises: DailyPlanJson['training']['exercises'];
   summaryById: Map<string, ExerciseListItem>;
   summariesFailed: boolean;
+  summariesRetrying: boolean;
   onRetrySummaries: () => void;
   workoutSession: WorkoutSessionResponse | null;
   workoutSessionUnavailable: boolean;
@@ -191,6 +196,9 @@ function TrainingContent(props: PlanTabbedContentProps & {
   workoutStartPending: boolean;
   workoutStartFailed: boolean;
   preWorkoutSaving: boolean;
+  preWorkoutSubmitPending: boolean;
+  preWorkoutAdjustPending: boolean;
+  preWorkoutApplyPending: boolean;
   preWorkoutConflict: PreWorkoutPreflightResponse | null;
   replacementProposals: TrainingReplacementProposalsResponse | null;
   onStartWorkout: () => void;
@@ -258,6 +266,9 @@ function TrainingContent(props: PlanTabbedContentProps & {
         <PreWorkoutCheckCard
           t={t}
           saving={props.preWorkoutSaving}
+          submitPending={props.preWorkoutSubmitPending}
+          adjustPending={props.preWorkoutAdjustPending}
+          applyPending={props.preWorkoutApplyPending}
           conflict={props.preWorkoutConflict}
           replacementProposals={props.replacementProposals}
           onCancel={props.onCancelPreWorkout}
@@ -275,7 +286,7 @@ function TrainingContent(props: PlanTabbedContentProps & {
           {props.summariesFailed ? (
             <View style={styles.mediaError}>
               <Text variant="muted">{t('plan.mediaUnavailableCards')}</Text>
-              <Button title={t('common.retry')} variant="secondary" onPress={props.onRetrySummaries} />
+              <Button title={t('common.retry')} variant="secondary" loading={props.summariesRetrying} onPress={props.onRetrySummaries} />
             </View>
           ) : null}
           {exercises.map((exercise, index) => (
@@ -300,6 +311,9 @@ function TrainingContent(props: PlanTabbedContentProps & {
 function PreWorkoutCheckCard({
   t,
   saving,
+  submitPending,
+  adjustPending,
+  applyPending,
   conflict,
   replacementProposals,
   onCancel,
@@ -312,6 +326,9 @@ function PreWorkoutCheckCard({
 }: {
   t: TFunction;
   saving: boolean;
+  submitPending: boolean;
+  adjustPending: boolean;
+  applyPending: boolean;
   conflict: PreWorkoutPreflightResponse | null;
   replacementProposals: TrainingReplacementProposalsResponse | null;
   onCancel: () => void;
@@ -327,8 +344,15 @@ function PreWorkoutCheckCard({
   const [readinessStatus, setReadinessStatus] = useState<PreWorkoutReadinessStatus>('GOOD');
   const [painAreas, setPainAreas] = useState<WorkoutPainArea[]>([]);
   const [note, setNote] = useState('');
+  const [pendingSubmitAction, setPendingSubmitAction] = useState<'continue' | 'skip' | null>(null);
   const isPainContext = readinessStatus === 'PAIN_OR_LIMITATION';
+
+  useEffect(() => {
+    if (!submitPending) setPendingSubmitAction(null);
+  }, [submitPending]);
+
   const submit = (status = readinessStatus) => {
+    setPendingSubmitAction(status === 'SKIPPED' ? 'skip' : 'continue');
     const includePainContext = status === 'PAIN_OR_LIMITATION';
     onSubmit({
       readinessStatus: status,
@@ -360,6 +384,8 @@ function PreWorkoutCheckCard({
               t={t}
               proposals={replacementProposals}
               saving={saving}
+              applyPending={applyPending}
+              submitPending={submitPending}
               onApply={onApplyReplacements}
               onRestToday={onRestToday}
               onContinueWithCaution={onContinueWithCaution}
@@ -371,6 +397,7 @@ function PreWorkoutCheckCard({
                 <Button
                   title={saving ? t('workout.saving') : t('workout.adjustTodaysWorkout')}
                   disabled={saving}
+                  loading={adjustPending}
                   onPress={onAdjustWorkout}
                 />
                 <Button
@@ -382,8 +409,11 @@ function PreWorkoutCheckCard({
                 <Button
                   title={t('workout.continueWithCaution')}
                   variant="secondary"
-                  disabled={saving}
-                  onPress={onContinueWithCaution}
+                  loading={submitPending}
+                  onPress={() => {
+                    setPendingSubmitAction('continue');
+                    onContinueWithCaution();
+                  }}
                 />
               </>
             ) : null}
@@ -425,14 +455,15 @@ function PreWorkoutCheckCard({
           <View style={styles.preWorkoutActions}>
             <Button
               title={saving ? t('workout.saving') : t('workout.continueToWorkout')}
-              disabled={saving || (isPainContext && painAreas.length === 0)}
+              loading={submitPending && pendingSubmitAction === 'continue'}
+              disabled={isPainContext && painAreas.length === 0}
               accessibilityLabel={t('workout.continueToWorkout')}
               onPress={() => submit()}
             />
             <Button
               title={t('workout.skipPreWorkoutCheck')}
               variant="secondary"
-              disabled={saving}
+              loading={submitPending && pendingSubmitAction === 'skip'}
               accessibilityLabel={t('workout.skipPreWorkoutCheck')}
               onPress={() => submit('SKIPPED')}
             />
@@ -455,6 +486,8 @@ function ReplacementProposalReview({
   t,
   proposals,
   saving,
+  applyPending,
+  submitPending,
   onApply,
   onRestToday,
   onContinueWithCaution
@@ -462,6 +495,8 @@ function ReplacementProposalReview({
   t: TFunction;
   proposals: TrainingReplacementProposalsResponse;
   saving: boolean;
+  applyPending: boolean;
+  submitPending: boolean;
   onApply: () => void;
   onRestToday: () => void;
   onContinueWithCaution: () => void;
@@ -498,7 +533,7 @@ function ReplacementProposalReview({
         {hasProposals ? (
           <Button
             title={saving ? t('workout.saving') : t('workout.applyReplacements')}
-            disabled={saving}
+            loading={applyPending}
             onPress={onApply}
           />
         ) : null}
@@ -511,7 +546,7 @@ function ReplacementProposalReview({
         <Button
           title={t('workout.continueWithCaution')}
           variant="secondary"
-          disabled={saving}
+          loading={submitPending}
           onPress={onContinueWithCaution}
         />
       </View>
@@ -548,6 +583,7 @@ function WorkoutSessionCard({
       statusLabel={completed ? t('workout.workoutCompleted') : session ? t('workout.progress') : undefined}
       actionLabel={session ? (completed ? t('workout.viewWorkout') : t('workout.continueWorkout')) : (startPending ? t('workout.saving') : t('workout.startWorkout'))}
       disabled={!session && (startPending || loading || unavailable)}
+      loading={!session && startPending}
       errorMessage={startFailed ? t('workout.saveFailed') : unavailable ? t('workout.statusUnavailable') : session?.summary.isPartial ? t('workout.partialWorkoutSaved') : null}
       tone={completed ? 'success' : 'training'}
       onAction={() => {

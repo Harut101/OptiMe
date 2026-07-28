@@ -172,7 +172,7 @@ function PersonalSection() {
   });
 
   if (profile.isLoading) return <View style={styles.section}><CardSkeleton variant="detail" /></View>;
-  if (profile.isError) return <StateBlock title={t('profile.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => profile.refetch()} />;
+  if (profile.isError) return <StateBlock title={t('profile.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} actionLoading={profile.isRefetching} onAction={() => profile.refetch()} />;
 
   const save = () => {
     const result = profileSchema.safeParse(toProfileRequest(value));
@@ -230,7 +230,7 @@ function PersonalSection() {
         <PersonalProfileForm value={value} onChange={setValue} />
         {mutation.isError ? <Text style={styles.error}>{mutation.error.message}</Text> : null}
         <View style={styles.actions}>
-          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
+          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} loading={mutation.isPending} disabled={mutation.isPending || !dirty} onPress={save} />
           <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={() => { setValue(savedValue); setEditing(false); setToastMessage(null); }} />
         </View>
       </BottomSheet>
@@ -343,6 +343,7 @@ function GoalNutritionSection() {
   const mutation = useMutation({
     mutationFn: saveGoal,
     onSuccess: async (savedGoal) => {
+      setPendingConfirmation(null);
       const next = fromGoalResponse(savedGoal);
       queryClient.setQueryData(['goal'], savedGoal);
       setValue(next);
@@ -459,7 +460,7 @@ function GoalNutritionSection() {
         {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
         {mutation.isError ? <Text style={styles.error}>{getFriendlyGoalErrorMessage(mutation.error, t)}</Text> : null}
         <View style={styles.actions}>
-          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} disabled={mutation.isPending || !dirty} onPress={save} />
+          <Button title={mutation.isPending ? t('common.saving') : t('common.save')} loading={mutation.isPending} disabled={mutation.isPending || !dirty} onPress={save} />
           <Button title={t('common.cancel')} variant="secondary" disabled={mutation.isPending} onPress={closeEditor} />
         </View>
       </BottomSheet>
@@ -476,10 +477,10 @@ function GoalNutritionSection() {
           {
             label: t('common.save'),
             disabled: mutation.isPending,
+            loading: mutation.isPending,
             onPress: () => {
               if (!pendingConfirmation) return;
               mutation.mutate(pendingConfirmation.payload);
-              setPendingConfirmation(null);
             }
           },
           {
@@ -630,6 +631,7 @@ function TrainingHubSection() {
             <View style={styles.actions}>
               <Button
                 title={save.isPending ? t('common.saving') : t('common.save')}
+                loading={save.isPending}
                 disabled={save.isPending || !dirty}
                 onPress={() => save.mutate(toTrainingPreferenceRequest(value))}
               />
@@ -912,7 +914,12 @@ function SettingsSection() {
         {settings.isError ? (
           <>
             <Text style={styles.error}>{t('settings.loadError')}</Text>
-            <Button title={t('common.retry')} variant="secondary" onPress={() => settings.refetch()} />
+            <Button
+              title={t('common.retry')}
+              variant="secondary"
+              loading={settings.isRefetching}
+              onPress={() => settings.refetch()}
+            />
           </>
         ) : null}
         {!settings.isLoading && !settings.isError ? (
@@ -954,7 +961,8 @@ function SettingsSection() {
               ? t('common.loading')
               : t('settings.languagePlanRecreateAction'),
             onPress: () => recreateLanguagePlan.mutate(),
-            disabled: recreateLanguagePlan.isPending
+            disabled: recreateLanguagePlan.isPending,
+            loading: recreateLanguagePlan.isPending
           },
           {
             label: t('settings.languagePlanKeepCurrentAction'),
@@ -994,6 +1002,7 @@ function SettingsSection() {
         <View style={styles.actions}>
           <Button
             title={mutation.isPending ? t('common.saving') : t('settings.save')}
+            loading={mutation.isPending}
             disabled={mutation.isPending || !dirty}
             onPress={() => mutation.mutate({ preferredLocale, measurementSystem, themePreference })}
           />

@@ -39,6 +39,7 @@ export default function WorkoutHistoryScreen() {
           title={t('workout.historyUnavailable')}
           message={t('errors.unableLoad')}
           actionTitle={t('common.retry')}
+          actionLoading={history.isRefetching}
           onAction={() => history.refetch()}
         />
       </Screen>

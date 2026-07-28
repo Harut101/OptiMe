@@ -32,6 +32,7 @@ export default function TrainingScreen() {
           title={t('training.unavailable')}
           message={t('errors.unableLoad')}
           actionTitle={t('common.retry')}
+          actionLoading={today.isRefetching || goal.isRefetching}
           onAction={() => {
             void today.refetch();
             void goal.refetch();

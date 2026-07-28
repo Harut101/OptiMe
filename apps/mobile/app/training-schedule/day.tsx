@@ -161,6 +161,7 @@ export default function TrainingScheduleDayScreen() {
       <View style={styles.actions}>
         <Button
           title={isSaving ? t('common.saving') : t('common.save')}
+          loading={isSaving}
           disabled={isSaving || (!dirty && returnToGenerate !== '1')}
           onPress={handleSave}
         />

@@ -74,7 +74,7 @@ export function PlanImpactPromptCard({
       <View style={styles.actions}>
         <Button
           title={isUpdating ? t('today.refreshing') : primaryLabel}
-          disabled={isUpdating}
+          loading={isUpdating}
           onPress={onUpdateToday}
         />
         <Button

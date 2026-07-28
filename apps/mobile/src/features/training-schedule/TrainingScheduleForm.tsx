@@ -23,6 +23,7 @@ interface TrainingScheduleFormProps {
   title: string;
   submitTitle: string;
   disabled?: boolean;
+  loading?: boolean;
   defaultValues: TrainingScheduleFormValues;
   onSubmit: (values: TrainingScheduleFormValues) => void;
 }
@@ -31,6 +32,7 @@ export function TrainingScheduleForm({
   title,
   submitTitle,
   disabled,
+  loading,
   defaultValues,
   onSubmit
 }: TrainingScheduleFormProps) {
@@ -100,7 +102,7 @@ export function TrainingScheduleForm({
         )}
       />
 
-      <Button title={submitTitle} disabled={disabled} onPress={form.handleSubmit(onSubmit)} />
+      <Button title={submitTitle} disabled={disabled} loading={loading} onPress={form.handleSubmit(onSubmit)} />
     </Screen>
   );
 }

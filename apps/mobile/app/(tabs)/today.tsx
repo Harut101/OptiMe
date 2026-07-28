@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
@@ -108,6 +108,8 @@ export default function TodayScreen() {
     useState<string | null>(null);
   const [handledRoutineReturn, setHandledRoutineReturn] = useState(false);
   const [handledOverrideReturn, setHandledOverrideReturn] = useState(false);
+  const [planFlowPending, setPlanFlowPending] = useState(false);
+  const planFlowLock = useRef(false);
   const todayLocalDate = getLocalDateString();
   const today = useQuery({
     queryKey: ['today-plan'],
@@ -471,6 +473,7 @@ export default function TodayScreen() {
           title={t('today.unavailable')}
           message={t('errors.unableLoad')}
           actionTitle={t('common.retry')}
+          actionLoading={today.isRefetching}
           onAction={() => today.refetch()}
         />
       </Screen>
@@ -595,6 +598,7 @@ export default function TodayScreen() {
             title={t('today.noPlan')}
             message={t('today.noPlanMessage')}
             actionTitle={generate.isPending ? t('today.generating') : t('today.generate')}
+            actionLoading={planFlowPending || generate.isPending}
             onAction={() => handleGeneratePlan(false)}
           />
         </>
@@ -610,21 +614,21 @@ export default function TodayScreen() {
           <Button
             title={generate.isPending ? t('today.refreshing') : t('today.refresh')}
             variant="secondary"
-            disabled={generate.isPending}
+            loading={planFlowPending || generate.isPending}
             onPress={() => handleGeneratePlan(true)}
           />
           {trainingEnabled ? (
             <Button
               title={t('trainingOverrides.restTodayOnly')}
               variant="ghost"
-              disabled={generate.isPending}
+              disabled={planFlowPending || generate.isPending}
               onPress={handleRestTodayOnly}
             />
           ) : null}
           <Button
             title={t('eveningReflection.open')}
             variant="ghost"
-            disabled={generate.isPending}
+            disabled={planFlowPending || generate.isPending}
             onPress={() => setEveningReflectionVisible(true)}
           />
         </>
@@ -730,12 +734,16 @@ export default function TodayScreen() {
   );
 
   async function handleGeneratePlan(forceRegenerate: boolean) {
-    if (forceRegenerate || appMode === 'NUTRITION_ONLY') {
-      await continueThroughHealthReadiness(forceRegenerate);
-      return;
-    }
+    if (planFlowLock.current || planFlowPending || generate.isPending) return;
+    planFlowLock.current = true;
+    setPlanFlowPending(true);
 
     try {
+      if (forceRegenerate || appMode === 'NUTRITION_ONLY') {
+        await continueThroughHealthReadiness(forceRegenerate);
+        return;
+      }
+
       const schedule = trainingSchedule.data ?? await queryClient.fetchQuery({
         queryKey: ['training-schedule'],
         queryFn: getTrainingSchedule
@@ -809,6 +817,9 @@ export default function TodayScreen() {
       );
     } catch {
       Alert.alert(t('schedule.unavailable'), t('errors.unableLoad'));
+    } finally {
+      planFlowLock.current = false;
+      setPlanFlowPending(false);
     }
   }
 

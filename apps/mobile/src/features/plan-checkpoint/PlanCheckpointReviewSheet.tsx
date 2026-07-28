@@ -83,7 +83,7 @@ export function PlanCheckpointReviewSheet({
           <View style={styles.actions}>
             <Button
               title={isResolving ? t('checkpoint.applying') : t('checkpoint.apply')}
-              disabled={isResolving}
+              loading={isResolving}
               onPress={onApply}
             />
             <Button

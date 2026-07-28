@@ -82,7 +82,7 @@ export default function WeeklyRoutineScreen() {
   if (schedule.isError || !schedule.data) {
     return (
       <Screen topSafeArea={false}>
-        <StateBlock title={t('schedule.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} onAction={() => schedule.refetch()} />
+        <StateBlock title={t('schedule.unavailable')} message={t('errors.unableLoad')} actionTitle={t('common.retry')} actionLoading={schedule.isRefetching} onAction={() => schedule.refetch()} />
       </Screen>
     );
   }
@@ -119,13 +119,14 @@ export default function WeeklyRoutineScreen() {
       <View style={styles.actions}>
         <Button
           title={save.isPending ? t('common.saving') : t('schedule.saveSchedule')}
+          loading={save.isPending}
           disabled={save.isPending || deactivate.isPending || !dirty}
           onPress={() => save.mutate({ ...effectiveDraft, isActive: true } as TrainingScheduleRequest)}
         />
         {!schedule.data.isActive ? (
           <Button title={t('schedule.createSchedule')} variant="secondary" disabled={save.isPending} onPress={() => setDraft(createSuggestedDraft(schedule.data.derivedWeeklyFrequency || 3))} />
         ) : (
-          <Button title={t('schedule.deactivateSchedule')} variant="secondary" disabled={deactivate.isPending} onPress={() => deactivate.mutate()} />
+          <Button title={t('schedule.deactivateSchedule')} variant="secondary" loading={deactivate.isPending} onPress={() => deactivate.mutate()} />
         )}
       </View>
       <PlanImpactPromptCard
