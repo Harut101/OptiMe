@@ -5,14 +5,16 @@ release tooling, not a payment system, customer paywall, or usage charge.
 
 ## Source Data
 
-The benchmark reads successful `AiRequestLog` rows for a rolling period, 30 days
-by default. It uses:
+The benchmark reads successful `AiRequestLog` rows and aggregate OpenAI
+`AiOperationLog` rows for a rolling period, 30 days by default. It uses:
 
 - internal route: `LUNA`, `TERRA`, or `SOL`;
 - agent and operation;
 - retry-aware request rows;
 - input/output token counts;
 - estimated integer micro-USD.
+- final persisted Daily Plan status;
+- operation-level retry count and safe fallback/error outcome.
 
 It does not read or print prompts, plan JSON, profiles, health samples, user
 notes, API keys, raw provider responses, or user IDs.
@@ -55,6 +57,11 @@ AI_PRICE_PRO_MONTHLY_USD=39.99
 AI_MONTHLY_COST_CEILING_FREE_USD=
 AI_MONTHLY_COST_CEILING_PLUS_USD=
 AI_MONTHLY_COST_CEILING_PRO_USD=
+AI_QUALITY_MIN_TIER_SAMPLES=30
+AI_QUALITY_MIN_TELEMETRY_COVERAGE_PERCENT=95
+AI_QUALITY_MIN_READY_RATE_PERCENT=98
+AI_QUALITY_MAX_FALLBACK_RATE_PERCENT=2
+AI_QUALITY_MAX_RETRY_RATE_PERCENT=25
 ```
 
 The documented prices are provisional internal assumptions, not customer-facing
@@ -72,19 +79,21 @@ Inspect the report without failing the shell:
 Use the strict release gate:
 
 ```powershell
-& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:gate
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:gate
 ```
 
-The strict command exits non-zero unless the overall result is `PASS`.
+`ai-cost:gate` remains a backward-compatible alias. The strict command exits
+non-zero unless both unit economics and final plan quality are `PASS`.
 
 ## Verdicts
 
-- `PASS`: each tier has enough priced samples and stays inside all configured
-  guardrails.
+- `PASS`: each tier has enough priced and quality samples and stays inside all
+  configured cost, READY, fallback, and retry guardrails.
 - `FAIL`: data is sufficient, but a p95 ceiling or paid-tier median/p95
   net-receipt guardrail is exceeded.
-- `INSUFFICIENT_DATA`: the gate is missing tier samples, priced coverage, or a
-  monthly ceiling. It never converts missing data into a green result.
+- `INSUFFICIENT_DATA`: the gate is missing tier samples, priced coverage,
+  operation-quality coverage, or a monthly ceiling. It never converts missing
+  data into a green result.
 
 For `PLUS` and `PRO`, median AI cost must be at most 15% of estimated net receipt
 and p95 must be at most 25%. The net receipt applies the configured conservative
@@ -109,6 +118,13 @@ isolated single prompts. The staging sample should include:
 Each route needs at least the configured number of distinct monthly user samples.
 Partial or artificial data may test the command, but it must not approve launch
 pricing.
+
+The quality gate uses final persisted plan outcomes rather than treating every
+provider response as successful. A complete backend-owned deterministic
+replacement may remain user-visible as `READY`, while its aggregate operation
+still records fallback provenance. Provider errors and true final `FALLBACK`
+plans lower the READY rate. Historical operation rows without route or final
+status lower telemetry coverage and cannot silently pass the gate.
 
 ## Model Recalibration Gate
 
@@ -151,5 +167,6 @@ high-risk feedback intentionally retains one conservative full retry.
 
 The pre-request operational ceiling and this reporting gate use priced telemetry.
 Historical unpriced rows are excluded from cost distributions and reduce priced
+coverage. Historical operation rows without quality fields reduce quality
 coverage. A provider request may cross the ceiling because its exact cost is only
 known after completion; later requests are then blocked.

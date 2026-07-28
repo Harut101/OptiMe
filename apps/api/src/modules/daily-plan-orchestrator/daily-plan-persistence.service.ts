@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
+  AiRequestAgent,
   AiOperationFeature,
   AiOperationProvider,
   AiOperationStatus,
@@ -10,6 +10,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
 import { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
@@ -28,7 +29,7 @@ export class DailyPlanPersistenceService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
+    private readonly aiModelRouter: AiModelRouterService,
     private readonly aiOperationLogs: AiOperationLogsService
   ) {}
 
@@ -87,11 +88,14 @@ export class DailyPlanPersistenceService {
       userId: input.userId,
       feature: AiOperationFeature.DAILY_PLAN,
       provider: this.getProvider(input.operation),
+      route: this.getRoute(input.operation),
+      planQualityMode: input.operation.planQualityMode,
       model: this.getModel(input.operation),
       status:
         input.status === PlanStatus.READY && adjustedSections.length === 0
           ? AiOperationStatus.SUCCESS
           : AiOperationStatus.FALLBACK,
+      finalPlanStatus: input.status,
       latencyMs: input.latencyMs,
       retryCount: this.getRetryUsed(input.planJson) ? 1 : 0,
       safetyAgentEnabled: input.operation.safetyAgentEnabled,
@@ -107,8 +111,11 @@ export class DailyPlanPersistenceService {
       userId: input.userId,
       feature: AiOperationFeature.DAILY_PLAN,
       provider: this.getProvider(input.operation),
+      route: this.getRoute(input.operation),
+      planQualityMode: input.operation.planQualityMode,
       model: this.getModel(input.operation),
       status: AiOperationStatus.ERROR,
+      finalPlanStatus: null,
       latencyMs: input.latencyMs,
       retryCount: 0,
       safetyAgentEnabled: input.operation.safetyAgentEnabled,
@@ -138,9 +145,28 @@ export class DailyPlanPersistenceService {
   }
 
   private getModel(operation: DailyPlanOperationContext) {
-    return operation.provider === 'openai'
-      ? this.configService.get<string>('OPENAI_DEFAULT_MODEL') ?? null
-      : null;
+    if (
+      operation.provider !== 'openai' ||
+      operation.planQualityMode === null
+    ) {
+      return null;
+    }
+
+    try {
+      return this.aiModelRouter.resolve({
+        agent: AiRequestAgent.DAILY_PLAN,
+        planQualityMode: operation.planQualityMode
+      }).model;
+    } catch {
+      // Observability must remain best-effort and never break generation.
+      return null;
+    }
+  }
+
+  private getRoute(operation: DailyPlanOperationContext) {
+    return operation.planQualityMode === null
+      ? null
+      : this.aiModelRouter.resolveRoute(operation.planQualityMode);
   }
 
   private getFallbackReason(planJson: DailyPlanJson) {

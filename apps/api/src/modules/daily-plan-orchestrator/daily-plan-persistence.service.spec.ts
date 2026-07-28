@@ -1,11 +1,13 @@
 import {
+  AiModelRoute,
   AiOperationProvider,
   AiOperationStatus,
+  PlanQualityMode,
   PlanStatus
 } from '@prisma/client';
-import type { ConfigService } from '@nestjs/config';
 
 import type { PrismaService } from '../../prisma/prisma.service';
+import type { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
 import type { AiOperationLogsService } from '../ai-operation-logs/ai-operation-logs.service';
 import { OpenAiProviderError } from '../ai/open-ai-provider.error';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
@@ -40,8 +42,11 @@ describe('DailyPlanPersistenceService', () => {
     expect(aiOperationLogs.record).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: AiOperationProvider.OPENAI,
-        model: 'gpt-test',
+        route: AiModelRoute.LUNA,
+        planQualityMode: PlanQualityMode.BASIC,
+        model: 'gpt-luna-test',
         status: AiOperationStatus.FALLBACK,
+        finalPlanStatus: PlanStatus.READY,
         fallbackReason: 'deterministic_training_section_adjustment'
       })
     );
@@ -90,9 +95,35 @@ describe('DailyPlanPersistenceService', () => {
     expect(aiOperationLogs.record).toHaveBeenCalledWith(
       expect.objectContaining({
         status: AiOperationStatus.ERROR,
+        finalPlanStatus: null,
         errorReason: 'openai_timeout'
       })
     );
+  });
+
+  it('does not misattribute an error before plan quality is resolved to LUNA', async () => {
+    const { service, aiOperationLogs, aiModelRouter } = createService();
+
+    await service.recordGenerationError({
+      userId: 'user-1',
+      latencyMs: 5,
+      error: new Error('early failure'),
+      operation: {
+        provider: 'openai',
+        planQualityMode: null,
+        safetyAgentEnabled: false,
+        safetyAgentProvider: 'mock'
+      }
+    });
+
+    expect(aiOperationLogs.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        route: null,
+        planQualityMode: null,
+        model: null
+      })
+    );
+    expect(aiModelRouter.resolve).not.toHaveBeenCalled();
   });
 
   it('does not fail plan persistence when operation logging throws', async () => {
@@ -126,19 +157,21 @@ function createService() {
   const prisma = {
     dailyPlan: { create, update }
   };
-  const configService = {
-    get: jest.fn((key: string) =>
-      key === 'OPENAI_DEFAULT_MODEL' ? 'gpt-test' : undefined
-    )
+  const aiModelRouter = {
+    resolveRoute: jest.fn(() => AiModelRoute.LUNA),
+    resolve: jest.fn(() => ({
+      route: AiModelRoute.LUNA,
+      model: 'gpt-luna-test'
+    }))
   };
   const aiOperationLogs = { record };
   const service = new DailyPlanPersistenceService(
     prisma as unknown as PrismaService,
-    configService as unknown as ConfigService,
+    aiModelRouter as unknown as AiModelRouterService,
     aiOperationLogs as unknown as AiOperationLogsService
   );
 
-  return { service, prisma, aiOperationLogs };
+  return { service, prisma, aiOperationLogs, aiModelRouter };
 }
 
 function createPlan(
@@ -187,6 +220,7 @@ function createPlanRecord(id: string, data: Record<string, unknown>) {
 function openAiOperation() {
   return {
     provider: 'openai' as const,
+    planQualityMode: PlanQualityMode.BASIC,
     safetyAgentEnabled: true,
     safetyAgentProvider: 'openai'
   };
@@ -195,6 +229,7 @@ function openAiOperation() {
 function mockOperation() {
   return {
     provider: 'mock' as const,
+    planQualityMode: PlanQualityMode.BASIC,
     safetyAgentEnabled: false,
     safetyAgentProvider: 'mock'
   };

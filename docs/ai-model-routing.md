@@ -75,8 +75,16 @@ responses, API keys, auth tokens, or user notes. Writes are best-effort and cann
 turn a successful provider response into a failed plan generation.
 
 `AiOperationLog` remains the aggregate record for the complete daily-plan
-operation. `AiRequestLog` is the request-level source for model, token, retry, and
-estimated-cost analysis. Neither table is billing enforcement or a UsageLedger.
+operation. New operations also record the internal route, `PlanQualityMode`,
+resolved model ID, final persisted `READY`/`FALLBACK` status, retry count, and
+safe fallback/error reason. This lets release QA compare a cheaper route against
+the same user-visible quality outcomes. Historical rows keep these new fields
+null and reduce telemetry coverage rather than being assumed successful.
+
+`AiRequestLog` is the request-level source for model, token, retry, and
+estimated-cost analysis. Neither table stores plan content, prompts, profiles,
+health samples, or user notes. Neither table is billing enforcement or a
+UsageLedger.
 
 ## Optional cost configuration
 
@@ -140,8 +148,16 @@ Evaluate provisional pricing:
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:gate
 ```
 
-The benchmark reports `PASS`, `FAIL`, or `INSUFFICIENT_DATA`. The strict gate
-returns non-zero unless all tiers pass. See
+The benchmark now combines unit economics with final plan quality. The clearer
+release aliases are:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:benchmark
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:gate
+```
+
+The benchmark reports `PASS`, `FAIL`, or `INSUFFICIENT_DATA`. The strict release
+gate returns non-zero unless cost and quality pass for all tiers. See
 [ai-unit-economics.md](./ai-unit-economics.md) for the data-quality requirements
 and representative profile matrix.
 
@@ -150,5 +166,5 @@ Before billing:
 1. Populate current deployment model IDs, prices, and tier ceilings.
 2. Benchmark candidate models against the same representative plan fixtures.
 3. Run representative Free, Plus, and Pro traffic for at least 30 days.
-4. Require the strict unit-economics gate to pass.
+4. Require the strict combined quality and unit-economics gate to pass.
 5. Approve or revise the provisional paid prices before storefront work.

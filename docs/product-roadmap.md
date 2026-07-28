@@ -455,10 +455,11 @@ For minors:
    token/cost telemetry.
 4. Completed: add safely configurable monthly AI cost ceilings, approved Free
    production limits, and an aggregate median/p95 cost report.
-5. In progress: the strict pricing unit-economics gate is implemented. Populate
-   current deployment model IDs/prices/ceilings, collect representative 30-day
-   Free/Plus/Pro telemetry, and require `ai-cost:gate` to pass before billing
-   work.
+5. In progress: the strict combined quality and pricing gate is implemented.
+   Populate current deployment model IDs/prices/ceilings, collect representative
+   30-day Free/Plus/Pro telemetry, and require `ai-release:gate` to pass before
+   billing work. A cheaper Free route is not accepted if READY rate falls or
+   fallback/retry rates exceed the shared quality thresholds.
 6. Freeze new product features for the first release.
 7. Complete privacy, account-control, permission, security, environment, and
    monitoring release readiness.

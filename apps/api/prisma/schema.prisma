@@ -897,8 +897,11 @@ model AiOperationLog {
   userId              String
   feature             AiOperationFeature
   provider            AiOperationProvider
+  route               AiModelRoute?
+  planQualityMode     PlanQualityMode?
   model               String?
   status              AiOperationStatus
+  finalPlanStatus     PlanStatus?
   latencyMs           Int
   retryCount          Int                 @default(0)
   safetyAgentEnabled  Boolean             @default(false)
@@ -914,6 +917,9 @@ model AiOperationLog {
   @@index([feature, createdAt])
   @@index([provider, createdAt])
   @@index([status, createdAt])
+  @@index([route, createdAt])
+  @@index([planQualityMode, createdAt])
+  @@index([finalPlanStatus, createdAt])
 }
 
 model AiRequestLog {

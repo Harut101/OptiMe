@@ -1,4 +1,5 @@
 import {
+  AiOperationProvider,
   AiOperationStatus,
   PrismaClient
 } from '@prisma/client';
@@ -8,6 +9,12 @@ import {
   evaluateAiUnitEconomics,
   readAiUnitEconomicsConfig
 } from '../src/modules/ai-operation-logs/ai-unit-economics';
+import {
+  evaluateAiQualityGate,
+  readAiQualityGateConfig,
+  type AiQualityGateStatus
+} from '../src/modules/ai-operation-logs/ai-quality-gate';
+import { buildAiQualityReport } from '../src/modules/ai-operation-logs/ai-quality-report';
 
 const prisma = new PrismaClient();
 const strict = process.argv.includes('--strict');
@@ -19,8 +26,8 @@ const since = new Date(
   Date.now() - days * 24 * 60 * 60 * 1_000
 );
 
-void prisma.aiRequestLog
-  .findMany({
+void Promise.all([
+  prisma.aiRequestLog.findMany({
     where: {
       status: AiOperationStatus.SUCCESS,
       createdAt: { gte: since }
@@ -32,13 +39,37 @@ void prisma.aiRequestLog
       operation: true,
       estimatedCostMicrousd: true
     }
+  }),
+  prisma.aiOperationLog.findMany({
+    where: {
+      provider: AiOperationProvider.OPENAI,
+      createdAt: { gte: since }
+    },
+    select: {
+      userId: true,
+      route: true,
+      planQualityMode: true,
+      status: true,
+      finalPlanStatus: true,
+      retryCount: true
+    }
   })
-  .then((rows) => {
-    const costReport = buildAiCostReport(rows);
+])
+  .then(([requestRows, operationRows]) => {
+    const costReport = buildAiCostReport(requestRows);
     const economics = evaluateAiUnitEconomics(
       costReport,
       readAiUnitEconomicsConfig(process.env)
     );
+    const qualityReport = buildAiQualityReport(operationRows);
+    const qualityGate = evaluateAiQualityGate(
+      qualityReport,
+      readAiQualityGateConfig(process.env)
+    );
+    const status = aggregateStatus([
+      economics.status,
+      qualityGate.status
+    ]);
 
     console.log(
       JSON.stringify(
@@ -46,17 +77,19 @@ void prisma.aiRequestLog
           periodDays: days,
           since: since.toISOString(),
           currency: 'USD',
-          source: 'AiRequestLog',
-          status: economics.status,
+          sources: ['AiRequestLog', 'AiOperationLog'],
+          status,
           costReport,
-          unitEconomics: economics
+          unitEconomics: economics,
+          qualityReport,
+          qualityGate
         },
         null,
         2
       )
     );
 
-    if (strict && economics.status !== 'PASS') {
+    if (strict && status !== 'PASS') {
       process.exitCode = 2;
     }
   })
@@ -78,4 +111,12 @@ function readPositiveInteger(
   return Number.isFinite(value) && value > 0
     ? Math.trunc(value)
     : fallback;
+}
+
+function aggregateStatus(statuses: AiQualityGateStatus[]) {
+  if (statuses.includes('FAIL')) return 'FAIL' as const;
+  if (statuses.includes('INSUFFICIENT_DATA')) {
+    return 'INSUFFICIENT_DATA' as const;
+  }
+  return 'PASS' as const;
 }

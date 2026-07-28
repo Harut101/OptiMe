@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   type DailyPlan,
+  PlanQualityMode,
   PlanStatus,
   UsageFeature
 } from '@prisma/client';
@@ -41,6 +42,7 @@ export class DailyPlanGenerationUseCaseService {
     this.assertReadyToGenerate(input);
 
     const operationStartedAt = Date.now();
+    let operationPlanQualityMode: PlanQualityMode | null = null;
     const consumedUsage: Array<{ id: string; amount: number }> = [];
 
     try {
@@ -82,6 +84,7 @@ export class DailyPlanGenerationUseCaseService {
         exerciseSelection,
         blockedFoods
       } = generationContext;
+      operationPlanQualityMode = planQualityMode;
       const generationWorkflow =
         await this.orchestrator.executeGenerationWorkflow({
           generateProviderPlan: ({ safetyFeedback } = {}) =>
@@ -240,7 +243,9 @@ export class DailyPlanGenerationUseCaseService {
           status,
           planJson: finalizedPlanResult.planJson,
           latencyMs: Date.now() - operationStartedAt,
-          operation: this.orchestrator.getOperationContext()
+          operation: this.orchestrator.getOperationContext(
+            operationPlanQualityMode
+          )
         });
         return input.existingPlan;
       }
@@ -253,7 +258,9 @@ export class DailyPlanGenerationUseCaseService {
           planTimezone: input.planTimezone,
           result: finalizedPlanResult,
           operationStartedAt,
-          operation: this.orchestrator.getOperationContext()
+          operation: this.orchestrator.getOperationContext(
+            operationPlanQualityMode
+          )
         });
 
       return plan;
@@ -263,7 +270,9 @@ export class DailyPlanGenerationUseCaseService {
         userId: input.userId,
         latencyMs: Date.now() - operationStartedAt,
         error,
-        operation: this.orchestrator.getOperationContext()
+        operation: this.orchestrator.getOperationContext(
+          operationPlanQualityMode
+        )
       });
       throw error;
     }

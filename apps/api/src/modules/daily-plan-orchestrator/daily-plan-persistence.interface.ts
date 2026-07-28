@@ -1,5 +1,6 @@
 import type {
   DailyPlan,
+  PlanQualityMode,
   PlanStatus
 } from '@prisma/client';
 
@@ -8,6 +9,7 @@ import type { DailyPlanSafetyResult } from './daily-plan-safety-orchestrator.int
 
 export interface DailyPlanOperationContext {
   provider: 'mock' | 'openai';
+  planQualityMode: PlanQualityMode | null;
   safetyAgentEnabled: boolean;
   safetyAgentProvider: string;
 }

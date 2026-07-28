@@ -1,4 +1,4 @@
-import type { PlanStatus } from '@prisma/client';
+import type { PlanQualityMode, PlanStatus } from '@prisma/client';
 
 import type {
   GenerateDailyPlanExerciseFeedback,
@@ -130,6 +130,8 @@ export interface DailyPlanOrchestrator {
   canUseSafetyRetry(providerStatus: PlanStatus): boolean;
   getProviderFallbackReason(planJson: unknown): string | undefined;
   getSafetyOperationContext(): DailyPlanSafetyOperationContext;
-  getOperationContext(): DailyPlanOperationContext;
+  getOperationContext(
+    planQualityMode: PlanQualityMode | null
+  ): DailyPlanOperationContext;
   createSafetyFallback(input: CreateSafetyFallbackInput): DailyPlanSafetyResult;
 }

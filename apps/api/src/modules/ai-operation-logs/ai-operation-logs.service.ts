@@ -1,5 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AiOperationFeature, AiOperationProvider, AiOperationStatus } from '@prisma/client';
+import {
+  AiModelRoute,
+  AiOperationFeature,
+  AiOperationProvider,
+  AiOperationStatus,
+  PlanQualityMode,
+  PlanStatus
+} from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -7,8 +14,11 @@ export interface RecordAiOperationLogInput {
   userId: string;
   feature: AiOperationFeature;
   provider: AiOperationProvider;
+  route?: AiModelRoute | null;
+  planQualityMode?: PlanQualityMode | null;
   model?: string | null;
   status: AiOperationStatus;
+  finalPlanStatus?: PlanStatus | null;
   latencyMs: number;
   retryCount?: number;
   safetyAgentEnabled: boolean;
@@ -31,8 +41,11 @@ export class AiOperationLogsService {
           userId: input.userId,
           feature: input.feature,
           provider: input.provider,
+          route: input.route ?? null,
+          planQualityMode: input.planQualityMode ?? null,
           model: input.model ?? null,
           status: input.status,
+          finalPlanStatus: input.finalPlanStatus ?? null,
           latencyMs: Math.max(0, Math.trunc(input.latencyMs)),
           retryCount: Math.max(0, Math.trunc(input.retryCount ?? 0)),
           safetyAgentEnabled: input.safetyAgentEnabled,

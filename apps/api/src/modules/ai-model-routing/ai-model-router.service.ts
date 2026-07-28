@@ -22,7 +22,7 @@ export class AiModelRouterService {
     agent: AiRequestAgent;
     planQualityMode: PlanQualityMode;
   }): AiModelSelection {
-    const route = this.routeForMode(input.planQualityMode);
+    const route = this.resolveRoute(input.planQualityMode);
     const model =
       this.readString(`OPENAI_MODEL_${route}`) ??
       this.readString('OPENAI_DEFAULT_MODEL');
@@ -44,6 +44,10 @@ export class AiModelRouterService {
         `OPENAI_${route}_OUTPUT_COST_PER_1M_USD`
       )
     };
+  }
+
+  resolveRoute(planQualityMode: PlanQualityMode) {
+    return this.routeForMode(planQualityMode);
   }
 
   estimateCostMicrousd(

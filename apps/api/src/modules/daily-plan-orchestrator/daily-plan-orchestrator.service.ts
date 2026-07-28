@@ -173,9 +173,10 @@ export class DailyPlanOrchestratorService implements DailyPlanOrchestrator {
     return this.safetyOrchestrator.getOperationContext();
   }
 
-  getOperationContext() {
+  getOperationContext(planQualityMode: PlanQualityMode | null) {
     return {
       provider: this.getProviderName(),
+      planQualityMode,
       ...this.getSafetyOperationContext()
     };
   }

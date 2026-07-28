@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AiModule } from '../ai/ai.module';
+import { AiModelRoutingModule } from '../ai-model-routing/ai-model-routing.module';
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { DailyPlanCheckInsModule } from '../daily-plan-check-ins/daily-plan-check-ins.module';
 import { FoodIngredientSwapService } from '../daily-plans/food-ingredient-swap.service';
@@ -40,6 +41,7 @@ import { DailyPlanTodayUseCaseService } from './daily-plan-today-use-case.servic
 @Module({
   imports: [
     AiModule,
+    AiModelRoutingModule,
     AiOperationLogsModule,
     DailyPlanCheckInsModule,
     EntitlementsModule,
