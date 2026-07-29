@@ -57,7 +57,7 @@ export class AuthCodeService {
     }
 
     const code = this.generateCode();
-    await this.prisma.$transaction([
+    const [, authCode] = await this.prisma.$transaction([
       this.prisma.authCode.updateMany({
         where: {
           userId: input.userId,
@@ -76,13 +76,18 @@ export class AuthCodeService {
       })
     ]);
 
-    await this.emailDelivery.sendAuthCode({
-      email: input.email,
-      code,
-      purpose: input.purpose,
-      expiresInMinutes: CODE_EXPIRY_MINUTES,
-      locale: input.locale
-    });
+    try {
+      await this.emailDelivery.sendAuthCode({
+        email: input.email,
+        code,
+        purpose: input.purpose,
+        expiresInMinutes: CODE_EXPIRY_MINUTES,
+        locale: input.locale
+      });
+    } catch (error) {
+      await this.prisma.authCode.deleteMany({ where: { id: authCode.id } });
+      throw error;
+    }
   }
 
   async consume(userId: string, purpose: AuthCodePurpose, code: string) {

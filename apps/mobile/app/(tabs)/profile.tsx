@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Crown,
   Dumbbell,
+  FileText,
   History,
   Languages,
   LifeBuoy,
@@ -16,6 +17,7 @@ import {
   Ruler,
   Scale,
   Settings,
+  ShieldCheck,
   Target,
   Trash2,
   UserRound,
@@ -93,6 +95,7 @@ import {
   getSubscriptionPlanLabel
 } from '@/i18n/enum-labels';
 import { LANGUAGE_OPTIONS } from '@/i18n/language-options';
+import { openLegalDocument } from '@/features/legal/legal-documents';
 import { useSettingsStore } from '@/store/settings-store';
 import type { EvaluatePlanImpactResponse } from '@/types/api';
 
@@ -836,6 +839,7 @@ function SettingsSection() {
   const [accountSheetVisible, setAccountSheetVisible] = useState(false);
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [deleteErrorVisible, setDeleteErrorVisible] = useState(false);
+  const [legalUnavailable, setLegalUnavailable] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
 
   useEffect(() => {
@@ -1034,16 +1038,52 @@ function SettingsSection() {
       <Card>
         <SectionHeader title={t('settings.support')} />
         <SettingsListItem
+          icon={<ShieldCheck size={18} color={colors.info} />}
+          tone="support"
+          title={t('legal.privacyPolicy')}
+          subtitle={t('legal.privacyPolicyHelp')}
+          onPress={() => {
+            void openLegalDocument('privacy').then((opened) => {
+              if (!opened) setLegalUnavailable(true);
+            });
+          }}
+        />
+        <SettingsListItem
+          icon={<FileText size={18} color={colors.textSecondary} />}
+          tone="support"
+          title={t('legal.termsOfService')}
+          subtitle={t('legal.termsOfServiceHelp')}
+          onPress={() => {
+            void openLegalDocument('terms').then((opened) => {
+              if (!opened) setLegalUnavailable(true);
+            });
+          }}
+        />
+        <SettingsListItem
           icon={<LifeBuoy size={18} color={colors.textSecondary} />}
           tone="support"
-          title={t('settings.privacyAccount')}
-          subtitle={t('settings.privacyCopy')}
+          title={t('legal.accountDataControls')}
+          subtitle={t('legal.accountDataControlsHelp')}
           onPress={() => {
             setCurrentPassword('');
             setAccountSheetVisible(true);
           }}
         />
       </Card>
+      <AppFeedbackSheet
+        visible={legalUnavailable}
+        title={t('legal.unavailableTitle')}
+        message={t('legal.unavailableMessage')}
+        tone="warning"
+        onClose={() => setLegalUnavailable(false)}
+        actions={[
+          {
+            label: t('common.close'),
+            variant: 'secondary',
+            onPress: () => setLegalUnavailable(false)
+          }
+        ]}
+      />
       {savedMessage ? (
         <AppToast
           title={t('feedback.savedSuccessfully')}

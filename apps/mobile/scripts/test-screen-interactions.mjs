@@ -162,6 +162,7 @@ assertIncludes(authWelcome, ["t('auth.valueNutrition')", "t('auth.valueTraining'
 assertIncludes(authLogin, ['AppFeedbackSheet', "t('auth.signInSecurely')", "t('auth.checkDetails')"], 'Auth login redesign');
 assertIncludes(authRegister, ['AppFeedbackSheet', "t('auth.createSecurely')", "t('auth.checkDetails')"], 'Auth register redesign');
 assertIncludes(authRegister, ['/(auth)/verify-email?email=', 'data.email'], 'Registration verification routing');
+assertIncludes(authRegister, ['PrivacyConsentField', 'privacyConsentAccepted'], 'Registration privacy consent');
 assert(!authRegister.includes('setSession('), 'Registration must not create a session before email verification.');
 assertIncludes(authLogin, ['EMAIL_NOT_VERIFIED', '/(auth)/verify-email?email=', "t('auth.forgotPassword')"], 'Unverified login routing');
 assertIncludes(authVerifyEmail, ['verifyEmailSchema', 'textContentType="oneTimeCode"', 'setSession', "t('auth.resendCode')"], 'Email verification');
@@ -197,6 +198,8 @@ assertIncludes(tabs, ['FloatingTabBar', 'tabBar={(props) => <FloatingTabBar {...
 assertIncludes(floatingTabBar, ['width = Math.min(screenWidth - 32, 608)', 'left = (screenWidth - width) / 2', 'bottom: Math.max(insets.bottom - 8, 8)', 'focused ? 28 : 24', "type: 'tabPress'"], 'Floating tab bar geometry');
 assert(!authLogin.includes('Alert.alert') && !authRegister.includes('Alert.alert'), 'Auth must use unified feedback instead of raw alerts.');
 assertIncludes(onboardingProfile, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressProfile')"], 'Profile onboarding redesign');
+assertIncludes(onboardingProfile, ['PrivacyConsentField', 'privacyConsentAttempted'], 'Legacy profile privacy consent');
+assert(!onboardingProfile.includes('privacyConsentAccepted: true'), 'Onboarding must not silently accept privacy consent.');
 assertIncludes(onboardingGoal, ['OnboardingStepShell', 'AppFeedbackSheet', "t('onboarding.progressGoal')"], 'Goal onboarding redesign');
 assertIncludes(goalsForm, ['SelectableCard', "t('onboarding.appModeNutritionOnlyHelp')", "t('onboarding.appModeTrainingHelp')"], 'Goal onboarding cards');
 assert(!existsSync(resolve(root, 'app/(onboarding)/training-preferences.tsx')), 'Onboarding must not include Training Setup.');
@@ -553,6 +556,11 @@ assertIncludes(profile, [
   'setValue(savedValue)'
 ], 'Profile settings hub');
 assert(!profile.includes('Alert.alert'), 'Profile must use unified feedback components instead of raw alerts.');
+assertIncludes(profile, [
+  "openLegalDocument('privacy')",
+  "openLegalDocument('terms')",
+  "t('legal.accountDataControls')"
+], 'Profile legal and account controls');
 const workoutSession = read('app/workout-session.tsx');
 assertIncludes(workoutSession, [
   'trainingLoadAgentSnapshot',

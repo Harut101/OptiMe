@@ -20,6 +20,31 @@ describe('Email verification and password recovery', () => {
     await ctx.app.close();
   });
 
+  it('requires explicit privacy consent when registering', async () => {
+    const baseRequest = {
+      email: 'consent@example.com',
+      password: 'password123',
+      timezone: 'UTC',
+      locale: 'en-US'
+    };
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/auth/register')
+      .send(baseRequest)
+      .expect(400);
+
+    await request(ctx.app.getHttpServer())
+      .post('/v1/auth/register')
+      .send({ ...baseRequest, privacyConsentAccepted: false })
+      .expect(400);
+
+    expect(
+      await ctx.prisma.user.findUnique({
+        where: { email: baseRequest.email }
+      })
+    ).toBeNull();
+  });
+
   it('requires email verification before issuing an authenticated session', async () => {
     const registration = await register('verify@example.com');
 

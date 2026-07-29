@@ -8,9 +8,11 @@ The next active phase is release readiness:
 
 1. Keep the accepted UI stable and fix only verified regressions.
 2. Keep the completed foreground-only Adaptive Plan Checkpoint stable.
-3. In progress: email verification, password recovery, auth rate limits, strict production
-   configuration, and password-confirmed account deletion are implemented. Complete Resend
-   sender/domain configuration and real-inbox deliverability QA.
+3. Release Readiness Batches 1-2 repository work is implemented: email verification,
+   password recovery, auth rate limits, strict production configuration, password-confirmed
+   account deletion, localized Resend templates, explicit legal consent, in-app legal links,
+   and store-privacy documentation. External Resend sender/domain setup, legal review,
+   public document hosting, and real-inbox deliverability QA remain.
 4. Freeze new product features.
 5. Complete Android Health Connect development-build/device QA and Google Play Health declarations.
 6. Run release-focused privacy, permission, native-build, and end-to-end QA.

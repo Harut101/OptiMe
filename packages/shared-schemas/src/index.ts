@@ -7,7 +7,9 @@ export const registerSchema = z.object({
   password: z.string().min(8),
   timezone: z.string().optional(),
   locale: z.string().optional(),
-  privacyConsentAccepted: z.boolean().optional()
+  privacyConsentAccepted: z.boolean().refine((accepted) => accepted, {
+    message: 'Privacy consent is required.'
+  })
 });
 
 export const loginSchema = z.object({

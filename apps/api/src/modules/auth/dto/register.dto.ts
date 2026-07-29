@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -16,7 +16,7 @@ export class RegisterDto {
   @IsString()
   locale?: string;
 
-  @IsOptional()
   @IsBoolean()
-  privacyConsentAccepted?: boolean;
+  @Equals(true)
+  privacyConsentAccepted!: boolean;
 }

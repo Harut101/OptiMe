@@ -24,8 +24,26 @@ export function validateEnvironment(environment: Record<string, unknown>) {
     throw new Error('EMAIL_PROVIDER=resend is required in production.');
   }
 
-  requireValue(environment, 'RESEND_API_KEY');
-  requireValue(environment, 'EMAIL_FROM');
+  const resendApiKey = requireValue(environment, 'RESEND_API_KEY');
+
+  if (!resendApiKey.startsWith('re_') || resendApiKey.length < 16) {
+    throw new Error('RESEND_API_KEY must be a non-placeholder Resend API key.');
+  }
+
+  requireMailbox(environment, 'EMAIL_FROM', true);
+  requireMailbox(environment, 'SUPPORT_EMAIL');
+
+  if (readString(environment.EMAIL_REPLY_TO)) {
+    requireMailbox(environment, 'EMAIL_REPLY_TO');
+  }
+
+  parseInteger(
+    environment.EMAIL_REQUEST_TIMEOUT_MS,
+    'EMAIL_REQUEST_TIMEOUT_MS',
+    1_000,
+    30_000,
+    10_000
+  );
 
   if (readString(environment.AUTH_DEV_CODE)) {
     throw new Error('AUTH_DEV_CODE must not be configured in production.');
@@ -101,6 +119,23 @@ function requireValue(environment: Record<string, unknown>, name: string) {
 
   if (!value) {
     throw new Error(`${name} is required in production.`);
+  }
+
+  return value;
+}
+
+function requireMailbox(
+  environment: Record<string, unknown>,
+  name: string,
+  allowDisplayName = false
+) {
+  const value = requireValue(environment, name);
+  const address = allowDisplayName
+    ? value.match(/<([^<>]+)>$/)?.[1] ?? value
+    : value;
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+    throw new Error(`${name} must contain a valid email address.`);
   }
 
   return value;

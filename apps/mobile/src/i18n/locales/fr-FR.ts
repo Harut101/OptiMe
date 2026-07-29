@@ -554,3 +554,18 @@ export const frFR = createLocaleResource({
     }
   }
 );
+
+Object.assign(frFR.auth, {
+  consent: "J'accepte la Politique de confidentialité et les Conditions d'utilisation, et j'autorise OptiMe à traiter mon profil et mes préférences pour fournir des plans de bien-être."
+});
+
+Object.assign(frFR.legal, {
+  privacyPolicy: 'Politique de confidentialité',
+  termsOfService: "Conditions d'utilisation",
+  unavailableTitle: 'Informations juridiques indisponibles',
+  unavailableMessage: "Les liens publics vers la Politique de confidentialité et les Conditions d'utilisation ne sont pas configurés pour cette version.",
+  privacyPolicyHelp: 'Comment OptiMe collecte, utilise, conserve et supprime les données.',
+  termsOfServiceHelp: "Règles d'utilisation d'OptiMe et de ses conseils de bien-être.",
+  accountDataControls: 'Gestion des données du compte',
+  accountDataControlsHelp: 'Gérez les données de santé ou supprimez définitivement votre compte.'
+});

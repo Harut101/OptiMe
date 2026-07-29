@@ -11,7 +11,7 @@ export function registerUser(body: {
   password: string;
   timezone?: string;
   locale?: string;
-  privacyConsentAccepted?: boolean;
+  privacyConsentAccepted: boolean;
 }) {
   return apiRequest<RegistrationResponse>('/auth/register', {
     method: 'POST',

@@ -36,6 +36,9 @@ Production fails at startup unless:
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=...
 EMAIL_FROM=...
+SUPPORT_EMAIL=...
+EMAIL_REPLY_TO=...
+EMAIL_REQUEST_TIMEOUT_MS=10000
 AUTH_CODE_SECRET=...
 CORS_ALLOWED_ORIGINS=https://your-approved-web-origin.example
 TRUST_PROXY_HOPS=1
@@ -45,7 +48,14 @@ AUTH_RATE_LIMIT_ENABLED=true
 `AUTH_CODE_SECRET` and `JWT_SECRET` must be separate high-entropy secrets. Do not set `AUTH_DEV_CODE` in production. API keys, codes, password hashes, and complete email payloads must never be logged.
 
 Production startup also rejects placeholder/short secrets, a wildcard or missing CORS
-allowlist, malformed proxy settings, and a configured development auth code.
+allowlist, malformed proxy settings, a configured development auth code, a malformed
+sender/reply-to mailbox, a missing support mailbox, an invalid Resend key shape, or an
+email timeout outside 1-30 seconds.
+
+Resend messages use localized, responsive text and HTML templates for verification and
+password reset. They contain no tracking scripts. Provider failures are mapped to safe
+reasons and never log recipients, codes, complete payloads, API keys, or raw responses.
+If delivery fails, the newly created code is deleted so a user can retry immediately.
 
 `TRUST_PROXY_HOPS` must match the actual number of trusted reverse proxies. A wrong value can
 make IP-based protection ineffective. The in-process limiter is appropriate for the initial
@@ -76,3 +86,4 @@ Account export is not implemented yet and remains a separate release decision.
 - Add infrastructure-level IP rate limiting before using more than one API process.
 - Decide and document the support workflow for account-data export requests.
 - Run deliverability QA for all supported locales before release.
+- Verify the localized text and HTML templates in major light/dark email clients.

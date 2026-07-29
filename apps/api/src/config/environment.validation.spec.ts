@@ -6,8 +6,10 @@ const productionEnvironment = {
   JWT_SECRET: 'jwt-secret-that-is-long-enough-for-production',
   AUTH_CODE_SECRET: 'auth-code-secret-that-is-long-and-separate',
   EMAIL_PROVIDER: 'resend',
-  RESEND_API_KEY: 're_test_key',
+  RESEND_API_KEY: 're_test_key_long_enough',
   EMAIL_FROM: 'OptiMe <hello@example.com>',
+  SUPPORT_EMAIL: 'support@example.com',
+  EMAIL_REQUEST_TIMEOUT_MS: '10000',
   CORS_ALLOWED_ORIGINS: 'https://app.example.com',
   TRUST_PROXY_HOPS: '1',
   AUTH_RATE_LIMIT_ENABLED: 'true'
@@ -41,6 +43,29 @@ describe('environment validation', () => {
         CORS_ALLOWED_ORIGINS: '*'
       })
     ).toThrow('CORS_ALLOWED_ORIGINS must contain an explicit production origin allowlist');
+  });
+
+  it('requires production email delivery metadata', () => {
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        SUPPORT_EMAIL: ''
+      })
+    ).toThrow('SUPPORT_EMAIL is required in production');
+
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        EMAIL_FROM: 'not-an-email'
+      })
+    ).toThrow('EMAIL_FROM must contain a valid email address');
+
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        RESEND_API_KEY: 'placeholder'
+      })
+    ).toThrow('RESEND_API_KEY must be a non-placeholder Resend API key');
   });
 
   it('parses safe shared config values', () => {

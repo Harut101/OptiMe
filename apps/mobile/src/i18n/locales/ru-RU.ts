@@ -556,3 +556,18 @@ export const ruRU = createLocaleResource({
     }
   }
 );
+
+Object.assign(ruRU.auth, {
+  consent: 'Я принимаю Политику конфиденциальности и Условия использования и соглашаюсь на обработку профиля и предпочтений для предоставления wellness-планов OptiMe.'
+});
+
+Object.assign(ruRU.legal, {
+  privacyPolicy: 'Политика конфиденциальности',
+  termsOfService: 'Условия использования',
+  unavailableTitle: 'Юридическая информация недоступна',
+  unavailableMessage: 'Публичные ссылки на Политику конфиденциальности и Условия использования ещё не настроены для этой сборки.',
+  privacyPolicyHelp: 'Как OptiMe собирает, использует, хранит и удаляет данные.',
+  termsOfServiceHelp: 'Правила использования OptiMe и рекомендаций по здоровому образу жизни.',
+  accountDataControls: 'Управление данными аккаунта',
+  accountDataControlsHelp: 'Управляйте данными здоровья или навсегда удалите аккаунт.'
+});

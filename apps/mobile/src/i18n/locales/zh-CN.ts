@@ -557,3 +557,18 @@ Object.assign(zhCN.settings, {
   deleteAccountFailed: '\u8d26\u6237\u672a\u5220\u9664',
   deleteAccountFailedHelp: '\u8bf7\u68c0\u67e5\u5f53\u524d\u5bc6\u7801\u548c\u7f51\u7edc\u8fde\u63a5\uff0c\u7136\u540e\u91cd\u8bd5\u3002'
 });
+
+Object.assign(zhCN.auth, {
+  consent: '我同意《隐私政策》和《服务条款》，并同意 OptiMe 处理我的个人资料和偏好，以提供健康生活计划。'
+});
+
+Object.assign(zhCN.legal, {
+  privacyPolicy: '隐私政策',
+  termsOfService: '服务条款',
+  unavailableTitle: '法律信息暂不可用',
+  unavailableMessage: '此版本尚未配置公开的隐私政策和服务条款链接。',
+  privacyPolicyHelp: '了解 OptiMe 如何收集、使用、存储和删除数据。',
+  termsOfServiceHelp: '使用 OptiMe 及其健康生活建议的规则。',
+  accountDataControls: '账户数据管理',
+  accountDataControlsHelp: '管理健康数据或永久删除账户。'
+});

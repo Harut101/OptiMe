@@ -19,16 +19,22 @@ import {
 import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 import { LANGUAGE_OPTIONS } from '@/i18n/language-options';
+import { PrivacyConsentField } from '@/features/legal/PrivacyConsentField';
 import type { SupportedLocale } from '@optime/shared-types';
 
 export default function ProfileSetupScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setUser = useAuthStore((state) => state.setUser);
+  const user = useAuthStore((state) => state.user);
   const currentLocale = useSettingsStore((state) => state.preferredLocale);
   const applySettings = useSettingsStore((state) => state.applySettings);
   const [value, setValue] = useState(EMPTY_PERSONAL_PROFILE);
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(currentLocale);
+  const [privacyConsentAccepted, setPrivacyConsentAccepted] = useState(
+    Boolean(user?.privacyConsentedAt)
+  );
+  const [privacyConsentAttempted, setPrivacyConsentAttempted] = useState(false);
   const [errorSheet, setErrorSheet] = useState<{ title: string; message: string } | null>(null);
   const mutation = useMutation({
     mutationFn: async (payload: ReturnType<typeof toProfileRequest>) => {
@@ -47,15 +53,20 @@ export default function ProfileSetupScreen() {
   });
 
   const continueOnboarding = () => {
+    if (!privacyConsentAccepted) {
+      setPrivacyConsentAttempted(true);
+      return;
+    }
+
     const request = toProfileRequest(value);
-    const result = profileSchema.safeParse({ ...request, privacyConsentAccepted: true });
+    const result = profileSchema.safeParse({ ...request, privacyConsentAccepted });
 
     if (!result.success) {
       setErrorSheet({ title: t('onboarding.checkProfile'), message: t('errors.validation') });
       return;
     }
 
-    mutation.mutate({ ...result.data, privacyConsentAccepted: true });
+    mutation.mutate({ ...result.data, privacyConsentAccepted });
   };
 
   return (
@@ -80,6 +91,20 @@ export default function ProfileSetupScreen() {
         <Text variant="label">{t('onboarding.safetyNote')}</Text>
         <Text variant="muted">{t('safety.disclaimer')}</Text>
         <PersonalProfileForm value={value} onChange={setValue} />
+        {!user?.privacyConsentedAt ? (
+          <PrivacyConsentField
+            accepted={privacyConsentAccepted}
+            onChange={(accepted) => {
+              setPrivacyConsentAccepted(accepted);
+              if (accepted) setPrivacyConsentAttempted(false);
+            }}
+            error={
+              privacyConsentAttempted && !privacyConsentAccepted
+                ? t('auth.consentRequired')
+                : undefined
+            }
+          />
+        ) : null}
       </OnboardingStepShell>
       <AppFeedbackSheet
         visible={errorSheet !== null}
