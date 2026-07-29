@@ -3,6 +3,7 @@ import { parseBoolean, parseCsv, parseInteger, validateEnvironment } from './env
 const productionEnvironment = {
   NODE_ENV: 'production',
   DATABASE_URL: 'postgresql://optime:optime@db:5432/optime?schema=public',
+  EXERCISE_MEDIA_PUBLIC_BASE_URL: 'https://media.example.com',
   JWT_SECRET: 'jwt-secret-that-is-long-enough-for-production',
   AUTH_CODE_SECRET: 'auth-code-secret-that-is-long-and-separate',
   EMAIL_PROVIDER: 'resend',
@@ -43,6 +44,29 @@ describe('environment validation', () => {
         CORS_ALLOWED_ORIGINS: '*'
       })
     ).toThrow('CORS_ALLOWED_ORIGINS must contain an explicit production origin allowlist');
+  });
+
+  it('requires a public HTTPS exercise media origin in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        EXERCISE_MEDIA_PUBLIC_BASE_URL: ''
+      })
+    ).toThrow('EXERCISE_MEDIA_PUBLIC_BASE_URL is required in production');
+
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        EXERCISE_MEDIA_PUBLIC_BASE_URL: 'http://localhost:3000'
+      })
+    ).toThrow('EXERCISE_MEDIA_PUBLIC_BASE_URL must be a public HTTPS URL');
+
+    expect(() =>
+      validateEnvironment({
+        ...productionEnvironment,
+        EXERCISE_MEDIA_PUBLIC_BASE_URL: 'https://user:password@media.example.com'
+      })
+    ).toThrow('EXERCISE_MEDIA_PUBLIC_BASE_URL must be a public HTTPS URL');
   });
 
   it('requires production email delivery metadata', () => {

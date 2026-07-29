@@ -66,6 +66,7 @@ Package for deployment:
 ```powershell
 $env:DATABASE_URL='postgresql://optime:optime@localhost:5432/optime?schema=public'
 pnpm --filter @optime/api exercise-media:package
+pnpm --filter @optime/api exercise-media:package:validate
 ```
 
 Local or CDN smoke test:
@@ -73,6 +74,7 @@ Local or CDN smoke test:
 ```powershell
 pnpm --filter @optime/api exercise-media:smoke -- --base-url=http://localhost:3000
 pnpm --filter @optime/api exercise-media:smoke -- --base-url=https://media.example
+pnpm --filter @optime/api exercise-media:smoke -- --base-url=https://media.example --all
 ```
 
 ## Validation
@@ -118,13 +120,23 @@ apps/api/build/exercise-media-package/
   exercise-media/
     <exercise-slug>/
       <full>.webp
+      <full>.jpg
       thumbnails/
         <thumb>.webp
+        <thumb>.jpg
   exercise-media-package-manifest.json
 ```
 
-The package includes only public full media and thumbnails. It excludes inbox files, source-original backups, previews, JSON source reports, credentials, and temporary files.
+The v2 package includes 47 full media and 47 thumbnails in both WebP and the
+JPEG runtime fallback used by mobile, for 188 deployed objects. Every object has
+declared MIME, cache policy, byte length, and SHA-256 metadata. It excludes
+inbox files, source-original backups, previews, JSON source reports,
+credentials, and temporary files.
 
 ## CDN Status
 
-No approved production media provider is configured in the repository yet. Actual production CDN upload is pending provider selection/configuration. The app is ready for any provider that can serve the packaged `exercise-media/` folder and set `EXERCISE_MEDIA_PUBLIC_BASE_URL`.
+No production provider credentials are stored in the repository. Actual CDN
+upload and DNS activation require external provider configuration. The app is
+ready for any provider that can preserve the manifest MIME/cache metadata,
+serve the packaged `exercise-media/` folder over HTTPS, and supply
+`EXERCISE_MEDIA_PUBLIC_BASE_URL`.

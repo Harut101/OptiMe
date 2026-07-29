@@ -32,6 +32,7 @@
     "exercise-media:thumbnails": "ts-node scripts/exercise-media/thumbnails.ts",
     "exercise-media:thumbnails:validate": "ts-node scripts/exercise-media/thumbnails-validate.ts",
     "exercise-media:package": "ts-node scripts/exercise-media/package.ts",
+    "exercise-media:package:validate": "ts-node scripts/exercise-media/package-validate.ts",
     "exercise-media:smoke": "ts-node scripts/exercise-media/smoke.ts",
     "ai-cost:report": "ts-node scripts/ai-cost-report.ts",
     "ai-cost:benchmark": "ts-node scripts/ai-cost-benchmark.ts",

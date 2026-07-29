@@ -493,12 +493,16 @@ For minors:
    declarations.
 12. Run iOS/Android release builds, full automated regression, localization QA, and
     physical-device QA.
-13. Release the stable first version.
-14. Add Recovery Trend and Photo Food Logging based on real user feedback.
-15. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+13. In progress: the provider-neutral exercise-media CDN artifact now packages
+    and validates all WebP and mobile JPEG runtime variants with checksum, MIME,
+    and bounded cache metadata. Complete external bucket/domain upload and the
+    all-object CDN smoke test before release builds.
+14. Release the stable first version.
+15. Add Recovery Trend and Photo Food Logging based on real user feedback.
+16. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
-16. Evaluate Garmin only after release and a separate provider review.
-17. Evaluate Audio Co-Pilot, AI Coach chat, embeddings, admin/web, and
+17. Evaluate Garmin only after release and a separate provider review.
+18. Evaluate Audio Co-Pilot, AI Coach chat, embeddings, admin/web, and
     advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects

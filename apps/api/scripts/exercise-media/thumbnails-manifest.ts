@@ -23,6 +23,7 @@ export const thumbnailReportPath = resolve(workspaceRoot, 'apps/mobile/assets/ex
 export const packageRoot = resolve(workspaceRoot, 'apps/api/build/exercise-media-package');
 export const packageMediaRoot = resolve(packageRoot, 'exercise-media');
 export const packageManifestPath = resolve(packageRoot, 'exercise-media-package-manifest.json');
+export const packageCacheControl = 'public, max-age=86400';
 
 export interface ThumbnailManifestItem {
   seedKey: string;
@@ -71,19 +72,35 @@ export interface PackageManifestItem {
   relativePath: string;
   bytes: number;
   sha256: string;
-  contentType: 'image/webp';
+  contentType: 'image/webp' | 'image/jpeg';
+  cacheControl: typeof packageCacheControl;
+  format: 'webp' | 'jpeg';
   role: 'full' | 'thumbnail';
 }
 
 export interface PackageReport {
-  schemaVersion: 'exercise-media-package.v1';
+  schemaVersion: 'exercise-media-package.v2';
   summary: {
     fullMedia: number;
     thumbnails: number;
+    webpFiles: number;
+    jpegFallbackFiles: number;
     totalFiles: number;
     totalBytes: number;
   };
   items: PackageManifestItem[];
+}
+
+export interface PackageValidationReport {
+  schemaVersion: 'exercise-media-package-validation.v1';
+  summary: PackageReport['summary'] & {
+    validationFailures: number;
+  };
+  failures: Array<{
+    relativePath: string;
+    reasonCode: string;
+    explanation: string;
+  }>;
 }
 
 export async function buildThumbnailReport(options: { apply: boolean }) {
@@ -180,20 +197,32 @@ export async function packageExerciseMedia() {
   for (const item of report.items) {
     for (const sourcePath of [item.fullPath, item.thumbnailPath]) {
       const role = sourcePath === item.fullPath ? 'full' as const : 'thumbnail' as const;
-      const relativePath = toPublicRelativePath(sourcePath);
-      const destinationPath = resolve(packageRoot, relativePath);
-      await mkdir(dirname(destinationPath), { recursive: true });
-      await copyFile(sourcePath, destinationPath, constants.COPYFILE_FICLONE_FORCE).catch(async () => copyFile(sourcePath, destinationPath));
-      const bytes = await readFile(sourcePath);
-      items.push({ relativePath: normalizeSlash(relativePath), bytes: bytes.length, sha256: sha256(bytes), contentType: 'image/webp', role });
+      for (const variant of await runtimeMediaVariants(sourcePath)) {
+        const relativePath = toPublicRelativePath(variant.path);
+        const destinationPath = resolve(packageRoot, relativePath);
+        await mkdir(dirname(destinationPath), { recursive: true });
+        await copyFile(variant.path, destinationPath, constants.COPYFILE_FICLONE_FORCE).catch(async () => copyFile(variant.path, destinationPath));
+        const bytes = await readFile(variant.path);
+        items.push({
+          relativePath: normalizeSlash(relativePath),
+          bytes: bytes.length,
+          sha256: sha256(bytes),
+          contentType: variant.contentType,
+          cacheControl: packageCacheControl,
+          format: variant.format,
+          role
+        });
+      }
     }
   }
   items.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
   const packageReport: PackageReport = {
-    schemaVersion: 'exercise-media-package.v1',
+    schemaVersion: 'exercise-media-package.v2',
     summary: {
-      fullMedia: items.filter((item) => item.role === 'full').length,
-      thumbnails: items.filter((item) => item.role === 'thumbnail').length,
+      fullMedia: items.filter((item) => item.role === 'full' && item.format === 'webp').length,
+      thumbnails: items.filter((item) => item.role === 'thumbnail' && item.format === 'webp').length,
+      webpFiles: items.filter((item) => item.format === 'webp').length,
+      jpegFallbackFiles: items.filter((item) => item.format === 'jpeg').length,
       totalFiles: items.length,
       totalBytes: items.reduce((sum, item) => sum + item.bytes, 0)
     },
@@ -205,6 +234,158 @@ export async function packageExerciseMedia() {
 
 export async function readPackageManifest() {
   return JSON.parse(await readFile(packageManifestPath, 'utf8')) as PackageReport;
+}
+
+export async function validateExerciseMediaPackage(): Promise<PackageValidationReport> {
+  const manifest = await readPackageManifest();
+  const failures: PackageValidationReport['failures'] = [];
+  const manifestPaths = new Set<string>();
+
+  if (manifest.schemaVersion !== 'exercise-media-package.v2') {
+    failures.push({
+      relativePath: 'exercise-media-package-manifest.json',
+      reasonCode: 'UNSUPPORTED_MANIFEST_VERSION',
+      explanation: 'Exercise media package must use schema version exercise-media-package.v2.'
+    });
+  }
+
+  for (const item of manifest.items) {
+    if (manifestPaths.has(item.relativePath)) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'DUPLICATE_PACKAGE_PATH',
+        explanation: 'Package manifest contains a duplicate public path.'
+      });
+      continue;
+    }
+    manifestPaths.add(item.relativePath);
+
+    const itemPath = resolve(packageRoot, item.relativePath);
+    if (!isPathWithin(packageRoot, itemPath) || !item.relativePath.startsWith('exercise-media/')) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'UNSAFE_PACKAGE_PATH',
+        explanation: 'Package item escapes the approved exercise-media directory.'
+      });
+      continue;
+    }
+
+    const bytes = await readOptional(itemPath);
+    if (!bytes) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'PACKAGE_FILE_MISSING',
+        explanation: 'Manifested package file is missing.'
+      });
+      continue;
+    }
+    if (bytes.length !== item.bytes) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'PACKAGE_SIZE_MISMATCH',
+        explanation: 'Packaged file size does not match the manifest.'
+      });
+    }
+    if (sha256(bytes) !== item.sha256) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'PACKAGE_CHECKSUM_MISMATCH',
+        explanation: 'Packaged file checksum does not match the manifest.'
+      });
+    }
+    if (item.cacheControl !== packageCacheControl) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'PACKAGE_CACHE_POLICY_MISMATCH',
+        explanation: 'Packaged file does not use the approved bounded cache policy.'
+      });
+    }
+
+    const metadata = await sharp(bytes).metadata();
+    const expectedFormat = item.format === 'jpeg' ? 'jpeg' : 'webp';
+    const expectedContentType = item.format === 'jpeg' ? 'image/jpeg' : 'image/webp';
+    if (metadata.format !== expectedFormat || item.contentType !== expectedContentType) {
+      failures.push({
+        relativePath: item.relativePath,
+        reasonCode: 'PACKAGE_MEDIA_TYPE_MISMATCH',
+        explanation: 'Packaged media bytes, extension, and declared content type do not agree.'
+      });
+    }
+  }
+
+  const packagedFiles = await listFilesRecursive(packageMediaRoot);
+  for (const path of packagedFiles) {
+    const relativePath = normalizeSlash(relative(packageRoot, path));
+    if (!manifestPaths.has(relativePath)) {
+      failures.push({
+        relativePath,
+        reasonCode: 'UNMANIFESTED_PACKAGE_FILE',
+        explanation: 'Package contains a file that is not covered by the deployment manifest.'
+      });
+    }
+  }
+
+  const calculatedSummary: PackageReport['summary'] = {
+    fullMedia: manifest.items.filter((item) => item.role === 'full' && item.format === 'webp').length,
+    thumbnails: manifest.items.filter((item) => item.role === 'thumbnail' && item.format === 'webp').length,
+    webpFiles: manifest.items.filter((item) => item.format === 'webp').length,
+    jpegFallbackFiles: manifest.items.filter((item) => item.format === 'jpeg').length,
+    totalFiles: manifest.items.length,
+    totalBytes: manifest.items.reduce((sum, item) => sum + item.bytes, 0)
+  };
+  const hasSummaryMismatch = Object.entries(calculatedSummary).some(
+    ([key, value]) => manifest.summary[key as keyof PackageReport['summary']] !== value
+  );
+  if (hasSummaryMismatch) {
+    failures.push({
+      relativePath: 'exercise-media-package-manifest.json',
+      reasonCode: 'PACKAGE_SUMMARY_MISMATCH',
+      explanation: 'Package summary does not match the manifested files.'
+    });
+  }
+  if (packagedFiles.length !== manifest.items.length) {
+    failures.push({
+      relativePath: 'exercise-media/',
+      reasonCode: 'PACKAGE_FILE_COUNT_MISMATCH',
+      explanation: 'Package file count does not match the deployment manifest.'
+    });
+  }
+
+  return {
+    schemaVersion: 'exercise-media-package-validation.v1',
+    summary: {
+      ...calculatedSummary,
+      validationFailures: failures.length
+    },
+    failures
+  };
+}
+
+async function runtimeMediaVariants(webpPath: string) {
+  const jpegPath = webpPath.replace(/\.webp$/i, '.jpg');
+  const [webpBytes, jpegBytes] = await Promise.all([
+    readFile(webpPath),
+    readOptional(jpegPath)
+  ]);
+  if (!jpegBytes) {
+    throw new Error(`${normalizeSlash(relative(publicMediaRoot, jpegPath))}: required mobile JPEG fallback is missing.`);
+  }
+
+  const [webpMetadata, jpegMetadata] = await Promise.all([
+    sharp(webpBytes).metadata(),
+    sharp(jpegBytes).metadata()
+  ]);
+  if (webpMetadata.format !== 'webp' || jpegMetadata.format !== 'jpeg') {
+    throw new Error(`${normalizeSlash(relative(publicMediaRoot, webpPath))}: runtime media variants have invalid formats.`);
+  }
+  if (webpMetadata.width !== jpegMetadata.width || webpMetadata.height !== jpegMetadata.height) {
+    throw new Error(`${normalizeSlash(relative(publicMediaRoot, jpegPath))}: JPEG fallback dimensions do not match WebP media.`);
+  }
+
+  return [
+    { path: webpPath, contentType: 'image/webp' as const, format: 'webp' as const },
+    { path: jpegPath, contentType: 'image/jpeg' as const, format: 'jpeg' as const }
+  ];
 }
 
 async function analyzeThumbnail(mediaItem: ExerciseMediaManifestItem, previous?: ThumbnailManifestItem): Promise<ThumbnailManifestItem> {
@@ -393,7 +574,11 @@ async function writeThumbnailReport(report: ThumbnailReport) {
 }
 
 function isCanonicalPublicPath(path: string) {
-  const relativePath = relative(publicMediaRoot, path);
+  return isPathWithin(publicMediaRoot, path);
+}
+
+function isPathWithin(root: string, path: string) {
+  const relativePath = relative(root, path);
   return Boolean(relativePath) && !relativePath.startsWith('..') && !relativePath.includes(`..${sep}`);
 }
 
@@ -412,6 +597,17 @@ export async function listPublicMediaFiles(directory = publicMediaRoot): Promise
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) files.push(...await listPublicMediaFiles(path));
     else if (entry.isFile() && entry.name.endsWith('.webp')) files.push(path);
+  }
+  return files.sort();
+}
+
+async function listFilesRecursive(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await listFilesRecursive(path));
+    else if (entry.isFile()) files.push(path);
   }
   return files.sort();
 }

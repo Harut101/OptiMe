@@ -13,6 +13,7 @@ export function validateEnvironment(environment: Record<string, unknown>) {
   }
 
   requireValue(environment, 'DATABASE_URL');
+  requireProductionHttpsUrl(environment, 'EXERCISE_MEDIA_PUBLIC_BASE_URL');
   const jwtSecret = requireStrongSecret(environment, 'JWT_SECRET');
   const authCodeSecret = requireStrongSecret(environment, 'AUTH_CODE_SECRET');
 
@@ -139,6 +140,31 @@ function requireMailbox(
   }
 
   return value;
+}
+
+function requireProductionHttpsUrl(
+  environment: Record<string, unknown>,
+  name: string
+) {
+  const value = requireValue(environment, name);
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid HTTPS URL in production.`);
+  }
+
+  if (
+    url.protocol !== 'https:'
+    || url.username
+    || url.password
+    || ['localhost', '127.0.0.1', '::1'].includes(url.hostname)
+  ) {
+    throw new Error(`${name} must be a public HTTPS URL without credentials in production.`);
+  }
+
+  return url.toString();
 }
 
 function readString(value: unknown) {

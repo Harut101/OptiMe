@@ -48,6 +48,16 @@ EXPO_PUBLIC_TERMS_OF_SERVICE_URL=https://...
 EXPO_PUBLIC_SUPPORT_EMAIL=support@example.com
 ```
 
+Production exercise media configuration requires:
+
+```env
+EXERCISE_MEDIA_PUBLIC_BASE_URL=https://media.optime.app
+```
+
+The URL must be public HTTPS without embedded credentials. Generate, validate,
+upload, and smoke-test the provider-neutral artifact using
+[media-cdn-release.md](./media-cdn-release.md).
+
 Do not copy placeholder secrets from `.env.example`. Do not define `AUTH_DEV_CODE`.
 
 ## Manual QA
@@ -75,5 +85,7 @@ Do not copy placeholder secrets from `.env.example`. Do not define `AUTH_DEV_COD
 - Complete Android Health Connect device QA and Google Play Health declarations.
 - Complete release builds, store privacy declarations, localization QA, and physical-device
   regression.
+- Upload the validated exercise-media package to the selected CDN, run the
+  all-object checksum smoke test, and verify physical-device media rendering.
 - Replace placeholders in the Privacy Policy and Terms drafts, obtain legal review, publish
   stable HTTPS documents, and complete `docs/store-privacy-declarations.md`.
