@@ -47,12 +47,16 @@ deterministic substitutions, and all safety behavior remain available. Current
 backend limits still need a dedicated migration after token/cost telemetry is
 added.
 
-Provisional production pricing is `$19.99/month` or `$199.99/year` for Plus and
+Launch-candidate production pricing is `$19.99/month` or `$199.99/year` for Plus and
 `$39.99/month` or `$399.99/year` for Pro. Plus uses Terra for its main
 Personalized plan; Pro reserves Sol for its main Adaptive plan. Pricing remains
 internal until multi-agent token/cost telemetry, monthly cost ceilings, and a
-30-day simulation demonstrate at least 65% contribution margin after variable
-costs. The current development limits are not approved production limits.
+representative 30-day run demonstrate at least 65% contribution margin after
+variable costs. The production entitlement limits are implemented, but billing
+remains disabled until the strict release gate passes. The first-release purchase
+architecture uses RevenueCat over App Store and Google Play while keeping OptiMe
+backend entitlements authoritative. See
+[pricing-subscriptions-release-plan.md](./pricing-subscriptions-release-plan.md).
 
 After Adaptive Plan Checkpoint, the active path is release readiness: privacy and
 account controls, production configuration and monitoring, Android Health Connect

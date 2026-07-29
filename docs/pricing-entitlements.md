@@ -9,9 +9,8 @@ This foundation prepares OptiMe for `FREE`, `PLUS`, and `PRO` without adding rea
 - Training remains optional.
 - Backend entitlement checks are the source of truth.
 - Mobile upgrade/paywall UI is contextual and placeholder-only.
-- Provisional launch pricing is documented for unit-economics planning, but is
-  not shown in the product until billing and production cost validation are
-  approved.
+- Launch-candidate pricing is frozen for implementation planning, but is not
+  shown in the product until billing and production cost validation are approved.
 
 ## Approved Free-Tier Direction
 
@@ -35,9 +34,10 @@ Per-request token/cost telemetry and backend limits are implemented. Production
 model IDs, prices, and monthly cost ceilings still require deployment-specific
 values and representative cost validation before billing is enabled.
 
-## Provisional Launch Pricing
+## Launch-Candidate Pricing
 
-These are pricing floors for production planning, not yet customer-facing prices:
+These prices are frozen for subscription implementation planning, but they are
+not live or customer-facing until all release gates pass:
 
 | Tier | Monthly | Annual | Effective annual monthly |
 |---|---:|---:|---:|
@@ -48,6 +48,10 @@ These are pricing floors for production planning, not yet customer-facing prices
 The annual price gives approximately two months of value rather than an aggressive
 discount that would remove the AI margin. Regional storefront prices may differ,
 but no region may be launched below its approved contribution-margin floor.
+
+The complete product catalog, RevenueCat architecture, lifecycle policy,
+financial budgets, and implementation batches are defined in
+[pricing-subscriptions-release-plan.md](./pricing-subscriptions-release-plan.md).
 
 `PLUS` is the primary paid product. `PRO` is the premium adaptive tier and must
 justify its price through deeper context, frontier-quality planning, and adaptive
@@ -96,12 +100,12 @@ the customer-facing price.
 - No tier is unlimited. Abuse protection and a monthly cost ceiling apply even
   when the UI describes normal daily use.
 
-At a 15% storefront commission, the provisional monthly prices produce about
-`$16.99` net for Plus and `$33.99` net for Pro before taxes, refunds, and other
-costs. The corresponding 15% monthly AI budgets are approximately `$2.55` and
-`$5.10`. If measured p95 cost exceeds the guardrail, reduce output/retries,
-route more work to Luna or Terra, reduce allowances, or raise the price before
-launch.
+At the conservative 20% planning reserve, monthly Plus produces about `$15.99`
+and monthly Pro about `$31.99` before tax effects, refunds, RevenueCat, support,
+and other variable costs. Their median AI budgets are approximately `$2.40` and
+`$4.80`; p95 AI budgets are `$4.00` and `$8.00`. If measured cost exceeds the
+guardrail, reduce unnecessary calls/retries, route work more efficiently, reduce
+allowances, or revise the price before launch.
 
 ## Production Allowances
 
@@ -151,7 +155,7 @@ See [ai-unit-economics.md](./ai-unit-economics.md).
 |---|---|---|
 | `FREE` | `BASIC` | Useful safe plan with limited premium actions. |
 | `PLUS` | `PERSONALIZED` | More regeneration, AI nutrition quality, training-load guidance, and preference use. |
-| `PRO` | `ADAPTIVE` | Deeper adaptive context and future advanced wearable/WHOOP/AI Coach features. |
+| `PRO` | `ADAPTIVE` | Deeper adaptive context, Pro wearable features, and future AI Coach access. |
 
 ## Entitlement Matrix
 
@@ -175,8 +179,8 @@ Current feature gates:
 | Workout execution/history | Yes | Yes | Yes |
 | Food tracking | Yes | Yes | Yes |
 | Apple Health basic sync/context | Yes | Yes | Yes |
-| Advanced wearable insights | No | No | Future Pro |
-| WHOOP | No | No | Future Pro |
+| Advanced wearable insights | No | No | Yes, where supported |
+| WHOOP | No | No | Yes, after provider approval |
 | AI Coach | No | No | Future Pro |
 | Health Connect | Future | Future | Future |
 
@@ -213,7 +217,9 @@ GET /v1/me/entitlements
 GET /v1/me/usage
 ```
 
-Profile shows the current plan and “upgrade coming soon” placeholder copy. Today does not show permanent usage clutter. When an action reaches a limit, mobile displays contextual copy and keeps the existing plan visible.
+Profile shows the current plan and "upgrade coming soon" placeholder copy. Today
+does not show permanent usage clutter. When an action reaches a limit, mobile
+displays contextual copy and keeps the existing plan visible.
 
 ## Deferred
 
@@ -226,3 +232,5 @@ Profile shows the current plan and “upgrade coming soon” placeholder copy. T
 - Billing admin UI.
 - Production model IDs, route prices, and tier cost-ceiling values.
 - Representative 30-day median/p95 unit-economics approval.
+- Store product configuration and RevenueCat project configuration.
+- Sandbox purchase, restore, lifecycle, and reconciliation QA.

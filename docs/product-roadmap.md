@@ -33,12 +33,15 @@ execution/history, deterministic substitutions, health connections, and safety
 remain available. The backend entitlement and usage matrices now enforce these
 limits.
 
-The provisional paid pricing floor is `$19.99/month` or `$199.99/year` for Plus
+The launch-candidate paid pricing is `$19.99/month` or `$199.99/year` for Plus
 and `$39.99/month` or `$399.99/year` for Pro. Plus routes its main Personalized
 plan through Terra; Pro reserves Sol for its main Adaptive plan. These amounts
 must not become customer-facing until per-agent token/cost telemetry proves at
 least 65% contribution margin after storefront commission and other variable
-costs. No paid tier is unlimited.
+costs. No paid tier is unlimited. The first-release purchase architecture uses
+RevenueCat over App Store and Google Play while preserving backend-authoritative
+entitlements. See
+[pricing-subscriptions-release-plan.md](./pricing-subscriptions-release-plan.md).
 
 ## Sprint 8B Batch 1
 
@@ -471,21 +474,27 @@ For minors:
    connection UX. Batch 4 completes calibrated, cycle-matched Recovery
    normalization and conservative deterministic planning. Provider approval and
    physical-account QA remain external release gates.
-7. Freeze new product features for the first release.
-8. In progress: password-confirmed account deletion, production environment validation,
+7. Completed planning: freeze launch-candidate Plus/Pro prices, the cross-store
+   product catalog, RevenueCat purchase adapter boundary, backend-authoritative
+   entitlement flow, lifecycle rules, and billing release gates.
+8. After the quality/economics gate passes, implement subscription contracts,
+   RevenueCat reconciliation, sandbox purchase/restore UX, and store lifecycle QA
+   in bounded batches. Do not grant paid access from mobile callbacks alone.
+9. Freeze new product features for the first release.
+10. In progress: password-confirmed account deletion, production environment validation,
    explicit CORS/proxy configuration, and single-instance auth rate limits are implemented.
    Complete external privacy declarations, data-export policy, edge protection, and monitoring
    release readiness.
-9. Complete Android Health Connect development-build/device QA and Google Play
+11. Complete Android Health Connect development-build/device QA and Google Play
    declarations.
-10. Run iOS/Android release builds, full automated regression, localization QA, and
+12. Run iOS/Android release builds, full automated regression, localization QA, and
     physical-device QA.
-11. Release the stable first version.
-12. Add Recovery Trend and Photo Food Logging based on real user feedback.
-13. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
+13. Release the stable first version.
+14. Add Recovery Trend and Photo Food Logging based on real user feedback.
+15. Add Smart Shopping MVP with ingredient lists and provider deep links; defer
     catalog/cart integration until a provider partnership is approved.
-14. Evaluate Garmin only after release and a separate provider review.
-15. Evaluate Audio Co-Pilot, real billing, AI Coach chat, embeddings, admin/web, and
+16. Evaluate Garmin only after release and a separate provider review.
+17. Evaluate Audio Co-Pilot, AI Coach chat, embeddings, admin/web, and
     advanced analytics as separate approved product phases.
 
 This order adds one differentiated closed-loop feature before release, then protects

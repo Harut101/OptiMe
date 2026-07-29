@@ -141,7 +141,7 @@ agent, and operation, plus per-user total distributions without emitting user
 identifiers. Existing unpriced historical rows are reported as unpriced and are
 not included in cost distributions.
 
-Evaluate provisional pricing:
+Evaluate launch-candidate pricing:
 
 ```powershell
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-cost:benchmark
@@ -167,4 +167,4 @@ Before billing:
 2. Benchmark candidate models against the same representative plan fixtures.
 3. Run representative Free, Plus, and Pro traffic for at least 30 days.
 4. Require the strict combined quality and unit-economics gate to pass.
-5. Approve or revise the provisional paid prices before storefront work.
+5. Approve or revise the launch-candidate paid prices before storefront work.

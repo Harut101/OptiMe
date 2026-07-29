@@ -64,9 +64,11 @@ AI_QUALITY_MAX_FALLBACK_RATE_PERCENT=2
 AI_QUALITY_MAX_RETRY_RATE_PERCENT=25
 ```
 
-The documented prices are provisional internal assumptions, not customer-facing
-storefront products. Route prices must be copied from the current provider
-pricing for the exact deployment model IDs before collecting benchmark data.
+The documented prices are launch candidates, not live customer-facing storefront
+products. Route prices must be copied from the current provider pricing for the
+exact deployment model IDs before collecting benchmark data. See
+[pricing-subscriptions-release-plan.md](./pricing-subscriptions-release-plan.md)
+for the release gates and complete monthly/annual financial model.
 
 ## Commands
 
