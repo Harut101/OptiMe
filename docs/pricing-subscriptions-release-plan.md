@@ -274,18 +274,53 @@ Configuration:
 BILLING_ENABLED=false
 BILLING_PROVIDER=revenuecat
 BILLING_RECONCILIATION_TIMEOUT_MS=10000
+REVENUECAT_API_BASE_URL=https://api.revenuecat.com/v1
 REVENUECAT_SECRET_API_KEY=
 REVENUECAT_WEBHOOK_AUTH_TOKEN=
+REVENUECAT_WEBHOOK_SIGNING_SECRET=
 ```
 
 `BILLING_ENABLED` must remain `false` until the later reconciliation, mobile
 sandbox, store lifecycle, and release-gate batches are complete.
 
-### Batch 3: RevenueCat Backend Reconciliation
+### Batch 3: RevenueCat Backend Reconciliation (Implemented)
 
 - Add authenticated webhook handling and idempotent state transitions.
 - Add server reconciliation after purchase/restore.
 - Extend tests for lifecycle, ownership, replay, and out-of-order events.
+
+Implemented backend behavior:
+
+- `POST /v1/billing/webhooks/revenuecat` verifies both the configured
+  `Authorization` value and RevenueCat's timestamped HMAC signature over the
+  unmodified raw request body.
+- `POST /v1/me/billing/reconcile` requires OptiMe JWT authentication and
+  reconciles the signed-in immutable user ID against RevenueCat.
+- Webhook IDs are replay-safe through `BillingEvent`; repeated delivery returns
+  success without applying the lifecycle transition twice.
+- `lastProviderEventAt` prevents an older event from replacing newer
+  subscription state.
+- Cancellation stores `CANCELED` while retaining the verified `expiresAt`, so
+  existing entitlement resolution keeps access through the paid period.
+- Grace, renewal, expiration, refund/revocation, and trial state normalize into
+  the existing `SubscriptionStatus` contract.
+- Product-change and transfer notifications are recorded but do not directly
+  grant or move access. Their effective state must arrive through a subsequent
+  lifecycle event or authenticated reconciliation.
+- A provider subscription already linked to a different OptiMe user is rejected
+  as an ownership conflict and is never silently transferred.
+- Raw webhook bodies, receipts, purchase tokens, store secrets, and complete
+  subscriber responses are never persisted or logged.
+
+Billing remains disabled by default. Enabling it requires all three backend-only
+RevenueCat secrets. The webhook endpoint must be configured with the same auth
+header and signing secret in the RevenueCat dashboard.
+
+References:
+
+- [RevenueCat webhooks and authentication](https://www.revenuecat.com/docs/integrations/webhooks)
+- [RevenueCat webhook event fields](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields)
+- [RevenueCat subscriber API](https://www.revenuecat.com/docs/api-v1)
 
 ### Batch 4: Mobile Sandbox Purchase UX
 

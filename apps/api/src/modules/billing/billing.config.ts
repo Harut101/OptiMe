@@ -4,8 +4,10 @@ export interface BillingConfig {
   enabled: boolean;
   provider: BillingProviderKey;
   reconciliationTimeoutMs: number;
+  revenueCatApiBaseUrl: string;
   revenueCatSecretApiKey: string | null;
   revenueCatWebhookAuthToken: string | null;
+  revenueCatWebhookSigningSecret: string | null;
 }
 
 const DEFAULT_RECONCILIATION_TIMEOUT_MS = 10_000;
@@ -28,8 +30,10 @@ export function resolveBillingConfig(
       enabled: false,
       provider,
       reconciliationTimeoutMs,
+      revenueCatApiBaseUrl: parseUrl(environment.REVENUECAT_API_BASE_URL),
       revenueCatSecretApiKey: null,
-      revenueCatWebhookAuthToken: null
+      revenueCatWebhookAuthToken: null,
+      revenueCatWebhookSigningSecret: null
     };
   }
 
@@ -37,6 +41,7 @@ export function resolveBillingConfig(
     enabled: true,
     provider,
     reconciliationTimeoutMs,
+    revenueCatApiBaseUrl: parseUrl(environment.REVENUECAT_API_BASE_URL),
     revenueCatSecretApiKey: requireSecret(
       environment.REVENUECAT_SECRET_API_KEY,
       'REVENUECAT_SECRET_API_KEY'
@@ -44,8 +49,24 @@ export function resolveBillingConfig(
     revenueCatWebhookAuthToken: requireSecret(
       environment.REVENUECAT_WEBHOOK_AUTH_TOKEN,
       'REVENUECAT_WEBHOOK_AUTH_TOKEN'
+    ),
+    revenueCatWebhookSigningSecret: requireSecret(
+      environment.REVENUECAT_WEBHOOK_SIGNING_SECRET,
+      'REVENUECAT_WEBHOOK_SIGNING_SECRET'
     )
   };
+}
+
+function parseUrl(value: unknown) {
+  const normalized = readString(value) ?? 'https://api.revenuecat.com/v1';
+
+  try {
+    const url = new URL(normalized);
+    if (url.protocol !== 'https:') throw new Error();
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    throw new Error('REVENUECAT_API_BASE_URL must be a valid HTTPS URL.');
+  }
 }
 
 function parseProvider(value: unknown): BillingProviderKey {

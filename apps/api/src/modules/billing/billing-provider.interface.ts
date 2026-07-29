@@ -27,7 +27,13 @@ export interface NormalizedBillingEvent {
   providerProductId?: string | null;
   productKey?: BillingProductKey | null;
   appUserId?: string | null;
+  aliases: string[];
   occurredAt: Date;
+  purchasedAt?: Date | null;
+  expiresAt?: Date | null;
+  graceEndsAt?: Date | null;
+  periodType?: 'TRIAL' | 'NORMAL' | null;
+  cancelReason?: string | null;
 }
 
 export interface NormalizedBillingSubscriptionState {

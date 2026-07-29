@@ -6,8 +6,10 @@ describe('billing config', () => {
       enabled: false,
       provider: 'REVENUECAT',
       reconciliationTimeoutMs: 10_000,
+      revenueCatApiBaseUrl: 'https://api.revenuecat.com/v1',
       revenueCatSecretApiKey: null,
-      revenueCatWebhookAuthToken: null
+      revenueCatWebhookAuthToken: null,
+      revenueCatWebhookSigningSecret: null
     });
   });
 
@@ -30,6 +32,17 @@ describe('billing config', () => {
     ).toThrow(
       'REVENUECAT_WEBHOOK_AUTH_TOKEN must be a non-placeholder secret when billing is enabled.'
     );
+
+    expect(() =>
+      resolveBillingConfig({
+        BILLING_ENABLED: 'true',
+        BILLING_PROVIDER: 'revenuecat',
+        REVENUECAT_SECRET_API_KEY: 'secret-api-key-long-enough',
+        REVENUECAT_WEBHOOK_AUTH_TOKEN: 'webhook-auth-token-long-enough'
+      })
+    ).toThrow(
+      'REVENUECAT_WEBHOOK_SIGNING_SECRET must be a non-placeholder secret when billing is enabled.'
+    );
   });
 
   it('accepts enabled RevenueCat config and bounded timeout', () => {
@@ -39,14 +52,17 @@ describe('billing config', () => {
         BILLING_PROVIDER: 'revenuecat',
         BILLING_RECONCILIATION_TIMEOUT_MS: '15000',
         REVENUECAT_SECRET_API_KEY: 'secret-api-key-long-enough',
-        REVENUECAT_WEBHOOK_AUTH_TOKEN: 'webhook-auth-token-long-enough'
+        REVENUECAT_WEBHOOK_AUTH_TOKEN: 'webhook-auth-token-long-enough',
+        REVENUECAT_WEBHOOK_SIGNING_SECRET: 'webhook-signing-secret-long-enough'
       })
     ).toEqual({
       enabled: true,
       provider: 'REVENUECAT',
       reconciliationTimeoutMs: 15_000,
+      revenueCatApiBaseUrl: 'https://api.revenuecat.com/v1',
       revenueCatSecretApiKey: 'secret-api-key-long-enough',
-      revenueCatWebhookAuthToken: 'webhook-auth-token-long-enough'
+      revenueCatWebhookAuthToken: 'webhook-auth-token-long-enough',
+      revenueCatWebhookSigningSecret: 'webhook-signing-secret-long-enough'
     });
   });
 

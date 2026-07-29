@@ -45,3 +45,17 @@ export const BILLING_PRODUCT_CATALOG = {
 export function getBillingProduct(key: BillingProductKey) {
   return BILLING_PRODUCT_CATALOG[key];
 }
+
+export function findBillingProductByProviderId(providerProductId: string) {
+  const normalized = providerProductId.trim().toLowerCase();
+
+  return Object.values(BILLING_PRODUCT_CATALOG).find((product) => {
+    const googleProductId =
+      `${product.googleSubscriptionId}:${product.googleBasePlanId}`.toLowerCase();
+
+    return (
+      product.appleProductId.toLowerCase() === normalized ||
+      googleProductId === normalized
+    );
+  });
+}

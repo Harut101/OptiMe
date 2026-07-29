@@ -1002,6 +1002,10 @@ model Subscription {
   startsAt               DateTime
   expiresAt              DateTime?
   canceledAt             DateTime?
+  graceEndsAt            DateTime?
+  willRenew              Boolean?
+  lastVerifiedAt         DateTime?
+  lastProviderEventAt    DateTime?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
@@ -1010,7 +1014,7 @@ model Subscription {
 
   @@index([userId, startsAt])
   @@index([userId, status])
-  @@index([provider, providerSubscriptionId])
+  @@unique([provider, environment, providerSubscriptionId])
   @@index([originalTransactionId])
 }
 

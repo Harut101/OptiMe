@@ -25,7 +25,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}) {
 
   const moduleRef = await builder.compile();
 
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ rawBody: true });
 
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(

@@ -10,7 +10,9 @@ import { AppModule } from './app.module';
 import { parseCsv, parseInteger } from './config/environment.validation';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true
+  });
   const config = app.get(ConfigService);
   const apiPrefix = config.get<string>('API_PREFIX', 'v1');
   const port = config.get<number>('PORT', 3000);
