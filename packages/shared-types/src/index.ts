@@ -10,6 +10,67 @@ export type MeasurementSystem = (typeof MEASUREMENT_SYSTEMS)[number];
 export const THEME_PREFERENCES = ['SYSTEM', 'LIGHT', 'DARK'] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
+export const SUBSCRIPTION_PLANS = ['FREE', 'PLUS', 'PRO'] as const;
+export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number];
+
+export const BILLING_PRODUCT_KEYS = [
+  'PLUS_MONTHLY',
+  'PLUS_ANNUAL',
+  'PRO_MONTHLY',
+  'PRO_ANNUAL'
+] as const;
+export type BillingProductKey = (typeof BILLING_PRODUCT_KEYS)[number];
+
+export const BILLING_PERIODS = ['MONTHLY', 'ANNUAL'] as const;
+export type BillingPeriod = (typeof BILLING_PERIODS)[number];
+
+export const BILLING_PROVIDER_KEYS = ['REVENUECAT'] as const;
+export type BillingProviderKey = (typeof BILLING_PROVIDER_KEYS)[number];
+
+export const BILLING_STORES = ['APP_STORE', 'GOOGLE_PLAY'] as const;
+export type BillingStore = (typeof BILLING_STORES)[number];
+
+export const BILLING_ENVIRONMENTS = ['SANDBOX', 'PRODUCTION'] as const;
+export type BillingEnvironment = (typeof BILLING_ENVIRONMENTS)[number];
+
+export const BILLING_LIFECYCLE_EVENT_TYPES = [
+  'INITIAL_PURCHASE',
+  'RENEWAL',
+  'CANCELLATION',
+  'UNCANCELLATION',
+  'EXPIRATION',
+  'BILLING_ISSUE',
+  'PRODUCT_CHANGE',
+  'SUBSCRIPTION_EXTENDED',
+  'TRANSFER',
+  'REFUND',
+  'REVOCATION',
+  'UNKNOWN'
+] as const;
+export type BillingLifecycleEventType =
+  (typeof BILLING_LIFECYCLE_EVENT_TYPES)[number];
+
+export const BILLING_SUBSCRIPTION_STATUSES = [
+  'TRIALING',
+  'ACTIVE',
+  'GRACE_PERIOD',
+  'CANCELED',
+  'EXPIRED',
+  'PAST_DUE'
+] as const;
+export type BillingSubscriptionStatus =
+  (typeof BILLING_SUBSCRIPTION_STATUSES)[number];
+
+export interface BillingProductCatalogEntry {
+  key: BillingProductKey;
+  plan: Exclude<SubscriptionPlan, 'FREE'>;
+  period: BillingPeriod;
+  appleProductId: string;
+  googleSubscriptionId: string;
+  googleBasePlanId: string;
+  revenueCatEntitlement: 'plus' | 'pro';
+}
+
 export function isSupportedLocale(value: string): value is SupportedLocale {
   return SUPPORTED_LOCALES.includes(value as SupportedLocale);
 }

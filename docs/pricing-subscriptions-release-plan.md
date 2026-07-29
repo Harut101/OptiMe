@@ -250,12 +250,36 @@ Billing remains disabled until all gates pass:
 
 ## Implementation Batches
 
-### Batch 2: Shared Billing Contract
+### Batch 2: Shared Billing Contract (Implemented)
 
 - Add canonical product keys, periods, lifecycle types, and provider adapter
   interfaces.
 - Add provider-event persistence/migration and configuration validation.
 - Keep billing disabled and make no mobile purchase calls.
+
+Implemented foundation:
+
+- Shared store-independent product, period, provider, store, lifecycle, and
+  subscription-status types.
+- Canonical App Store/Google Play/RevenueCat product mapping.
+- `BillingProviderAdapter` boundary without a live provider implementation.
+- `BillingEvent` replay protection using unique provider event identity.
+- Safe event metadata only; no receipt, purchase token, or raw webhook payload.
+- Billing configuration disabled by default and fail-fast when enabled without
+  backend RevenueCat credentials.
+
+Configuration:
+
+```env
+BILLING_ENABLED=false
+BILLING_PROVIDER=revenuecat
+BILLING_RECONCILIATION_TIMEOUT_MS=10000
+REVENUECAT_SECRET_API_KEY=
+REVENUECAT_WEBHOOK_AUTH_TOKEN=
+```
+
+`BILLING_ENABLED` must remain `false` until the later reconciliation, mobile
+sandbox, store lifecycle, and release-gate batches are complete.
 
 ### Batch 3: RevenueCat Backend Reconciliation
 

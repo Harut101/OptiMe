@@ -477,9 +477,11 @@ For minors:
 7. Completed planning: freeze launch-candidate Plus/Pro prices, the cross-store
    product catalog, RevenueCat purchase adapter boundary, backend-authoritative
    entitlement flow, lifecycle rules, and billing release gates.
-8. After the quality/economics gate passes, implement subscription contracts,
-   RevenueCat reconciliation, sandbox purchase/restore UX, and store lifecycle QA
-   in bounded batches. Do not grant paid access from mobile callbacks alone.
+8. In progress: the shared subscription contract, canonical product catalog,
+   disabled billing config, provider adapter boundary, and replay-safe billing
+   event persistence are implemented. After the quality/economics gate passes,
+   add RevenueCat reconciliation, sandbox purchase/restore UX, and store lifecycle
+   QA in bounded batches. Do not grant paid access from mobile callbacks alone.
 9. Freeze new product features for the first release.
 10. In progress: password-confirmed account deletion, production environment validation,
    explicit CORS/proxy configuration, and single-instance auth rate limits are implemented.

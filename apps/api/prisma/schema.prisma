@@ -186,6 +186,17 @@ enum SubscriptionEnvironment {
   PRODUCTION
 }
 
+enum BillingEventProvider {
+  REVENUECAT
+}
+
+enum BillingEventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 enum PlanQualityMode {
   BASIC
   PERSONALIZED
@@ -490,49 +501,50 @@ enum AuthCodePurpose {
 }
 
 model User {
-  id                 String   @id @default(cuid())
-  email              String   @unique
+  id                 String    @id @default(cuid())
+  email              String    @unique
   passwordHash       String
   emailVerifiedAt    DateTime?
-  authVersion        Int      @default(0)
+  authVersion        Int       @default(0)
   firstName          String?
   lastName           String?
-  timezone           String   @default("UTC")
-  locale             String   @default("en")
-  isMinor            Boolean  @default(false)
-  safeMode           Boolean  @default(false)
-  noTrainingPlanned  Boolean  @default(false)
+  timezone           String    @default("UTC")
+  locale             String    @default("en")
+  isMinor            Boolean   @default(false)
+  safeMode           Boolean   @default(false)
+  noTrainingPlanned  Boolean   @default(false)
   privacyConsentedAt DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  profile       Profile?
-  goal          Goal?
-  nutritionPref NutritionPreference?
-  schedules     TrainingScheduleItem[]
-  dailyPlans    DailyPlan[]
-  planFeedback  DailyPlanFeedback[]
-  workoutSessions WorkoutSession[]
-  foodDayLogs FoodDayLog[]
-  checkpointProposals DailyPlanCheckpointProposal[]
-  aiOperationLogs AiOperationLog[]
-  aiRequestLogs AiRequestLog[]
-  subscriptions Subscription[]
-  usageLedger   UsageLedger[]
+  profile                   Profile?
+  goal                      Goal?
+  nutritionPref             NutritionPreference?
+  schedules                 TrainingScheduleItem[]
+  dailyPlans                DailyPlan[]
+  planFeedback              DailyPlanFeedback[]
+  workoutSessions           WorkoutSession[]
+  foodDayLogs               FoodDayLog[]
+  checkpointProposals       DailyPlanCheckpointProposal[]
+  aiOperationLogs           AiOperationLog[]
+  aiRequestLogs             AiRequestLog[]
+  subscriptions             Subscription[]
+  billingEvents             BillingEvent[]
+  usageLedger               UsageLedger[]
   progressiveProfilePrompts UserProgressiveProfilePrompt[]
-  dailyPlanCheckIns DailyPlanCheckIn[]
-  trainingPreference TrainingPreference?
-  weeklyTrainingSchedule TrainingSchedule?
-  dailyTrainingOverrides DailyTrainingOverride[]
-  healthConnections HealthConnection[]
-  healthDailySummaries HealthDailySummary[]
-  wearableDailySnapshots WearableDailySnapshot[]
-  whoopOAuthCredential WhoopOAuthCredential?
-  whoopOAuthStates WhoopOAuthState[]
-  availableFoods UserAvailableFood[]
-  weightLogs WeightLog[]
-  settings UserSettings?
-  authCodes AuthCode[]
+  dailyPlanCheckIns         DailyPlanCheckIn[]
+  trainingPreference        TrainingPreference?
+  weeklyTrainingSchedule    TrainingSchedule?
+  dailyTrainingOverrides    DailyTrainingOverride[]
+  healthConnections         HealthConnection[]
+  healthDailySummaries      HealthDailySummary[]
+  wearableDailySnapshots    WearableDailySnapshot[]
+  whoopOAuthCredential      WhoopOAuthCredential?
+  whoopOAuthStates          WhoopOAuthState[]
+  availableFoods            UserAvailableFood[]
+  weightLogs                WeightLog[]
+  settings                  UserSettings?
+  authCodes                 AuthCode[]
 
   @@index([createdAt])
 }
@@ -620,14 +632,14 @@ model Goal {
 }
 
 model NutritionPreference {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  dietType    DietType @default(NONE)
-  mealsPerDay Int      @default(3)
-  noKnownAllergiesConfirmed Boolean @default(false)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  dietType                  DietType @default(NONE)
+  mealsPerDay               Int      @default(3)
+  noKnownAllergiesConfirmed Boolean  @default(false)
+  notes                     String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   allergies      Allergy[]
@@ -694,14 +706,14 @@ model TrainingScheduleItem {
 }
 
 model TrainingSchedule {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  isActive     Boolean  @default(false)
+  id           String                    @id @default(cuid())
+  userId       String                    @unique
+  isActive     Boolean                   @default(false)
   weekStartsOn TrainingScheduleDayOfWeek @default(MONDAY)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   days TrainingScheduleDay[]
 
   @@index([userId, isActive])
@@ -768,11 +780,11 @@ model DailyPlan {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  feedback DailyPlanFeedback[]
-  checkIns DailyPlanCheckIn[]
-  workoutSessions WorkoutSession[]
-  foodDayLogs FoodDayLog[]
+  user                User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback            DailyPlanFeedback[]
+  checkIns            DailyPlanCheckIn[]
+  workoutSessions     WorkoutSession[]
+  foodDayLogs         FoodDayLog[]
   checkpointProposals DailyPlanCheckpointProposal[]
 
   @@unique([userId, planLocalDate, planTimezone])
@@ -845,28 +857,28 @@ model FoodMealProgress {
 }
 
 model WorkoutSession {
-  id                     String               @id @default(cuid())
-  userId                 String
-  dailyPlanId            String
-  status                 WorkoutSessionStatus @default(IN_PROGRESS)
-  preWorkoutReadinessStatus PreWorkoutReadinessStatus?
-  preWorkoutPainAreas    String[]             @default([])
-  preWorkoutNote         String?
-  preWorkoutConflictDetected Boolean           @default(false)
-  preWorkoutConflictMuscleGroups String[]      @default([])
-  preWorkoutConflictingExerciseKeys String[]   @default([])
-  preWorkoutAcknowledgedPainConflict Boolean   @default(false)
-  postWorkoutFeeling     PostWorkoutFeeling?
-  postWorkoutPainAreas   String[]             @default([])
-  postWorkoutNote        String?
-  startedAt              DateTime             @default(now())
-  completedAt            DateTime?
-  plannedExerciseCount   Int                  @default(0)
-  completedExerciseCount Int                  @default(0)
-  plannedSetCount        Int                  @default(0)
-  completedSetCount      Int                  @default(0)
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  id                                 String                     @id @default(cuid())
+  userId                             String
+  dailyPlanId                        String
+  status                             WorkoutSessionStatus       @default(IN_PROGRESS)
+  preWorkoutReadinessStatus          PreWorkoutReadinessStatus?
+  preWorkoutPainAreas                String[]                   @default([])
+  preWorkoutNote                     String?
+  preWorkoutConflictDetected         Boolean                    @default(false)
+  preWorkoutConflictMuscleGroups     String[]                   @default([])
+  preWorkoutConflictingExerciseKeys  String[]                   @default([])
+  preWorkoutAcknowledgedPainConflict Boolean                    @default(false)
+  postWorkoutFeeling                 PostWorkoutFeeling?
+  postWorkoutPainAreas               String[]                   @default([])
+  postWorkoutNote                    String?
+  startedAt                          DateTime                   @default(now())
+  completedAt                        DateTime?
+  plannedExerciseCount               Int                        @default(0)
+  completedExerciseCount             Int                        @default(0)
+  plannedSetCount                    Int                        @default(0)
+  completedSetCount                  Int                        @default(0)
+  createdAt                          DateTime                   @default(now())
+  updatedAt                          DateTime                   @updatedAt
 
   user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyPlan        DailyPlan                 @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
@@ -878,21 +890,21 @@ model WorkoutSession {
 }
 
 model WorkoutExerciseProgress {
-  id                    String   @id @default(cuid())
-  workoutSessionId      String
-  planExerciseKey       String
-  planExerciseOrder     Int
-  exerciseId            String?
-  exerciseSlug          String?
-  exerciseNameSnapshot  String
-  plannedSets           Int?
-  plannedReps           String?
+  id                     String   @id @default(cuid())
+  workoutSessionId       String
+  planExerciseKey        String
+  planExerciseOrder      Int
+  exerciseId             String?
+  exerciseSlug           String?
+  exerciseNameSnapshot   String
+  plannedSets            Int?
+  plannedReps            String?
   plannedDurationSeconds Int?
-  plannedRestSeconds    Int?
-  completedSetIndexes   Int[]    @default([])
-  isExerciseCompleted   Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  plannedRestSeconds     Int?
+  completedSetIndexes    Int[]    @default([])
+  isExerciseCompleted    Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   workoutSession WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
 
@@ -949,22 +961,22 @@ model AiOperationLog {
 }
 
 model AiRequestLog {
-  id                     String             @id @default(cuid())
-  userId                 String
-  agent                  AiRequestAgent
-  operation              AiRequestOperation
-  route                  AiModelRoute
-  provider               AiOperationProvider
-  model                  String
-  status                 AiOperationStatus
-  latencyMs              Int
-  retryAttempt           Boolean            @default(false)
-  inputTokens            Int                @default(0)
-  outputTokens           Int                @default(0)
-  totalTokens            Int                @default(0)
-  estimatedCostMicrousd  Int?
-  errorReason            String?
-  createdAt              DateTime           @default(now())
+  id                    String              @id @default(cuid())
+  userId                String
+  agent                 AiRequestAgent
+  operation             AiRequestOperation
+  route                 AiModelRoute
+  provider              AiOperationProvider
+  model                 String
+  status                AiOperationStatus
+  latencyMs             Int
+  retryAttempt          Boolean             @default(false)
+  inputTokens           Int                 @default(0)
+  outputTokens          Int                 @default(0)
+  totalTokens           Int                 @default(0)
+  estimatedCostMicrousd Int?
+  errorReason           String?
+  createdAt             DateTime            @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -993,12 +1005,42 @@ model Subscription {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingEvents BillingEvent[]
 
   @@index([userId, startsAt])
   @@index([userId, status])
   @@index([provider, providerSubscriptionId])
   @@index([originalTransactionId])
+}
+
+model BillingEvent {
+  id                 String                       @id @default(cuid())
+  provider           BillingEventProvider
+  providerEventId    String
+  eventType          String
+  status             BillingEventProcessingStatus @default(RECEIVED)
+  environment        SubscriptionEnvironment?
+  store              SubscriptionProvider?
+  userId             String?
+  subscriptionId     String?
+  providerCustomerId String?
+  providerProductId  String?
+  occurredAt         DateTime?
+  receivedAt         DateTime                     @default(now())
+  processedAt        DateTime?
+  safeErrorCode      String?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId])
+  @@index([provider, status, receivedAt])
+  @@index([userId, receivedAt])
+  @@index([subscriptionId, receivedAt])
+  @@index([providerCustomerId, receivedAt])
 }
 
 model UsageLedger {
@@ -1020,16 +1062,16 @@ model UsageLedger {
 }
 
 model UserProgressiveProfilePrompt {
-  id           String                          @id @default(cuid())
+  id           String                         @id @default(cuid())
   userId       String
   promptKey    ProgressiveProfilePromptKey
-  status       ProgressiveProfilePromptStatus  @default(PENDING)
+  status       ProgressiveProfilePromptStatus @default(PENDING)
   answerJson   Json?
   answeredAt   DateTime?
   skippedAt    DateTime?
   skippedUntil DateTime?
-  createdAt    DateTime                        @default(now())
-  updatedAt    DateTime                        @updatedAt
+  createdAt    DateTime                       @default(now())
+  updatedAt    DateTime                       @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1077,13 +1119,13 @@ model HealthConnection {
   userId             String
   provider           HealthProvider
   status             HealthConnectionStatus @default(DISCONNECTED)
-  consentedAt         DateTime?
-  disconnectedAt      DateTime?
-  lastSyncAt          DateTime?
-  permissionsGranted  Json?
-  errorReason         String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  consentedAt        DateTime?
+  disconnectedAt     DateTime?
+  lastSyncAt         DateTime?
+  permissionsGranted Json?
+  errorReason        String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1093,16 +1135,16 @@ model HealthConnection {
 }
 
 model WhoopOAuthCredential {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
   accessTokenCiphertext  String
   refreshTokenCiphertext String?
   accessTokenExpiresAt   DateTime?
-  scopes                 String[] @default([])
+  scopes                 String[]  @default([])
   externalUserId         String?
-  encryptionVersion      Int      @default(1)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  encryptionVersion      Int       @default(1)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1125,21 +1167,21 @@ model WhoopOAuthState {
 }
 
 model HealthDailySummary {
-  id                  String         @id @default(cuid())
-  userId              String
-  localDate            String
-  timezone             String
-  sourceProvider       HealthProvider
-  steps                Int?
-  sleepMinutes         Int?
-  activeEnergyKcal     Int?
-  workoutCount         Int?
-  workoutMinutes       Int?
-  averageHeartRate     Int?
-  restingHeartRate     Int?
-  weightKg             Decimal?       @db.Decimal(6, 2)
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  id               String         @id @default(cuid())
+  userId           String
+  localDate        String
+  timezone         String
+  sourceProvider   HealthProvider
+  steps            Int?
+  sleepMinutes     Int?
+  activeEnergyKcal Int?
+  workoutCount     Int?
+  workoutMinutes   Int?
+  averageHeartRate Int?
+  restingHeartRate Int?
+  weightKg         Decimal?       @db.Decimal(6, 2)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1177,21 +1219,21 @@ model WearableDailySnapshot {
 }
 
 model Exercise {
-  id                     String                         @id @default(cuid())
-  slug                   String                         @unique
-  category               ExerciseCategory
-  movementPattern        MovementPattern
-  equipment              ExerciseEquipment[]            @default([])
-  targetMuscles          TargetMuscleGroup[]             @default([])
-  secondaryMuscles       TargetMuscleGroup[]             @default([])
-  trainingLevels         TrainingLevel[]                 @default([])
-  contraindicationTags   ExerciseContraindicationTag[]   @default([])
-  isActive               Boolean                         @default(true)
-  sortOrder              Int                             @default(0)
-  createdAt              DateTime                        @default(now())
-  updatedAt              DateTime                        @updatedAt
-  translations           ExerciseTranslation[]
-  media                  ExerciseMedia[]
+  id                   String                        @id @default(cuid())
+  slug                 String                        @unique
+  category             ExerciseCategory
+  movementPattern      MovementPattern
+  equipment            ExerciseEquipment[]           @default([])
+  targetMuscles        TargetMuscleGroup[]           @default([])
+  secondaryMuscles     TargetMuscleGroup[]           @default([])
+  trainingLevels       TrainingLevel[]               @default([])
+  contraindicationTags ExerciseContraindicationTag[] @default([])
+  isActive             Boolean                       @default(true)
+  sortOrder            Int                           @default(0)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  translations         ExerciseTranslation[]
+  media                ExerciseMedia[]
 
   @@index([isActive, sortOrder, slug])
   @@index([category, isActive])
@@ -1199,79 +1241,79 @@ model Exercise {
 }
 
 model ExerciseTranslation {
-  id             String          @id @default(cuid())
-  exerciseId     String
-  locale         PreferredLocale
-  name           String
-  description    String?
-  instructions   String[]        @default([])
-  coachingCues   String[]        @default([])
-  safetyNotes    String[]        @default([])
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  exercise       Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  id           String          @id @default(cuid())
+  exerciseId   String
+  locale       PreferredLocale
+  name         String
+  description  String?
+  instructions String[]        @default([])
+  coachingCues String[]        @default([])
+  safetyNotes  String[]        @default([])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  exercise     Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
   @@unique([exerciseId, locale])
   @@index([locale, name])
 }
 
 model ExerciseMedia {
-  id             String                     @id @default(cuid())
-  exerciseId     String
-  seedKey        String?                    @unique
-  type           ExerciseMediaType
-  url            String
-  thumbnailUrl   String?
-  width          Int?
-  height         Int?
-  sortOrder      Int                        @default(0)
-  isPrimary      Boolean                    @default(false)
-  isActive       Boolean                    @default(true)
-  source         String?
-  license        String?
-  attribution    String?
-  createdAt      DateTime                   @default(now())
-  updatedAt      DateTime                   @updatedAt
-  exercise       Exercise                   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  translations   ExerciseMediaTranslation[]
+  id           String                     @id @default(cuid())
+  exerciseId   String
+  seedKey      String?                    @unique
+  type         ExerciseMediaType
+  url          String
+  thumbnailUrl String?
+  width        Int?
+  height       Int?
+  sortOrder    Int                        @default(0)
+  isPrimary    Boolean                    @default(false)
+  isActive     Boolean                    @default(true)
+  source       String?
+  license      String?
+  attribution  String?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  exercise     Exercise                   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  translations ExerciseMediaTranslation[]
 
   @@index([exerciseId, isActive, sortOrder])
   @@index([exerciseId, isPrimary, isActive])
 }
 
 model ExerciseMediaTranslation {
-  id                String          @id @default(cuid())
-  exerciseMediaId   String
-  locale            PreferredLocale
-  altText           String
-  caption           String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  exerciseMedia     ExerciseMedia   @relation(fields: [exerciseMediaId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid())
+  exerciseMediaId String
+  locale          PreferredLocale
+  altText         String
+  caption         String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  exerciseMedia   ExerciseMedia   @relation(fields: [exerciseMediaId], references: [id], onDelete: Cascade)
 
   @@unique([exerciseMediaId, locale])
   @@index([locale])
 }
 
 model FoodCatalogItem {
-  id              String              @id @default(cuid())
-  slug            String              @unique
-  source          FoodCatalogSource   @default(CURATED)
-  sourceFoodId    String?
-  category        FoodCatalogCategory
-  preparationLevel FoodPreparationLevel @default(COOK_REQUIRED)
-  caloriesPer100g Int
-  proteinPer100g  Decimal             @db.Decimal(7, 2)
-  carbsPer100g    Decimal             @db.Decimal(7, 2)
-  fatPer100g      Decimal             @db.Decimal(7, 2)
-  fiberPer100g    Decimal?            @db.Decimal(7, 2)
-  dietTypes       DietType[]          @default([])
-  restrictionTags FoodRestrictionTag[] @default([])
-  isActive        Boolean             @default(true)
-  sortOrder       Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  translations    FoodCatalogTranslation[]
+  id                String                   @id @default(cuid())
+  slug              String                   @unique
+  source            FoodCatalogSource        @default(CURATED)
+  sourceFoodId      String?
+  category          FoodCatalogCategory
+  preparationLevel  FoodPreparationLevel     @default(COOK_REQUIRED)
+  caloriesPer100g   Int
+  proteinPer100g    Decimal                  @db.Decimal(7, 2)
+  carbsPer100g      Decimal                  @db.Decimal(7, 2)
+  fatPer100g        Decimal                  @db.Decimal(7, 2)
+  fiberPer100g      Decimal?                 @db.Decimal(7, 2)
+  dietTypes         DietType[]               @default([])
+  restrictionTags   FoodRestrictionTag[]     @default([])
+  isActive          Boolean                  @default(true)
+  sortOrder         Int                      @default(0)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  translations      FoodCatalogTranslation[]
   availableForUsers UserAvailableFood[]
 
   @@unique([source, sourceFoodId])
@@ -1280,12 +1322,12 @@ model FoodCatalogItem {
 }
 
 model UserAvailableFood {
-  id                String          @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   foodCatalogItemId String
   localDate         String
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   foodCatalogItem FoodCatalogItem @relation(fields: [foodCatalogItemId], references: [id], onDelete: Cascade)

@@ -6,6 +6,7 @@ export async function cleanupDatabase(prisma: PrismaService) {
   await prisma.authCode.deleteMany();
   await prisma.aiRequestLog.deleteMany();
   await prisma.aiOperationLog.deleteMany();
+  await prisma.billingEvent.deleteMany();
   await prisma.usageLedger.deleteMany();
   await prisma.healthDailySummary.deleteMany();
   await prisma.healthConnection.deleteMany();
