@@ -3,6 +3,7 @@ import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 
 import { getSettings, updateSettings } from '@/api/settings';
 import { AppToastProvider } from '@/components/AppToast';
+import { disconnectBillingIdentity } from '@/features/billing/revenuecat-billing.service';
 import '@/i18n';
 import { detectDeviceLocale } from '@/i18n/locale-detection';
 import { useAuthStore } from '@/store/auth-store';
@@ -32,11 +33,23 @@ export function AppProviders({ children }: PropsWithChildren) {
       <ThemeProvider>
         <AppToastProvider>
           <SettingsBootstrap />
+          <BillingIdentityReset />
           {children}
         </AppToastProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
+}
+
+function BillingIdentityReset() {
+  const hydrated = useAuthStore((state) => state.hydrated);
+  const token = useAuthStore((state) => state.accessToken);
+
+  useEffect(() => {
+    if (hydrated && !token) void disconnectBillingIdentity();
+  }, [hydrated, token]);
+
+  return null;
 }
 
 function SettingsBootstrap() {

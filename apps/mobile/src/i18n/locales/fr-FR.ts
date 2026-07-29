@@ -567,5 +567,47 @@ Object.assign(frFR.legal, {
   privacyPolicyHelp: 'Comment OptiMe collecte, utilise, conserve et supprime les données.',
   termsOfServiceHelp: "Règles d'utilisation d'OptiMe et de ses conseils de bien-être.",
   accountDataControls: 'Gestion des données du compte',
-  accountDataControlsHelp: 'Gérez les données de santé ou supprimez définitivement votre compte.'
+  accountDataControlsHelp: 'Gérez les données de santé ou supprimez définitivement votre compte.',
+  billing: {
+    title: 'Offres',
+    choosePlan: 'Choisissez votre offre',
+    intro: 'Gardez une offre gratuite utile ou ajoutez davantage de personnalisation et de conseils adaptatifs.',
+    currentPlan: 'Offre actuelle',
+    current: 'Actuelle',
+    freePrice: 'Gratuit',
+    period: { MONTHLY: 'Mensuel', ANNUAL: 'Annuel' },
+    quality: { BASIC: 'Planification de base', PERSONALIZED: 'Planification personnalisée', ADAPTIVE: 'Planification adaptative' },
+    plans: {
+      FREE: { name: 'Free', quality: 'Basique', benefit1: 'Un plan quotidien utile et vérifié', benefit2: 'Conseils simples pour les repas et l’entraînement', benefit3: 'Suivi et bilans essentiels' },
+      PLUS: { name: 'Plus', quality: 'Personnalisé', benefit1: 'Plus de choix personnalisés', benefit2: 'Recommandations influencées par vos retours', benefit3: 'Actualisations supplémentaires des plans et repas' },
+      PRO: { name: 'Pro', quality: 'Adaptatif', benefit1: 'Adaptation selon l’historique et la préparation', benefit2: 'Contexte de récupération WHOOP', benefit3: 'Limites de lancement les plus élevées' }
+    },
+    perMonthApprox: 'Environ {{price}} par mois',
+    selectPlan: 'Choisir {{plan}}',
+    storePriceUnavailable: 'Prix indisponible',
+    unavailableTitle: 'Achats indisponibles',
+    restore: 'Restaurer les achats',
+    manage: 'Gérer l’abonnement',
+    backendAuthority: 'L’accès est vérifié de manière sécurisée par OptiMe après chaque achat ou restauration.',
+    accessUnavailable: 'Détails de l’offre indisponibles',
+    accessUnavailableMessage: 'Nous ne pouvons pas vérifier votre offre actuelle. Les achats restent désactivés jusqu’au rétablissement de la connexion.',
+    accessUpdated: 'Offre mise à jour',
+    accessUpdatedMessage: 'Votre accès OptiMe vérifié est prêt.',
+    accessPending: 'Achat reçu',
+    accessPendingMessage: 'La confirmation du magasin est en cours. Votre accès actuel reste disponible.',
+    purchaseIssue: 'Achat impossible',
+    errors: {
+      BILLING_DISABLED: 'Les achats ne sont pas encore activés dans cette version.',
+      UNSUPPORTED_PLATFORM: 'Les achats mobiles sont disponibles sur iOS et Android.',
+      MISSING_API_KEY: 'La configuration du magasin manque pour cette version.',
+      OFFERING_UNAVAILABLE: 'Impossible de charger les offres. Réessayez plus tard.',
+      PURCHASE_CANCELLED: 'L’achat a été annulé.',
+      PURCHASE_PENDING: 'Le magasin traite encore cet achat.',
+      STORE_UNAVAILABLE: 'Le magasin n’a pas pu terminer cette demande.',
+      NETWORK_ERROR: 'Vérifiez votre connexion et réessayez.',
+      RECONCILIATION_FAILED: 'L’achat est reçu, mais la vérification sécurisée de l’accès est encore en cours.',
+      MANAGEMENT_UNAVAILABLE: 'La gestion de l’abonnement est indisponible.',
+      UNKNOWN: 'Une erreur est survenue. Votre offre actuelle reste inchangée.'
+    }
+  }
 });

@@ -929,9 +929,8 @@ function SettingsSection() {
           icon={<Crown size={18} color={colors.recovery} />}
           tone="plan"
           title={entitlements.isError ? t('settings.planUnavailable') : getSubscriptionPlanLabel(t, entitlements.data?.currentPlan ?? 'FREE')}
-          subtitle={entitlements.isError ? t('settings.upgradeSoon') : getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}
-          statusLabel={t('settings.upgradeSoon')}
-          statusTone="info"
+          subtitle={entitlements.isError ? t('settings.planUnavailable') : getPlanQualityModeLabel(t, entitlements.data?.planQualityMode ?? 'BASIC')}
+          onPress={() => router.push('/subscription' as never)}
         />
       </Card>
       <Card>

@@ -17,7 +17,8 @@
     "interaction:test": "node scripts/test-screen-interactions.mjs",
     "localization:validate": "node scripts/validate-localization.mjs && node scripts/test-localization-contracts.mjs",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "node scripts/validate-information-architecture.mjs && node scripts/test-screen-interactions.mjs && node scripts/validate-localization.mjs && node scripts/test-localization-contracts.mjs"
+    "billing:validate": "node scripts/validate-billing-contract.mjs",
+    "test": "node scripts/validate-information-architecture.mjs && node scripts/test-screen-interactions.mjs && node scripts/validate-localization.mjs && node scripts/test-localization-contracts.mjs && node scripts/validate-billing-contract.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -42,6 +43,7 @@
     "react-native": "^0.81.5",
     "react-native-health": "^1.19.0",
     "react-native-health-connect": "^3.5.3",
+    "react-native-purchases": "10.4.4",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.16.0",
     "react-native-svg": "15.12.1",

@@ -479,6 +479,11 @@ export interface EntitlementSummary {
   };
 }
 
+export interface BillingReconciliationResponse {
+  reconciled: true;
+  subscriptionCount: number;
+}
+
 export interface UsageSummaryItem {
   feature: UsageFeature;
   periodType: UsagePeriodType;

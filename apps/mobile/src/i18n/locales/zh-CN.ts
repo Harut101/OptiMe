@@ -570,5 +570,47 @@ Object.assign(zhCN.legal, {
   privacyPolicyHelp: '了解 OptiMe 如何收集、使用、存储和删除数据。',
   termsOfServiceHelp: '使用 OptiMe 及其健康生活建议的规则。',
   accountDataControls: '账户数据管理',
-  accountDataControlsHelp: '管理健康数据或永久删除账户。'
+  accountDataControlsHelp: '管理健康数据或永久删除账户。',
+  billing: {
+    title: '订阅方案',
+    choosePlan: '选择适合你的方案',
+    intro: '继续使用实用的免费方案，或获得更多个性化和自适应建议。',
+    currentPlan: '当前方案',
+    current: '当前',
+    freePrice: '免费',
+    period: { MONTHLY: '按月', ANNUAL: '按年' },
+    quality: { BASIC: '基础每日规划', PERSONALIZED: '个性化规划', ADAPTIVE: '自适应规划' },
+    plans: {
+      FREE: { name: 'Free', quality: '基础', benefit1: '一个实用且经过安全检查的每日计划', benefit2: '简单的饮食和训练建议', benefit3: '核心记录与反馈' },
+      PLUS: { name: 'Plus', quality: '个性化', benefit1: '更多个性化饮食和训练选择', benefit2: '结合反馈的建议', benefit3: '更多计划和餐食刷新次数' },
+      PRO: { name: 'Pro', quality: '自适应', benefit1: '结合历史和准备度进行调整', benefit2: 'WHOOP 恢复数据支持', benefit3: '最高的首发使用额度' }
+    },
+    perMonthApprox: '约每月 {{price}}',
+    selectPlan: '选择 {{plan}}',
+    storePriceUnavailable: '商店价格不可用',
+    unavailableTitle: '暂时无法购买',
+    restore: '恢复购买',
+    manage: '管理订阅',
+    backendAuthority: '每次购买或恢复后，OptiMe 都会在服务器安全验证访问权限。',
+    accessUnavailable: '方案详情不可用',
+    accessUnavailableMessage: '无法验证你当前的方案。在连接恢复前，购买功能保持关闭。',
+    accessUpdated: '方案已更新',
+    accessUpdatedMessage: '经过验证的 OptiMe 权限已可使用。',
+    accessPending: '已收到购买',
+    accessPendingMessage: '商店确认仍在同步。你当前的权限不受影响。',
+    purchaseIssue: '无法完成购买',
+    errors: {
+      BILLING_DISABLED: '此版本尚未启用购买。',
+      UNSUPPORTED_PLATFORM: '移动商店购买适用于 iOS 和 Android。',
+      MISSING_API_KEY: '此版本缺少商店配置。',
+      OFFERING_UNAVAILABLE: '无法从商店加载方案，请稍后重试。',
+      PURCHASE_CANCELLED: '购买已取消。',
+      PURCHASE_PENDING: '商店仍在处理此购买。',
+      STORE_UNAVAILABLE: '商店无法完成此请求。',
+      NETWORK_ERROR: '请检查网络连接后重试。',
+      RECONCILIATION_FAILED: '已收到购买，但安全访问验证仍在进行。',
+      MANAGEMENT_UNAVAILABLE: '暂时无法管理订阅。',
+      UNKNOWN: '出现问题。你当前的方案没有改变。'
+    }
+  }
 });

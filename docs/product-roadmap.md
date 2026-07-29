@@ -479,10 +479,11 @@ For minors:
    entitlement flow, lifecycle rules, and billing release gates.
 8. In progress: the shared subscription contract, canonical product catalog,
    disabled billing config, provider adapter boundary, replay-safe billing event
-   persistence, authenticated RevenueCat webhook, and backend reconciliation are
-   implemented. After the quality/economics gate passes, add sandbox
-   purchase/restore UX and store lifecycle QA in bounded batches. Do not grant
-   paid access from mobile callbacks alone.
+   persistence, authenticated RevenueCat webhook, backend reconciliation, and
+   localized mobile sandbox purchase/restore/manage UX are implemented. Billing
+   remains disabled by default. Next complete App Store/Google Play/RevenueCat
+   sandbox configuration and lifecycle QA after the quality/economics gate
+   passes. Paid access is never granted from mobile callbacks alone.
 9. Freeze new product features for the first release.
 10. In progress: password-confirmed account deletion, production environment validation,
    explicit CORS/proxy configuration, and single-instance auth rate limits are implemented.

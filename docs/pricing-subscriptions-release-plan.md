@@ -322,12 +322,37 @@ References:
 - [RevenueCat webhook event fields](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields)
 - [RevenueCat subscriber API](https://www.revenuecat.com/docs/api-v1)
 
-### Batch 4: Mobile Sandbox Purchase UX
+### Batch 4: Mobile Sandbox Purchase UX (Implemented, Disabled By Default)
 
-- Add the SDK in development builds.
-- Replace the placeholder with localized paywall, purchase, restore, and manage
-  subscription actions.
-- Keep backend entitlements authoritative.
+- `react-native-purchases` is isolated behind the mobile billing adapter and is
+  configured only when `EXPO_PUBLIC_BILLING_ENABLED=true`.
+- RevenueCat receives the immutable OptiMe `user.id`; email and profile fields
+  are not used as billing identity.
+- The localized Plans screen uses RevenueCat/store-provided localized prices for
+  the four launch products and supports monthly/annual selection.
+- Purchase, restore, and manage actions have loading/disabled states and friendly
+  canceled, pending, unavailable, network, and reconciliation states.
+- Purchase and restore always call authenticated
+  `POST /v1/me/billing/reconcile`, then refresh `/v1/me/entitlements`.
+- RevenueCat `CustomerInfo.entitlements` never grants product access in mobile.
+  Backend `EntitlementsService` remains authoritative.
+- Web and builds without platform public SDK keys show a safe unavailable state.
+- Mobile billing is still disabled by default and is not production-enabled by
+  this batch.
+
+Mobile public configuration:
+
+```env
+EXPO_PUBLIC_BILLING_ENABLED=false
+EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=
+EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=
+```
+
+These are platform public SDK keys. `REVENUECAT_SECRET_API_KEY`,
+`REVENUECAT_WEBHOOK_AUTH_TOKEN`, and `REVENUECAT_WEBHOOK_SIGNING_SECRET` remain
+backend-only and must never use the `EXPO_PUBLIC_` prefix.
+
+See [mobile subscription sandbox QA](./mobile-subscription-sandbox.md).
 
 ### Batch 5: Store Sandbox QA
 

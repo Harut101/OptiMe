@@ -348,6 +348,70 @@
     title: 'Goals', intro: 'Update the direction OptiMe should consider for future recommendations.', loadingMessage: 'Bringing your saved direction into view.', unavailable: 'Goals unavailable', emptyTitle: 'Set your goals', emptyMessage: 'Add the outcome you want OptiMe to consider when creating future recommendations.', add: 'Add goals', current: 'Current goal', targetSummary: 'Target: {{weight}} · {{days}} days', savedMessage: 'Your updated goals will be used for future plans.', goal: 'Goal', primaryGoal: 'Primary goal', appMode: 'App mode', modeSummary: 'Mode: {{mode}}', targetWeight: 'Target weight ({{unit}})', timeline: 'Timeline (days)', adjustThrough: 'Adjust through', confirmTitle: 'Apply to future plans?', enableTrainingConfirm: 'Training will be enabled for future plans. Your nutrition targets may change on workout days. Your previous plans will not change.', disableTrainingConfirm: 'Training will be turned off for future plans. Your saved training settings will be kept. Your nutrition plan will no longer include workout energy. Your previous plans will not change.', goalChangeConfirm: 'This affects future daily plans only. Existing saved plans will not change.', futurePlansOnly: 'This affects future daily plans only. Existing saved plans will not change.', checkGoal: 'Please review your goal.'
   },
   appModes: { nutritionOnly: 'Nutrition only', nutritionTraining: 'Nutrition + Training' },
+  billing: {
+    title: 'Plans',
+    choosePlan: 'Choose the plan that fits you',
+    intro: 'Keep a useful free plan, or add more personalization and adaptive guidance.',
+    currentPlan: 'Current plan',
+    current: 'Current',
+    freePrice: 'Free',
+    period: { MONTHLY: 'Monthly', ANNUAL: 'Annual' },
+    quality: {
+      BASIC: 'Basic daily planning',
+      PERSONALIZED: 'Personalized planning',
+      ADAPTIVE: 'Adaptive planning'
+    },
+    plans: {
+      FREE: {
+        name: 'Free',
+        quality: 'Basic',
+        benefit1: 'One useful, safety-checked daily plan',
+        benefit2: 'Simple meal and training guidance',
+        benefit3: 'Core tracking and check-ins'
+      },
+      PLUS: {
+        name: 'Plus',
+        quality: 'Personalized',
+        benefit1: 'More personalized food and training choices',
+        benefit2: 'Feedback-informed recommendations',
+        benefit3: 'Additional plan and meal refreshes'
+      },
+      PRO: {
+        name: 'Pro',
+        quality: 'Adaptive',
+        benefit1: 'Adaptive planning using history and readiness',
+        benefit2: 'WHOOP recovery context',
+        benefit3: 'Highest launch usage allowances'
+      }
+    },
+    perMonthApprox: 'About {{price}} per month',
+    selectPlan: 'Choose {{plan}}',
+    storePriceUnavailable: 'Store price unavailable',
+    unavailableTitle: 'Purchases are unavailable',
+    restore: 'Restore purchases',
+    manage: 'Manage subscription',
+    backendAuthority: 'Access is verified securely by OptiMe after every purchase or restore.',
+    accessUnavailable: 'Plan details unavailable',
+    accessUnavailableMessage: 'We could not verify your current plan. Purchases stay disabled until the connection is restored.',
+    accessUpdated: 'Plan updated',
+    accessUpdatedMessage: 'Your verified OptiMe access is ready.',
+    accessPending: 'Purchase received',
+    accessPendingMessage: 'Store confirmation is still syncing. Your current access remains available.',
+    purchaseIssue: 'Purchase could not be completed',
+    errors: {
+      BILLING_DISABLED: 'Purchases are not enabled in this build yet.',
+      UNSUPPORTED_PLATFORM: 'Mobile store purchases are available on iOS and Android.',
+      MISSING_API_KEY: 'Store configuration is missing for this build.',
+      OFFERING_UNAVAILABLE: 'Plans could not be loaded from the store. Please try again later.',
+      PURCHASE_CANCELLED: 'The purchase was cancelled.',
+      PURCHASE_PENDING: 'The store is still processing this purchase.',
+      STORE_UNAVAILABLE: 'The store could not complete this request.',
+      NETWORK_ERROR: 'Check your connection and try again.',
+      RECONCILIATION_FAILED: 'The purchase was received, but secure access verification is still pending.',
+      MANAGEMENT_UNAVAILABLE: 'Subscription management is unavailable right now.',
+      UNKNOWN: 'Something went wrong. Your current plan has not changed.'
+    }
+  },
   designSystem: { title: 'Design system preview', intro: 'Internal preview for OptiMe UI foundations.', colors: 'Colors', lightTheme: 'Light theme palette', darkTheme: 'Dark theme palette', semanticColors: 'Semantic health colors', typography: 'Typography', components: 'Components', icons: 'Icons', emptyState: 'Empty state', emptyMessage: 'A quiet empty state for optional setup.', errorState: 'Error state', errorMessage: 'A friendly error state with a clear next action.' },
   health: {
     healthConnectSyncDescription: 'Health Connect can share Android activity, sleep, and workout summaries for safer personalization.',

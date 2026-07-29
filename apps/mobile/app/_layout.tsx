@@ -63,6 +63,7 @@ function AppNavigation() {
         <Stack.Screen name="workout-history" options={{ title: t('workout.workoutHistory'), headerBackTitle: t('tabs.training') }} />
         <Stack.Screen name="weekly-summary" options={{ title: t('weeklySummary.title'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="health-data" options={{ title: t('navigation.healthData'), headerBackTitle: t('tabs.profile') }} />
+        <Stack.Screen name="subscription" options={{ title: t('billing.title'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="goal-editor" options={{ title: t('navigation.goals'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="design-system-preview" options={{ title: t('navigation.designSystem'), headerBackTitle: t('tabs.profile') }} />
         <Stack.Screen name="training-schedule/create" options={{ title: t('navigation.addWorkout'), headerBackTitle: t('tabs.training') }} />

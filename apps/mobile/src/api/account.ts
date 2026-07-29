@@ -1,5 +1,9 @@
 import { apiRequest } from './client';
-import type { EntitlementSummary, UsageSummary } from '@/types/api';
+import type {
+  BillingReconciliationResponse,
+  EntitlementSummary,
+  UsageSummary
+} from '@/types/api';
 
 export function getEntitlements() {
   return apiRequest<EntitlementSummary>('/me/entitlements');
@@ -7,6 +11,12 @@ export function getEntitlements() {
 
 export function getUsageSummary() {
   return apiRequest<UsageSummary>('/me/usage');
+}
+
+export function reconcileBilling() {
+  return apiRequest<BillingReconciliationResponse>('/me/billing/reconcile', {
+    method: 'POST'
+  });
 }
 
 export function deleteAccount(currentPassword: string) {
