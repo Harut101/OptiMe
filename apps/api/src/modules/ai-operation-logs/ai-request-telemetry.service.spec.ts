@@ -7,11 +7,12 @@ import {
 
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { AiModelRouterService } from '../ai-model-routing/ai-model-router.service';
+import type { AiBenchmarkBudgetService } from './ai-benchmark-budget.service';
 import { AiRequestTelemetryService } from './ai-request-telemetry.service';
 
 describe('AiRequestTelemetryService', () => {
   it('records sanitized token usage and estimated cost', async () => {
-    const { service, create } = createService();
+    const { service, create, benchmarkBudget } = createService();
 
     await service.execute({
       userId: 'user-1',
@@ -41,10 +42,13 @@ describe('AiRequestTelemetryService', () => {
         errorReason: null
       })
     });
+    expect(benchmarkBudget.reserve).toHaveBeenCalledWith(selection());
+    expect(benchmarkBudget.settleSuccess).toHaveBeenCalledWith(null, 1_250);
+    expect(benchmarkBudget.settleFailure).not.toHaveBeenCalled();
   });
 
   it('records a safe error reason and rethrows the provider error', async () => {
-    const { service, create } = createService();
+    const { service, create, benchmarkBudget } = createService();
     const error = Object.assign(new Error('quota'), {
       status: 429,
       code: 'rate_limit_exceeded'
@@ -72,6 +76,8 @@ describe('AiRequestTelemetryService', () => {
         totalTokens: 0
       })
     });
+    expect(benchmarkBudget.settleFailure).toHaveBeenCalledWith(null);
+    expect(benchmarkBudget.settleSuccess).not.toHaveBeenCalled();
   });
 
   it('never breaks a successful provider request when telemetry storage fails', async () => {
@@ -96,12 +102,18 @@ function createService() {
   const modelRouter = {
     estimateCostMicrousd: jest.fn(() => 1_250)
   };
+  const benchmarkBudget = {
+    reserve: jest.fn(() => null),
+    settleSuccess: jest.fn(),
+    settleFailure: jest.fn()
+  };
   const service = new AiRequestTelemetryService(
     prisma as unknown as PrismaService,
-    modelRouter as unknown as AiModelRouterService
+    modelRouter as unknown as AiModelRouterService,
+    benchmarkBudget as unknown as AiBenchmarkBudgetService
   );
 
-  return { service, create };
+  return { service, create, benchmarkBudget };
 }
 
 function selection() {

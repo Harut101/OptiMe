@@ -11,6 +11,7 @@ import {
   type AiModelSelection
 } from '../ai-model-routing/ai-model-router.service';
 import type { OpenAiResponse } from '../ai/open-ai-client.factory';
+import { AiBenchmarkBudgetService } from './ai-benchmark-budget.service';
 
 export interface ExecuteAiRequestInput {
   userId: string;
@@ -28,15 +29,21 @@ export class AiRequestTelemetryService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly modelRouter: AiModelRouterService
+    private readonly modelRouter: AiModelRouterService,
+    private readonly benchmarkBudget: AiBenchmarkBudgetService
   ) {}
 
   async execute(input: ExecuteAiRequestInput) {
     const startedAt = Date.now();
+    const budgetReservation = this.benchmarkBudget.reserve(input.selection);
 
     try {
       const response = await input.request();
       const usage = this.readUsage(response);
+      this.benchmarkBudget.settleSuccess(
+        budgetReservation,
+        this.modelRouter.estimateCostMicrousd(input.selection, usage)
+      );
       await this.recordSafely({
         ...input,
         status: AiOperationStatus.SUCCESS,
@@ -46,6 +53,7 @@ export class AiRequestTelemetryService {
       });
       return response;
     } catch (error) {
+      this.benchmarkBudget.settleFailure(budgetReservation);
       await this.recordSafely({
         ...input,
         status: AiOperationStatus.ERROR,

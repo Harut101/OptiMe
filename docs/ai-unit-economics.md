@@ -1,5 +1,10 @@
 # AI Unit Economics Gate
 
+For a controlled real-provider smoke benchmark with a hard application cap of
+`$10`, see [ai-live-benchmark.md](./ai-live-benchmark.md). Historical reporting
+and release gates in this document read stored telemetry and do not themselves
+call OpenAI.
+
 OptiMe validates AI cost before implementing real billing. This gate is internal
 release tooling, not a payment system, customer paywall, or usage charge.
 

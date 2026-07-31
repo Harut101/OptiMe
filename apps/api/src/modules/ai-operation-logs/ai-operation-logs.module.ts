@@ -5,6 +5,7 @@ import { SubscriptionPlan } from '@prisma/client';
 import { AiModelRoutingModule } from '../ai-model-routing/ai-model-routing.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { AiCostControlService } from './ai-cost-control.service';
+import { AiBenchmarkBudgetService } from './ai-benchmark-budget.service';
 import {
   AI_COST_CONTROL_CONFIG,
   type AiCostControlConfig
@@ -70,11 +71,13 @@ import { AiRequestTelemetryService } from './ai-request-telemetry.service';
         };
       }
     },
+    AiBenchmarkBudgetService,
     AiCostControlService,
     AiOperationLogsService,
     AiRequestTelemetryService
   ],
   exports: [
+    AiBenchmarkBudgetService,
     AiCostControlService,
     AiOperationLogsService,
     AiRequestTelemetryService
