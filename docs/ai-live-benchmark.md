@@ -59,6 +59,25 @@ $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
 
+To compare a candidate model for the Free route without spending on Plus or Pro,
+set `AI_BENCHMARK_TIERS=FREE`, give the run a safe label, and override only the
+Luna route model and prices:
+
+```powershell
+$env:AI_BENCHMARK_TIERS='FREE'
+$env:AI_BENCHMARK_LABEL='gpt-5.4-mini'
+$env:OPENAI_MODEL_LUNA='gpt-5.4-mini'
+$env:OPENAI_LUNA_INPUT_COST_PER_1M_USD='0.75'
+$env:OPENAI_LUNA_OUTPUT_COST_PER_1M_USD='4.50'
+$env:AI_BENCHMARK_MAX_COST_USD='1'
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
+```
+
+Run the same scenarios and profile count for every candidate. A lower price is
+not sufficient: compare final READY/degraded/FALLBACK outcomes, retries, request
+count, average and p95 latency, and total token cost before changing production
+routing.
+
 The OpenAI API key, `OPENAI_DEFAULT_MODEL`, all three routed model IDs
 (`OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, `OPENAI_MODEL_SOL`), and their
 per-million-token prices must already be configured. Never commit the API key.
@@ -69,5 +88,25 @@ READY/FALLBACK outcomes and telemetry.
 
 The JSON report includes completed plan generations, READY/FALLBACK counts,
 fallback reasons, request/retry counts, input/output tokens, model routes,
-estimated provider cost, and the conservative budget snapshot. It never emits
-prompts, plans, profiles, API keys, or raw model responses.
+average/p95 request latency, estimated provider cost, and the conservative
+budget snapshot. It never emits prompts, plans, profiles, API keys, or raw model
+responses.
+
+## Initial Free-route comparison
+
+On July 31, 2026, the same six synthetic Free-plan generations were run against
+the current Luna baseline and two lower-cost candidates. All three models
+produced 6/6 READY plans without a final fallback or degraded result.
+
+| Model | Requests | Estimated cost | Average latency | p95 latency |
+| --- | ---: | ---: | ---: | ---: |
+| `gpt-5.6-luna` | 22 | $0.297225 | 13.9 s | 29.8 s |
+| `gpt-5.4-mini` | 26 | $0.187765 | 7.0 s | 16.6 s |
+| `gpt-5.4-nano` | 27 | $0.058222 | 17.3 s | 50.4 s |
+
+`gpt-5.4-mini` is the preferred staged Free-route candidate from this small
+sample because it preserved the READY rate while reducing measured cost and
+latency. `gpt-5.4-nano` is not recommended for the daily-plan route yet because
+its latency was materially worse. This result does not change production
+routing by itself; a larger multilingual and safety-focused quality set is
+required before rollout.

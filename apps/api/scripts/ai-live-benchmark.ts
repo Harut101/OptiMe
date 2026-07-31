@@ -12,6 +12,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 const HARD_MAX_COST_USD = 10;
 const RUN_PREFIX = `ai-benchmark-${Date.now()}`;
 type Tier = 'FREE' | 'PLUS' | 'PRO';
+const ALL_TIERS: Tier[] = ['FREE', 'PLUS', 'PRO'];
 
 interface Scenario {
   suffix: string;
@@ -30,6 +31,7 @@ interface BenchmarkRequestLog {
   inputTokens: number;
   outputTokens: number;
   estimatedCostMicrousd: number | null;
+  latencyMs: number;
 }
 
 const scenarios: Scenario[] = [
@@ -66,13 +68,16 @@ async function main() {
     10,
     positiveInteger('AI_BENCHMARK_PROFILES_PER_TIER', 2)
   );
+  const tiers = configuredTiers();
+  const label = process.env.AI_BENCHMARK_LABEL?.trim() || null;
   if (process.env.AI_BENCHMARK_REAL_CALLS_ENABLED !== 'true') {
     print({
       mode: 'dry-run',
+      label,
       realCallsEnabled: false,
-      tiers: ['FREE', 'PLUS', 'PRO'],
+      tiers,
       profilesPerTier,
-      plannedPlanGenerations: profilesPerTier * 3,
+      plannedPlanGenerations: profilesPerTier * tiers.length,
       hardMaxCostUsd: HARD_MAX_COST_USD,
       configuredMaxCostUsd: maxCostUsd,
       message: 'No OpenAI calls were made.'
@@ -81,7 +86,7 @@ async function main() {
   }
 
   const databaseUrl = benchmarkDatabaseUrl();
-  requireOpenAiConfiguration();
+  requireOpenAiConfiguration(tiers);
   configureRun(databaseUrl, maxCostUsd);
 
   const [{ createTestApp }, foodSeed, exerciseSeed, budgetModule] =
@@ -89,9 +94,7 @@ async function main() {
       import('../test/helpers/test-app'),
       import('../prisma/seeds/foods/seed'),
       import('../prisma/seeds/exercises/seed'),
-      import(
-        '../src/modules/ai-operation-logs/ai-benchmark-budget.service'
-      )
+      import('../src/modules/ai-operation-logs/ai-benchmark-budget.service')
     ]);
   const ctx = await createTestApp();
   const budget = ctx.app.get(budgetModule.AiBenchmarkBudgetService);
@@ -108,7 +111,7 @@ async function main() {
     await foodSeed.seedFoodCatalog(ctx.prisma);
     await exerciseSeed.seedExerciseCatalog(ctx.prisma);
 
-    benchmarkLoop: for (const tier of ['FREE', 'PLUS', 'PRO'] as const) {
+    benchmarkLoop: for (const tier of tiers) {
       for (let index = 0; index < profilesPerTier; index += 1) {
         if (budget.snapshot().exhausted) break benchmarkLoop;
         const scenario = scenarios[index % scenarios.length];
@@ -148,11 +151,14 @@ async function main() {
         retryAttempt: true,
         inputTokens: true,
         outputTokens: true,
-        estimatedCostMicrousd: true
+        estimatedCostMicrousd: true,
+        latencyMs: true
       }
     });
     print({
       mode: 'real',
+      label,
+      tiers,
       hardMaxCostUsd: HARD_MAX_COST_USD,
       budget: budget.snapshot(),
       completedPlanGenerations: outcomes.length,
@@ -194,9 +200,7 @@ function benchmarkDatabaseUrl() {
   }
   const databaseName = new URL(value).pathname.replace(/^\//, '').toLowerCase();
   if (!databaseName.includes('benchmark') && !databaseName.includes('test')) {
-    throw new Error(
-      'Benchmark database name must contain benchmark or test.'
-    );
+    throw new Error('Benchmark database name must contain benchmark or test.');
   }
   if (value === process.env.DATABASE_URL) {
     throw new Error('Benchmark database must not equal DATABASE_URL.');
@@ -204,19 +208,16 @@ function benchmarkDatabaseUrl() {
   return value;
 }
 
-function requireOpenAiConfiguration() {
+function requireOpenAiConfiguration(tiers: Tier[]) {
+  const routes = [...new Set(tiers.map(routeForTier))];
   const required = [
     'OPENAI_API_KEY',
     'OPENAI_DEFAULT_MODEL',
-    'OPENAI_MODEL_LUNA',
-    'OPENAI_MODEL_TERRA',
-    'OPENAI_MODEL_SOL',
-    'OPENAI_LUNA_INPUT_COST_PER_1M_USD',
-    'OPENAI_LUNA_OUTPUT_COST_PER_1M_USD',
-    'OPENAI_TERRA_INPUT_COST_PER_1M_USD',
-    'OPENAI_TERRA_OUTPUT_COST_PER_1M_USD',
-    'OPENAI_SOL_INPUT_COST_PER_1M_USD',
-    'OPENAI_SOL_OUTPUT_COST_PER_1M_USD'
+    ...routes.flatMap((route) => [
+      `OPENAI_MODEL_${route}`,
+      `OPENAI_${route}_INPUT_COST_PER_1M_USD`,
+      `OPENAI_${route}_OUTPUT_COST_PER_1M_USD`
+    ])
   ];
   const missing = required.filter((key) => !process.env[key]?.trim());
   if (missing.length > 0) {
@@ -233,6 +234,28 @@ function requireOpenAiConfiguration() {
       `Benchmark prices must be positive: ${invalidPrices.join(', ')}`
     );
   }
+}
+
+function configuredTiers(): Tier[] {
+  const raw = process.env.AI_BENCHMARK_TIERS?.trim();
+  if (!raw) return ALL_TIERS;
+
+  const tiers = [
+    ...new Set(raw.split(',').map((value) => value.trim().toUpperCase()))
+  ];
+  const invalid = tiers.filter((value) => !ALL_TIERS.includes(value as Tier));
+  if (tiers.length === 0 || invalid.length > 0) {
+    throw new Error(
+      `AI_BENCHMARK_TIERS must contain only FREE, PLUS, or PRO. Invalid: ${invalid.join(', ') || 'empty'}.`
+    );
+  }
+  return tiers as Tier[];
+}
+
+function routeForTier(tier: Tier) {
+  if (tier === 'PRO') return 'SOL';
+  if (tier === 'PLUS') return 'TERRA';
+  return 'LUNA';
 }
 
 async function registerUser(
@@ -259,7 +282,10 @@ async function registerUser(
     .send({ email, password: 'benchmark-password-123' })
     .expect(201);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  return { userId: user.id as string, accessToken: login.body.accessToken as string };
+  return {
+    userId: user.id as string,
+    accessToken: login.body.accessToken as string
+  };
 }
 
 async function configureProfile(
@@ -269,24 +295,32 @@ async function configureProfile(
   index: number
 ) {
   const auth = { Authorization: `Bearer ${token}` };
-  await request(app.getHttpServer()).put('/v1/profile').set(auth).send({
-    firstName: `Benchmark${index}`,
-    lastName: 'Synthetic',
-    gender: index % 2 === 0 ? 'female' : 'male',
-    pregnancyStatus: 'NOT_PREGNANT',
-    dateOfBirth: '1990-01-01',
-    heightCm: 170 + index,
-    weightKg: 70 + index,
-    activityLevel: 'MODERATE',
-    privacyConsentAccepted: true
-  }).expect(200);
-  await request(app.getHttpServer()).put('/v1/goals').set(auth).send({
-    goalType:
-      scenario.appMode === 'NUTRITION_ONLY'
-        ? 'HEALTHY_LIFESTYLE'
-        : 'IMPROVE_FITNESS',
-    appMode: scenario.appMode
-  }).expect(200);
+  await request(app.getHttpServer())
+    .put('/v1/profile')
+    .set(auth)
+    .send({
+      firstName: `Benchmark${index}`,
+      lastName: 'Synthetic',
+      gender: index % 2 === 0 ? 'female' : 'male',
+      pregnancyStatus: 'NOT_PREGNANT',
+      dateOfBirth: '1990-01-01',
+      heightCm: 170 + index,
+      weightKg: 70 + index,
+      activityLevel: 'MODERATE',
+      privacyConsentAccepted: true
+    })
+    .expect(200);
+  await request(app.getHttpServer())
+    .put('/v1/goals')
+    .set(auth)
+    .send({
+      goalType:
+        scenario.appMode === 'NUTRITION_ONLY'
+          ? 'HEALTHY_LIFESTYLE'
+          : 'IMPROVE_FITNESS',
+      appMode: scenario.appMode
+    })
+    .expect(200);
   await request(app.getHttpServer())
     .put('/v1/nutrition-preferences')
     .set(auth)
@@ -315,11 +349,7 @@ async function configureProfile(
   }
 }
 
-async function applyTier(
-  prisma: PrismaService,
-  userId: string,
-  tier: Tier
-) {
+async function applyTier(prisma: PrismaService, userId: string, tier: Tier) {
   if (tier === 'FREE') return;
   const uniqueId = `${RUN_PREFIX}-${tier.toLowerCase()}-${userId}`;
   await prisma.subscription.create({
@@ -352,6 +382,7 @@ function summarize(logs: BenchmarkRequestLog[]) {
         (total, log) => total + (log.estimatedCostMicrousd ?? 0),
         0
       );
+      const routeLatencies = routeLogs.map((log) => log.latencyMs);
       return [
         route,
         {
@@ -366,7 +397,9 @@ function summarize(logs: BenchmarkRequestLog[]) {
             (total, log) => total + log.outputTokens,
             0
           ),
-          estimatedCostUsd: routeCostMicrousd / 1_000_000
+          estimatedCostUsd: routeCostMicrousd / 1_000_000,
+          averageLatencyMs: average(routeLatencies),
+          p95LatencyMs: percentile(routeLatencies, 0.95)
         }
       ];
     })
@@ -379,10 +412,28 @@ function summarize(logs: BenchmarkRequestLog[]) {
     inputTokens: logs.reduce((total, log) => total + log.inputTokens, 0),
     outputTokens: logs.reduce((total, log) => total + log.outputTokens, 0),
     estimatedCostUsd: estimatedCostMicrousd / 1_000_000,
+    averageLatencyMs: average(logs.map((log) => log.latencyMs)),
+    p95LatencyMs: percentile(
+      logs.map((log) => log.latencyMs),
+      0.95
+    ),
     routes: [...new Set(logs.map((log) => log.route))],
     models: [...new Set(logs.map((log) => log.model))],
     byRoute: routeSummaries
   };
+}
+
+function average(values: number[]) {
+  if (values.length === 0) return 0;
+  return Math.round(
+    values.reduce((total, value) => total + value, 0) / values.length
+  );
+}
+
+function percentile(values: number[], quantile: number) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.ceil(sorted.length * quantile) - 1] ?? 0;
 }
 
 function positiveInteger(key: string, fallback: number) {
