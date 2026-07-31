@@ -138,3 +138,45 @@ promising lower-cost candidate for training-specific work, but it must not
 replace Luna for food generation until the Nutrition Agent contract is improved
 and a larger multilingual/safety benchmark passes. Nano is not recommended for
 daily planning. Production routing was not changed by this benchmark.
+
+## Paid-route comparison
+
+On July 31, 2026, the same complete-pipeline benchmark was run for Plus and Pro.
+The Pro context was also tested with Terra behind the internal `SOL` route. An
+internal route is a product/cost tier; it does not require a different provider
+model.
+
+| Tier/context | Provider model | Plans | Clean READY | Quality | Cost per plan | Average latency | p95 latency |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Plus / Personalized | `gpt-5.6-terra` | 6 | 6/6 | 98.3 | $0.1173 | 14.7 s | 36.5 s |
+| Pro / Adaptive | `gpt-5.6-sol` | 4 across two runs | 0/4 | 95.0 | not representative | 93.0 s | 136.7 s |
+| Pro / Adaptive | `gpt-5.6-terra` | 6 | 6/6 | 100.0 | $0.1220 | 15.4 s | 36.9 s |
+
+The Sol samples remained user-visible as READY because backend fallbacks
+protected the result, but every plan carried degraded provenance. Across the two
+runs, provider timeouts caused seven failed internal requests, one nutrition
+fallback per run, and fallback reasons such as `unknown_openai_error`. The low
+recorded Sol cost is therefore not a valid estimate for a fully AI-generated Pro
+plan.
+
+For launch, keep Terra as the primary complete daily-plan model for both Plus
+and Pro contexts. Pro remains more adaptive because its context, entitlements,
+history, health signals, and usage allowances differ. Reserve Sol for a later,
+bounded escalation path after its timeout/reliability behavior passes a larger
+benchmark. Do not call Sol for every Pro daily plan based on model positioning
+alone.
+
+### Measured daily-generation floor
+
+Using one complete plan per active user per day, before manual refreshes, meal
+or menu regeneration, and checkpoints:
+
+| Tier/model | Measured cost per plan | 30-day cost per fully active user |
+| --- | ---: | ---: |
+| Free / Luna | $0.0519 | $1.56 |
+| Plus / Terra | $0.1173 | $3.52 |
+| Pro context / Terra | $0.1220 | $3.66 |
+
+These are small benchmark samples, not launch approval. Paid-tier full monthly
+workload and multilingual/safety fixtures still need the representative sample
+described in the unit-economics gate.

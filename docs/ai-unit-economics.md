@@ -165,6 +165,13 @@ Exact provider model IDs and current prices must be verified immediately before
 the benchmark and set through environment configuration. Documentation must not
 silently pin a model that has not passed OptiMe's plan-quality fixtures.
 
+The July 31, 2026 controlled sample showed that the configured Sol provider
+model timed out repeatedly and degraded every tested Pro plan, while Terra with
+the same Pro/Adaptive context produced 6/6 clean READY plans at 100 quality
+score. Until Sol passes the representative gate, deploy Terra behind both the
+`TERRA` and `SOL` internal routes. Keep the route distinction for entitlements,
+context depth, telemetry, and future model recalibration.
+
 Daily Plan request counts should also be evaluated after section-scoped safety
 repair: nutrition-only feedback must not repeat the general/training generation,
 and training-only feedback must not repeat nutrition generation. Unclassified

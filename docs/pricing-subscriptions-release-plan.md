@@ -63,7 +63,8 @@ measured.
 ### Pro / Adaptive
 
 - Everything in Plus.
-- Adaptive `SOL` planning.
+- Adaptive planning through the internal `SOL` route. The launch benchmark
+  currently favors Terra as the provider model behind this route.
 - Deeper use of history, feedback, current health context, and recovery context.
 - Up to ten manual full-plan refreshes per month.
 - Up to thirty meal regenerations and six menu regenerations per month.
@@ -98,6 +99,31 @@ RevenueCat's current public pricing is free up to `$2,500` monthly tracked
 revenue and then `1%` of tracked revenue. Treat this as another variable cost,
 verify it again immediately before launch, and include it in the 35% total
 variable-cost ceiling.
+
+### Measured 1,700-user scenario
+
+The July 31, 2026 controlled benchmark measured a complete daily generation at
+about `$0.0519` for Free/Luna, `$0.1173` for Plus/Terra, and `$0.1220` for a
+Pro/Adaptive context using Terra. At 1,000 Free, 500 monthly Plus, and 200
+monthly Pro users, with every user generating one plan on all 30 days:
+
+| Item | Monthly amount |
+| --- | ---: |
+| Gross subscription revenue | `$17,993` |
+| Net after conservative 20% storefront reserve | `$14,394` |
+| Measured daily-plan AI cost | `$4,047` |
+| RevenueCat reserve at 1% of gross | `$180` |
+| Initial infrastructure allowance | `$500` |
+| Contribution before salaries, marketing, tax, refunds, and support | `$9,668` |
+
+This is the daily-generation floor, not a maximum-usage forecast. For an active
+allowance scenario, use the existing p95 AI ceilings of `$4` per Plus user and
+`$8` per Pro user while retaining the measured `$1.56` Free cost. That produces
+about `$5,156` total AI cost and `$8,559` monthly contribution under the same
+storefront, RevenueCat, and infrastructure assumptions. Treat `$8.6k-$9.7k` as
+the current planning range, not accounting profit. Annual-plan mix, regional
+prices, tax, refunds, payroll, marketing, support, and higher infrastructure
+reduce it further.
 
 References:
 
