@@ -94,6 +94,26 @@ describe('AiRequestTelemetryService', () => {
       })
     ).resolves.toEqual({ output_text: '{}' });
   });
+
+  it('maps a plain timeout message to the safe timeout reason', async () => {
+    const { service, create } = createService();
+
+    await expect(
+      service.execute({
+        userId: 'user-1',
+        operation: AiRequestOperation.DAILY_PLAN_GENERATION,
+        selection: selection(),
+        retryAttempt: false,
+        request: async () => {
+          throw new Error('Request timed out.');
+        }
+      })
+    ).rejects.toThrow('Request timed out.');
+
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ errorReason: 'openai_timeout' })
+    });
+  });
 });
 
 function createService() {

@@ -157,6 +157,9 @@ async function main() {
       budget: budget.snapshot(),
       completedPlanGenerations: outcomes.length,
       readyPlans: outcomes.filter((item) => item.status === 'READY').length,
+      degradedReadyPlans: outcomes.filter(
+        (item) => item.status === 'READY' && item.fallbackReason !== null
+      ).length,
       fallbackPlans: outcomes.filter((item) => item.status === 'FALLBACK')
         .length,
       outcomes,
@@ -205,6 +208,9 @@ function requireOpenAiConfiguration() {
   const required = [
     'OPENAI_API_KEY',
     'OPENAI_DEFAULT_MODEL',
+    'OPENAI_MODEL_LUNA',
+    'OPENAI_MODEL_TERRA',
+    'OPENAI_MODEL_SOL',
     'OPENAI_LUNA_INPUT_COST_PER_1M_USD',
     'OPENAI_LUNA_OUTPUT_COST_PER_1M_USD',
     'OPENAI_TERRA_INPUT_COST_PER_1M_USD',
@@ -339,6 +345,32 @@ function summarize(logs: BenchmarkRequestLog[]) {
     (total, log) => total + (log.estimatedCostMicrousd ?? 0),
     0
   );
+  const routeSummaries = Object.fromEntries(
+    [...new Set(logs.map((log) => log.route))].map((route) => {
+      const routeLogs = logs.filter((log) => log.route === route);
+      const routeCostMicrousd = routeLogs.reduce(
+        (total, log) => total + (log.estimatedCostMicrousd ?? 0),
+        0
+      );
+      return [
+        route,
+        {
+          requestCount: routeLogs.length,
+          retryCount: routeLogs.filter((log) => log.retryAttempt).length,
+          errorCount: routeLogs.filter((log) => log.status === 'ERROR').length,
+          inputTokens: routeLogs.reduce(
+            (total, log) => total + log.inputTokens,
+            0
+          ),
+          outputTokens: routeLogs.reduce(
+            (total, log) => total + log.outputTokens,
+            0
+          ),
+          estimatedCostUsd: routeCostMicrousd / 1_000_000
+        }
+      ];
+    })
+  );
   return {
     requestCount: logs.length,
     retryCount: logs.filter((log) => log.retryAttempt).length,
@@ -348,7 +380,8 @@ function summarize(logs: BenchmarkRequestLog[]) {
     outputTokens: logs.reduce((total, log) => total + log.outputTokens, 0),
     estimatedCostUsd: estimatedCostMicrousd / 1_000_000,
     routes: [...new Set(logs.map((log) => log.route))],
-    models: [...new Set(logs.map((log) => log.model))]
+    models: [...new Set(logs.map((log) => log.model))],
+    byRoute: routeSummaries
   };
 }
 

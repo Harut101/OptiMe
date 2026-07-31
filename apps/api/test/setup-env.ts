@@ -19,6 +19,14 @@ process.env.EMAIL_PROVIDER = 'development';
 process.env.AUTH_DEV_CODE = '123456';
 process.env.AUTH_CODE_SECRET = 'test-auth-code-secret';
 process.env.AUTH_RATE_LIMIT_ENABLED = 'false';
-delete process.env.AI_PROVIDER;
-delete process.env.OPENAI_API_KEY;
-delete process.env.OPENAI_DEFAULT_MODEL;
+
+// Explicit sentinels prevent local real-provider .env values from being loaded
+// before AppModule config is initialized. Individual tests may override them.
+process.env.AI_PROVIDER = 'mock';
+process.env.SAFETY_AGENT_ENABLED = 'false';
+process.env.SAFETY_AGENT_PROVIDER = 'mock';
+process.env.OPENAI_API_KEY = '';
+process.env.OPENAI_DEFAULT_MODEL = '';
+process.env.OPENAI_MODEL_LUNA = '';
+process.env.OPENAI_MODEL_TERRA = '';
+process.env.OPENAI_MODEL_SOL = '';

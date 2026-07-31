@@ -157,13 +157,21 @@ export class AiRequestTelemetryService {
         : error instanceof Error
           ? error.name.toLowerCase()
           : '';
+    const message =
+      typeof record.message === 'string'
+        ? record.message.toLowerCase()
+        : error instanceof Error
+          ? error.message.toLowerCase()
+          : '';
 
     if (status === 401 || status === 403) return 'openai_auth_error';
     if (status === 429) return 'openai_rate_limited';
     if (
       status === 408 ||
       code.includes('timeout') ||
-      name.includes('timeout')
+      name.includes('timeout') ||
+      message.includes('timed out') ||
+      message.includes('timeout')
     ) {
       return 'openai_timeout';
     }

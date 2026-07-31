@@ -10,7 +10,7 @@
     "start:prod": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:e2e": "node ./scripts/run-e2e.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:test": "node ./scripts/prisma-migrate-test.cjs",
@@ -39,7 +39,7 @@
     "ai-cost:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
     "ai-release:benchmark": "ts-node scripts/ai-cost-benchmark.ts",
     "ai-release:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
-    "ai-release:live": "node --env-file-if-exists=../../.env -r ts-node/register scripts/ai-live-benchmark.ts"
+    "ai-release:live": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/ai-live-benchmark.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

@@ -59,9 +59,11 @@ $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
 
-The OpenAI API key, routed model IDs, and per-million-token prices must already
-be configured. Never commit those values. Start with two profiles per tier;
-increase the sample only after reviewing READY/FALLBACK outcomes and telemetry.
+The OpenAI API key, `OPENAI_DEFAULT_MODEL`, all three routed model IDs
+(`OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, `OPENAI_MODEL_SOL`), and their
+per-million-token prices must already be configured. Never commit the API key.
+Start with two profiles per tier; increase the sample only after reviewing
+READY/FALLBACK outcomes and telemetry.
 
 ## Output
 

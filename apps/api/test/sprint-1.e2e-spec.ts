@@ -100,7 +100,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
   beforeAll(async () => {
     delete process.env.AI_PROVIDER;
-    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = '';
     delete process.env.SAFETY_AGENT_ENABLED;
     delete process.env.SAFETY_AGENT_PROVIDER;
     ctx = await createTestApp();
@@ -5125,7 +5125,7 @@ describe('Sprint 1 backend vertical slice', () => {
     const previousProvider = process.env.AI_PROVIDER;
     const previousApiKey = process.env.OPENAI_API_KEY;
     delete process.env.AI_PROVIDER;
-    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = '';
 
     const customCtx = await createTestApp();
 
@@ -5525,7 +5525,7 @@ describe('Sprint 1 backend vertical slice', () => {
     process.env.SAFETY_AGENT_ENABLED = 'false';
     process.env.SAFETY_AGENT_PROVIDER = 'openai';
     delete process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_DEFAULT_MODEL;
+    process.env.OPENAI_DEFAULT_MODEL = '';
 
     const customCtx = await createTestApp();
 
@@ -5556,7 +5556,7 @@ describe('Sprint 1 backend vertical slice', () => {
     const previousApiKey = process.env.OPENAI_API_KEY;
     process.env.SAFETY_AGENT_ENABLED = 'true';
     process.env.SAFETY_AGENT_PROVIDER = 'openai';
-    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = '';
 
     try {
       await expect(createTestApp()).rejects.toThrow(
@@ -6022,7 +6022,7 @@ describe('Sprint 1 backend vertical slice', () => {
     const previousProvider = process.env.AI_PROVIDER;
     const previousApiKey = process.env.OPENAI_API_KEY;
     process.env.AI_PROVIDER = 'openai';
-    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = '';
 
     try {
       await expect(createTestApp()).rejects.toThrow(
@@ -6039,7 +6039,7 @@ describe('Sprint 1 backend vertical slice', () => {
     const previousModel = process.env.OPENAI_DEFAULT_MODEL;
     process.env.AI_PROVIDER = 'openai';
     process.env.OPENAI_API_KEY = 'test-key';
-    delete process.env.OPENAI_DEFAULT_MODEL;
+    process.env.OPENAI_DEFAULT_MODEL = '';
 
     try {
       await expect(createTestApp()).rejects.toThrow(
