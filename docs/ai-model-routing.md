@@ -7,24 +7,30 @@ agents.
 ## Routes
 
 | PlanQualityMode | Internal route | Product tier |
-| --- | --- | --- |
-| `BASIC` | `LUNA` | Free |
-| `PERSONALIZED` | `TERRA` | Plus |
-| `ADAPTIVE` | `SOL` | Pro |
+| --------------- | -------------- | ------------ |
+| `BASIC`         | `LUNA`         | Free         |
+| `PERSONALIZED`  | `TERRA`        | Plus         |
+| `ADAPTIVE`      | `SOL`          | Pro          |
 
-`LUNA`, `TERRA`, and `SOL` are OptiMe route names. They are not assumed OpenAI
-model IDs. The actual model for each route is configured at deployment:
+`LUNA`, `TERRA`, and `SOL` remain historical internal telemetry route names.
+They are not assumed OpenAI model IDs. Deployment config is named by product
+tier so a Pro route can safely use the same provider model as Plus:
 
 ```env
 OPENAI_DEFAULT_MODEL=
-OPENAI_MODEL_LUNA=
-OPENAI_MODEL_TERRA=
-OPENAI_MODEL_SOL=
+OPENAI_DAILY_PLAN_MODEL_FREE=gpt-5.6-luna
+OPENAI_DAILY_PLAN_MODEL_PLUS=gpt-5.6-terra
+OPENAI_DAILY_PLAN_MODEL_PRO=gpt-5.6-terra
 ```
 
-Each route-specific value falls back to `OPENAI_DEFAULT_MODEL`. This preserves
-existing local environments while allowing production to assign different models.
-Mock mode does not call OpenAI and does not require these route values.
+Each tier-specific value falls back to `OPENAI_DEFAULT_MODEL`. Existing
+`OPENAI_MODEL_LUNA/TERRA/SOL` values are accepted temporarily as migration
+fallbacks, but new deployments must use the tier names. Mock mode does not call
+OpenAI and does not require these values.
+
+Legacy route prices are used only while the matching legacy model key is active.
+Once a tier model key is configured, configure its new tier input/output prices
+as well so telemetry and cost ceilings cannot price one model as another.
 
 The router is used by Daily Plan, Plan Checkpoint, Nutrition, Safety, and Training
 Load OpenAI requests. Deterministic nutrition targets, exercise boundaries,
@@ -91,12 +97,12 @@ UsageLedger.
 Cost estimates use deployment-owned USD-per-one-million-token values:
 
 ```env
-OPENAI_LUNA_INPUT_COST_PER_1M_USD=
-OPENAI_LUNA_OUTPUT_COST_PER_1M_USD=
-OPENAI_TERRA_INPUT_COST_PER_1M_USD=
-OPENAI_TERRA_OUTPUT_COST_PER_1M_USD=
-OPENAI_SOL_INPUT_COST_PER_1M_USD=
-OPENAI_SOL_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PLUS_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PLUS_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PRO_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PRO_OUTPUT_COST_PER_1M_USD=
 ```
 
 If either route price is configured, the available input/output components are

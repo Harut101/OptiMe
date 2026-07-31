@@ -66,9 +66,9 @@ Luna route model and prices:
 ```powershell
 $env:AI_BENCHMARK_TIERS='FREE'
 $env:AI_BENCHMARK_LABEL='gpt-5.4-mini'
-$env:OPENAI_MODEL_LUNA='gpt-5.4-mini'
-$env:OPENAI_LUNA_INPUT_COST_PER_1M_USD='0.75'
-$env:OPENAI_LUNA_OUTPUT_COST_PER_1M_USD='4.50'
+$env:OPENAI_DAILY_PLAN_MODEL_FREE='gpt-5.4-mini'
+$env:OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD='0.75'
+$env:OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD='4.50'
 $env:AI_BENCHMARK_MAX_COST_USD='1'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
@@ -78,8 +78,8 @@ not sufficient: compare final READY/degraded/FALLBACK outcomes, retries, request
 count, average and p95 latency, deterministic food/training quality, and total
 token cost before changing production routing.
 
-The OpenAI API key, `OPENAI_DEFAULT_MODEL`, all three routed model IDs
-(`OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, `OPENAI_MODEL_SOL`), and their
+The OpenAI API key, either `OPENAI_DEFAULT_MODEL` or all three tier model IDs
+(`OPENAI_DAILY_PLAN_MODEL_FREE/PLUS/PRO`), and their tier-specific
 per-million-token prices must already be configured. Never commit the API key.
 Start with two profiles per tier; increase the sample only after reviewing
 READY/FALLBACK outcomes and telemetry.
@@ -121,11 +121,11 @@ alone is insufficient and supersedes that initial recommendation.
 The same six-plan sample was repeated with deterministic quality metrics. Three
 plans included a 45-minute training day and three were nutrition-only rest days.
 
-| Model | Overall | Food | Food fallback | Training | Training retry | Training fallback | Cost | Average latency |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `gpt-5.6-luna` | 95.0 | 96.7 | 2/6 | 93.3 | 2/3 | 0/3 | $0.311141 | 15.7 s |
-| `gpt-5.4-mini` | 92.5 | 90.0 | 6/6 | 100.0 | 0/3 | 0/3 | $0.167320 | 5.8 s |
-| `gpt-5.4-nano` | 87.5 | 90.0 | 6/6 | 80.0 | 2/3 | 2/3 | $0.056537 | 8.4 s |
+| Model          | Overall | Food | Food fallback | Training | Training retry | Training fallback |      Cost | Average latency |
+| -------------- | ------: | ---: | ------------: | -------: | -------------: | ----------------: | --------: | --------------: |
+| `gpt-5.6-luna` |    95.0 | 96.7 |           2/6 |     93.3 |            2/3 |               0/3 | $0.311141 |          15.7 s |
+| `gpt-5.4-mini` |    92.5 | 90.0 |           6/6 |    100.0 |            0/3 |               0/3 | $0.167320 |           5.8 s |
+| `gpt-5.4-nano` |    87.5 | 90.0 |           6/6 |     80.0 |            2/3 |               2/3 | $0.056537 |           8.4 s |
 
 Every final plan remained READY, catalog-backed, target-aligned, and structurally
 complete because backend validation and deterministic fallbacks worked. However,
@@ -146,11 +146,11 @@ The Pro context was also tested with Terra behind the internal `SOL` route. An
 internal route is a product/cost tier; it does not require a different provider
 model.
 
-| Tier/context | Provider model | Plans | Clean READY | Quality | Cost per plan | Average latency | p95 latency |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Plus / Personalized | `gpt-5.6-terra` | 6 | 6/6 | 98.3 | $0.1173 | 14.7 s | 36.5 s |
-| Pro / Adaptive | `gpt-5.6-sol` | 4 across two runs | 0/4 | 95.0 | not representative | 93.0 s | 136.7 s |
-| Pro / Adaptive | `gpt-5.6-terra` | 6 | 6/6 | 100.0 | $0.1220 | 15.4 s | 36.9 s |
+| Tier/context        | Provider model  |             Plans | Clean READY | Quality |      Cost per plan | Average latency | p95 latency |
+| ------------------- | --------------- | ----------------: | ----------: | ------: | -----------------: | --------------: | ----------: |
+| Plus / Personalized | `gpt-5.6-terra` |                 6 |         6/6 |    98.3 |            $0.1173 |          14.7 s |      36.5 s |
+| Pro / Adaptive      | `gpt-5.6-sol`   | 4 across two runs |         0/4 |    95.0 | not representative |          93.0 s |     136.7 s |
+| Pro / Adaptive      | `gpt-5.6-terra` |                 6 |         6/6 |   100.0 |            $0.1220 |          15.4 s |      36.9 s |
 
 The Sol samples remained user-visible as READY because backend fallbacks
 protected the result, but every plan carried degraded provenance. Across the two
@@ -171,11 +171,11 @@ alone.
 Using one complete plan per active user per day, before manual refreshes, meal
 or menu regeneration, and checkpoints:
 
-| Tier/model | Measured cost per plan | 30-day cost per fully active user |
-| --- | ---: | ---: |
-| Free / Luna | $0.0519 | $1.56 |
-| Plus / Terra | $0.1173 | $3.52 |
-| Pro context / Terra | $0.1220 | $3.66 |
+| Tier/model          | Measured cost per plan | 30-day cost per fully active user |
+| ------------------- | ---------------------: | --------------------------------: |
+| Free / Luna         |                $0.0519 |                             $1.56 |
+| Plus / Terra        |                $0.1173 |                             $3.52 |
+| Pro context / Terra |                $0.1220 |                             $3.66 |
 
 These are small benchmark samples, not launch approval. Paid-tier full monthly
 workload and multilingual/safety fixtures still need the representative sample

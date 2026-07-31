@@ -227,31 +227,79 @@ function benchmarkDatabaseUrl() {
 }
 
 function requireOpenAiConfiguration(tiers: Tier[]) {
-  const routes = [...new Set(tiers.map(routeForTier))];
-  const required = [
-    'OPENAI_API_KEY',
-    'OPENAI_DEFAULT_MODEL',
-    ...routes.flatMap((route) => [
-      `OPENAI_MODEL_${route}`,
-      `OPENAI_${route}_INPUT_COST_PER_1M_USD`,
-      `OPENAI_${route}_OUTPUT_COST_PER_1M_USD`
-    ])
-  ];
-  const missing = required.filter((key) => !process.env[key]?.trim());
+  const missing: string[] = [];
+  if (!process.env.OPENAI_API_KEY?.trim()) missing.push('OPENAI_API_KEY');
+
+  const hasDefaultModel = Boolean(process.env.OPENAI_DEFAULT_MODEL?.trim());
+  const hasAllTierModels = ALL_TIERS.every((tier) =>
+    readPreferredOrLegacy(
+      `OPENAI_DAILY_PLAN_MODEL_${tier}`,
+      legacyConfigForTier(tier).model
+    )
+  );
+  if (!hasDefaultModel && !hasAllTierModels) {
+    missing.push(
+      'OPENAI_DEFAULT_MODEL or all OPENAI_DAILY_PLAN_MODEL_FREE/PLUS/PRO values'
+    );
+  }
+
+  for (const tier of tiers) {
+    const legacy = legacyConfigForTier(tier);
+    if (
+      !readPreferredOrLegacy(`OPENAI_DAILY_PLAN_MODEL_${tier}`, legacy.model)
+    ) {
+      missing.push(`OPENAI_DAILY_PLAN_MODEL_${tier}`);
+    }
+    if (
+      !readPreferredOrLegacy(
+        `OPENAI_DAILY_PLAN_${tier}_INPUT_COST_PER_1M_USD`,
+        legacy.inputCost
+      )
+    ) {
+      missing.push(`OPENAI_DAILY_PLAN_${tier}_INPUT_COST_PER_1M_USD`);
+    }
+    if (
+      !readPreferredOrLegacy(
+        `OPENAI_DAILY_PLAN_${tier}_OUTPUT_COST_PER_1M_USD`,
+        legacy.outputCost
+      )
+    ) {
+      missing.push(`OPENAI_DAILY_PLAN_${tier}_OUTPUT_COST_PER_1M_USD`);
+    }
+  }
+
   if (missing.length > 0) {
     throw new Error(`Missing benchmark config: ${missing.join(', ')}`);
   }
-  const invalidPrices = required
-    .filter((key) => key.endsWith('_COST_PER_1M_USD'))
-    .filter((key) => {
-      const value = Number(process.env[key]);
-      return !Number.isFinite(value) || value <= 0;
+
+  const invalidPrices = tiers.flatMap((tier) => {
+    const legacy = legacyConfigForTier(tier);
+    return [
+      [`OPENAI_DAILY_PLAN_${tier}_INPUT_COST_PER_1M_USD`, legacy.inputCost],
+      [`OPENAI_DAILY_PLAN_${tier}_OUTPUT_COST_PER_1M_USD`, legacy.outputCost]
+    ].flatMap(([preferred, fallback]) => {
+      const value = Number(readPreferredOrLegacy(preferred, fallback));
+      return Number.isFinite(value) && value > 0 ? [] : [preferred];
     });
+  });
   if (invalidPrices.length > 0) {
     throw new Error(
       `Benchmark prices must be positive: ${invalidPrices.join(', ')}`
     );
   }
+}
+
+function readPreferredOrLegacy(preferred: string, legacy: string) {
+  return process.env[preferred]?.trim() || process.env[legacy]?.trim() || null;
+}
+
+function legacyConfigForTier(tier: Tier) {
+  const route = routeForTier(tier);
+  return {
+    model: `OPENAI_MODEL_${route}`,
+    inputCost: `OPENAI_${route}_INPUT_COST_PER_1M_USD`,
+    outputCost: `OPENAI_${route}_OUTPUT_COST_PER_1M_USD`
+  };
 }
 
 function configuredTiers(): Tier[] {

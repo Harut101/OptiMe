@@ -72,9 +72,9 @@ Provider selection is controlled by environment config:
 AI_PROVIDER=mock
 OPENAI_API_KEY=
 OPENAI_DEFAULT_MODEL=
-OPENAI_MODEL_LUNA=
-OPENAI_MODEL_TERRA=
-OPENAI_MODEL_SOL=
+OPENAI_DAILY_PLAN_MODEL_FREE=
+OPENAI_DAILY_PLAN_MODEL_PLUS=
+OPENAI_DAILY_PLAN_MODEL_PRO=
 ```
 
 Rules:
@@ -83,10 +83,12 @@ Rules:
 - `AI_PROVIDER=mock` works without `OPENAI_API_KEY`.
 - `AI_PROVIDER=openai` requires `OPENAI_API_KEY`.
 - If `AI_PROVIDER=openai` is set without `OPENAI_API_KEY`, the API fails fast with a clear config error.
-- `OPENAI_DEFAULT_MODEL` remains the backward-compatible model fallback when
-  `AI_PROVIDER=openai`.
-- `OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, and `OPENAI_MODEL_SOL` may override
-  the fallback for `BASIC`, `PERSONALIZED`, and `ADAPTIVE` requests.
+- `OPENAI_DEFAULT_MODEL` is an optional common fallback when
+  `AI_PROVIDER=openai`; without it, all three tier models are required.
+- `OPENAI_DAILY_PLAN_MODEL_FREE`, `OPENAI_DAILY_PLAN_MODEL_PLUS`, and
+  `OPENAI_DAILY_PLAN_MODEL_PRO` select models for `BASIC`, `PERSONALIZED`, and
+  `ADAPTIVE` requests.
+- Legacy `OPENAI_MODEL_LUNA/TERRA/SOL` names are migration fallbacks only.
 - Route names are internal product aliases, not hard-coded provider model IDs.
 
 ## Provider And Use-Case Boundary

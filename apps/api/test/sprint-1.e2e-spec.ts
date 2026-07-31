@@ -6043,7 +6043,7 @@ describe('Sprint 1 backend vertical slice', () => {
 
     try {
       await expect(createTestApp()).rejects.toThrow(
-        'OPENAI_DEFAULT_MODEL is required when AI_PROVIDER=openai.'
+        'OPENAI_DEFAULT_MODEL or all FREE/PLUS/PRO daily-plan models are required when AI_PROVIDER=openai.'
       );
     } finally {
       restoreOpenAiEnv(previousProvider, previousApiKey, previousModel);
@@ -6051,14 +6051,14 @@ describe('Sprint 1 backend vertical slice', () => {
   });
 
   it('uses OpenAiProviderService and sends a structured-output request when AI_PROVIDER=openai', async () => {
-    const previousLunaModel = process.env.OPENAI_MODEL_LUNA;
-    const previousLunaInputCost =
-      process.env.OPENAI_LUNA_INPUT_COST_PER_1M_USD;
-    const previousLunaOutputCost =
-      process.env.OPENAI_LUNA_OUTPUT_COST_PER_1M_USD;
-    process.env.OPENAI_MODEL_LUNA = 'test-luna-model';
-    process.env.OPENAI_LUNA_INPUT_COST_PER_1M_USD = '0.25';
-    process.env.OPENAI_LUNA_OUTPUT_COST_PER_1M_USD = '2';
+    const previousFreeModel = process.env.OPENAI_DAILY_PLAN_MODEL_FREE;
+    const previousFreeInputCost =
+      process.env.OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD;
+    const previousFreeOutputCost =
+      process.env.OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD;
+    process.env.OPENAI_DAILY_PLAN_MODEL_FREE = 'test-luna-model';
+    process.env.OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD = '0.25';
+    process.env.OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD = '2';
     const requests: Array<Record<string, unknown>> = [];
     const customCtx = await createOpenAiModeTestApp({
       responses: [
@@ -6142,14 +6142,17 @@ describe('Sprint 1 backend vertical slice', () => {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
       restoreOpenAiEnv(undefined, undefined, undefined);
-      restoreOptionalEnv('OPENAI_MODEL_LUNA', previousLunaModel);
       restoreOptionalEnv(
-        'OPENAI_LUNA_INPUT_COST_PER_1M_USD',
-        previousLunaInputCost
+        'OPENAI_DAILY_PLAN_MODEL_FREE',
+        previousFreeModel
       );
       restoreOptionalEnv(
-        'OPENAI_LUNA_OUTPUT_COST_PER_1M_USD',
-        previousLunaOutputCost
+        'OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD',
+        previousFreeInputCost
+      );
+      restoreOptionalEnv(
+        'OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD',
+        previousFreeOutputCost
       );
     }
   });

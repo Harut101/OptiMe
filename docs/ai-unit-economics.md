@@ -26,26 +26,26 @@ notes, API keys, raw provider responses, or user IDs.
 
 The tier mapping is:
 
-| Tier | Route |
-|---|---|
-| `FREE` | `LUNA` |
+| Tier   | Route   |
+| ------ | ------- |
+| `FREE` | `LUNA`  |
 | `PLUS` | `TERRA` |
-| `PRO` | `SOL` |
+| `PRO`  | `SOL`   |
 
 ## Configuration
 
 Model IDs and provider prices remain deployment-owned:
 
 ```env
-OPENAI_MODEL_LUNA=
-OPENAI_MODEL_TERRA=
-OPENAI_MODEL_SOL=
-OPENAI_LUNA_INPUT_COST_PER_1M_USD=
-OPENAI_LUNA_OUTPUT_COST_PER_1M_USD=
-OPENAI_TERRA_INPUT_COST_PER_1M_USD=
-OPENAI_TERRA_OUTPUT_COST_PER_1M_USD=
-OPENAI_SOL_INPUT_COST_PER_1M_USD=
-OPENAI_SOL_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_MODEL_FREE=
+OPENAI_DAILY_PLAN_MODEL_PLUS=
+OPENAI_DAILY_PLAN_MODEL_PRO=
+OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PLUS_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PLUS_OUTPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PRO_INPUT_COST_PER_1M_USD=
+OPENAI_DAILY_PLAN_PRO_OUTPUT_COST_PER_1M_USD=
 ```
 
 Benchmark assumptions:
@@ -155,11 +155,11 @@ A candidate is accepted only if its lower token price is not offset by more
 retries, fallbacks, or incomplete plans. Current examples worth benchmarking
 from the provider's model catalog are:
 
-| Internal route | Candidate role |
-|---|---|
-| `LUNA` / Free | low-cost structured-output model |
-| `TERRA` / Plus | balanced planning model |
-| `SOL` / Pro | highest-quality adaptive planning model |
+| Internal route | Candidate role                          |
+| -------------- | --------------------------------------- |
+| `LUNA` / Free  | low-cost structured-output model        |
+| `TERRA` / Plus | balanced planning model                 |
+| `SOL` / Pro    | highest-quality adaptive planning model |
 
 Exact provider model IDs and current prices must be verified immediately before
 the benchmark and set through environment configuration. Documentation must not

@@ -2,6 +2,7 @@ import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { AiModelRoutingModule } from '../ai-model-routing/ai-model-routing.module';
+import { hasOpenAiModelConfiguration } from '../ai-model-routing/ai-model-router.service';
 import { AiOperationLogsModule } from '../ai-operation-logs/ai-operation-logs.module';
 import { AI_PROVIDER } from './ai-provider.token';
 import { MockAiProviderService } from './mock-ai-provider.service';
@@ -30,7 +31,9 @@ import { OpenAiProviderService } from './open-ai-provider.service';
         openAiProvider: OpenAiProviderService
       ) => {
         const logger = new Logger('AiModule');
-        const provider = configService.get<string>('AI_PROVIDER', 'mock').toLowerCase();
+        const provider = configService
+          .get<string>('AI_PROVIDER', 'mock')
+          .toLowerCase();
 
         if (provider === 'mock') {
           logger.log('selected provider: mock');
@@ -39,14 +42,17 @@ import { OpenAiProviderService } from './open-ai-provider.service';
 
         if (provider === 'openai') {
           const apiKey = configService.get<string>('OPENAI_API_KEY');
-          const defaultModel = configService.get<string>('OPENAI_DEFAULT_MODEL');
 
           if (!apiKey) {
-            throw new Error('OPENAI_API_KEY is required when AI_PROVIDER=openai.');
+            throw new Error(
+              'OPENAI_API_KEY is required when AI_PROVIDER=openai.'
+            );
           }
 
-          if (!defaultModel) {
-            throw new Error('OPENAI_DEFAULT_MODEL is required when AI_PROVIDER=openai.');
+          if (!hasOpenAiModelConfiguration(configService)) {
+            throw new Error(
+              'OPENAI_DEFAULT_MODEL or all FREE/PLUS/PRO daily-plan models are required when AI_PROVIDER=openai.'
+            );
           }
 
           logger.log('selected provider: openai');

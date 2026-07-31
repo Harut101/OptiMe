@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SubscriptionPlan } from '@prisma/client';
 
 import { AiModelRoutingModule } from '../ai-model-routing/ai-model-routing.module';
+import { AI_MODEL_CONFIG_BY_ROUTE } from '../ai-model-routing/ai-model-router.service';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { AiCostControlService } from './ai-cost-control.service';
 import { AiBenchmarkBudgetService } from './ai-benchmark-budget.service';
@@ -19,21 +20,15 @@ import { AiRequestTelemetryService } from './ai-request-telemetry.service';
     {
       provide: AI_COST_CONTROL_CONFIG,
       inject: [ConfigService],
-      useFactory: (
-        configService: ConfigService
-      ): AiCostControlConfig => {
+      useFactory: (configService: ConfigService): AiCostControlConfig => {
         const enforcementRequested =
           configService
-            .get<string>(
-              'AI_COST_CEILING_ENFORCEMENT_ENABLED',
-              'false'
-            )
+            .get<string>('AI_COST_CEILING_ENFORCEMENT_ENABLED', 'false')
             .toLowerCase() === 'true';
         const enforcementEnabled =
           enforcementRequested &&
-          configService
-            .get<string>('AI_PROVIDER', 'mock')
-            .toLowerCase() === 'openai';
+          configService.get<string>('AI_PROVIDER', 'mock').toLowerCase() ===
+            'openai';
         const monthlyCeilingMicrousd = {
           [SubscriptionPlan.FREE]: readUsdAsMicrousd(
             configService,
@@ -53,16 +48,18 @@ import { AiRequestTelemetryService } from './ai-request-telemetry.service';
         };
 
         if (enforcementEnabled) {
-          [
-            'OPENAI_LUNA_INPUT_COST_PER_1M_USD',
-            'OPENAI_LUNA_OUTPUT_COST_PER_1M_USD',
-            'OPENAI_TERRA_INPUT_COST_PER_1M_USD',
-            'OPENAI_TERRA_OUTPUT_COST_PER_1M_USD',
-            'OPENAI_SOL_INPUT_COST_PER_1M_USD',
-            'OPENAI_SOL_OUTPUT_COST_PER_1M_USD'
-          ].forEach((key) =>
-            readPositiveNumber(configService, key, true)
-          );
+          Object.values(AI_MODEL_CONFIG_BY_ROUTE).forEach((config) => {
+            readPositiveNumberWithLegacy(
+              configService,
+              config.inputCost,
+              config.legacyInputCost
+            );
+            readPositiveNumberWithLegacy(
+              configService,
+              config.outputCost,
+              config.legacyOutputCost
+            );
+          });
         }
 
         return {
@@ -112,4 +109,24 @@ function readPositiveNumber(
   }
 
   return value;
+}
+
+function readPositiveNumberWithLegacy(
+  configService: ConfigService,
+  key: string,
+  legacyKey: string
+) {
+  const config = Object.values(AI_MODEL_CONFIG_BY_ROUTE).find(
+    (candidate) =>
+      candidate.inputCost === key || candidate.outputCost === key
+  );
+  const usesLegacyModel =
+    config &&
+    !configService.get<string>(config.model)?.trim() &&
+    Boolean(configService.get<string>(config.legacyModel)?.trim());
+  const selectedKey =
+    Boolean(configService.get<string>(key)?.trim()) || !usesLegacyModel
+      ? key
+      : legacyKey;
+  return readPositiveNumber(configService, selectedKey, true);
 }

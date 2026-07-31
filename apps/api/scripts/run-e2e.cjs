@@ -9,6 +9,9 @@ const env = {
   SAFETY_AGENT_PROVIDER: 'mock',
   OPENAI_API_KEY: '',
   OPENAI_DEFAULT_MODEL: '',
+  OPENAI_DAILY_PLAN_MODEL_FREE: '',
+  OPENAI_DAILY_PLAN_MODEL_PLUS: '',
+  OPENAI_DAILY_PLAN_MODEL_PRO: '',
   OPENAI_MODEL_LUNA: '',
   OPENAI_MODEL_TERRA: '',
   OPENAI_MODEL_SOL: ''
@@ -16,7 +19,13 @@ const env = {
 
 const result = spawnSync(
   process.execPath,
-  [jestBin, '--config', './test/jest-e2e.json', '--runInBand', ...process.argv.slice(2)],
+  [
+    jestBin,
+    '--config',
+    './test/jest-e2e.json',
+    '--runInBand',
+    ...process.argv.slice(2)
+  ],
   { env, stdio: 'inherit' }
 );
 
