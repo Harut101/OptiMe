@@ -75,8 +75,8 @@ $env:AI_BENCHMARK_MAX_COST_USD='1'
 
 Run the same scenarios and profile count for every candidate. A lower price is
 not sufficient: compare final READY/degraded/FALLBACK outcomes, retries, request
-count, average and p95 latency, and total token cost before changing production
-routing.
+count, average and p95 latency, deterministic food/training quality, and total
+token cost before changing production routing.
 
 The OpenAI API key, `OPENAI_DEFAULT_MODEL`, all three routed model IDs
 (`OPENAI_MODEL_LUNA`, `OPENAI_MODEL_TERRA`, `OPENAI_MODEL_SOL`), and their
@@ -92,21 +92,49 @@ average/p95 request latency, estimated provider cost, and the conservative
 budget snapshot. It never emits prompts, plans, profiles, API keys, or raw model
 responses.
 
+The quality section evaluates the final structured result without storing full
+plan content. Food metrics cover target deviation, catalog coverage, ingredient
+clarity, preparation completeness, preferred-food usage, and deterministic
+fallbacks. Training metrics cover requested exercise count, ExerciseLibrary
+coverage, prescription completeness, muscle coverage, AI retries, and
+deterministic fallbacks. Scores are release-comparison signals, not medical or
+clinical quality claims.
+
 ## Initial Free-route comparison
 
 On July 31, 2026, the same six synthetic Free-plan generations were run against
 the current Luna baseline and two lower-cost candidates. All three models
 produced 6/6 READY plans without a final fallback or degraded result.
 
-| Model | Requests | Estimated cost | Average latency | p95 latency |
-| --- | ---: | ---: | ---: | ---: |
-| `gpt-5.6-luna` | 22 | $0.297225 | 13.9 s | 29.8 s |
-| `gpt-5.4-mini` | 26 | $0.187765 | 7.0 s | 16.6 s |
-| `gpt-5.4-nano` | 27 | $0.058222 | 17.3 s | 50.4 s |
+| Model          | Requests | Estimated cost | Average latency | p95 latency |
+| -------------- | -------: | -------------: | --------------: | ----------: |
+| `gpt-5.6-luna` |       22 |      $0.297225 |          13.9 s |      29.8 s |
+| `gpt-5.4-mini` |       26 |      $0.187765 |           7.0 s |      16.6 s |
+| `gpt-5.4-nano` |       27 |      $0.058222 |          17.3 s |      50.4 s |
 
-`gpt-5.4-mini` is the preferred staged Free-route candidate from this small
-sample because it preserved the READY rate while reducing measured cost and
-latency. `gpt-5.4-nano` is not recommended for the daily-plan route yet because
-its latency was materially worse. This result does not change production
-routing by itself; a larger multilingual and safety-focused quality set is
-required before rollout.
+This first status-only sample made `gpt-5.4-mini` look like the preferred staged
+Free-route candidate. The structured quality run below showed why READY rate
+alone is insufficient and supersedes that initial recommendation.
+
+### Structured food and training quality run
+
+The same six-plan sample was repeated with deterministic quality metrics. Three
+plans included a 45-minute training day and three were nutrition-only rest days.
+
+| Model | Overall | Food | Food fallback | Training | Training retry | Training fallback | Cost | Average latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-5.6-luna` | 95.0 | 96.7 | 2/6 | 93.3 | 2/3 | 0/3 | $0.311141 | 15.7 s |
+| `gpt-5.4-mini` | 92.5 | 90.0 | 6/6 | 100.0 | 0/3 | 0/3 | $0.167320 | 5.8 s |
+| `gpt-5.4-nano` | 87.5 | 90.0 | 6/6 | 80.0 | 2/3 | 2/3 | $0.056537 | 8.4 s |
+
+Every final plan remained READY, catalog-backed, target-aligned, and structurally
+complete because backend validation and deterministic fallbacks worked. However,
+`gpt-5.4-mini` and `gpt-5.4-nano` both required deterministic nutrition fallback
+for every plan. Nano also required deterministic training fallback for two of
+three training plans.
+
+Keep `gpt-5.6-luna` for the combined Free daily-plan route for now. Mini is a
+promising lower-cost candidate for training-specific work, but it must not
+replace Luna for food generation until the Nutrition Agent contract is improved
+and a larger multilingual/safety benchmark passes. Nano is not recommended for
+daily planning. Production routing was not changed by this benchmark.

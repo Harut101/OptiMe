@@ -8,6 +8,12 @@ import {
 import request from 'supertest';
 
 import type { PrismaService } from '../src/prisma/prisma.service';
+import type { DailyPlanJson } from '../src/modules/daily-plans/daily-plan-json.schema';
+import {
+  evaluateBenchmarkPlanQuality,
+  summarizePlanQuality,
+  type BenchmarkPlanQuality
+} from './ai-live-benchmark-quality';
 
 const HARD_MAX_COST_USD = 10;
 const RUN_PREFIX = `ai-benchmark-${Date.now()}`;
@@ -104,6 +110,7 @@ async function main() {
     scenario: string;
     status: string;
     fallbackReason: string | null;
+    quality: BenchmarkPlanQuality | null;
   }> = [];
   const startedAt = new Date();
 
@@ -129,6 +136,7 @@ async function main() {
           .set('Authorization', `Bearer ${user.accessToken}`)
           .send({ forceRegenerate: false });
         const fallbackReason = response.body?.plan?.debug?.fallbackReason;
+        const plan = response.body?.plan as DailyPlanJson | undefined;
         outcomes.push({
           tier,
           scenario: scenario.suffix,
@@ -137,7 +145,14 @@ async function main() {
               ? response.body.status
               : `HTTP_${response.status}`,
           fallbackReason:
-            typeof fallbackReason === 'string' ? fallbackReason : null
+            typeof fallbackReason === 'string' ? fallbackReason : null,
+          quality: plan
+            ? evaluateBenchmarkPlanQuality(plan, {
+                trainingExpected: scenario.appMode === 'NUTRITION_AND_TRAINING',
+                preferredFoods: scenario.preferredFoods,
+                expectedMealCount: 3
+              })
+            : null
         });
       }
     }
@@ -169,6 +184,9 @@ async function main() {
       fallbackPlans: outcomes.filter((item) => item.status === 'FALLBACK')
         .length,
       outcomes,
+      quality: summarizePlanQuality(
+        outcomes.flatMap((outcome) => outcome.quality ?? [])
+      ),
       telemetry: summarize(logs)
     });
   } finally {
