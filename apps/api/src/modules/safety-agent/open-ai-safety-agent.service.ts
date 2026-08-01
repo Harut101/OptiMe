@@ -13,6 +13,7 @@ import {
   OpenAiResponsesClient,
   OPENAI_CLIENT_FACTORY
 } from '../ai/open-ai-client.factory';
+import { resolveOpenAiOutputTokenBudget } from '../ai/open-ai-output-token-budget';
 import { SafetyAgent, ReviewDailyPlanInput } from './safety-agent.interface';
 import { SafetyAgentError } from './safety-agent.error';
 import { safetyAgentReviewOpenAiSchema } from './safety-agent-review.openai-schema';
@@ -51,7 +52,12 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
           this.getClient().responses.create(
             {
               model,
-              max_output_tokens: this.getMaxOutputTokens(),
+              max_output_tokens:
+                resolveOpenAiOutputTokenBudget(
+                  this.configService,
+                  'OPENAI_SAFETY_MAX_OUTPUT_TOKENS',
+                  4_000
+                ),
               input: [
                 {
                   role: 'system',
@@ -246,10 +252,6 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
 
   private getRequestTimeoutMs() {
     return this.getPositiveIntConfig('OPENAI_REQUEST_TIMEOUT_MS', 45_000);
-  }
-
-  private getMaxOutputTokens() {
-    return this.getPositiveIntConfig('OPENAI_MAX_OUTPUT_TOKENS', 4_000);
   }
 
   private getPositiveIntConfig(key: string, fallback: number) {

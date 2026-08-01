@@ -25,6 +25,7 @@ import {
   OPENAI_CLIENT_FACTORY
 } from './open-ai-client.factory';
 import { OpenAiFallbackReason, OpenAiProviderError } from './open-ai-provider.error';
+import { resolveOpenAiOutputTokenBudget } from './open-ai-output-token-budget';
 
 type OpenAiAttemptResult =
   | { ok: true; plan: DailyPlanJson }
@@ -115,7 +116,12 @@ export class OpenAiProviderService implements AiProvider {
           this.getClient().responses.create(
             {
               model,
-              max_output_tokens: this.getMaxOutputTokens(),
+              max_output_tokens:
+                resolveOpenAiOutputTokenBudget(
+                  this.configService,
+                  'OPENAI_CHECKPOINT_MAX_OUTPUT_TOKENS',
+                  4_000
+                ),
               input: [
                 {
                   role: 'system',
@@ -189,7 +195,12 @@ export class OpenAiProviderService implements AiProvider {
           this.getClient().responses.create(
             {
               model,
-              max_output_tokens: this.getMaxOutputTokens(),
+              max_output_tokens:
+                resolveOpenAiOutputTokenBudget(
+                  this.configService,
+                  'OPENAI_DAILY_PLAN_MAX_OUTPUT_TOKENS',
+                  4_000
+                ),
               input: [
                 {
                   role: 'system',
@@ -605,10 +616,6 @@ export class OpenAiProviderService implements AiProvider {
 
   private getRequestTimeoutMs() {
     return this.getPositiveIntConfig('OPENAI_REQUEST_TIMEOUT_MS', 45_000);
-  }
-
-  private getMaxOutputTokens() {
-    return this.getPositiveIntConfig('OPENAI_MAX_OUTPUT_TOKENS', 4_000);
   }
 
   private getPositiveIntConfig(key: string, fallback: number) {

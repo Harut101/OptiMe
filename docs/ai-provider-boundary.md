@@ -162,9 +162,28 @@ OpenAI provider runtime guards:
 ```env
 OPENAI_REQUEST_TIMEOUT_MS=45000
 OPENAI_MAX_OUTPUT_TOKENS=4000
+OPENAI_DAILY_PLAN_MAX_OUTPUT_TOKENS=4000
+OPENAI_NUTRITION_MAX_OUTPUT_TOKENS=4000
+OPENAI_CHECKPOINT_MAX_OUTPUT_TOKENS=4000
+OPENAI_SAFETY_MAX_OUTPUT_TOKENS=1200
+OPENAI_TRAINING_LOAD_MAX_OUTPUT_TOKENS=1200
 ```
 
-These are lightweight provider guards only. They are not a full `UsageLedger` or entitlement system.
+The operation-specific values bound output independently for the core planner,
+Nutrition Agent, checkpoint proposal, semantic Safety Agent, and Training Load
+Agent. If an operation-specific value is omitted, it falls back to
+`OPENAI_MAX_OUTPUT_TOKENS` for backward compatibility. Lower limits must pass
+the quality benchmark before production rollout; cost reduction must not reduce
+Daily Plan completeness, personalization, or safety.
+
+Identical concurrent generation requests are coalesced in the API process by
+user, local date, locale, and operation. This prevents repeated taps from
+starting duplicate provider calls and consuming usage twice. The current guard
+is process-local; a future multi-instance deployment requires a distributed
+lock or idempotency store.
+
+These are lightweight provider guards only. They complement, but do not replace,
+`UsageLedger` and entitlement enforcement.
 
 ## AI Operation Logs
 

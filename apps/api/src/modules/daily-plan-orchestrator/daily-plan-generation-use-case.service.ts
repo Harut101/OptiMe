@@ -22,6 +22,10 @@ export class DailyPlanGenerationUseCaseService {
   private readonly logger = new Logger(
     DailyPlanGenerationUseCaseService.name
   );
+  private readonly inFlightGenerations = new Map<
+    string,
+    Promise<DailyPlan>
+  >();
 
   constructor(
     private readonly orchestrator: DailyPlanOrchestratorService,
@@ -39,6 +43,32 @@ export class DailyPlanGenerationUseCaseService {
       return existingResult;
     }
 
+    const singleFlightKey = this.getSingleFlightKey(input);
+    const inFlightGeneration =
+      this.inFlightGenerations.get(singleFlightKey);
+
+    if (inFlightGeneration) {
+      this.logger.log(
+        `daily plan generation joined existing request; operation=${this.getGenerationOperation(input)}`
+      );
+      return inFlightGeneration;
+    }
+
+    const generation = this.generateNewPlan(input);
+    this.inFlightGenerations.set(singleFlightKey, generation);
+
+    try {
+      return await generation;
+    } finally {
+      if (this.inFlightGenerations.get(singleFlightKey) === generation) {
+        this.inFlightGenerations.delete(singleFlightKey);
+      }
+    }
+  }
+
+  private async generateNewPlan(
+    input: GenerateDailyPlanUseCaseInput
+  ): Promise<DailyPlan> {
     this.assertReadyToGenerate(input);
 
     const operationStartedAt = Date.now();
@@ -276,6 +306,21 @@ export class DailyPlanGenerationUseCaseService {
       });
       throw error;
     }
+  }
+
+  private getSingleFlightKey(input: GenerateDailyPlanUseCaseInput) {
+    return [
+      input.userId,
+      input.planLocalDate,
+      input.locale,
+      this.getGenerationOperation(input)
+    ].join(':');
+  }
+
+  private getGenerationOperation(input: GenerateDailyPlanUseCaseInput) {
+    if (input.recreateForCurrentLanguage) return 'language_recreation';
+    if (input.forceRegenerate) return 'refresh';
+    return 'generation';
   }
 
   private resolveExistingPlan(

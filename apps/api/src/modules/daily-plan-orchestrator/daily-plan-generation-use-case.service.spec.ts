@@ -109,6 +109,75 @@ describe('DailyPlanGenerationUseCaseService', () => {
     );
   });
 
+  it('coalesces identical concurrent generation requests', async () => {
+    const dependencies = createDependencies();
+    const service = createService(dependencies);
+    const planJson = createPlanJson();
+    const persistedPlan = createDatabasePlan();
+    const foodPlan = { meals: [] };
+    const safePlanResult = {
+      status: PlanStatus.READY,
+      planJson
+    };
+    const trainingPreparation = {
+      ...safePlanResult,
+      usedAiRetry: false,
+      usedDeterministicFallback: false
+    };
+    let releaseContext!: (
+      context: ReturnType<typeof createGenerationContext>
+    ) => void;
+    const contextPending = new Promise<
+      ReturnType<typeof createGenerationContext>
+    >((resolve) => {
+      releaseContext = resolve;
+    });
+
+    dependencies.orchestrator.getProviderName.mockReturnValue(
+      'openai'
+    );
+    dependencies.orchestrator.prepareGenerationContext.mockReturnValue(
+      contextPending
+    );
+    dependencies.orchestrator.executeGenerationWorkflow.mockResolvedValue({
+      safePlanResult,
+      finalFoodPlan: foodPlan,
+      trainingPreparation
+    });
+    dependencies.orchestrator.finalizeGenerationResult.mockResolvedValue({
+      safePlanResult,
+      status: PlanStatus.READY,
+      finalExerciseIds: []
+    });
+    dependencies.orchestrator.persistGeneratedPlan.mockResolvedValue({
+      plan: persistedPlan,
+      status: PlanStatus.READY
+    });
+
+    const firstRequest = service.generate(createInput());
+    const secondRequest = service.generate(createInput());
+    releaseContext(createGenerationContext());
+
+    await expect(
+      Promise.all([firstRequest, secondRequest])
+    ).resolves.toEqual([persistedPlan, persistedPlan]);
+    expect(
+      dependencies.aiCostControlService.assertCanStartAiOperation
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dependencies.usageGuardService.checkAndConsumeConfigured
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      dependencies.orchestrator.prepareGenerationContext
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dependencies.orchestrator.executeGenerationWorkflow
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dependencies.orchestrator.persistGeneratedPlan
+    ).toHaveBeenCalledTimes(1);
+  });
+
   it('refunds all consumed usage and records generation errors', async () => {
     const dependencies = createDependencies();
     const service = createService(dependencies);
