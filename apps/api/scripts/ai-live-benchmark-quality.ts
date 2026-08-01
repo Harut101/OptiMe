@@ -8,6 +8,13 @@ export interface BenchmarkPlanQuality {
     passed: boolean;
     failures: string[];
   };
+  safety: {
+    safeMode: boolean;
+    expectedSafeMode: boolean | null;
+    nutritionProtocolId: string | null;
+    trainingProtocolId: string | null;
+    recoveryProtocolId: string | null;
+  };
   food: {
     score: number;
     source: string | null;
@@ -52,6 +59,10 @@ export function evaluateBenchmarkPlanQuality(
     preferredFoods: string[];
     expectedMealCount: number;
     expectedMenuOptionCount?: number;
+    expectedSafeMode?: boolean;
+    expectedNutritionProtocolId?: string;
+    expectedTrainingProtocolId?: string;
+    expectedRecoveryProtocolId?: string;
   }
 ): BenchmarkPlanQuality {
   const food = evaluateFood(
@@ -64,7 +75,20 @@ export function evaluateBenchmarkPlanQuality(
   const overallScore = training.applicable
     ? Math.round((food.score + training.score) / 2)
     : food.score;
-  const contractFailures = buildContractFailures(plan, food, training);
+  const safety = {
+    safeMode: plan.safety.safeMode,
+    expectedSafeMode: input.expectedSafeMode ?? null,
+    nutritionProtocolId: plan.debug?.protocols?.nutritionProtocolId ?? null,
+    trainingProtocolId: plan.debug?.protocols?.trainingProtocolId ?? null,
+    recoveryProtocolId: plan.debug?.protocols?.recoveryProtocolId ?? null
+  };
+  const contractFailures = buildContractFailures(
+    plan,
+    food,
+    training,
+    safety,
+    input
+  );
 
   return {
     scoreVersion: 'daily-plan-quality.v2',
@@ -74,6 +98,7 @@ export function evaluateBenchmarkPlanQuality(
       passed: contractFailures.length === 0,
       failures: contractFailures
     },
+    safety,
     food,
     training
   };
@@ -286,12 +311,43 @@ function evaluateFood(
 function buildContractFailures(
   plan: DailyPlanJson,
   food: BenchmarkPlanQuality['food'],
-  training: BenchmarkPlanQuality['training']
+  training: BenchmarkPlanQuality['training'],
+  safety: BenchmarkPlanQuality['safety'],
+  expectations: {
+    expectedSafeMode?: boolean;
+    expectedNutritionProtocolId?: string;
+    expectedTrainingProtocolId?: string;
+    expectedRecoveryProtocolId?: string;
+  }
 ) {
   const failures: string[] = [];
   if (plan.debug?.provider === 'fallback') failures.push('CORE_FALLBACK');
   if (plan.debug?.generation?.isComplete !== true) {
     failures.push('GENERATION_INCOMPLETE');
+  }
+  if (
+    expectations.expectedSafeMode !== undefined &&
+    safety.safeMode !== expectations.expectedSafeMode
+  ) {
+    failures.push('SAFE_MODE_CONTRACT_FAILED');
+  }
+  if (
+    expectations.expectedNutritionProtocolId &&
+    safety.nutritionProtocolId !== expectations.expectedNutritionProtocolId
+  ) {
+    failures.push('NUTRITION_PROTOCOL_CONTRACT_FAILED');
+  }
+  if (
+    expectations.expectedTrainingProtocolId &&
+    safety.trainingProtocolId !== expectations.expectedTrainingProtocolId
+  ) {
+    failures.push('TRAINING_PROTOCOL_CONTRACT_FAILED');
+  }
+  if (
+    expectations.expectedRecoveryProtocolId &&
+    safety.recoveryProtocolId !== expectations.expectedRecoveryProtocolId
+  ) {
+    failures.push('RECOVERY_PROTOCOL_CONTRACT_FAILED');
   }
   if (food.source !== 'NUTRITION_AGENT') {
     failures.push('NUTRITION_AGENT_NOT_AUTHORITATIVE');

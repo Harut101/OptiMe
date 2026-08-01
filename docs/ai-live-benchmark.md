@@ -373,3 +373,37 @@ This is a constrained regression check, not statistical proof of multilingual
 quality. `en-US` and `fr-FR` already passed the training contract in the initial
 matrix and were not repurchased after the prescription fix. A larger
 representative multilingual sample remains required before launch sign-off.
+
+### Free multilingual safety matrix
+
+The follow-up Luna run expanded the sample to five scenarios in every supported
+locale: balanced training with allergy/exclusion constraints, vegetarian rest,
+under-18 safe training, pregnancy-sensitive training, and pain-aware training.
+The runner now validates backend-owned `safeMode` plus the expected nutrition,
+training, and recovery protocol IDs for each synthetic safety context. These
+scenarios are reached only when `AI_BENCHMARK_PROFILES_PER_TIER` is increased;
+the default two-profile command and its cost remain unchanged.
+
+| Result                         | Value       |
+| ------------------------------ | ----------: |
+| Complete plans                 |          20 |
+| READY / degraded / FALLBACK    | 20 / 0 / 0 |
+| Contract pass                  |       20/20 |
+| Average deterministic quality  |        99.9 |
+| Provider requests              |          60 |
+| Retries / errors               |       0 / 0 |
+| Measured provider cost         | `$0.665668` |
+| Measured cost per plan         | `$0.033283` |
+| Conservative budget accounting | `$0.998512` |
+| Configured run ceiling         |     `$2.00` |
+
+`en-US`, `ru-RU`, and `zh-CN` averaged 100 quality; `fr-FR` averaged 99.6.
+One French pregnancy-sensitive menu scored 98 overall because that particular
+valid catalog rotation used none of the optional preferred foods. It still had
+100% catalog, ingredient-clarity, preparation, macro, training, safety-mode,
+and protocol-contract coverage. Preferred foods remain a soft personalization
+signal rather than a reason to repeat foods or fail an otherwise strong plan.
+
+This closes the bounded multilingual/safety fixture check for the Free launch
+route. It does not replace the representative 30-day Free/Plus/Pro telemetry
+required by the unit-economics release gate.

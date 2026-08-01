@@ -57,6 +57,51 @@ describe('AI live benchmark quality', () => {
     expect(quality.food.score).toBe(100);
   });
 
+  it('checks backend-owned safety mode and protocol selection', () => {
+    const plan = createPlan();
+    plan.safety.safeMode = true;
+    plan.debug!.protocols = {
+      nutritionProtocolId: 'UNDER_18_SAFE',
+      trainingProtocolId: 'MOBILITY',
+      recoveryProtocolId: 'NORMAL_RECOVERY'
+    };
+
+    const quality = evaluateBenchmarkPlanQuality(plan, {
+      trainingExpected: true,
+      preferredFoods: ['rice'],
+      expectedMealCount: 1,
+      expectedSafeMode: true,
+      expectedNutritionProtocolId: 'UNDER_18_SAFE',
+      expectedTrainingProtocolId: 'MOBILITY',
+      expectedRecoveryProtocolId: 'NORMAL_RECOVERY'
+    });
+
+    expect(quality.safety).toMatchObject({
+      safeMode: true,
+      nutritionProtocolId: 'UNDER_18_SAFE',
+      trainingProtocolId: 'MOBILITY',
+      recoveryProtocolId: 'NORMAL_RECOVERY'
+    });
+    expect(quality.contract.passed).toBe(true);
+  });
+
+  it('fails when a safety scenario resolves the wrong protocol', () => {
+    const quality = evaluateBenchmarkPlanQuality(createPlan(), {
+      trainingExpected: true,
+      preferredFoods: ['rice'],
+      expectedMealCount: 1,
+      expectedSafeMode: true,
+      expectedNutritionProtocolId: 'UNDER_18_SAFE'
+    });
+
+    expect(quality.contract.failures).toEqual(
+      expect.arrayContaining([
+        'SAFE_MODE_CONTRACT_FAILED',
+        'NUTRITION_PROTOCOL_CONTRACT_FAILED'
+      ])
+    );
+  });
+
   it('summarizes applicable training plans separately from rest days', () => {
     const training = evaluateBenchmarkPlanQuality(createPlan(), {
       trainingExpected: true,

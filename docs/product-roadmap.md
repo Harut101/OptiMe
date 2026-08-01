@@ -465,7 +465,10 @@ For minors:
    Populate current deployment model IDs/prices/ceilings, collect representative
    30-day Free/Plus/Pro telemetry, and require `ai-release:gate` to pass before
    billing work. A cheaper Free route is not accepted if READY rate falls or
-   fallback/retry rates exceed the shared quality thresholds.
+   fallback/retry rates exceed the shared quality thresholds. The bounded Free
+   multilingual safety matrix is complete: 20/20 READY plans across four locales
+   and five normal/safety scenarios passed the contract with no retries or
+   fallbacks. The 30-day tier telemetry requirement remains.
 6. Implementation complete: WHOOP is the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative

@@ -36,6 +36,14 @@ interface Scenario {
   allergies: string[];
   excludedFoods: string[];
   preferredFoods: string[];
+  gender?: 'female' | 'male';
+  pregnancyStatus?: 'NOT_PREGNANT' | 'PREGNANT' | 'POSTPARTUM' | 'BREASTFEEDING';
+  dateOfBirth?: string;
+  limitationsOrPainAreas?: string[];
+  expectedSafeMode: boolean;
+  expectedNutritionProtocolId: string;
+  expectedTrainingProtocolId: string;
+  expectedRecoveryProtocolId: string;
 }
 
 interface BenchmarkRequestLog {
@@ -59,7 +67,11 @@ const scenarios: Scenario[] = [
     dietType: 'OMNIVORE',
     allergies: ['peanuts'],
     excludedFoods: ['avocado'],
-    preferredFoods: ['rice', 'eggs', 'salmon']
+    preferredFoods: ['rice', 'eggs', 'salmon'],
+    expectedSafeMode: false,
+    expectedNutritionProtocolId: 'MAINTENANCE',
+    expectedTrainingProtocolId: 'MOBILITY',
+    expectedRecoveryProtocolId: 'NORMAL_RECOVERY'
   },
   {
     suffix: 'vegetarian-rest',
@@ -67,7 +79,51 @@ const scenarios: Scenario[] = [
     dietType: 'VEGETARIAN',
     allergies: [],
     excludedFoods: ['mushrooms'],
-    preferredFoods: ['oats', 'yogurt', 'lentils']
+    preferredFoods: ['oats', 'yogurt', 'lentils'],
+    expectedSafeMode: false,
+    expectedNutritionProtocolId: 'HEALTHY_LIFESTYLE',
+    expectedTrainingProtocolId: 'NO_TRAINING_PLANNED',
+    expectedRecoveryProtocolId: 'REST_DAY'
+  },
+  {
+    suffix: 'under-18-safe-training',
+    appMode: 'NUTRITION_AND_TRAINING',
+    dietType: 'OMNIVORE',
+    allergies: ['peanuts'],
+    excludedFoods: ['energy drinks'],
+    preferredFoods: ['rice', 'eggs', 'yogurt'],
+    dateOfBirth: '2012-01-01',
+    expectedSafeMode: true,
+    expectedNutritionProtocolId: 'UNDER_18_SAFE',
+    expectedTrainingProtocolId: 'MOBILITY',
+    expectedRecoveryProtocolId: 'NORMAL_RECOVERY'
+  },
+  {
+    suffix: 'pregnancy-sensitive-training',
+    appMode: 'NUTRITION_AND_TRAINING',
+    dietType: 'OMNIVORE',
+    allergies: [],
+    excludedFoods: ['alcohol'],
+    preferredFoods: ['oats', 'yogurt', 'salmon'],
+    gender: 'female',
+    pregnancyStatus: 'PREGNANT',
+    expectedSafeMode: false,
+    expectedNutritionProtocolId: 'PREGNANCY_POSTPARTUM_SAFE',
+    expectedTrainingProtocolId: 'MOBILITY',
+    expectedRecoveryProtocolId: 'PREGNANCY_POSTPARTUM_CONSERVATIVE'
+  },
+  {
+    suffix: 'pain-aware-training',
+    appMode: 'NUTRITION_AND_TRAINING',
+    dietType: 'VEGETARIAN',
+    allergies: [],
+    excludedFoods: ['mushrooms'],
+    preferredFoods: ['oats', 'lentils', 'rice'],
+    limitationsOrPainAreas: ['knee pain'],
+    expectedSafeMode: false,
+    expectedNutritionProtocolId: 'MAINTENANCE',
+    expectedTrainingProtocolId: 'CONSERVATIVE_PAIN_LIMITATION',
+    expectedRecoveryProtocolId: 'PAIN_OR_DISCOMFORT'
   }
 ];
 
@@ -103,6 +159,10 @@ async function main() {
       profilesPerTier,
       profilesPerTierPerLocale: profilesPerTier,
       plannedPlanGenerations: profilesPerTier * tiers.length * locales.length,
+      plannedScenarios: Array.from(
+        { length: profilesPerTier },
+        (_, index) => scenarios[index % scenarios.length].suffix
+      ),
       hardMaxCostUsd: HARD_MAX_COST_USD,
       configuredMaxCostUsd: maxCostUsd,
       message: 'No OpenAI calls were made.'
@@ -179,7 +239,14 @@ async function main() {
                     scenario.appMode === 'NUTRITION_AND_TRAINING',
                   preferredFoods: scenario.preferredFoods,
                   expectedMealCount: 3,
-                  expectedMenuOptionCount: expectedMenuOptionCount(tier)
+                  expectedMenuOptionCount: expectedMenuOptionCount(tier),
+                  expectedSafeMode: scenario.expectedSafeMode,
+                  expectedNutritionProtocolId:
+                    scenario.expectedNutritionProtocolId,
+                  expectedTrainingProtocolId:
+                    scenario.expectedTrainingProtocolId,
+                  expectedRecoveryProtocolId:
+                    scenario.expectedRecoveryProtocolId
                 })
               : null
           });
@@ -464,9 +531,9 @@ async function configureProfile(
     .send({
       firstName: `Benchmark${index}`,
       lastName: 'Synthetic',
-      gender: index % 2 === 0 ? 'female' : 'male',
-      pregnancyStatus: 'NOT_PREGNANT',
-      dateOfBirth: '1990-01-01',
+      gender: scenario.gender ?? (index % 2 === 0 ? 'female' : 'male'),
+      pregnancyStatus: scenario.pregnancyStatus ?? 'NOT_PREGNANT',
+      dateOfBirth: scenario.dateOfBirth ?? '1990-01-01',
       heightCm: 170 + index,
       weightKg: 70 + index,
       activityLevel: 'MODERATE',
@@ -497,6 +564,13 @@ async function configureProfile(
     })
     .expect(200);
   if (scenario.appMode === 'NUTRITION_AND_TRAINING') {
+    if (scenario.limitationsOrPainAreas?.length) {
+      await request(app.getHttpServer())
+        .put('/v1/training-preferences')
+        .set(auth)
+        .send({ limitationsOrPainAreas: scenario.limitationsOrPainAreas })
+        .expect(200);
+    }
     await request(app.getHttpServer())
       .post('/v1/training-schedule/items')
       .set(auth)
