@@ -19,6 +19,26 @@ This checklist protects the accepted OptiMe product baseline. It does not add pr
   database cascades.
 - WHOOP provider revocation is attempted before local account deletion.
 - Security logs avoid email addresses, passwords, auth codes, API keys, and raw tokens.
+- Public liveness and database-readiness probes expose only bounded operational status.
+- Nest shutdown hooks allow Prisma to disconnect cleanly during process termination.
+
+## Runtime probes and shutdown
+
+Configure the deployment platform to use these unauthenticated endpoints:
+
+- `GET /v1/system/health/live` checks that the API process can answer requests.
+- `GET /v1/system/health/ready` checks that PostgreSQL is reachable before the
+  instance receives traffic.
+
+Readiness returns HTTP `503` with only `database: down` when the check fails. It
+does not expose database URLs, credentials, exception messages, user data, or
+application records. Do not use the liveness endpoint as a substitute for
+readiness: a running API process can still be unable to serve requests when its
+database is unavailable.
+
+The API enables Nest shutdown hooks. Deployment should send `SIGTERM`, stop new
+traffic after readiness fails or the instance begins termination, and allow the
+process a bounded grace period before forcing termination.
 
 ## Production environment checklist
 

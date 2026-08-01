@@ -53,6 +53,7 @@ async function bootstrap() {
       transform: true
     })
   );
+  app.enableShutdownHooks();
 
   await app.listen(port);
 }

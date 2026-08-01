@@ -23,6 +23,7 @@ import { ProgressiveProfileModule } from './modules/progressive-profile/progress
 import { ProtocolModule } from './modules/protocol/protocol.module';
 import { SafetyAgentModule } from './modules/safety-agent/safety-agent.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { SystemHealthModule } from './modules/system-health/system-health.module';
 import { TrainingPreferencesModule } from './modules/training-preferences/training-preferences.module';
 import { TrainingOverridesModule } from './modules/training-overrides/training-overrides.module';
 import { TrainingScheduleModule } from './modules/training-schedule/training-schedule.module';
@@ -64,6 +65,7 @@ const isTestEnvironment = process.env.NODE_ENV === 'test';
     OnboardingModule,
     SafetyAgentModule,
     SettingsModule,
+    SystemHealthModule,
     UsageModule,
     WeightModule,
     DailyPlanCheckInsModule,
