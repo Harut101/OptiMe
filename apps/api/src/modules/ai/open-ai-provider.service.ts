@@ -446,6 +446,7 @@ export class OpenAiProviderService implements AiProvider {
       'Return training.exercises as [] on rest days, no-training-planned days, or when conservative recovery is safer.',
       'Respect safeMode rules for minors: balanced meals, hydration, sleep, recovery, healthy movement, and consistency.',
       'If pregnancyStatus is PREGNANT, POSTPARTUM, or BREASTFEEDING: avoid aggressive weight-loss framing, avoid extreme calorie deficit, avoid unsafe high-intensity recommendations, prefer moderate recovery-aware hydration-aware balanced guidance, and encourage consulting a healthcare provider for personal pregnancy/postpartum/breastfeeding guidance.',
+      'For pregnancy, postpartum, or breastfeeding user-facing copy, describe only the positive conservative action to take. Do not repeat blocked phrases such as high-intensity, hard training, all-out, max effort, aggressive deficit, extreme restriction, diagnosis, or their translated equivalents, even to say they should be avoided.',
       'For pregnancy, postpartum, or breastfeeding context, do not provide diagnosis or medical claims.',
       'Never include foods listed as allergies or excluded foods.',
       this.buildPlanQualityInstructions(input.planQualityMode),

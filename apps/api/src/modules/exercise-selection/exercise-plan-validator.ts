@@ -60,7 +60,6 @@ export function validateAndNormalizePlannedExercises(
     if (!exercise.exerciseId) { reasons.add('UNKNOWN_EXERCISE_ID'); return []; }
     const candidate = allowed.get(exercise.exerciseId);
     if (!candidate) { reasons.add('EXERCISE_NOT_ALLOWED'); return []; }
-    if (exercise.slug !== candidate.slug) reasons.add('SLUG_MISMATCH');
     if (seen.has(candidate.exerciseId)) { reasons.add('DUPLICATE_EXERCISE'); return []; }
     seen.add(candidate.exerciseId);
     for (const reason of validatePrescription(exercise, candidate, selection.workoutDurationMinutes)) reasons.add(reason);

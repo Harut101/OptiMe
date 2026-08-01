@@ -35,7 +35,9 @@ limits.
 
 The launch-candidate paid pricing is `$19.99/month` or `$199.99/year` for Plus
 and `$39.99/month` or `$399.99/year` for Pro. Plus routes its main Personalized
-plan through Terra; Pro reserves Sol for its main Adaptive plan. These amounts
+plan through Terra; Pro also uses Terra for its Adaptive launch context behind
+the internal `SOL` route. The provider Sol model remains deferred until it
+passes the representative reliability and latency gate. These amounts
 must not become customer-facing until per-agent token/cost telemetry proves at
 least 65% contribution margin after storefront commission and other variable
 costs. No paid tier is unlimited. The first-release purchase architecture uses
@@ -468,7 +470,11 @@ For minors:
    fallback/retry rates exceed the shared quality thresholds. The bounded Free
    multilingual safety matrix is complete: 20/20 READY plans across four locales
    and five normal/safety scenarios passed the contract with no retries or
-   fallbacks. The 30-day tier telemetry requirement remains.
+   fallbacks. A bounded five-scenario Free/Plus/Pro economics sample is also
+   complete and supports Luna for Free plus Terra for paid launch contexts.
+   Pregnancy avoidance false positives and redundant exercise-slug retries found
+   by that sample were corrected without weakening safety. The 30-day tier
+   telemetry requirement remains.
 6. Implementation complete: WHOOP is the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative

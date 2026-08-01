@@ -407,3 +407,43 @@ signal rather than a reason to repeat foods or fail an otherwise strong plan.
 This closes the bounded multilingual/safety fixture check for the Free launch
 route. It does not replace the representative 30-day Free/Plus/Pro telemetry
 required by the unit-economics release gate.
+
+## All-tier safety and economics sample
+
+On August 1, 2026, the five-scenario safety matrix was run once for each launch
+tier in `en-US`: Free used Luna, while Plus and Pro-context plans used Terra.
+The Pro requests retained the internal `SOL` telemetry route; route names remain
+independent from provider model IDs.
+
+| Tier | Plans | Provider model | Measured cost | Cost per plan | Average request latency | p95 request latency |
+| ---- | ----: | -------------- | ------------: | ------------: | ----------------------: | ------------------: |
+| Free |     5 | `gpt-5.6-luna`  |   `$0.171227` |   `$0.034245` |                  11.2 s |              31.6 s |
+| Plus |     5 | `gpt-5.6-terra` |   `$0.496863` |   `$0.099373` |                  12.3 s |              43.3 s |
+| Pro  |     5 | `gpt-5.6-terra` |   `$0.445049` |   `$0.089010` |                   9.9 s |              28.9 s |
+
+The complete run generated 15/15 user-visible READY plans, made 54 successful
+provider requests with no provider errors, and measured `$1.113139` in provider
+usage (`$0.074209` per completed plan). Conservative budget accounting was
+`$1.669720` against a `$3` ceiling. It initially exposed two degraded
+pregnancy-sensitive plans rather than producing a false green result.
+
+The investigation found two contract issues:
+
+- pregnancy-safe avoidance wording such as "avoid high-intensity training"
+  could match the same deterministic pattern as an unsafe recommendation;
+- an allowed exercise selected by a trusted `exerciseId` could trigger an
+  unnecessary retry when the model copied its redundant slug incorrectly.
+
+Pregnancy-sensitive detection now evaluates explicit avoidance and
+non-diagnostic clauses locally while continuing to reject positive unsafe
+advice. A targeted real Luna rerun produced a clean pregnancy READY plan with
+no adjustment or fallback. Exercise slugs are now restored from the trusted
+catalog candidate when `exerciseId` is valid; unknown IDs, unallowed exercises,
+duplicates, and invalid prescriptions remain hard failures.
+
+The targeted four-plan Free rerun measured `$0.149760` (`$0.037440` per plan)
+with no provider errors. It exposed the slug mismatch before normalization and
+therefore is retained as diagnostic evidence, not a fully green replacement
+for the all-tier sample. The combined samples support the current Luna/Terra
+launch routing, but they do not satisfy the representative 30-day telemetry or
+strict `ai-release:gate` requirement.

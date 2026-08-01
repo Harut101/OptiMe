@@ -178,6 +178,16 @@ retries or fallbacks. Measured cost was `$0.09627` per Plus plan and `$0.09830`
 per Pro-context plan. This is useful recalibration evidence, but four plans are
 not enough to satisfy the representative monthly workload and locale gate.
 
+The subsequent five-scenario all-tier sample measured `$0.034245` per Free
+plan, `$0.099373` per Plus plan, and `$0.089010` per Pro-context plan. It also
+proved that status-only accounting is insufficient: all 15 plans were READY,
+while two pregnancy-sensitive plans initially carried safe deterministic
+replacement provenance. Those false-positive text checks were corrected and
+verified with a targeted real-provider rerun. These bounded synthetic runs are
+model-routing and regression evidence only. Their synthetic users and
+cascade-owned telemetry are removed after each run, so they cannot be presented
+as the rolling 30-day production sample required by this gate.
+
 Daily Plan request counts should also be evaluated after section-scoped safety
 repair: nutrition-only feedback must not repeat the general/training generation,
 and training-only feedback must not repeat nutrition generation. Unclassified

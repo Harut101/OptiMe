@@ -248,6 +248,31 @@ describe('ExerciseSelection and library-backed Daily Plans', () => {
     )).toBe(true);
   });
 
+  it('normalizes an allowed exercise slug from its trusted exerciseId', async () => {
+    const selection = await service.selectCandidates(baseContext());
+    const plan = composeDeterministicFallbackWorkout(
+      createMockDailyPlan({
+        planLocalDate: '2026-06-20',
+        planTimezone: 'UTC',
+        isMinor: false
+      }),
+      selection
+    );
+    const firstExercise = plan.training.exercises?.[0];
+    expect(firstExercise).toBeDefined();
+    if (!firstExercise) return;
+
+    firstExercise.slug = 'model-returned-noncanonical-slug';
+    const normalized = validateAndNormalizePlannedExercises(plan, selection);
+
+    expect(normalized.valid).toBe(true);
+    if (normalized.valid) {
+      expect(normalized.planJson.training.exercises?.[0]?.slug).toBe(
+        selection.candidates[0].slug
+      );
+    }
+  });
+
   it('rejects an underfilled long workout and returns a bounded timing repair brief', async () => {
     const selection = await service.selectCandidates(baseContext({
       workoutDurationMinutes: 60,

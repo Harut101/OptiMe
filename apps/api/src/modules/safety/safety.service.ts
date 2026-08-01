@@ -615,7 +615,63 @@ export class SafetyService {
       /\bdiagnos(?:e|is|ed)\b/i
     ];
 
-    return unsafePatterns.some((pattern) => pattern.test(text));
+    return text
+      .split(/[.!?;\n]+|\b(?:but|however)\b/i)
+      .some((clause) => {
+        const hasUnsafePattern = unsafePatterns.some((pattern) =>
+          pattern.test(clause)
+        );
+
+        return (
+          hasUnsafePattern &&
+          !this.isClearlySafePregnancyAvoidanceClause(clause)
+        );
+      });
+  }
+
+  private isClearlySafePregnancyAvoidanceClause(clause: string) {
+    const normalized = clause.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!normalized) return false;
+
+    if (/\b(?:do not|don't|never)\s+avoid\b/.test(normalized)) {
+      return false;
+    }
+
+    const unsafeTerm =
+      '(?:extreme|aggressive|very low|severe|starv(?:e|ing|ation)|skip meals?|detox|cleanse|push through|train through|work through|high[-\\s]?intensity|hard|all[-\\s]?out|max effort|maximum effort)';
+    const avoidance =
+      "(?:avoid|avoiding|avoids|do not|don't|never|should not|must not|not recommended|instead of|rather than)";
+    const recommendsUnsafeActionAfterAvoidance = new RegExp(
+      `${avoidance}[^.!?;]{0,80}\\b(?:do|perform|choose|complete|recommend)\\b[^.!?;]{0,40}${unsafeTerm}`,
+      'i'
+    );
+
+    if (recommendsUnsafeActionAfterAvoidance.test(normalized)) {
+      return false;
+    }
+
+    const avoidsUnsafeTerm = new RegExp(
+      `${avoidance}[^.!?;]{0,100}${unsafeTerm}`,
+      'i'
+    );
+    const pregnancyThenAvoidance = new RegExp(
+      '\\b(?:pregnan\\w*|postpartum|breastfeeding|nursing)\\b[^.!?;]{0,100}' +
+        `${avoidance}[^.!?;]{0,100}${unsafeTerm}`,
+      'i'
+    );
+    const unsafeTermMarkedAvoided = new RegExp(
+      `${unsafeTerm}[^.!?;]{0,80}\\b(?:should|must)\\s+(?:be\\s+)?avoided\\b`,
+      'i'
+    );
+    const nonDiagnosticLanguage =
+      /\b(?:is not|isn't|not a|does not|doesn't|do not|don't|without)\b[^.!?;]{0,40}\bdiagnos(?:e|is|ed|ing)\b/i;
+
+    return (
+      avoidsUnsafeTerm.test(normalized) ||
+      pregnancyThenAvoidance.test(normalized) ||
+      unsafeTermMarkedAvoided.test(normalized) ||
+      nonDiagnosticLanguage.test(normalized)
+    );
   }
 
   private extractSafeSnippet(text: string) {

@@ -4244,6 +4244,42 @@ describe('Sprint 1 backend vertical slice', () => {
     ).toBe(false);
   });
 
+  it('allows explicit pregnancy-safe avoidance language without allowing unsafe advice', () => {
+    const safetyService = new SafetyService();
+    const plan = createMockDailyPlan({
+      planLocalDate: getUtcLocalDate(),
+      planTimezone: 'UTC',
+      firstName: 'PregnancyAvoidance',
+      isMinor: false
+    });
+
+    const safeRecommendations = [
+      'During pregnancy, avoid high-intensity training and keep movement gentle.',
+      'High-intensity training should be avoided during pregnancy.',
+      'Choose a comfortable pace rather than all-out effort while pregnant.',
+      'This general wellness guidance is not a medical diagnosis.'
+    ];
+
+    for (const recommendation of safeRecommendations) {
+      plan.training.recommendation = recommendation;
+      expect(
+        safetyService.validatePregnancySensitivePlanSafety(
+          plan,
+          PregnancyStatus.PREGNANT
+        ).passed
+      ).toBe(true);
+    }
+
+    plan.training.recommendation =
+      'During pregnancy, complete a high-intensity all-out session.';
+    expect(
+      safetyService.validatePregnancySensitivePlanSafety(
+        plan,
+        PregnancyStatus.PREGNANT
+      ).passed
+    ).toBe(false);
+  });
+
   it('rejects unsafe exercise advice in deterministic SafetyService checks', () => {
     const safetyService = new SafetyService();
     const basePlan = createMockDailyPlan({
