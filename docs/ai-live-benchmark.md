@@ -333,3 +333,43 @@ four-plan paid-route rerun above. These remain small benchmark samples, not
 launch approval. Paid-tier full monthly workload and multilingual/safety
 fixtures still need the representative sample described in the unit-economics
 gate.
+
+## Limited multilingual quality check
+
+On August 1, 2026, Luna was checked with one Free balanced-training profile in
+each supported locale: `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. The initial run
+confirmed 4/4 READY plans and no final fallback, but exposed two benchmark and
+contract issues that an English-only sample did not reveal:
+
+- preferred-food scoring compared English preferences only with localized
+  display names, producing false zero-hit results outside English;
+- Russian and Chinese exercise prescriptions translated or varied the
+  machine-readable `reps`, `rest`, and `duration` fields, causing deterministic
+  training fallback after repair.
+
+Preferred-food scoring now uses stable catalog slugs as well as display names.
+Exercise prescription fields now have locale-independent Structured Outputs
+contracts: strength sets and reps use ASCII numeric forms, rest uses exact
+English `seconds`, non-strength duration uses exact English `seconds` or
+`minutes`, and non-applicable prescription fields are empty strings. Localized
+exercise names, cues, notes, and safety copy remain unchanged. Safe validation
+reason codes are retained in internal exercise-selection debug metadata so a
+benchmark can identify contract failures without storing prompts or plans.
+
+The targeted Russian and Chinese rerun produced:
+
+| Locale  | Status  | Overall | Food | Training | AI retry | Deterministic fallback | Contract |
+| ------- | ------- | ------: | ---: | -------: | -------: | ---------------------: | -------- |
+| `ru-RU` | `READY` |     100 |  100 |      100 |        0 |                      0 | Pass     |
+| `zh-CN` | `READY` |     100 |  100 |      100 |        0 |                      0 | Pass     |
+
+The rerun used six successful provider requests, no retries or errors, and
+`$0.071538` measured telemetry cost (`$0.035769` per complete plan). The
+conservative benchmark budget service recorded `$0.107308` against a `$1`
+ceiling. Reports were kept outside the repository and contain safe aggregate
+metadata only.
+
+This is a constrained regression check, not statistical proof of multilingual
+quality. `en-US` and `fr-FR` already passed the training contract in the initial
+matrix and were not repurchased after the prescription fix. A larger
+representative multilingual sample remains required before launch sign-off.

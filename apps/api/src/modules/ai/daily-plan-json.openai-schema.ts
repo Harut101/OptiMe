@@ -66,10 +66,26 @@ const exerciseSchema = {
       description: 'Up to 5 simple equipment labels; use bodyweight when no equipment is needed.',
       items: { type: 'string' }
     },
-    sets: { type: 'string' },
-    reps: { type: 'string' },
-    rest: { type: 'string' },
-    duration: { type: 'string' },
+    sets: {
+      type: 'string',
+      description:
+        'Machine-readable ASCII prescription. Strength only: exactly "1" through "5". Otherwise use an empty string.'
+    },
+    reps: {
+      type: 'string',
+      description:
+        'Machine-readable ASCII prescription. Strength only: a number or range such as "10", "8-10", or "8-10 per side", with values 1-30. Never translate this field. Otherwise use an empty string.'
+    },
+    rest: {
+      type: 'string',
+      description:
+        'Machine-readable ASCII prescription. Strength only: 15-300 using the exact English format "60 seconds" or "45-60 seconds". Never translate the word seconds. Otherwise use an empty string.'
+    },
+    duration: {
+      type: 'string',
+      description:
+        'Machine-readable ASCII prescription. Non-strength only: use the exact English format "30 seconds", "2 minutes", or a valid range. Never translate seconds or minutes. For strength use an empty string.'
+    },
     intensityCue: {
       type: 'string',
       description:

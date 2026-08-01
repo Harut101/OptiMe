@@ -100,6 +100,7 @@ function invalidResult(
         `Return exactly ${selection.requestedExerciseCount} allowed exercises.`,
         `Keep the full session within ${sessionTiming.minMinutes}-${sessionTiming.maxMinutes} minutes, including warm-up, cooldown, and transitions.`,
         `Use ${selection.volumePlan.suggestedSetsPerExercise} sets and about ${selection.volumePlan.suggestedRestSeconds} seconds of rest for strength exercises unless a safety constraint requires less volume.`,
+        'Keep machine-readable prescription fields in ASCII English in every locale: strength sets "1"-"5", reps like "8-10", rest like "60 seconds", and empty duration; non-strength uses empty sets/reps/rest and duration like "30 seconds" or "2 minutes".',
         'Respect pain, limitations, fatigue, and conservative recovery context; do not increase intensity to fill time.'
       ]
     }

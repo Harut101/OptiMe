@@ -126,7 +126,8 @@ export class DailyPlanFinalizationService {
       planWithContext,
       input.exerciseSelection,
       input.trainingPreparation.usedAiRetry,
-      input.trainingPreparation.usedDeterministicFallback
+      input.trainingPreparation.usedDeterministicFallback,
+      input.trainingPreparation.validationReasonCodes
     );
     const planWithGenerationDebug = this.withGenerationSectionDebug(
       planWithExerciseDebug,
@@ -224,7 +225,8 @@ export class DailyPlanFinalizationService {
     planJson: DailyPlanJson,
     selection: ExerciseSelectionResult,
     usedAiRetry: boolean,
-    usedDeterministicFallback: boolean
+    usedDeterministicFallback: boolean,
+    validationReasonCodes: string[] = []
   ): DailyPlanJson {
     if (!planJson.debug) return planJson;
 
@@ -242,6 +244,7 @@ export class DailyPlanFinalizationService {
           fallbackMode: selection.fallbackMode,
           usedAiRetry,
           usedDeterministicFallback,
+          validationReasonCodes,
           resolvedLocale:
             selection.candidates[0]?.resolvedLocale ?? 'en-US'
         }

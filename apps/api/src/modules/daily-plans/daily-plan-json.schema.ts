@@ -562,6 +562,7 @@ export const dailyPlanJsonSchema = z.object({
         fallbackMode: z.enum(['NONE', 'BODYWEIGHT_ONLY', 'RECOVERY_FOCUSED', 'MINIMAL_SAFE_POOL', 'NOT_ENOUGH_SAFE_EXERCISES']),
         usedAiRetry: z.boolean(),
         usedDeterministicFallback: z.boolean(),
+        validationReasonCodes: z.array(z.string()).max(12).optional(),
         resolvedLocale: z.enum(['en-US', 'ru-RU', 'fr-FR', 'zh-CN'])
       }).optional(),
       trainingLoadContext: z.object({

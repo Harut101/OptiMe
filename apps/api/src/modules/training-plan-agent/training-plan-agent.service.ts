@@ -37,7 +37,8 @@ export class TrainingPlanAgentService implements TrainingPlanAgent {
     const unchanged: FinalizedTrainingPlan = {
       ...input.providerPlanResult,
       usedAiRetry: false,
-      usedDeterministicFallback: false
+      usedDeterministicFallback: false,
+      validationReasonCodes: []
     };
 
     if (input.providerPlanResult.status === PlanStatus.FALLBACK) {
@@ -61,6 +62,7 @@ export class TrainingPlanAgentService implements TrainingPlanAgent {
       `training plan validation failed; reasons=${validation.reasonCodes.join(',')}`
     );
 
+    let retryValidationReasonCodes: string[] = [];
     if (input.retry) {
       this.logger.log(
         `training plan retry triggered=true; reasonCount=${validation.reasonCodes.length}`
@@ -83,10 +85,12 @@ export class TrainingPlanAgentService implements TrainingPlanAgent {
               status: PlanStatus.READY,
               planJson: retryValidation.planJson,
               usedAiRetry: true,
-              usedDeterministicFallback: false
+              usedDeterministicFallback: false,
+              validationReasonCodes: []
             };
           }
 
+          retryValidationReasonCodes = retryValidation.reasonCodes;
           this.logger.warn(
             `training plan retry validation passed=false; reasons=${retryValidation.reasonCodes.join(',')}`
           );
@@ -96,12 +100,17 @@ export class TrainingPlanAgentService implements TrainingPlanAgent {
       this.logger.log('training plan retry triggered=false');
     }
 
+    const validationReasonCodes =
+      input.retry && retryValidationReasonCodes.length > 0
+        ? retryValidationReasonCodes
+        : validation.reasonCodes;
     this.logger.warn('deterministic training plan fallback used=true');
     return {
       status: PlanStatus.READY,
       planJson: this.composeDeterministicFallback(parsed.data, input.exerciseSelection),
       usedAiRetry: Boolean(input.retry),
-      usedDeterministicFallback: true
+      usedDeterministicFallback: true,
+      validationReasonCodes
     };
   }
 }

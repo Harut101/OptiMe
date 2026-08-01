@@ -22,6 +22,9 @@ describe('AI live benchmark quality', () => {
     plan.nutrition.foodPlan!.source = 'DETERMINISTIC_FALLBACK';
     plan.training.exercises![0].rest = undefined;
     plan.debug!.exerciseSelection!.usedDeterministicFallback = true;
+    plan.debug!.exerciseSelection!.validationReasonCodes = [
+      'REST_OUT_OF_RANGE'
+    ];
 
     const quality = evaluateBenchmarkPlanQuality(plan, {
       trainingExpected: true,
@@ -32,8 +35,26 @@ describe('AI live benchmark quality', () => {
     expect(quality.food.usedDeterministicFallback).toBe(true);
     expect(quality.food.score).toBeLessThan(100);
     expect(quality.training.usedDeterministicFallback).toBe(true);
+    expect(quality.training.validationReasonCodes).toEqual([
+      'REST_OUT_OF_RANGE'
+    ]);
     expect(quality.training.prescriptionCoveragePercent).toBe(0);
     expect(quality.training.score).toBeLessThan(100);
+  });
+
+  it('finds preferred foods from stable catalog slugs across locales', () => {
+    const plan = createPlan();
+    plan.nutrition.foodPlan!.locale = 'ru-RU';
+    plan.nutrition.foodPlan!.meals[0].ingredients[0].name = 'Рис';
+
+    const quality = evaluateBenchmarkPlanQuality(plan, {
+      trainingExpected: true,
+      preferredFoods: ['rice'],
+      expectedMealCount: 1
+    });
+
+    expect(quality.food.preferredFoodHits).toBe(1);
+    expect(quality.food.score).toBe(100);
   });
 
   it('summarizes applicable training plans separately from rest days', () => {

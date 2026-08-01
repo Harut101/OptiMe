@@ -40,6 +40,7 @@ export interface BenchmarkPlanQuality {
     targetMuscleCount: number;
     usedAiRetry: boolean;
     usedDeterministicFallback: boolean;
+    validationReasonCodes: string[];
     correctRestDay: boolean;
   };
 }
@@ -350,6 +351,7 @@ function evaluateTraining(
       targetMuscleCount: 0,
       usedAiRetry: selection?.usedAiRetry ?? false,
       usedDeterministicFallback: selection?.usedDeterministicFallback ?? false,
+      validationReasonCodes: selection?.validationReasonCodes ?? [],
       correctRestDay
     };
   }
@@ -402,6 +404,7 @@ function evaluateTraining(
     targetMuscleCount,
     usedAiRetry,
     usedDeterministicFallback,
+    validationReasonCodes: selection?.validationReasonCodes ?? [],
     correctRestDay: false
   };
 }
@@ -419,15 +422,31 @@ function countPreferredFoodHits(
   foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>,
   preferredFoods: string[]
 ) {
-  const content = foodPlan.meals
-    .flatMap((meal) => [
-      meal.title,
-      ...meal.ingredients.map((ingredient) => ingredient.name)
+  const normalizedTerms = foodPlan.meals.flatMap((meal) =>
+    meal.ingredients.flatMap((ingredient) => [
+      normalizeFoodTerm(ingredient.catalogFoodSlug ?? ''),
+      normalizeFoodTerm(ingredient.name)
     ])
-    .join(' ')
-    .toLowerCase();
-  return preferredFoods.filter((food) => content.includes(food.toLowerCase()))
-    .length;
+  );
+
+  return preferredFoods.filter((food) => {
+    const preference = normalizeFoodTerm(food);
+    return normalizedTerms.some(
+      (term) =>
+        term.length > 0 &&
+        (term.includes(preference) || preference.includes(term))
+    );
+  }).length;
+}
+
+function normalizeFoodTerm(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[-_]/g, ' ')
+    .replace(/\b(cooked|raw|fresh|whole|large|small)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/s$/, '');
 }
 
 function within(value: number, tolerance: number) {

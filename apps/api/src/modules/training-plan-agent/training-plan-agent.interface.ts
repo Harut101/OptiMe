@@ -23,6 +23,7 @@ export interface FinalizeTrainingPlanInput {
 export interface FinalizedTrainingPlan extends TrainingPlanProviderResult {
   usedAiRetry: boolean;
   usedDeterministicFallback: boolean;
+  validationReasonCodes?: string[];
 }
 
 export interface TrainingPlanAgent {
