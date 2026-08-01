@@ -474,7 +474,10 @@ For minors:
    complete and supports Luna for Free plus Terra for paid launch contexts.
    Pregnancy avoidance false positives and redundant exercise-slug retries found
    by that sample were corrected without weakening safety. The 30-day tier
-   telemetry requirement remains.
+   telemetry requirement remains. Production AI preflight now validates and
+   safely reports effective tier models, provider prices, semantic safety,
+   quality thresholds, and launch-candidate monthly ceilings without exposing
+   secrets.
 6. Implementation complete: WHOOP is the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative

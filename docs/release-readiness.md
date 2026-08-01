@@ -63,6 +63,20 @@ deployment decision: use the approved economics model and current telemetry;
 do not copy an old benchmark value without review. This startup validation does
 not replace the rolling `ai-release:gate`.
 
+Before starting a release deployment, inspect the effective non-secret AI
+configuration:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:preflight
+```
+
+The command forces production validation and reports tier models, route prices,
+monthly ceilings, and quality thresholds. It reports only whether the OpenAI key
+is configured and never prints the key or other secrets. The current launch
+ceiling candidates are `$1.50` for Free, `$4.00` for Plus, and `$8.00` for Pro.
+They are operational caps, not expected spend, and must be reviewed against
+representative rolling telemetry before billing is enabled.
+
 Mobile release configuration also requires:
 
 ```env

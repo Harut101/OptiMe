@@ -59,9 +59,9 @@ AI_MEDIAN_COST_MAX_PERCENT_NET=15
 AI_P95_COST_MAX_PERCENT_NET=25
 AI_PRICE_PLUS_MONTHLY_USD=19.99
 AI_PRICE_PRO_MONTHLY_USD=39.99
-AI_MONTHLY_COST_CEILING_FREE_USD=
-AI_MONTHLY_COST_CEILING_PLUS_USD=
-AI_MONTHLY_COST_CEILING_PRO_USD=
+AI_MONTHLY_COST_CEILING_FREE_USD=1.50
+AI_MONTHLY_COST_CEILING_PLUS_USD=4.00
+AI_MONTHLY_COST_CEILING_PRO_USD=8.00
 AI_QUALITY_MIN_TIER_SAMPLES=30
 AI_QUALITY_MIN_TELEMETRY_COVERAGE_PERCENT=95
 AI_QUALITY_MIN_READY_RATE_PERCENT=98
@@ -76,6 +76,15 @@ exact deployment model IDs before collecting benchmark data. See
 for the release gates and complete monthly/annual financial model.
 
 ## Commands
+
+Validate the effective production AI configuration without printing secrets:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:preflight
+```
+
+This validates configuration only. A passing preflight is not evidence that
+quality or unit economics pass under real usage.
 
 Inspect the report without failing the shell:
 

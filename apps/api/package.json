@@ -37,6 +37,7 @@
     "ai-cost:report": "ts-node scripts/ai-cost-report.ts",
     "ai-cost:benchmark": "ts-node scripts/ai-cost-benchmark.ts",
     "ai-cost:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
+    "ai-release:preflight": "ts-node scripts/ai-release-preflight.ts",
     "ai-release:benchmark": "ts-node scripts/ai-cost-benchmark.ts",
     "ai-release:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
     "ai-release:live": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/ai-live-benchmark.ts",
