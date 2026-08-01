@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { join } from 'node:path';
 
 import { AppModule } from './app.module';
+import { REQUEST_ID_HEADER } from './common/observability/request-correlation.middleware';
 import { parseCsv, parseInteger } from './config/environment.validation';
 
 async function bootstrap() {
@@ -31,7 +32,8 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
   app.enableCors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    exposedHeaders: [REQUEST_ID_HEADER]
   });
   app.useStaticAssets(join(process.cwd(), 'public', 'exercise-media'), {
     prefix: '/exercise-media/',

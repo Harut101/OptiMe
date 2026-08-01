@@ -40,6 +40,21 @@ The API enables Nest shutdown hooks. Deployment should send `SIGTERM`, stop new
 traffic after readiness fails or the instance begins termination, and allow the
 process a bounded grace period before forcing termination.
 
+## Request correlation and safe errors
+
+Every API response includes a server-generated `X-Request-ID`. Caller-provided
+request IDs are not trusted, and browser clients may read the response header
+through the configured CORS exposure. Support can use this identifier to match a
+client-visible failure with the corresponding backend error log.
+
+The global exception boundary preserves existing `HttpException` response
+bodies, including usage-limit and validation contracts. Unexpected exceptions
+return only a generic HTTP `500`. Their logs contain request ID, HTTP method,
+bounded route template, status, and exception type; they do not include request
+body, query parameters, raw URL, exception message, email, token, profile, or
+plan content. Domain-specific Health and WHOOP filters remain authoritative for
+their established API contracts.
+
 ## Production environment checklist
 
 Set unique production values:

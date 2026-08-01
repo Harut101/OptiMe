@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { ObservabilityModule } from './common/observability/observability.module';
 import { validateEnvironment } from './config/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -42,6 +43,7 @@ const isTestEnvironment = process.env.NODE_ENV === 'test';
       ignoreEnvFile: isTestEnvironment,
       validate: isTestEnvironment ? undefined : validateEnvironment
     }),
+    ObservabilityModule,
     PrismaModule,
     AuthModule,
     BillingModule,

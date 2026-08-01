@@ -505,6 +505,8 @@ For minors:
    disabled semantic safety, and absent monthly AI cost enforcement.
    Runtime liveness/readiness probes and graceful Prisma shutdown are implemented
    for safe single-instance deployment and later horizontal scaling.
+   Server-owned request correlation and a safe global exception boundary are
+   implemented without changing established mobile error response bodies.
    Complete external privacy declarations, data-export policy, edge protection, and monitoring
    release readiness.
 11. Complete Android Health Connect development-build/device QA and Google Play
