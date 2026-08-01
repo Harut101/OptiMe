@@ -477,7 +477,9 @@ For minors:
    telemetry requirement remains. Production AI preflight now validates and
    safely reports effective tier models, provider prices, semantic safety,
    quality thresholds, and launch-candidate monthly ceilings without exposing
-   secrets.
+   secrets. A versioned rolling monitor now writes aggregate, non-identifying
+   quality/economics snapshots for external scheduling while the strict gate
+   remains the billing and deployment blocker.
 6. Implementation complete: WHOOP is the first specialized pre-release Pro integration: secure
    OAuth, encrypted token lifecycle, foreground recovery/sleep/cycle/workout
    sync, normalized signals, disconnect/delete controls, and conservative

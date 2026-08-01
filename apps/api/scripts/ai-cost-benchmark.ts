@@ -4,27 +4,15 @@ import {
   PrismaClient
 } from '@prisma/client';
 
-import { buildAiCostReport } from '../src/modules/ai-operation-logs/ai-cost-report';
-import {
-  evaluateAiUnitEconomics,
-  readAiUnitEconomicsConfig
-} from '../src/modules/ai-operation-logs/ai-unit-economics';
-import {
-  evaluateAiQualityGate,
-  readAiQualityGateConfig,
-  type AiQualityGateStatus
-} from '../src/modules/ai-operation-logs/ai-quality-gate';
-import { buildAiQualityReport } from '../src/modules/ai-operation-logs/ai-quality-report';
+import { buildAiReleaseReport } from '../src/modules/ai-operation-logs/ai-release-report';
+import { writeAiReleaseReport } from './ai-release-report-output';
 
 const prisma = new PrismaClient();
 const strict = process.argv.includes('--strict');
-const days = readPositiveInteger(
-  process.env.AI_COST_REPORT_DAYS,
-  30
-);
-const since = new Date(
-  Date.now() - days * 24 * 60 * 60 * 1_000
-);
+const writeReport = process.argv.includes('--write-report');
+const days = readPositiveInteger(process.env.AI_COST_REPORT_DAYS, 30);
+const generatedAt = new Date();
+const since = new Date(generatedAt.getTime() - days * 24 * 60 * 60 * 1_000);
 
 void Promise.all([
   prisma.aiRequestLog.findMany({
@@ -55,68 +43,39 @@ void Promise.all([
     }
   })
 ])
-  .then(([requestRows, operationRows]) => {
-    const costReport = buildAiCostReport(requestRows);
-    const economics = evaluateAiUnitEconomics(
-      costReport,
-      readAiUnitEconomicsConfig(process.env)
-    );
-    const qualityReport = buildAiQualityReport(operationRows);
-    const qualityGate = evaluateAiQualityGate(
-      qualityReport,
-      readAiQualityGateConfig(process.env)
-    );
-    const status = aggregateStatus([
-      economics.status,
-      qualityGate.status
-    ]);
+  .then(async ([requestRows, operationRows]) => {
+    const report = buildAiReleaseReport({
+      requestRows,
+      operationRows,
+      periodDays: days,
+      since,
+      generatedAt,
+      environment: process.env
+    });
 
-    console.log(
-      JSON.stringify(
-        {
-          periodDays: days,
-          since: since.toISOString(),
-          currency: 'USD',
-          sources: ['AiRequestLog', 'AiOperationLog'],
-          status,
-          costReport,
-          unitEconomics: economics,
-          qualityReport,
-          qualityGate
-        },
-        null,
-        2
-      )
-    );
+    console.log(JSON.stringify(report, null, 2));
 
-    if (strict && status !== 'PASS') {
+    if (writeReport) {
+      const outputPath = await writeAiReleaseReport(
+        process.env.AI_RELEASE_REPORT_PATH,
+        report
+      );
+      console.error(`AI release report saved: ${outputPath}`);
+    }
+
+    if (strict && report.status !== 'PASS') {
       process.exitCode = 2;
     }
   })
   .catch((error: unknown) => {
     console.error(
-      error instanceof Error
-        ? error.message
-        : 'AI cost benchmark failed.'
+      error instanceof Error ? error.message : 'AI cost benchmark failed.'
     );
     process.exitCode = 1;
   })
   .finally(async () => prisma.$disconnect());
 
-function readPositiveInteger(
-  raw: string | undefined,
-  fallback: number
-) {
+function readPositiveInteger(raw: string | undefined, fallback: number) {
   const value = Number(raw);
-  return Number.isFinite(value) && value > 0
-    ? Math.trunc(value)
-    : fallback;
-}
-
-function aggregateStatus(statuses: AiQualityGateStatus[]) {
-  if (statuses.includes('FAIL')) return 'FAIL' as const;
-  if (statuses.includes('INSUFFICIENT_DATA')) {
-    return 'INSUFFICIENT_DATA' as const;
-  }
-  return 'PASS' as const;
+  return Number.isFinite(value) && value > 0 ? Math.trunc(value) : fallback;
 }

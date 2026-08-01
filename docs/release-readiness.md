@@ -77,6 +77,18 @@ ceiling candidates are `$1.50` for Free, `$4.00` for Plus, and `$8.00` for Pro.
 They are operational caps, not expected spend, and must be reviewed against
 representative rolling telemetry before billing is enabled.
 
+Collect a safe rolling snapshot from the configured environment:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:monitor
+```
+
+The monitor writes `AI_RELEASE_REPORT_PATH` even while the status is
+`INSUFFICIENT_DATA`, allowing an external scheduler or monitoring service to
+track progress. The strict `ai-release:gate` remains the release blocker and
+returns non-zero for both `FAIL` and `INSUFFICIENT_DATA`. Neither command makes
+external OpenAI calls; both aggregate existing database telemetry.
+
 Mobile release configuration also requires:
 
 ```env

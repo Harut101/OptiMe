@@ -52,6 +52,7 @@ Benchmark assumptions:
 
 ```env
 AI_COST_REPORT_DAYS=30
+AI_RELEASE_REPORT_PATH=artifacts/ai-release-current.json
 AI_COST_MIN_TIER_SAMPLES=30
 AI_COST_MIN_PRICED_COVERAGE_PERCENT=95
 AI_STOREFRONT_COMMISSION_PERCENT=20
@@ -86,6 +87,19 @@ Validate the effective production AI configuration without printing secrets:
 This validates configuration only. A passing preflight is not evidence that
 quality or unit economics pass under real usage.
 
+Write the current rolling aggregate snapshot without making an insufficient
+sample fail the scheduler:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:monitor
+```
+
+`ai-release:monitor` loads the API/root `.env`, queries the configured database,
+prints the report, and atomically replaces `AI_RELEASE_REPORT_PATH`. The versioned
+`ai-release-monitor.v1` JSON contains aggregate route/tier statistics and gate
+reasons only. It does not contain user IDs, prompts, plans, profiles, tokens, or
+secrets. Generated `artifacts/` directories are ignored by Git.
+
 Inspect the report without failing the shell:
 
 ```powershell
@@ -100,6 +114,7 @@ Use the strict release gate:
 
 `ai-cost:gate` remains a backward-compatible alias. The strict command exits
 non-zero unless both unit economics and final plan quality are `PASS`.
+Unlike `monitor`, use the strict gate as the deployment/billing blocker.
 
 ## Verdicts
 
@@ -209,3 +224,8 @@ Historical unpriced rows are excluded from cost distributions and reduce priced
 coverage. Historical operation rows without quality fields reduce quality
 coverage. A provider request may cross the ceiling because its exact cost is only
 known after completion; later requests are then blocked.
+
+Provider failures without a response usage object remain visible in the quality
+and error rates but cannot be assigned an exact token cost. OptiMe does not invent
+a zero-cost or estimated-token value for those requests; reconcile any provider
+invoice difference during the initial production monitoring period.
