@@ -172,6 +172,12 @@ score. Until Sol passes the representative gate, deploy Terra behind both the
 `TERRA` and `SOL` internal routes. Keep the route distinction for entitlements,
 context depth, telemetry, and future model recalibration.
 
+The August 1 optimized-flow rerun reinforced that launch route: two Plus and two
+Pro-context plans on Terra completed 4/4 clean READY at 100 quality, with zero
+retries or fallbacks. Measured cost was `$0.09627` per Plus plan and `$0.09830`
+per Pro-context plan. This is useful recalibration evidence, but four plans are
+not enough to satisfy the representative monthly workload and locale gate.
+
 Daily Plan request counts should also be evaluated after section-scoped safety
 repair: nutrition-only feedback must not repeat the general/training generation,
 and training-only feedback must not repeat nutrition generation. Unclassified

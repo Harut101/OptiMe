@@ -283,17 +283,44 @@ bounded escalation path after its timeout/reliability behavior passes a larger
 benchmark. Do not call Sol for every Pro daily plan based on model positioning
 alone.
 
+### Optimized v3 paid-route rerun
+
+On August 1, 2026, the paid routes were rerun after first-pass nutrition
+contract improvements and compact Safety Agent context were introduced. The
+controlled sample used two Plus and two Pro profiles. Terra was explicitly used
+for both provider routes; `SOL` remained the internal Pro telemetry route only.
+
+| Tier/context        | Provider model  | Plans | Clean READY | Quality | Retries | Fallbacks | Cost per plan | Average request latency | p95 request latency |
+| ------------------- | --------------- | ----: | ----------: | ------: | ------: | --------: | ------------: | ----------------------: | ------------------: |
+| Plus / Personalized | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |     `$0.09627` |                  11.4 s |              35.2 s |
+| Pro / Adaptive      | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |     `$0.09830` |                  11.7 s |              41.8 s |
+
+All four plans passed the tier menu-option contract, catalog-food coverage,
+ingredient clarity, preparation coverage, exercise prescription, deterministic
+safety, and semantic Safety Agent review. The run made 16 successful provider
+requests with no retries or errors and cost `$0.389144` in measured telemetry.
+The benchmark budget service recorded `$0.58372` including its conservative
+reservation accounting, below the `$5` run ceiling.
+
+Compared with the earlier paid sample, measured cost per complete plan fell by
+about 18% for Plus and 19% for the Pro context without reducing measured quality.
+The sample is intentionally small and validates the optimized pipeline, not
+launch-scale monthly usage or multilingual coverage.
+
 ### Measured daily-generation floor
 
 Using one complete plan per active user per day, before manual refreshes, meal
 or menu regeneration, and checkpoints:
 
-| Tier/model          | Measured cost per plan | 30-day cost per fully active user |
-| ------------------- | ---------------------: | --------------------------------: |
-| Free / Luna         |                $0.0519 |                             $1.56 |
-| Plus / Terra        |                $0.1173 |                             $3.52 |
-| Pro context / Terra |                $0.1220 |                             $3.66 |
+| Tier/model          | Latest v3 cost per plan | 30-day cost per fully active user |
+| ------------------- | ----------------------: | --------------------------------: |
+| Free / Luna         |               `$0.0346` |                           `$1.04` |
+| Plus / Terra        |               `$0.0963` |                           `$2.89` |
+| Pro context / Terra |               `$0.0983` |                           `$2.95` |
 
-These are small benchmark samples, not launch approval. Paid-tier full monthly
-workload and multilingual/safety fixtures still need the representative sample
-described in the unit-economics gate.
+The Free figure comes from the six-profile compact Safety Agent v3 sample and
+includes one independent Nutrition Agent retry. The paid figures come from the
+four-plan paid-route rerun above. These remain small benchmark samples, not
+launch approval. Paid-tier full monthly workload and multilingual/safety
+fixtures still need the representative sample described in the unit-economics
+gate.

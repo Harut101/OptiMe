@@ -102,8 +102,8 @@ variable-cost ceiling.
 
 ### Measured 1,700-user scenario
 
-The July 31, 2026 controlled benchmark measured a complete daily generation at
-about `$0.0519` for Free/Luna, `$0.1173` for Plus/Terra, and `$0.1220` for a
+The August 1, 2026 optimized-flow samples measured a complete daily generation
+at about `$0.0346` for Free/Luna, `$0.0963` for Plus/Terra, and `$0.0983` for a
 Pro/Adaptive context using Terra. At 1,000 Free, 500 monthly Plus, and 200
 monthly Pro users, with every user generating one plan on all 30 days:
 
@@ -111,16 +111,16 @@ monthly Pro users, with every user generating one plan on all 30 days:
 | --- | ---: |
 | Gross subscription revenue | `$17,993` |
 | Net after conservative 20% storefront reserve | `$14,394` |
-| Measured daily-plan AI cost | `$4,047` |
+| Measured daily-plan AI cost | `$3,073` |
 | RevenueCat reserve at 1% of gross | `$180` |
 | Initial infrastructure allowance | `$500` |
-| Contribution before salaries, marketing, tax, refunds, and support | `$9,668` |
+| Contribution before salaries, marketing, tax, refunds, and support | `$10,641` |
 
 This is the daily-generation floor, not a maximum-usage forecast. For an active
 allowance scenario, use the existing p95 AI ceilings of `$4` per Plus user and
-`$8` per Pro user while retaining the measured `$1.56` Free cost. That produces
-about `$5,156` total AI cost and `$8,559` monthly contribution under the same
-storefront, RevenueCat, and infrastructure assumptions. Treat `$8.6k-$9.7k` as
+`$8` per Pro user while retaining the measured `$1.04` Free cost. That produces
+about `$4,640` total AI cost and `$9,075` monthly contribution under the same
+storefront, RevenueCat, and infrastructure assumptions. Treat `$9.1k-$10.6k` as
 the current planning range, not accounting profit. Annual-plan mix, regional
 prices, tax, refunds, payroll, marketing, support, and higher infrastructure
 reduce it further.
