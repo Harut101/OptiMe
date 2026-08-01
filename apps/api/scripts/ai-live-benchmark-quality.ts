@@ -1,8 +1,13 @@
 import type { DailyPlanJson } from '../src/modules/daily-plans/daily-plan-json.schema';
 
 export interface BenchmarkPlanQuality {
+  scoreVersion: 'daily-plan-quality.v2';
   overallScore: number;
   adjustedSections: string[];
+  contract: {
+    passed: boolean;
+    failures: string[];
+  };
   food: {
     score: number;
     source: string | null;
@@ -13,6 +18,10 @@ export interface BenchmarkPlanQuality {
     catalogCoveragePercent: number;
     ingredientClarityPercent: number;
     preparationCoveragePercent: number;
+    menuOptionCount: number;
+    expectedMenuOptionCount: number;
+    distinctMenuOptionCount: number;
+    menuOptionContractPassed: boolean;
     preferredFoodHits: number;
     calorieDeviationPercent: number | null;
     proteinDeviationGrams: number | null;
@@ -41,21 +50,29 @@ export function evaluateBenchmarkPlanQuality(
     trainingExpected: boolean;
     preferredFoods: string[];
     expectedMealCount: number;
+    expectedMenuOptionCount?: number;
   }
 ): BenchmarkPlanQuality {
   const food = evaluateFood(
     plan,
     input.preferredFoods,
-    input.expectedMealCount
+    input.expectedMealCount,
+    input.expectedMenuOptionCount ?? 0
   );
   const training = evaluateTraining(plan, input.trainingExpected);
   const overallScore = training.applicable
     ? Math.round((food.score + training.score) / 2)
     : food.score;
+  const contractFailures = buildContractFailures(plan, food, training);
 
   return {
+    scoreVersion: 'daily-plan-quality.v2',
     overallScore,
     adjustedSections: plan.debug?.generation?.adjustedSections ?? [],
+    contract: {
+      passed: contractFailures.length === 0,
+      failures: contractFailures
+    },
     food,
     training
   };
@@ -68,6 +85,15 @@ export function summarizePlanQuality(results: BenchmarkPlanQuality[]) {
   return {
     planCount: results.length,
     averageOverallScore: average(results.map((result) => result.overallScore)),
+    contract: {
+      passedPlanCount: results.filter((result) => result.contract.passed)
+        .length,
+      failedPlanCount: results.filter((result) => !result.contract.passed)
+        .length,
+      failures: countValues(
+        results.flatMap((result) => result.contract.failures)
+      )
+    },
     food: {
       averageScore: average(results.map((result) => result.food.score)),
       deterministicFallbackCount: results.filter(
@@ -87,6 +113,12 @@ export function summarizePlanQuality(results: BenchmarkPlanQuality[]) {
       ),
       averagePreparationCoveragePercent: average(
         results.map((result) => result.food.preparationCoveragePercent)
+      ),
+      menuOptionContractPassCount: results.filter(
+        (result) => result.food.menuOptionContractPassed
+      ).length,
+      averageMenuOptionCount: average(
+        results.map((result) => result.food.menuOptionCount)
       ),
       preferredFoodHitCount: results.reduce(
         (total, result) => total + result.food.preferredFoodHits,
@@ -122,7 +154,8 @@ export function summarizePlanQuality(results: BenchmarkPlanQuality[]) {
 function evaluateFood(
   plan: DailyPlanJson,
   preferredFoods: string[],
-  expectedMealCount: number
+  expectedMealCount: number,
+  expectedMenuOptionCount: number
 ): BenchmarkPlanQuality['food'] {
   const foodPlan = plan.nutrition.foodPlan;
   if (!foodPlan) {
@@ -136,6 +169,10 @@ function evaluateFood(
       catalogCoveragePercent: 0,
       ingredientClarityPercent: 0,
       preparationCoveragePercent: 0,
+      menuOptionCount: plan.nutrition.menuOptions?.length ?? 0,
+      expectedMenuOptionCount,
+      distinctMenuOptionCount: 0,
+      menuOptionContractPassed: false,
       preferredFoodHits: 0,
       calorieDeviationPercent: null,
       proteinDeviationGrams: null,
@@ -188,6 +225,21 @@ function evaluateFood(
     ).length,
     foodPlan.meals.length
   );
+  const menuOptions = plan.nutrition.menuOptions ?? [];
+  const menuSignatures = menuOptions.map((option) =>
+    option.meals
+      .map((meal) =>
+        [meal.name, ...meal.foods.map((food) => `${food.name}:${food.portion}`)]
+          .join('|')
+          .toLowerCase()
+      )
+      .join('||')
+  );
+  const distinctMenuOptionCount = new Set(menuSignatures).size;
+  const menuOptionContractPassed =
+    menuOptions.length === expectedMenuOptionCount &&
+    distinctMenuOptionCount === menuOptions.length &&
+    menuOptions.every((option) => option.meals.length === expectedMealCount);
   const preferredFoodHits = countPreferredFoodHits(foodPlan, preferredFoods);
   const tolerance = foodPlan.validation.tolerances;
   const targetScore =
@@ -217,6 +269,10 @@ function evaluateFood(
     catalogCoveragePercent: percent(catalogCoverage),
     ingredientClarityPercent: percent(ingredientClarity),
     preparationCoveragePercent: percent(preparationCoverage),
+    menuOptionCount: menuOptions.length,
+    expectedMenuOptionCount,
+    distinctMenuOptionCount,
+    menuOptionContractPassed,
     preferredFoodHits,
     calorieDeviationPercent: round(calorieDeviationPercent),
     proteinDeviationGrams: round(proteinDeviationGrams),
@@ -224,6 +280,52 @@ function evaluateFood(
     fatDeviationGrams: round(fatDeviationGrams),
     usedDeterministicFallback: foodPlan.source === 'DETERMINISTIC_FALLBACK'
   };
+}
+
+function buildContractFailures(
+  plan: DailyPlanJson,
+  food: BenchmarkPlanQuality['food'],
+  training: BenchmarkPlanQuality['training']
+) {
+  const failures: string[] = [];
+  if (plan.debug?.provider === 'fallback') failures.push('CORE_FALLBACK');
+  if (plan.debug?.generation?.isComplete !== true) {
+    failures.push('GENERATION_INCOMPLETE');
+  }
+  if (food.source !== 'NUTRITION_AGENT') {
+    failures.push('NUTRITION_AGENT_NOT_AUTHORITATIVE');
+  }
+  if (food.validationStatus !== 'VALID') {
+    failures.push('FOOD_PLAN_NOT_VALID');
+  }
+  if (food.catalogCoveragePercent !== 100) {
+    failures.push('FOOD_CATALOG_COVERAGE_INCOMPLETE');
+  }
+  if (food.ingredientClarityPercent !== 100) {
+    failures.push('INGREDIENT_CLARITY_INCOMPLETE');
+  }
+  if (food.preparationCoveragePercent !== 100) {
+    failures.push('PREPARATION_COVERAGE_INCOMPLETE');
+  }
+  if (!food.menuOptionContractPassed) {
+    failures.push('MENU_OPTION_CONTRACT_FAILED');
+  }
+  if (training.applicable) {
+    if (training.exerciseCount === 0)
+      failures.push('TRAINING_EXERCISES_MISSING');
+    if (training.catalogCoveragePercent !== 100) {
+      failures.push('EXERCISE_CATALOG_COVERAGE_INCOMPLETE');
+    }
+    if (training.prescriptionCoveragePercent !== 100) {
+      failures.push('EXERCISE_PRESCRIPTION_INCOMPLETE');
+    }
+    if (training.usedDeterministicFallback) {
+      failures.push('TRAINING_DETERMINISTIC_FALLBACK');
+    }
+  } else if (!training.correctRestDay) {
+    failures.push('REST_DAY_CONTRACT_FAILED');
+  }
+  return failures;
 }
 
 function evaluateTraining(
@@ -361,4 +463,15 @@ function average(values: number[]) {
 
 function averageNullable(values: Array<number | null>) {
   return average(values.filter((value): value is number => value !== null));
+}
+
+function countValues(values: string[]) {
+  return Object.fromEntries(
+    [...new Set(values)]
+      .sort()
+      .map((value) => [
+        value,
+        values.filter((candidate) => candidate === value).length
+      ])
+  );
 }

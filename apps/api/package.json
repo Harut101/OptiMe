@@ -39,7 +39,8 @@
     "ai-cost:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
     "ai-release:benchmark": "ts-node scripts/ai-cost-benchmark.ts",
     "ai-release:gate": "ts-node scripts/ai-cost-benchmark.ts --strict",
-    "ai-release:live": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/ai-live-benchmark.ts"
+    "ai-release:live": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/ai-live-benchmark.ts",
+    "ai-release:compare": "ts-node scripts/ai-live-benchmark-compare.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

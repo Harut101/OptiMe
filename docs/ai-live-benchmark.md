@@ -56,8 +56,15 @@ $env:AI_BENCHMARK_REAL_CALLS_ENABLED='true'
 $env:AI_BENCHMARK_DATABASE_URL='postgresql://optime:optime@localhost:5432/optime_ai_benchmark?schema=public'
 $env:AI_BENCHMARK_MAX_COST_USD='10'
 $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
+$env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v1'
+$env:AI_BENCHMARK_REPORT_PATH='artifacts/ai-benchmark-current.json'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
+
+`AI_BENCHMARK_REPORT_PATH` is optional. When set, its parent directory must
+already exist and the filename must end in `.json`. The saved report contains
+only the same safe aggregate metadata printed by the runner. Do not place
+reports in a committed directory unless they were reviewed for release notes.
 
 To compare a candidate model for the Free route without spending on Plus or Pro,
 set `AI_BENCHMARK_TIERS=FREE`, give the run a safe label, and override only the
@@ -84,6 +91,11 @@ per-million-token prices must already be configured. Never commit the API key.
 Start with two profiles per tier; increase the sample only after reviewing
 READY/FALLBACK outcomes and telemetry.
 
+`AI_BENCHMARK_LABEL` identifies the provider model or experiment. Keep
+`AI_BENCHMARK_FLOW_LABEL` stable while comparing models. Change the flow label
+when planner ownership or orchestration changes, for example from a legacy
+combined planner to `nutrition-agent-authoritative-v1`.
+
 ## Output
 
 The JSON report includes completed plan generations, READY/FALLBACK counts,
@@ -99,6 +111,39 @@ fallbacks. Training metrics cover requested exercise count, ExerciseLibrary
 coverage, prescription completeness, muscle coverage, AI retries, and
 deterministic fallbacks. Scores are release-comparison signals, not medical or
 clinical quality claims.
+
+Report schema `ai-live-benchmark.v2` also includes:
+
+- cost and token totals by subscription tier;
+- request, retry, latency, token, and cost totals by AI agent and operation;
+- cost per completed daily plan;
+- tier-specific menu option contract checks (`1/2/3` for Free/Plus/Pro);
+- catalog, ingredient clarity, preparation, exercise prescription, and rest-day
+  contract failures;
+- a planning-flow label so architecture results are not mixed accidentally.
+
+## Baseline Comparison
+
+Generate baseline and candidate reports with the same tiers, scenarios, profile
+count, locale, model configuration, and benchmark budget. Then compare them:
+
+```powershell
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:compare -- `
+  artifacts/ai-benchmark-baseline.json `
+  artifacts/ai-benchmark-current.json
+```
+
+The comparison reports deltas for quality, contract pass rate, fallbacks,
+retries, tokens, cost per plan, and latency. Its conservative gates reject an
+unequal sample size, a missing quality score, an overall quality drop greater
+than two points, a lower contract pass rate, or more fallback/degraded READY
+plans. Passing this comparison is an engineering
+release signal, not a medical-quality claim. Keep both raw versioned reports for
+manual review; do not approve a model or workflow from the boolean gates alone.
+
+The old architecture does not need to remain executable in production merely
+for A/B testing. Save its benchmark report as the baseline, then compare the new
+workflow report against that immutable artifact.
 
 ## Initial Free-route comparison
 

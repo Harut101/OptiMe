@@ -59,6 +59,51 @@ describe('AI live benchmark quality', () => {
     expect(summary.training.applicablePlanCount).toBe(1);
     expect(summary.training.averageScore).toBe(100);
   });
+
+  it('checks tier menu option count and distinct content', () => {
+    const plan = createPlan();
+    plan.nutrition.menuOptions = [
+      {
+        label: 'Balanced',
+        focus: 'Balanced day',
+        meals: plan.nutrition.meals
+      },
+      {
+        label: 'Quick',
+        focus: 'Quick prep',
+        meals: [
+          {
+            name: 'Egg bowl',
+            purpose: 'Quick meal',
+            foods: [{ name: 'Eggs', portion: '2' }]
+          }
+        ]
+      }
+    ];
+
+    const quality = evaluateBenchmarkPlanQuality(plan, {
+      trainingExpected: true,
+      preferredFoods: [],
+      expectedMealCount: 1,
+      expectedMenuOptionCount: 2
+    });
+
+    expect(quality.food.menuOptionContractPassed).toBe(true);
+    expect(quality.food.distinctMenuOptionCount).toBe(2);
+    expect(quality.contract.passed).toBe(true);
+  });
+
+  it('fails the contract when a tier menu option is missing', () => {
+    const quality = evaluateBenchmarkPlanQuality(createPlan(), {
+      trainingExpected: true,
+      preferredFoods: [],
+      expectedMealCount: 1,
+      expectedMenuOptionCount: 2
+    });
+
+    expect(quality.food.menuOptionContractPassed).toBe(false);
+    expect(quality.contract.failures).toContain('MENU_OPTION_CONTRACT_FAILED');
+  });
 });
 
 function createPlan(): DailyPlanJson {
@@ -76,7 +121,13 @@ function createPlan(): DailyPlanJson {
         fat: '20 g',
         notes: 'Aligned'
       },
-      meals: [],
+      meals: [
+        {
+          name: 'Rice bowl',
+          purpose: 'Balanced lunch',
+          foods: [{ name: 'Rice', portion: '150 g' }]
+        }
+      ],
       hydration: { guidance: 'Hydrate' },
       foodPlan: {
         source: 'NUTRITION_AGENT',

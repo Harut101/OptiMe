@@ -1,4 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   SubscriptionEnvironment,
   SubscriptionPlan,
@@ -16,6 +18,8 @@ import {
 } from './ai-live-benchmark-quality';
 
 const HARD_MAX_COST_USD = 10;
+const REPORT_SCHEMA_VERSION = 'ai-live-benchmark.v2';
+const DEFAULT_FLOW_LABEL = 'nutrition-agent-authoritative-v1';
 const RUN_PREFIX = `ai-benchmark-${Date.now()}`;
 type Tier = 'FREE' | 'PLUS' | 'PRO';
 const ALL_TIERS: Tier[] = ['FREE', 'PLUS', 'PRO'];
@@ -30,6 +34,9 @@ interface Scenario {
 }
 
 interface BenchmarkRequestLog {
+  userId: string;
+  agent: string;
+  operation: string;
   route: string;
   model: string;
   status: string;
@@ -76,9 +83,13 @@ async function main() {
   );
   const tiers = configuredTiers();
   const label = process.env.AI_BENCHMARK_LABEL?.trim() || null;
+  const flowLabel =
+    process.env.AI_BENCHMARK_FLOW_LABEL?.trim() || DEFAULT_FLOW_LABEL;
   if (process.env.AI_BENCHMARK_REAL_CALLS_ENABLED !== 'true') {
-    print({
+    emitReport({
+      reportSchemaVersion: REPORT_SCHEMA_VERSION,
       mode: 'dry-run',
+      flowLabel,
       label,
       realCallsEnabled: false,
       tiers,
@@ -105,6 +116,7 @@ async function main() {
   const ctx = await createTestApp();
   const budget = ctx.app.get(budgetModule.AiBenchmarkBudgetService);
   const userIds: string[] = [];
+  const tierByUserId = new Map<string, Tier>();
   const outcomes: Array<{
     tier: Tier;
     scenario: string;
@@ -128,6 +140,7 @@ async function main() {
           `${RUN_PREFIX}-${tier.toLowerCase()}-${index}@example.test`
         );
         userIds.push(user.userId);
+        tierByUserId.set(user.userId, tier);
         await configureProfile(ctx.app, user.accessToken, scenario, index);
         await applyTier(ctx.prisma, user.userId, tier);
 
@@ -150,7 +163,8 @@ async function main() {
             ? evaluateBenchmarkPlanQuality(plan, {
                 trainingExpected: scenario.appMode === 'NUTRITION_AND_TRAINING',
                 preferredFoods: scenario.preferredFoods,
-                expectedMealCount: 3
+                expectedMealCount: 3,
+                expectedMenuOptionCount: expectedMenuOptionCount(tier)
               })
             : null
         });
@@ -160,6 +174,9 @@ async function main() {
     const logs = await ctx.prisma.aiRequestLog.findMany({
       where: { userId: { in: userIds }, createdAt: { gte: startedAt } },
       select: {
+        userId: true,
+        agent: true,
+        operation: true,
         route: true,
         model: true,
         status: true,
@@ -170,8 +187,11 @@ async function main() {
         latencyMs: true
       }
     });
-    print({
+    const telemetry = summarize(logs, outcomes.length);
+    emitReport({
+      reportSchemaVersion: REPORT_SCHEMA_VERSION,
       mode: 'real',
+      flowLabel,
       label,
       tiers,
       hardMaxCostUsd: HARD_MAX_COST_USD,
@@ -187,7 +207,33 @@ async function main() {
       quality: summarizePlanQuality(
         outcomes.flatMap((outcome) => outcome.quality ?? [])
       ),
-      telemetry: summarize(logs)
+      telemetry,
+      byTier: Object.fromEntries(
+        tiers.map((tier) => {
+          const tierOutcomes = outcomes.filter(
+            (outcome) => outcome.tier === tier
+          );
+          const tierLogs = logs.filter(
+            (log) => tierByUserId.get(log.userId) === tier
+          );
+          return [
+            tier,
+            {
+              completedPlanGenerations: tierOutcomes.length,
+              readyPlans: tierOutcomes.filter(
+                (outcome) => outcome.status === 'READY'
+              ).length,
+              fallbackPlans: tierOutcomes.filter(
+                (outcome) => outcome.status === 'FALLBACK'
+              ).length,
+              quality: summarizePlanQuality(
+                tierOutcomes.flatMap((outcome) => outcome.quality ?? [])
+              ),
+              telemetry: summarize(tierLogs, tierOutcomes.length)
+            }
+          ];
+        })
+      )
     });
   } finally {
     if (userIds.length > 0) {
@@ -324,6 +370,12 @@ function routeForTier(tier: Tier) {
   return 'LUNA';
 }
 
+function expectedMenuOptionCount(tier: Tier) {
+  if (tier === 'PRO') return 3;
+  if (tier === 'PLUS') return 2;
+  return 1;
+}
+
 async function registerUser(
   app: INestApplication,
   prisma: PrismaService,
@@ -436,40 +488,15 @@ async function applyTier(prisma: PrismaService, userId: string, tier: Tier) {
   });
 }
 
-function summarize(logs: BenchmarkRequestLog[]) {
+function summarize(
+  logs: BenchmarkRequestLog[],
+  completedPlanGenerations: number
+) {
   const estimatedCostMicrousd = logs.reduce(
     (total, log) => total + (log.estimatedCostMicrousd ?? 0),
     0
   );
-  const routeSummaries = Object.fromEntries(
-    [...new Set(logs.map((log) => log.route))].map((route) => {
-      const routeLogs = logs.filter((log) => log.route === route);
-      const routeCostMicrousd = routeLogs.reduce(
-        (total, log) => total + (log.estimatedCostMicrousd ?? 0),
-        0
-      );
-      const routeLatencies = routeLogs.map((log) => log.latencyMs);
-      return [
-        route,
-        {
-          requestCount: routeLogs.length,
-          retryCount: routeLogs.filter((log) => log.retryAttempt).length,
-          errorCount: routeLogs.filter((log) => log.status === 'ERROR').length,
-          inputTokens: routeLogs.reduce(
-            (total, log) => total + log.inputTokens,
-            0
-          ),
-          outputTokens: routeLogs.reduce(
-            (total, log) => total + log.outputTokens,
-            0
-          ),
-          estimatedCostUsd: routeCostMicrousd / 1_000_000,
-          averageLatencyMs: average(routeLatencies),
-          p95LatencyMs: percentile(routeLatencies, 0.95)
-        }
-      ];
-    })
-  );
+  const estimatedCostUsd = estimatedCostMicrousd / 1_000_000;
   return {
     requestCount: logs.length,
     retryCount: logs.filter((log) => log.retryAttempt).length,
@@ -477,7 +504,11 @@ function summarize(logs: BenchmarkRequestLog[]) {
     errorCount: logs.filter((log) => log.status === 'ERROR').length,
     inputTokens: logs.reduce((total, log) => total + log.inputTokens, 0),
     outputTokens: logs.reduce((total, log) => total + log.outputTokens, 0),
-    estimatedCostUsd: estimatedCostMicrousd / 1_000_000,
+    estimatedCostUsd,
+    costPerCompletedPlanUsd:
+      completedPlanGenerations > 0
+        ? round(estimatedCostUsd / completedPlanGenerations, 6)
+        : 0,
     averageLatencyMs: average(logs.map((log) => log.latencyMs)),
     p95LatencyMs: percentile(
       logs.map((log) => log.latencyMs),
@@ -485,8 +516,42 @@ function summarize(logs: BenchmarkRequestLog[]) {
     ),
     routes: [...new Set(logs.map((log) => log.route))],
     models: [...new Set(logs.map((log) => log.model))],
-    byRoute: routeSummaries
+    byRoute: summarizeGroups(logs, (log) => log.route),
+    byAgent: summarizeGroups(logs, (log) => log.agent),
+    byOperation: summarizeGroups(logs, (log) => log.operation)
   };
+}
+
+function summarizeGroups(
+  logs: BenchmarkRequestLog[],
+  keyFor: (log: BenchmarkRequestLog) => string
+) {
+  return Object.fromEntries(
+    [...new Set(logs.map(keyFor))].sort().map((key) => {
+      const group = logs.filter((log) => keyFor(log) === key);
+      const estimatedCostMicrousd = group.reduce(
+        (total, log) => total + (log.estimatedCostMicrousd ?? 0),
+        0
+      );
+      const latencies = group.map((log) => log.latencyMs);
+      return [
+        key,
+        {
+          requestCount: group.length,
+          retryCount: group.filter((log) => log.retryAttempt).length,
+          errorCount: group.filter((log) => log.status === 'ERROR').length,
+          inputTokens: group.reduce((total, log) => total + log.inputTokens, 0),
+          outputTokens: group.reduce(
+            (total, log) => total + log.outputTokens,
+            0
+          ),
+          estimatedCostUsd: estimatedCostMicrousd / 1_000_000,
+          averageLatencyMs: average(latencies),
+          p95LatencyMs: percentile(latencies, 0.95)
+        }
+      ];
+    })
+  );
 }
 
 function average(values: number[]) {
@@ -512,8 +577,23 @@ function positiveNumber(key: string, fallback: number) {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-function print(value: unknown) {
+function emitReport(value: unknown) {
+  const reportPath = process.env.AI_BENCHMARK_REPORT_PATH?.trim();
+  if (reportPath) {
+    if (!reportPath.toLowerCase().endsWith('.json')) {
+      throw new Error('AI_BENCHMARK_REPORT_PATH must end with .json.');
+    }
+    writeFileSync(resolve(reportPath), `${JSON.stringify(value, null, 2)}\n`, {
+      encoding: 'utf8',
+      flag: 'w'
+    });
+  }
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function round(value: number, digits: number) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 }
 
 main().catch((error: unknown) => {
