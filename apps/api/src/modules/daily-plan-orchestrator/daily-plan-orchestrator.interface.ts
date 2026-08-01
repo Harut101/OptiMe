@@ -7,6 +7,10 @@ import type {
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
 import type { HealthPlanningContext } from '../health/health-planning.types';
+import type {
+  GeneratedDailyFoodPlan,
+  NutritionAgentMenuOption
+} from '../nutrition-agent/nutrition-agent.types';
 import type { RecoveryProtocol } from '../protocol/protocol.types';
 import type {
   FinalizeRecoveryPlanInput,
@@ -38,6 +42,7 @@ import type { DailyPlanOperationContext } from './daily-plan-persistence.interfa
 export interface AssembleDailyPlanInput {
   providerPlanResult: TrainingPlanProviderResult;
   foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>;
+  menuOptions?: NutritionAgentMenuOption[];
   exerciseSelection: ExerciseSelectionResult;
   recoveryProtocol?: RecoveryProtocol;
   healthPlanningContext?: HealthPlanningContext;
@@ -46,7 +51,8 @@ export interface AssembleDailyPlanInput {
   decorateProviderPlan: (planJson: DailyPlanJson) => DailyPlanJson;
   attachFoodPlan: (
     planJson: DailyPlanJson,
-    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
+    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>,
+    menuOptions?: NutritionAgentMenuOption[]
   ) => DailyPlanJson;
   applyTrainingLoad: (planJson: DailyPlanJson) => Promise<DailyPlanJson>;
   retryTrainingPlan?: (
@@ -65,12 +71,10 @@ export interface ExecuteDailyPlanGenerationWorkflowInput {
   }) => Promise<TrainingPlanProviderResult>;
   generateFoodPlan: (input?: {
     safetyFeedback?: GenerateDailyPlanSafetyFeedback;
-  }) => Promise<
-    NonNullable<DailyPlanJson['nutrition']['foodPlan']>
-  >;
+  }) => Promise<GeneratedDailyFoodPlan>;
   buildAssemblyInput: (input: {
     providerPlanResult: TrainingPlanProviderResult;
-    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>;
+    generatedFoodPlan: GeneratedDailyFoodPlan;
     isSafetyRetry: boolean;
   }) => AssembleDailyPlanInput;
   validateAttempt: (input: {
@@ -102,13 +106,14 @@ export interface DailyPlanOrchestrator {
   ): Promise<TrainingPlanProviderResult>;
   generateFoodPlan(
     input: GenerateDailyFoodPlanInput
-  ): Promise<NonNullable<DailyPlanJson['nutrition']['foodPlan']>>;
+  ): Promise<GeneratedDailyFoodPlan>;
   prepareProviderPlanDocument(
     input: PrepareProviderPlanDocumentInput
   ): DailyPlanJson;
   attachFoodPlan(
     planJson: DailyPlanJson,
-    foodPlan: DailyPlanJson['nutrition']['foodPlan']
+    foodPlan: DailyPlanJson['nutrition']['foodPlan'],
+    menuOptions?: NutritionAgentMenuOption[]
   ): DailyPlanJson;
   finalizeGenerationResult(
     input: FinalizeDailyPlanGenerationInput

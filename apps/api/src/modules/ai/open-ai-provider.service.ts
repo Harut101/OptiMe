@@ -17,7 +17,10 @@ import {
   GenerateDailyPlanInput,
   GeneratePlanCheckpointProposalInput
 } from './ai-provider.interface';
-import { dailyPlanJsonOpenAiSchema } from './daily-plan-json.openai-schema';
+import {
+  dailyPlanCoreOpenAiSchema,
+  dailyPlanJsonOpenAiSchema
+} from './daily-plan-json.openai-schema';
 import {
   OpenAiClientFactory,
   OpenAiResponse,
@@ -218,7 +221,7 @@ export class OpenAiProviderService implements AiProvider {
                   type: 'json_schema',
                   name: 'daily_plan_json',
                   strict: true,
-                  schema: dailyPlanJsonOpenAiSchema
+                  schema: dailyPlanCoreOpenAiSchema
                 }
               }
             },
@@ -227,7 +230,12 @@ export class OpenAiProviderService implements AiProvider {
       });
 
       this.logger.log(`OpenAI response received; retryAttempt=${retry}; model=${model}`);
-      return this.parseAndValidateResponse(response, input.planQualityMode, input.locale);
+      return this.parseAndValidateResponse(
+        response,
+        input.planQualityMode,
+        input.locale,
+        { corePlan: true }
+      );
     } catch (error) {
       if (error instanceof OpenAiProviderError) {
         this.logger.warn(
@@ -254,7 +262,8 @@ export class OpenAiProviderService implements AiProvider {
   private parseAndValidateResponse(
     response: OpenAiResponse,
     planQualityMode: PlanQualityMode,
-    locale: GenerateDailyPlanInput['locale']
+    locale: GenerateDailyPlanInput['locale'],
+    options: { corePlan?: boolean } = {}
   ): OpenAiAttemptResult {
     const outputText = this.extractOutputText(response);
     this.logger.log(`OpenAI output_text present: ${Boolean(outputText)}`);
@@ -278,7 +287,14 @@ export class OpenAiProviderService implements AiProvider {
       });
     }
 
-    const normalizedJson = this.normalizeBackendOwnedMetadata(parsedJson, planQualityMode, locale);
+    const metadataNormalized = this.normalizeBackendOwnedMetadata(
+      parsedJson,
+      planQualityMode,
+      locale
+    );
+    const normalizedJson = options.corePlan
+      ? this.normalizeCorePlannerNutrition(metadataNormalized)
+      : metadataNormalized;
     const parsedPlan = dailyPlanJsonSchema.safeParse(normalizedJson);
 
     if (!parsedPlan.success) {
@@ -392,20 +408,9 @@ export class OpenAiProviderService implements AiProvider {
       'Do not say women should avoid strength training, women should eat very little, men should always bulk, or men should always lift heavy.',
       'Base recommendations on goal, ability, schedule, preferences, feedback, safety, and recovery-aware signals.',
       'Do not assume pregnancy, postpartum, or breastfeeding status from gender alone.',
-      'Keep meals simple, realistic, and easy to understand.',
-      'foods[].name must be a clean food or dish name only.',
-      'Do not include parenthetical restrictions or allergy/exclusion explanations in foods[].name.',
-      'Do not write food names like "Mixed salad (no avocado)", "No-avocado salad", "Avocado-free salad", or "Salad without avocado".',
-      'Instead write name: "Mixed salad" and put "Prepared without avocado." in notes.',
-      'Allergies and excluded foods must never appear in foods[].name.',
-      'Apply the same food safety and clean food name rules to nutrition.menuOptions[].meals[].foods[].name.',
-      'Every menu option must avoid allergies and excluded foods.',
-      'If you need to mention avoided foods, use notes or reminders with safe avoidance language only.',
-      'Use preferred foods when they fit, but never include allergies or excluded foods.',
-      'When mentioning allergies or excluded foods, be accurate and do not invent restrictions.',
-      'Allergies are hard safety blocks. Excluded foods are preference or restriction blocks.',
-      'Do not call excluded foods allergies.',
-      'You may mention allergies or excluded foods only to say they are avoided.',
+      'A separate catalog-bounded Nutrition Agent owns all meals and menu options.',
+      'Do not generate, describe, or invent meals, food items, ingredients, portions, or menu alternatives.',
+      'Generate only calorie guidance, macro guidance, and hydration inside nutrition.',
       'Do not use shame, guilt, fear, or body-transformation language.',
       'Do not give medical diagnosis.',
       'Do not recommend extreme dieting, starvation, detoxes, or unsafe calorie restriction.',
@@ -456,11 +461,7 @@ export class OpenAiProviderService implements AiProvider {
       case PlanQualityMode.ADAPTIVE:
         return [
           'PlanQualityMode is ADAPTIVE for Pro adaptive coaching.',
-          'Return exactly 3 nutrition.menuOptions.',
-          'Use menu option focuses such as workout support, recovery/easier digestion, and busy day/simple prep.',
           'Generate a highly individualized plan using goal, preferences, schedule, history, feedback summaries, and readiness placeholders.',
-          'When foodAdherenceSummary is available, make the menu more practical and lower-friction without mentioning an adherence score, using guilt or shame, or reducing nutrition targets.',
-          'Include practical meal timing around workouts when training is scheduled.',
           'Make training recommendations adaptive to goal, recent feedback, schedule, and recovery/readiness placeholders.',
           'For exercise suggestions, be specific and adaptive, but do not create advanced progression blocks yet.',
           'Mention future recovery/sleep/strain signals only as placeholders if relevant; do not invent WHOOP data.'
@@ -468,11 +469,8 @@ export class OpenAiProviderService implements AiProvider {
       case PlanQualityMode.PERSONALIZED:
         return [
           'PlanQualityMode is PERSONALIZED for Plus habit consistency.',
-          'Return exactly 2 nutrition.menuOptions.',
-          'Use menu option focuses such as balanced standard day and quick/simple prep.',
-          'Generate more detailed meals and training than BASIC.',
-          'Use preferred foods, excluded foods, training schedule, goal, and feedback/history summaries when available.',
-          'When foodAdherenceSummary is available, make the menu more practical and lower-friction without mentioning an adherence score, using guilt or shame, or reducing nutrition targets.',
+          'Generate more detailed training, recovery, and daily guidance than BASIC.',
+          'Use training schedule, goal, and feedback/history summaries when available.',
           'For training, suggest exercises based on current schedule, description, duration, intensity, and goal.',
           'Include sets, reps, and rest only when appropriate and safe.'
         ].join('\n');
@@ -480,9 +478,8 @@ export class OpenAiProviderService implements AiProvider {
       default:
         return [
           'PlanQualityMode is BASIC for Free useful and safe planning.',
-          'Return exactly 1 nutrition.menuOptions item, or one simple primary menu represented consistently in nutrition.meals.',
           'Generate a simple, practical, safe daily plan with limited context.',
-          'Keep meals straightforward and training guidance easy to follow.',
+          'Keep training and recovery guidance easy to follow.',
           'Include short exercise suggestions only when appropriate; do not include advanced progression.'
         ].join('\n');
     }
@@ -590,6 +587,30 @@ export class OpenAiProviderService implements AiProvider {
         provider: 'openai',
         generatedBy: 'OpenAiProviderService',
         planQualityMode
+      }
+    };
+  }
+
+  private normalizeCorePlannerNutrition(value: unknown) {
+    const record =
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+    const nutrition =
+      typeof record.nutrition === 'object' &&
+      record.nutrition !== null &&
+      !Array.isArray(record.nutrition)
+        ? (record.nutrition as Record<string, unknown>)
+        : {};
+
+    return {
+      ...record,
+      nutrition: {
+        ...nutrition,
+        meals: [],
+        menuOptions: []
       }
     };
   }

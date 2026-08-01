@@ -10,6 +10,7 @@ import type { GenerateDailyPlanPersonalizationContext } from '../ai/ai-provider.
 import { getSafeFallbackCopy } from '../daily-plans/daily-plan-copy';
 import type { DailyPlanJson } from '../daily-plans/daily-plan-json.schema';
 import type { ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
+import type { NutritionAgentMenuOption } from '../nutrition-agent/nutrition-agent.types';
 import { NutritionTargetsService } from '../nutrition-targets/nutrition-targets.service';
 import { PlanCheckpointService } from '../plan-checkpoint/plan-checkpoint.service';
 import type { SelectedProtocols } from '../protocol/protocol.types';
@@ -49,9 +50,12 @@ export class DailyPlanFinalizationService {
 
   attachFoodPlan(
     planJson: DailyPlanJson,
-    foodPlan: DailyPlanJson['nutrition']['foodPlan']
+    foodPlan: DailyPlanJson['nutrition']['foodPlan'],
+    menuOptions?: NutritionAgentMenuOption[]
   ): DailyPlanJson {
     if (!foodPlan) return planJson;
+
+    const meals = this.toLegacyMeals(foodPlan);
 
     return {
       ...planJson,
@@ -59,17 +63,32 @@ export class DailyPlanFinalizationService {
         ...planJson.nutrition,
         // Keep legacy rendering fields aligned with the catalog-backed plan so
         // safety and clients never see two different daily menus.
-        meals: foodPlan.meals.map((meal) => ({
-          name: meal.title,
-          purpose: meal.shortDescription ?? meal.servingSummary,
-          foods: meal.ingredients.map((ingredient) => ({
-            name: ingredient.name,
-            portion: `${ingredient.quantity} ${ingredient.unit}`
-          }))
-        })),
+        meals,
+        ...(menuOptions
+          ? {
+              menuOptions: menuOptions.map((option) => ({
+                label: option.label,
+                focus: option.focus,
+                meals: this.toLegacyMeals(option.foodPlan)
+              }))
+            }
+          : {}),
         foodPlan
       }
     };
+  }
+
+  private toLegacyMeals(
+    foodPlan: NonNullable<DailyPlanJson['nutrition']['foodPlan']>
+  ): DailyPlanJson['nutrition']['meals'] {
+    return foodPlan.meals.map((meal) => ({
+      name: meal.title,
+      purpose: meal.shortDescription ?? meal.servingSummary,
+      foods: meal.ingredients.map((ingredient) => ({
+        name: ingredient.name,
+        portion: `${ingredient.quantity} ${ingredient.unit}`
+      }))
+    }));
   }
 
   async finalize(

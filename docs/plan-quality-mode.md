@@ -48,9 +48,10 @@ Behavior:
 - Limited context.
 - Minimal personalization.
 
-OpenAI prompt direction:
+Generation direction:
 
-- Keep the plan simple, practical, and safe.
+- Keep core guidance simple, practical, and safe.
+- Let Nutrition Agent provide one catalog-backed menu option.
 - Use limited context.
 - Avoid advanced progression.
 - Provide short exercise suggestions only when appropriate.
@@ -61,7 +62,7 @@ OpenAI prompt direction:
 
 Behavior:
 
-- More detailed meals.
+- More personalized catalog-backed meals.
 - Two practical menu options.
 - Better use of preferred and excluded foods.
 - Training adjusted to schedule and goal.
@@ -73,9 +74,11 @@ Behavior:
 - Better exercise suggestions from current schedule and description.
 - Recent feedback/history summaries can influence the plan.
 
-OpenAI prompt direction:
+Generation direction:
 
-- Use preferences, schedule, goal, and feedback/history summaries more strongly.
+- Use preferences, schedule, goal, and feedback/history summaries more strongly
+  across the core planner and specialized agents.
+- Let Nutrition Agent provide two distinct validated menu options.
 - Include sets, reps, and rest only when appropriate and safe.
 - Make the user feel the plan understands their habits.
 
@@ -95,9 +98,10 @@ Behavior:
 - Deeper personalization using gender, pregnancyStatus, history, feedback, and readiness placeholders when safe and explicitly provided.
 - Future WHOOP recovery, sleep, and strain hooks.
 
-OpenAI prompt direction:
+Generation direction:
 
 - Use deeper context without inventing unavailable data.
+- Let Nutrition Agent provide three distinct validated menu options.
 - Use readiness placeholders for future recovery signals.
 - Make recommendations feel specific to today.
 
@@ -151,6 +155,13 @@ Plan Details can render optional `training.exercises` when present. Today stays 
 ## Nutrition Menu Options By Tier
 
 Sprint 4 Batch 2.1 adds optional `nutrition.menuOptions` while keeping `nutrition.meals` as the primary menu used by existing mobile screens.
+
+Current generation ownership is specialized: the general daily-plan provider
+does not generate meal content. `NutritionAgentService` creates the
+catalog-backed primary `foodPlan` and all tier menu options, and finalization
+projects those validated plans into the backward-compatible `nutrition.meals`
+and `nutrition.menuOptions` fields. Alternative composition is deterministic
+and adds no LLM request.
 
 `BASIC`:
 

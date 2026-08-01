@@ -2,7 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   AiRequestAgent,
-  AiRequestOperation
+  AiRequestOperation,
+  PlanQualityMode
 } from '@prisma/client';
 import type { DailyFoodPlan } from '@optime/shared-types';
 
@@ -54,6 +55,7 @@ import {
 import type {
   FoodPlanRepairFeedback,
   NutritionAgentInput,
+  NutritionAgentMenuOption,
   NutritionAgentResult
 } from './nutrition-agent.types';
 
@@ -90,6 +92,20 @@ export class NutritionAgentService {
   ) {}
 
   async generateDailyFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
+    const result = await this.generatePrimaryDailyFoodPlan(input);
+    const menuOptions = input.regeneration
+      ? []
+      : await this.buildCatalogMenuOptions(input, result.foodPlan);
+
+    return {
+      ...result,
+      menuOptions
+    };
+  }
+
+  private async generatePrimaryDailyFoodPlan(
+    input: NutritionAgentInput
+  ): Promise<Omit<NutritionAgentResult, 'menuOptions'>> {
     input = {
       ...input,
       foodRotationContext:
@@ -190,7 +206,95 @@ export class NutritionAgentService {
     };
   }
 
-  private async generateMockFoodPlan(input: NutritionAgentInput): Promise<NutritionAgentResult> {
+  private async buildCatalogMenuOptions(
+    input: NutritionAgentInput,
+    primaryFoodPlan: DailyFoodPlan
+  ): Promise<NutritionAgentMenuOption[]> {
+    const descriptors = getMenuOptionDescriptors(
+      input.locale,
+      input.planQualityMode,
+      input.resolvedTrainingDay.isTrainingDay
+    );
+    const options: NutritionAgentMenuOption[] = [
+      {
+        ...descriptors[0],
+        foodPlan: primaryFoodPlan
+      }
+    ];
+    const usedSignatures = new Set([
+      foodPlanIngredientSignature(primaryFoodPlan)
+    ]);
+
+    for (const [optionIndex, descriptor] of descriptors
+      .slice(1)
+      .entries()) {
+      const alternative = await this.composeDistinctMenuOption(
+        input,
+        optionIndex + 1,
+        usedSignatures
+      );
+
+      if (!alternative) {
+        this.logger.warn(
+          `nutrition menu option unavailable; optionIndex=${optionIndex + 1}; requestedCount=${descriptors.length}`
+        );
+        continue;
+      }
+
+      usedSignatures.add(foodPlanIngredientSignature(alternative));
+      options.push({
+        ...descriptor,
+        foodPlan: alternative
+      });
+    }
+
+    this.logger.log(
+      `nutrition menu options completed; requested=${descriptors.length}; generated=${options.length}; mode=${input.planQualityMode}`
+    );
+    return options;
+  }
+
+  private async composeDistinctMenuOption(
+    input: NutritionAgentInput,
+    optionIndex: number,
+    usedSignatures: Set<string>
+  ) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const selectionSeed = [
+        'daily-menu-option',
+        input.planLocalDate,
+        input.planQualityMode,
+        optionIndex,
+        attempt
+      ].join(':');
+      const catalogSelection = await this.selectCatalogForComposition(
+        input,
+        selectionSeed
+      );
+      const composedPlan = await this.recipeComposer.compose(input, {
+        selectionSeed
+      });
+
+      if (!composedPlan) continue;
+
+      const { foodPlan, validation } = this.resolveComposedPlan(
+        composedPlan,
+        input,
+        catalogSelection.candidates
+      );
+      const signature = foodPlanIngredientSignature(foodPlan);
+
+      if (validation.passed && !usedSignatures.has(signature)) {
+        return foodPlan;
+      }
+    }
+
+    return null;
+  }
+
+  private async generateMockFoodPlan(
+    input: NutritionAgentInput
+  ): Promise<Omit<NutritionAgentResult, 'menuOptions'>> {
     const selectionSeed = input.regeneration?.mode === 'FULL_MENU_REGENERATION'
       ? this.fullMenuRegenerationSelectionSeed(input)
       : undefined;
@@ -1260,6 +1364,125 @@ function stableHash(value: string) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+type MenuOptionDescriptor = Pick<
+  NutritionAgentMenuOption,
+  'label' | 'focus'
+>;
+
+const MENU_OPTION_COPY: Record<
+  NutritionAgentInput['locale'],
+  Record<'balanced' | 'quick' | 'workout' | 'recovery', MenuOptionDescriptor>
+> = {
+  'en-US': {
+    balanced: {
+      label: 'Balanced day',
+      focus: 'Balanced meals for a practical everyday routine.'
+    },
+    quick: {
+      label: 'Quick preparation',
+      focus: 'Simple meals with lower preparation effort.'
+    },
+    workout: {
+      label: 'Workout support',
+      focus: 'Meals timed and balanced around today\'s training.'
+    },
+    recovery: {
+      label: 'Recovery support',
+      focus: 'Comfortable balanced meals for recovery and steady energy.'
+    }
+  },
+  'ru-RU': {
+    balanced: {
+      label: 'Сбалансированный день',
+      focus: 'Сбалансированные блюда для удобного повседневного режима.'
+    },
+    quick: {
+      label: 'Быстрое приготовление',
+      focus: 'Простые блюда, требующие меньше времени на приготовление.'
+    },
+    workout: {
+      label: 'Поддержка тренировки',
+      focus: 'Блюда распределены и сбалансированы с учётом сегодняшней тренировки.'
+    },
+    recovery: {
+      label: 'Поддержка восстановления',
+      focus: 'Комфортные сбалансированные блюда для восстановления и стабильной энергии.'
+    }
+  },
+  'fr-FR': {
+    balanced: {
+      label: 'Journée équilibrée',
+      focus: 'Des repas équilibrés pour une routine quotidienne pratique.'
+    },
+    quick: {
+      label: 'Préparation rapide',
+      focus: 'Des repas simples qui demandent moins de préparation.'
+    },
+    workout: {
+      label: 'Soutien de l’entraînement',
+      focus: 'Des repas répartis et équilibrés autour de l’entraînement du jour.'
+    },
+    recovery: {
+      label: 'Soutien de la récupération',
+      focus: 'Des repas équilibrés et confortables pour récupérer et garder une énergie stable.'
+    }
+  },
+  'zh-CN': {
+    balanced: {
+      label: '均衡日常',
+      focus: '适合日常安排的均衡实用餐食。'
+    },
+    quick: {
+      label: '快速准备',
+      focus: '准备步骤更少、简单实用的餐食。'
+    },
+    workout: {
+      label: '训练支持',
+      focus: '围绕今天训练安排并保持均衡的餐食。'
+    },
+    recovery: {
+      label: '恢复支持',
+      focus: '帮助恢复并维持稳定能量的舒适均衡餐食。'
+    }
+  }
+};
+
+function getMenuOptionDescriptors(
+  locale: NutritionAgentInput['locale'],
+  planQualityMode: PlanQualityMode,
+  isTrainingDay: boolean
+) {
+  const copy = MENU_OPTION_COPY[locale];
+
+  switch (planQualityMode) {
+    case PlanQualityMode.ADAPTIVE:
+      return [
+        isTrainingDay ? copy.workout : copy.balanced,
+        copy.recovery,
+        copy.quick
+      ];
+    case PlanQualityMode.PERSONALIZED:
+      return [copy.balanced, copy.quick];
+    case PlanQualityMode.BASIC:
+    default:
+      return [copy.balanced];
+  }
+}
+
+function foodPlanIngredientSignature(foodPlan: DailyFoodPlan) {
+  return foodPlan.meals
+    .map((meal) =>
+      [
+        meal.mealType,
+        ...meal.ingredients.map(
+          (ingredient) =>
+            ingredient.catalogFoodSlug ?? ingredient.name.toLowerCase()
+        )
+      ].join(':')
+    )
+    .join('|');
 }
 
 function sameMealIngredients(

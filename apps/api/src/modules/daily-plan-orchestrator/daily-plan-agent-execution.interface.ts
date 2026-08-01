@@ -3,7 +3,6 @@ import type {
   PlanQualityMode
 } from '@prisma/client';
 import type {
-  DailyFoodPlan,
   NutritionTarget,
   ResolvedTrainingDayContext,
   SupportedLocale
@@ -15,6 +14,7 @@ import type {
   GenerateDailyPlanSafetyFeedback
 } from '../ai/ai-provider.interface';
 import type { ExerciseSelectionResult } from '../exercise-selection/exercise-selection.types';
+import type { GeneratedDailyFoodPlan } from '../nutrition-agent/nutrition-agent.types';
 import type { TrainingPlanProviderResult } from '../training-plan-agent/training-plan-agent.interface';
 import type { DailyPlanPlanningUser } from './daily-plan-planning-user';
 
@@ -50,5 +50,5 @@ export interface DailyPlanAgentExecution {
   ): Promise<TrainingPlanProviderResult>;
   generateFoodPlan(
     input: GenerateDailyFoodPlanInput
-  ): Promise<DailyFoodPlan>;
+  ): Promise<GeneratedDailyFoodPlan>;
 }

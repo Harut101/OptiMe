@@ -203,3 +203,26 @@ export const dailyPlanJsonOpenAiSchema = {
     reminders: { type: 'array', items: { type: 'string' } }
   }
 } as const;
+
+export const dailyPlanCoreOpenAiSchema = {
+  ...dailyPlanJsonOpenAiSchema,
+  properties: {
+    ...dailyPlanJsonOpenAiSchema.properties,
+    nutrition: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['calorieGuidance', 'macroGuidance', 'hydration'],
+      properties: {
+        calorieGuidance:
+          dailyPlanJsonOpenAiSchema.properties.nutrition.properties
+            .calorieGuidance,
+        macroGuidance:
+          dailyPlanJsonOpenAiSchema.properties.nutrition.properties
+            .macroGuidance,
+        hydration:
+          dailyPlanJsonOpenAiSchema.properties.nutrition.properties
+            .hydration
+      }
+    }
+  }
+} as const;

@@ -133,9 +133,43 @@ If `OpenAiProviderService` throws `OpenAiProviderError`, the bounded generation
 workflow records a safe operational reason and uses the existing normalized
 fallback behavior without exposing provider internals to mobile.
 
-AI providers may explain nutrition targets and shape meals around them, but they must not invent alternate calorie or macro values. Saved plans include `nutritionTargetSnapshot` so historical plans remain stable after profile, goal, app mode, or schedule changes.
+The core AI provider may explain backend-owned nutrition targets, hydration, and
+how nutrition fits the day, but it does not generate meals, ingredients,
+portions, or menu alternatives. Those fields belong exclusively to the
+catalog-bounded Nutrition Agent. Neither provider may invent alternate calorie
+or macro targets. Saved plans include `nutritionTargetSnapshot` so historical
+plans remain stable after profile, goal, app mode, or schedule changes.
 
 Nutrition target explanations are reason codes and params. Providers should receive them as neutral planning context, not as user-facing English copy to preserve mobile localization.
+
+## Nutrition Output Ownership
+
+Daily plan generation intentionally avoids asking two AI paths to create the
+same food content:
+
+```text
+OpenAiProviderService
+-> summary, readiness, nutrition guidance, hydration, training, recovery
+
+NutritionAgentService
+-> catalog-backed primary foodPlan
+-> BASIC/PERSONALIZED/ADAPTIVE menu options
+-> ingredient quantities, preparation, and nutrition validation
+
+DailyPlanFinalizationService
+-> maps the authoritative foodPlan into legacy nutrition.meals
+-> maps catalog-backed alternatives into nutrition.menuOptions
+```
+
+The Structured Output schema sent to the core planner therefore omits
+`nutrition.meals` and `nutrition.menuOptions`. The backend injects empty legacy
+fields only for internal schema normalization, then replaces them with validated
+Nutrition Agent output before deterministic safety and persistence.
+
+Menu alternatives are composed deterministically from the food catalog and do
+not require additional LLM calls. This preserves the public `DailyPlanJson`
+contract, reduces duplicate output tokens, and prevents the primary meal plan
+from disagreeing with tier alternatives.
 
 ## Debug Metadata
 

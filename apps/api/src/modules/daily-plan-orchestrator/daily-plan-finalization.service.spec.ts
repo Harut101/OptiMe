@@ -30,6 +30,68 @@ describe('DailyPlanFinalizationService', () => {
     expect(dependencies.nutritionTargetsService.toSnapshot).toHaveBeenCalled();
   });
 
+  it('publishes catalog-backed primary meals and menu options without provider meal copy', () => {
+    const { service } = createService();
+    const primaryFoodPlan = createFoodPlan();
+    const quickFoodPlan = {
+      ...createFoodPlan(),
+      meals: [
+        {
+          ...createFoodPlan().meals[0],
+          title: 'Quick breakfast',
+          shortDescription: 'Low-prep option',
+          ingredients: [
+            {
+              ...createFoodPlan().meals[0].ingredients[0],
+              name: 'Greek yogurt',
+              quantity: 200
+            }
+          ]
+        }
+      ]
+    } as typeof primaryFoodPlan;
+
+    const result = service.attachFoodPlan(createPlan(), primaryFoodPlan, [
+      {
+        label: 'Balanced day',
+        focus: 'Balanced everyday meals.',
+        foodPlan: primaryFoodPlan
+      },
+      {
+        label: 'Quick preparation',
+        focus: 'Lower preparation effort.',
+        foodPlan: quickFoodPlan
+      }
+    ]);
+
+    expect(result.nutrition.foodPlan).toBe(primaryFoodPlan);
+    expect(result.nutrition.meals).toEqual([
+      {
+        name: 'Breakfast',
+        purpose: 'Steady energy',
+        foods: [{ name: 'Oats', portion: '80 g' }]
+      }
+    ]);
+    expect(result.nutrition.menuOptions).toEqual([
+      {
+        label: 'Balanced day',
+        focus: 'Balanced everyday meals.',
+        meals: result.nutrition.meals
+      },
+      {
+        label: 'Quick preparation',
+        focus: 'Lower preparation effort.',
+        meals: [
+          {
+            name: 'Quick breakfast',
+            purpose: 'Low-prep option',
+            foods: [{ name: 'Greek yogurt', portion: '200 g' }]
+          }
+        ]
+      }
+    ]);
+  });
+
   it('finalizes food, recovery, debug metadata, and checkpoint baseline once', async () => {
     const { service, dependencies } = createService();
     const foodPlan = createFoodPlan();

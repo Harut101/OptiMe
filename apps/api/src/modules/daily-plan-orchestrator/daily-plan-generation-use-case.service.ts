@@ -143,11 +143,12 @@ export class DailyPlanGenerationUseCaseService {
             }),
           buildAssemblyInput: ({
             providerPlanResult,
-            foodPlan,
+            generatedFoodPlan,
             isSafetyRetry
           }) => ({
             providerPlanResult,
-            foodPlan,
+            foodPlan: generatedFoodPlan.foodPlan,
+            menuOptions: generatedFoodPlan.menuOptions,
             exerciseSelection,
             recoveryProtocol:
               personalizationContext.selectedProtocols
@@ -164,10 +165,15 @@ export class DailyPlanGenerationUseCaseService {
                 appMode,
                 locale: input.locale
               }),
-            attachFoodPlan: (planJson, foodPlanToAttach) =>
+            attachFoodPlan: (
+              planJson,
+              foodPlanToAttach,
+              menuOptions
+            ) =>
               this.orchestrator.attachFoodPlan(
                 planJson,
-                foodPlanToAttach
+                foodPlanToAttach,
+                menuOptions
               ),
             applyTrainingLoad: (planJson) =>
               this.orchestrator.applyTrainingLoad({

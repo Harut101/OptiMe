@@ -23,6 +23,7 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
     dependencies.nutritionAgent.generateDailyFoodPlan.mockResolvedValue(
       {
         foodPlan,
+        menuOptions: [],
         retryCount: 0,
         fallbackUsed: false,
         validationReasonCodes: []
@@ -81,6 +82,7 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
     dependencies.nutritionAgent.generateDailyFoodPlan.mockResolvedValue(
       {
         foodPlan: createFoodPlan(),
+        menuOptions: [],
         retryCount: 1,
         fallbackUsed: false,
         validationReasonCodes: []
@@ -142,6 +144,7 @@ describe('DailyPlanFoodRegenerationUseCaseService', () => {
             status: 'FALLBACK'
           }
         },
+        menuOptions: [],
         retryCount: 1,
         fallbackUsed: true,
         validationReasonCodes: ['SAFE_FALLBACK_REQUIRED']

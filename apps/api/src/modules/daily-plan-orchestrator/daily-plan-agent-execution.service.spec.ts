@@ -102,6 +102,7 @@ describe('DailyPlanAgentExecutionService', () => {
     const dependencies = createDependencies();
     dependencies.nutritionAgent.generateDailyFoodPlan.mockResolvedValue({
       foodPlan,
+      menuOptions: [],
       retryCount: 0,
       fallbackUsed: false,
       validationReasonCodes: []
@@ -126,7 +127,10 @@ describe('DailyPlanAgentExecutionService', () => {
       } as never
     });
 
-    expect(result).toBe(foodPlan);
+    expect(result).toEqual({
+      foodPlan,
+      menuOptions: []
+    });
     expect(
       dependencies.nutritionAgent.generateDailyFoodPlan
     ).toHaveBeenCalledWith(

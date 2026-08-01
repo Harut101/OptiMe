@@ -269,7 +269,11 @@ Old plans without `nutrition.foodPlan` remain valid and should continue renderin
 
 `nutritionTargetSnapshot` is optional for backward compatibility, but new generated plans should include it. It is the immutable deterministic backend target used when that plan was generated.
 
-The backend calculates calories, macros, safety status, and day type before AI generation. AI providers must align copy and meals to this target and must not invent alternate calorie or macro targets.
+The backend calculates calories, macros, safety status, and day type before AI
+generation. The core planner aligns summary, guidance, training, and recovery to
+that context. The specialized Nutrition Agent owns meals and must align every
+catalog-backed meal to the same target. Neither agent may invent alternate
+calorie or macro targets.
 
 New snapshots store explanation `titleCode` and `reasonCodes` so mobile can localize explanation copy. Legacy snapshots with `explanation.title` and `explanation.bullets` remain readable, but they are not the forward contract.
 
@@ -281,11 +285,24 @@ Old Sprint 1-7 plans without `nutritionTargetSnapshot` remain valid and mobile m
 
 `nutrition.menuOptions` is optional and backward-compatible. It allows richer tiers to offer menu choices without breaking the existing Today and Plan Details screens.
 
+For newly generated plans, `nutrition.foodPlan` is the authoritative primary
+menu. `DailyPlanFinalizationService` derives `nutrition.meals` from that same
+food plan and derives every `nutrition.menuOptions[].meals` entry from a
+validated catalog-backed alternative. The general OpenAI daily planner does not
+generate these fields. This prevents independent AI outputs from describing
+different food plans while preserving old mobile and historical-plan support.
+
 Plan quality behavior:
 
 - `BASIC`: one strong, safe menu option. `menuOptions` may contain one option.
 - `PERSONALIZED`: two useful menu options, such as `Balanced standard day` and `Quick/simple prep`.
 - `ADAPTIVE`: three more individualized menu options, such as `Workout support`, `Recovery friendly`, and `Busy day/simple prep`.
+
+Alternative count is selected by `PlanQualityMode`, but alternatives are built
+without extra LLM calls. They use deterministic catalog composition, distinct
+ingredient rotation seeds, nutrition validation, and the same allergy/exclusion
+rules as the primary plan. If a safe distinct alternative cannot be composed,
+the backend does not invent an unvalidated option merely to satisfy a count.
 
 All menu options must follow the same food safety contract as `nutrition.meals`:
 

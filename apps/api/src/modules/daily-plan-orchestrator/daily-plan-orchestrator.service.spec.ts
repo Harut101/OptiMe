@@ -192,7 +192,10 @@ describe('DailyPlanOrchestratorService', () => {
       trainingPreparation
     });
     const generateProviderPlan = jest.fn().mockResolvedValue(providerPlanResult);
-    const generateFoodPlan = jest.fn().mockResolvedValue(foodPlan);
+    const generateFoodPlan = jest.fn().mockResolvedValue({
+      foodPlan,
+      menuOptions: []
+    });
     const validateAttempt = jest.fn().mockResolvedValue(providerPlanResult);
 
     const result = await service.executeGenerationWorkflow({
@@ -262,8 +265,14 @@ describe('DailyPlanOrchestratorService', () => {
       .mockResolvedValueOnce(retryProvider);
     const generateFoodPlan = jest
       .fn()
-      .mockResolvedValueOnce({ id: 'initial-food' })
-      .mockResolvedValueOnce({ id: 'retry-food' });
+      .mockResolvedValueOnce({
+        foodPlan: { id: 'initial-food' },
+        menuOptions: []
+      })
+      .mockResolvedValueOnce({
+        foodPlan: { id: 'retry-food' },
+        menuOptions: []
+      });
     const validateAttempt = jest
       .fn()
       .mockResolvedValueOnce({
@@ -336,7 +345,10 @@ describe('DailyPlanOrchestratorService', () => {
       .mockResolvedValueOnce(initialProvider)
       .mockResolvedValueOnce(retryProvider);
     const foodPlan = { id: 'stable-food' };
-    const generateFoodPlan = jest.fn().mockResolvedValue(foodPlan);
+    const generateFoodPlan = jest.fn().mockResolvedValue({
+      foodPlan,
+      menuOptions: []
+    });
     const safetyFeedback = {
       riskLevel: 'medium' as const,
       reasons: ['unsafe training advice'],
@@ -385,8 +397,14 @@ describe('DailyPlanOrchestratorService', () => {
     const retryFoodPlan = { id: 'corrected-food' };
     const generateFoodPlan = jest
       .fn()
-      .mockResolvedValueOnce(initialFoodPlan)
-      .mockResolvedValueOnce(retryFoodPlan);
+      .mockResolvedValueOnce({
+        foodPlan: initialFoodPlan,
+        menuOptions: []
+      })
+      .mockResolvedValueOnce({
+        foodPlan: retryFoodPlan,
+        menuOptions: []
+      });
     const safetyFeedback = {
       riskLevel: 'medium' as const,
       reasons: ['unsafe diet advice'],
@@ -425,7 +443,8 @@ describe('DailyPlanOrchestratorService', () => {
     });
     expect(attachFoodPlan).toHaveBeenCalledWith(
       initialProvider.planJson,
-      retryFoodPlan
+      retryFoodPlan,
+      []
     );
     expect(result.finalFoodPlan).toBe(retryFoodPlan);
     expect(result.trainingPreparation.usedAiRetry).toBe(false);

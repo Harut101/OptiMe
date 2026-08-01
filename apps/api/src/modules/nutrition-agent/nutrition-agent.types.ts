@@ -84,10 +84,22 @@ export interface FoodRotationContext {
 
 export interface NutritionAgentResult {
   foodPlan: DailyFoodPlan;
+  menuOptions: NutritionAgentMenuOption[];
   retryCount: number;
   fallbackUsed: boolean;
   validationReasonCodes: string[];
 }
+
+export interface NutritionAgentMenuOption {
+  label: string;
+  focus: string;
+  foodPlan: DailyFoodPlan;
+}
+
+export type GeneratedDailyFoodPlan = Pick<
+  NutritionAgentResult,
+  'foodPlan' | 'menuOptions'
+>;
 
 export interface FoodPlanValidationContext {
   nutritionTarget: NutritionTarget;

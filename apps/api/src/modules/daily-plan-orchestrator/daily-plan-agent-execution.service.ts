@@ -156,7 +156,10 @@ export class DailyPlanAgentExecutionService
       safetyFeedback: input.safetyFeedback
     });
 
-    return result.foodPlan;
+    return {
+      foodPlan: result.foodPlan,
+      menuOptions: result.menuOptions ?? []
+    };
   }
 
   private toNutritionPreference(

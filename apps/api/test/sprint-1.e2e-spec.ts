@@ -35,6 +35,7 @@ import { AiOperationLogsService } from '../src/modules/ai-operation-logs/ai-oper
 import { GenerateDailyPlanInput } from '../src/modules/ai/ai-provider.interface';
 import { AI_PROVIDER } from '../src/modules/ai/ai-provider.token';
 import { OPENAI_CLIENT_FACTORY } from '../src/modules/ai/open-ai-client.factory';
+import { OpenAiProviderError } from '../src/modules/ai/open-ai-provider.error';
 import { normalizeDailyPlanFoodNames } from '../src/modules/daily-plans/daily-plan-food-name-normalizer';
 import { dailyPlanJsonSchema } from '../src/modules/daily-plans/daily-plan-json.schema';
 import { createMockDailyPlan } from '../src/modules/daily-plans/templates/mock-daily-plan.factory';
@@ -3751,35 +3752,48 @@ describe('Sprint 1 backend vertical slice', () => {
   });
 
   it('records fallback reason in AI operation log for fallback generation', async () => {
-    const user = await registerTestUser(ctx.app);
-    await completeRequiredOnboarding(ctx.app, user.accessToken, 'OperationFallback');
-
-    await request(ctx.app.getHttpServer())
-      .put('/v1/nutrition-preferences')
-      .set(authHeader(user.accessToken))
-      .send({
-        dietType: 'NONE',
-        mealsPerDay: 3,
-        allergies: ['Greek yogurt'],
-        excludedFoods: [],
-        preferredFoods: ['rice']
-      })
-      .expect(200);
-
-    const plan = await request(ctx.app.getHttpServer())
-      .post('/v1/daily-plans/generate')
-      .set(authHeader(user.accessToken))
-      .send({ forceRegenerate: true })
-      .expect(201);
-
-    const log = await ctx.prisma.aiOperationLog.findFirstOrThrow({
-      where: { userId: user.user.id }
+    const customCtx = await createTestApp({
+      providerOverrides: [
+        {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async () => {
+              throw new OpenAiProviderError('invalid structured output', {
+                fallbackReason: 'schema_validation_failed'
+              });
+            }
+          }
+        }
+      ]
     });
 
-    expect(plan.body.status).toBe('READY');
-    expect(log.status).toBe(AiOperationStatus.FALLBACK);
-    expect(log.fallbackReason).toContain('conflicts with your allergies');
-    expect(log.errorReason).toBeNull();
+    try {
+      await cleanupDatabase(customCtx.prisma);
+      const user = await registerTestUser(customCtx.app);
+      await completeRequiredOnboarding(
+        customCtx.app,
+        user.accessToken,
+        'OperationFallback'
+      );
+
+      const plan = await request(customCtx.app.getHttpServer())
+        .post('/v1/daily-plans/generate')
+        .set(authHeader(user.accessToken))
+        .send({ forceRegenerate: true })
+        .expect(201);
+
+      const log = await customCtx.prisma.aiOperationLog.findFirstOrThrow({
+        where: { userId: user.user.id }
+      });
+
+      expect(plan.body.status).toBe('READY');
+      expect(log.status).toBe(AiOperationStatus.FALLBACK);
+      expect(log.fallbackReason).toBe('schema_validation_failed');
+      expect(log.errorReason).toBeNull();
+    } finally {
+      await cleanupDatabase(customCtx.prisma);
+      await customCtx.app.close();
+    }
   });
 
   it('does not break daily plan generation when AI operation logging fails', async () => {
@@ -4463,7 +4477,7 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
-  it('persists a safe fallback plan if generated foods conflict with allergies', async () => {
+  it('persists the safe catalog plan instead of provider-owned meal content', async () => {
     const user = await registerTestUser(ctx.app);
     await completeRequiredOnboarding(ctx.app, user.accessToken, 'Fallback');
 
@@ -4489,8 +4503,8 @@ describe('Sprint 1 backend vertical slice', () => {
     expect(dailyPlanJsonSchema.safeParse(plan.body.plan).success).toBe(true);
     expect(plan.body.plan.schemaVersion).toBe('sprint-2.v1');
     expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
-    expect(JSON.stringify(plan.body.plan)).toContain('conflicts with your allergies');
-    expect(plan.body.plan.safety.userSafeMessage).toContain('allergies or excluded foods');
+    expect(plan.body.plan.nutrition.foodPlan).toBeDefined();
+    expect(plan.body.plan.debug.fallbackReason).toBeUndefined();
   }, 20_000);
 
   it('normalizes old Sprint 1 plan JSON without crashing the response', async () => {
@@ -5367,6 +5381,21 @@ describe('Sprint 1 backend vertical slice', () => {
     const customCtx = await createTestApp({
       providerOverrides: [
         {
+          token: AI_PROVIDER,
+          value: {
+            generateDailyPlan: async () => {
+              const plan = createMockDailyPlan({
+                planLocalDate: getUtcLocalDate(),
+                planTimezone: 'UTC',
+                firstName: 'SafetyHardFail',
+                isMinor: false
+              });
+              plan.reminders = ['Eat avocado with today\'s lunch.'];
+              return plan;
+            }
+          }
+        },
+        {
           token: SAFETY_AGENT,
           value: {
             reviewDailyPlan: async () => {
@@ -5394,7 +5423,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({
           dietType: 'NONE',
           mealsPerDay: 3,
-          allergies: ['Greek yogurt'],
+          allergies: ['avocado'],
           excludedFoods: [],
           preferredFoods: ['rice']
         })
@@ -5719,7 +5748,19 @@ describe('Sprint 1 backend vertical slice', () => {
           })
         })
       ],
-      requests
+      requests,
+      aiProvider: {
+        generateDailyPlan: async () => {
+          const plan = createMockDailyPlan({
+            planLocalDate: getUtcLocalDate(),
+            planTimezone: 'UTC',
+            firstName: 'SafetyOpenAiHardFail',
+            isMinor: false
+          });
+          plan.reminders = ['Eat avocado with today\'s lunch.'];
+          return plan;
+        }
+      }
     });
 
     try {
@@ -5733,7 +5774,7 @@ describe('Sprint 1 backend vertical slice', () => {
         .send({
           dietType: 'NONE',
           mealsPerDay: 3,
-          allergies: ['Greek yogurt'],
+          allergies: ['avocado'],
           excludedFoods: [],
           preferredFoods: ['rice']
         })
@@ -6425,10 +6466,21 @@ describe('Sprint 1 backend vertical slice', () => {
 
       const dailyPlanRequests = filterOpenAiRequestsBySchema(requests, 'daily_plan_json');
       expect(dailyPlanRequests).toHaveLength(3);
+      const plannerSchema = JSON.stringify(
+        (dailyPlanRequests[0].text as { format?: { schema?: unknown } }).format
+          ?.schema
+      );
+      expect(plannerSchema).not.toContain('"meals"');
+      expect(plannerSchema).not.toContain('"menuOptions"');
       const parsedRequests = dailyPlanRequests.map(parseOpenAiPlanningRequest);
 
       expect(parsedRequests[0].system).toContain('PlanQualityMode is BASIC');
-      expect(parsedRequests[0].system).toContain('Return exactly 1 nutrition.menuOptions');
+      expect(parsedRequests[0].system).toContain(
+        'A separate catalog-bounded Nutrition Agent owns all meals and menu options'
+      );
+      expect(parsedRequests[0].system).toContain(
+        'Do not generate, describe, or invent meals, food items, ingredients, portions, or menu alternatives'
+      );
       expect(parsedRequests[0].system).toContain('Choose exercise identities only from allowedExerciseCandidates');
       expect(parsedRequests[0].context.planQualityMode).toBe('BASIC');
       expect(parsedRequests[0].context.personalizationContext.contextLevel).toBe('minimal');
@@ -6437,7 +6489,7 @@ describe('Sprint 1 backend vertical slice', () => {
       ).toBe('simple');
 
       expect(parsedRequests[1].system).toContain('PlanQualityMode is PERSONALIZED');
-      expect(parsedRequests[1].system).toContain('Return exactly 2 nutrition.menuOptions');
+      expect(parsedRequests[1].system).not.toContain('nutrition.menuOptions');
       expect(parsedRequests[1].system).toContain('sets, reps, and rest');
       expect(parsedRequests[1].system).toContain('Return exactly requestedExerciseCount exercise items');
       expect(parsedRequests[1].context.planQualityMode).toBe('PERSONALIZED');
@@ -6447,7 +6499,7 @@ describe('Sprint 1 backend vertical slice', () => {
       ).toBe('sets_reps_rest');
 
       expect(parsedRequests[2].system).toContain('PlanQualityMode is ADAPTIVE');
-      expect(parsedRequests[2].system).toContain('Return exactly 3 nutrition.menuOptions');
+      expect(parsedRequests[2].system).not.toContain('nutrition.menuOptions');
       expect(parsedRequests[2].system).toContain('readiness placeholders');
       expect(parsedRequests[2].system).toContain('Return exactly requestedExerciseCount exercise items');
       expect(parsedRequests[2].context.planQualityMode).toBe('ADAPTIVE');
@@ -6763,7 +6815,7 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
-  it('still runs SafetyService after OpenAI provider output', async () => {
+  it('does not let OpenAI provider meal content replace the catalog food plan', async () => {
     const customCtx = await createOpenAiModeTestApp({
       responses: [
         () => ({
@@ -6804,8 +6856,8 @@ describe('Sprint 1 backend vertical slice', () => {
 
       expect(plan.body.status).toBe('READY');
       expect(JSON.stringify(plan.body.plan)).not.toContain('Greek yogurt');
-      expect(JSON.stringify(plan.body.plan)).toContain('conflicts with your allergies');
-      expect(plan.body.plan.debug.fallbackReason).toContain('conflicts with your allergies');
+      expect(plan.body.plan.nutrition.foodPlan).toBeDefined();
+      expect(plan.body.plan.debug.fallbackReason).toBeUndefined();
     } finally {
       await cleanupDatabase(customCtx.prisma);
       await customCtx.app.close();
@@ -6966,7 +7018,7 @@ describe('Sprint 1 backend vertical slice', () => {
     }
   });
 
-  it('blocks allergies in meal food names and recommended notes', async () => {
+  it('ignores provider-owned meal conflicts and keeps catalog meals authoritative', async () => {
     const openAiPlan = createMockDailyPlan({
       planLocalDate: getUtcLocalDate(),
       planTimezone: 'UTC',
@@ -7015,7 +7067,10 @@ describe('Sprint 1 backend vertical slice', () => {
           .expect(201);
 
         expect(plan.body.status).toBe('READY');
-        expect(plan.body.plan.debug.fallbackReason).toContain('conflicts with your allergies');
+        expect(plan.body.plan.nutrition.foodPlan).toBeDefined();
+        expect(JSON.stringify(plan.body.plan)).not.toContain('Avocado toast');
+        expect(JSON.stringify(plan.body.plan)).not.toContain('Serve with avocado on top.');
+        expect(plan.body.plan.debug.fallbackReason).toBeUndefined();
       } finally {
         await cleanupDatabase(customCtx.prisma);
         await customCtx.app.close();
@@ -7872,6 +7927,7 @@ async function createOpenAiModeTestApp(options: {
 async function createOpenAiSafetyAgentModeTestApp(options: {
   responses: Array<() => MockOpenAiResponse>;
   requests?: Array<Record<string, unknown>>;
+  aiProvider?: unknown;
 }) {
   delete process.env.AI_PROVIDER;
   process.env.SAFETY_AGENT_ENABLED = 'true';
@@ -7883,6 +7939,14 @@ async function createOpenAiSafetyAgentModeTestApp(options: {
 
   return createTestApp({
     providerOverrides: [
+      ...(options.aiProvider
+        ? [
+            {
+              token: AI_PROVIDER,
+              value: options.aiProvider
+            }
+          ]
+        : []),
       {
         token: OPENAI_CLIENT_FACTORY,
         value: () => ({
