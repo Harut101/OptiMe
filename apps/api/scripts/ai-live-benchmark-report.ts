@@ -142,6 +142,17 @@ export function assertComparableBenchmarkReport(
   }
 }
 
+export function parseBenchmarkReportPaths(args: string[]) {
+  const paths = args[0] === '--' ? args.slice(1) : args;
+  const [baselinePath, currentPath] = paths;
+  if (!baselinePath || !currentPath) {
+    throw new Error(
+      'Usage: ai-release:compare -- <baseline-report.json> <current-report.json>'
+    );
+  }
+  return { baselinePath, currentPath };
+}
+
 function identify(report: ComparableBenchmarkReport) {
   return {
     flowLabel: report.flowLabel,

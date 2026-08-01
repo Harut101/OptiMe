@@ -1,6 +1,7 @@
 import {
   assertComparableBenchmarkReport,
   compareBenchmarkReports,
+  parseBenchmarkReportPaths,
   type ComparableBenchmarkReport
 } from './ai-live-benchmark-report';
 
@@ -57,6 +58,15 @@ describe('AI live benchmark report comparison', () => {
 
     expect(comparison.gates.comparableSampleSize).toBe(false);
     expect(comparison.gates.noQualityRegression).toBe(false);
+  });
+
+  it('accepts the pnpm argument separator before report paths', () => {
+    expect(
+      parseBenchmarkReportPaths(['--', 'baseline.json', 'current.json'])
+    ).toEqual({
+      baselinePath: 'baseline.json',
+      currentPath: 'current.json'
+    });
   });
 });
 

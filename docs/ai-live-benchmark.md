@@ -184,6 +184,37 @@ replace Luna for food generation until the Nutrition Agent contract is improved
 and a larger multilingual/safety benchmark passes. Nano is not recommended for
 daily planning. Production routing was not changed by this benchmark.
 
+### Authoritative Nutrition Agent A/B rerun
+
+On August 1, 2026, the Free comparison was repeated after meal ownership moved
+fully to `NutritionAgentService`. Both candidates used flow label
+`nutrition-agent-authoritative-v1`, the same six synthetic profiles, three
+training days, three nutrition-only rest days, and report schema
+`ai-live-benchmark.v2`.
+
+| Model          | Clean contract | Overall | Food fallback | Training retry | Training fallback | Cost per plan | Average latency | p95 latency |
+| -------------- | -------------: | ------: | ------------: | -------------: | ----------------: | ------------: | --------------: | ----------: |
+| `gpt-5.6-luna` |            6/6 |   100.0 |           0/6 |            0/3 |               0/3 |     $0.047462 |          12.8 s |      26.8 s |
+| `gpt-5.4-mini` |            2/6 |    92.5 |           4/6 |            2/3 |               1/3 |     $0.026582 |           4.5 s |       8.4 s |
+
+Both models returned 6/6 user-visible READY plans because deterministic safety
+and catalog fallbacks protected the result. That does not make the candidates
+equivalent. Mini reduced estimated cost per plan by about 44%, but its overall
+quality fell by 7.5 points and its contract pass rate fell by 66.7 percentage
+points. Four plans lost authoritative Nutrition Agent output and one training
+plan required deterministic exercise fallback.
+
+The automated comparison therefore passed sample-size and final-status gates
+but failed both `noQualityRegression` and `noContractRegression`. Keep Luna on
+the Free daily-plan route. Do not trade clean plan quality for Mini's lower cost
+until prompt/contract improvements achieve the same contract pass rate in a new
+controlled benchmark.
+
+The two runs consumed an estimated `$0.444263` in provider usage telemetry;
+their conservative budget accounting remained below `$0.67`, safely under the
+combined `$10` test ceiling. Temporary full JSON reports were kept outside the
+repository and contain no prompts, profiles, API keys, or raw model responses.
+
 ## Paid-route comparison
 
 On July 31, 2026, the same complete-pipeline benchmark was run for Plus and Pro.

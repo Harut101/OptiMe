@@ -2,16 +2,13 @@ import { readFileSync } from 'node:fs';
 
 import {
   assertComparableBenchmarkReport,
-  compareBenchmarkReports
+  compareBenchmarkReports,
+  parseBenchmarkReportPaths
 } from './ai-live-benchmark-report';
 
-const [baselinePath, currentPath] = process.argv.slice(2);
-
-if (!baselinePath || !currentPath) {
-  throw new Error(
-    'Usage: ai-release:compare -- <baseline-report.json> <current-report.json>'
-  );
-}
+const { baselinePath, currentPath } = parseBenchmarkReportPaths(
+  process.argv.slice(2)
+);
 
 const baseline = readReport(baselinePath, 'Baseline report');
 const current = readReport(currentPath, 'Current report');
