@@ -743,14 +743,28 @@ describe('Sprint 1 backend vertical slice', () => {
         UsageFeature.MEAL_REGENERATION,
         UsagePeriodType.MONTHLY
       )
-    ).resolves.toBe(12);
+    ).resolves.toBe(8);
+    await expect(
+      usageGuard.getLimit(
+        proUser.user.id,
+        UsageFeature.MEAL_REGENERATION,
+        UsagePeriodType.MONTHLY
+      )
+    ).resolves.toBe(15);
+    await expect(
+      usageGuard.getLimit(
+        plusUser.user.id,
+        UsageFeature.AI_TRAINING_LOAD_AGENT,
+        UsagePeriodType.DAILY
+      )
+    ).resolves.toBe(2);
     await expect(
       usageGuard.getLimit(
         proUser.user.id,
         UsageFeature.AI_TRAINING_LOAD_AGENT,
         UsagePeriodType.DAILY
       )
-    ).resolves.toBe(20);
+    ).resolves.toBe(3);
     await expect(
       usageGuard.getLimit(
         freeUser.user.id,

@@ -181,8 +181,8 @@ export const USAGE_LIMIT_MATRIX: UsageLimitMatrixEntry[] = [
     periodType: UsagePeriodType.MONTHLY,
     limits: {
       [SubscriptionPlan.FREE]: 2,
-      [SubscriptionPlan.PLUS]: 12,
-      [SubscriptionPlan.PRO]: 30
+      [SubscriptionPlan.PLUS]: 8,
+      [SubscriptionPlan.PRO]: 15
     }
   },
   {
@@ -190,8 +190,8 @@ export const USAGE_LIMIT_MATRIX: UsageLimitMatrixEntry[] = [
     periodType: UsagePeriodType.DAILY,
     limits: {
       [SubscriptionPlan.FREE]: 0,
-      [SubscriptionPlan.PLUS]: 5,
-      [SubscriptionPlan.PRO]: 20
+      [SubscriptionPlan.PLUS]: 2,
+      [SubscriptionPlan.PRO]: 3
     }
   }
 ];

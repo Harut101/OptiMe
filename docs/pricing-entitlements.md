@@ -115,7 +115,7 @@ The backend enforces these allowances:
 |---|---:|---:|---:|
 | New Daily Plan | 1 per local day, Luna | 1 per local day, Terra | 1 per local day, Sol |
 | Manual full-plan refresh | 0 | 3 per month | 10 per month |
-| Meal regeneration | 2 per month | 12 per month | 30 per month |
+| Meal regeneration | 2 per month | 8 per month | 15 per month |
 | Full-menu regeneration | 0 | 2 per month | 6 per month |
 | AI Adaptive Plan proposals | 0 | 8 per month | 20 per month |
 
@@ -201,8 +201,14 @@ Current production limits:
 | `AI_DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
 | `AI_PLAN_CHECKPOINT_PROPOSAL` | Monthly | 0 | 8 | 20 |
 | `MENU_REGENERATION` | Monthly | 0 | 2 | 6 |
-| `MEAL_REGENERATION` | Monthly | 2 | 12 | 30 |
-| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 5 | 20 |
+| `MEAL_REGENERATION` | Monthly | 2 | 8 | 15 |
+| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 2 | 3 |
+
+The Training Load Agent limit covers an internal planning enhancement rather
+than a customer-facing regeneration control. If that allowance is exhausted,
+the backend uses deterministic training-load guidance and continues the Daily
+Plan safely. These reduced limits preserve a bounded repair allowance while
+keeping paid-tier AI cost aligned with the launch guardrails.
 
 Daily plan usage is reserved before expensive generation and refunded if the operation throws before returning a plan. Fallback plans still count when generation work completed.
 

@@ -61,8 +61,14 @@ Current production limits:
 | `AI_DAILY_PLAN_GENERATION` | Daily | 1 | 1 | 1 |
 | `AI_PLAN_CHECKPOINT_PROPOSAL` | Monthly | 0 | 8 | 20 |
 | `MENU_REGENERATION` | Monthly | 0 | 2 | 6 |
-| `MEAL_REGENERATION` | Monthly | 2 | 12 | 30 |
-| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 5 | 20 |
+| `MEAL_REGENERATION` | Monthly | 2 | 8 | 15 |
+| `AI_TRAINING_LOAD_AGENT` | Daily | 0 | 2 | 3 |
+
+Meal regeneration remains useful without becoming an unbounded source of AI
+cost. The Training Load Agent allowance is deliberately small because it is an
+internal step in Daily Plan generation, not a standalone user action. When its
+allowance is unavailable, the plan still completes with deterministic
+training-load guidance; safety and Daily Plan access are not blocked.
 
 Methods:
 
