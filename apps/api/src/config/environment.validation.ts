@@ -50,6 +50,8 @@ export function validateEnvironment(environment: Record<string, unknown>) {
     throw new Error('AUTH_DEV_CODE must not be configured in production.');
   }
 
+  validateProductionAiConfiguration(environment);
+
   const corsOrigins = parseCsv(environment.CORS_ALLOWED_ORIGINS);
 
   if (corsOrigins.length === 0 || corsOrigins.includes('*')) {
@@ -62,6 +64,58 @@ export function validateEnvironment(environment: Record<string, unknown>) {
   parseBoolean(environment.AUTH_RATE_LIMIT_ENABLED, 'AUTH_RATE_LIMIT_ENABLED');
 
   return environment;
+}
+
+function validateProductionAiConfiguration(
+  environment: Record<string, unknown>
+) {
+  if (readString(environment.AI_PROVIDER) !== 'openai') {
+    throw new Error('AI_PROVIDER=openai is required in production.');
+  }
+
+  requireStrongSecret(environment, 'OPENAI_API_KEY');
+
+  const modelKeys = [
+    'OPENAI_DAILY_PLAN_MODEL_FREE',
+    'OPENAI_DAILY_PLAN_MODEL_PLUS',
+    'OPENAI_DAILY_PLAN_MODEL_PRO'
+  ];
+  const priceKeys = [
+    'OPENAI_DAILY_PLAN_FREE_INPUT_COST_PER_1M_USD',
+    'OPENAI_DAILY_PLAN_FREE_OUTPUT_COST_PER_1M_USD',
+    'OPENAI_DAILY_PLAN_PLUS_INPUT_COST_PER_1M_USD',
+    'OPENAI_DAILY_PLAN_PLUS_OUTPUT_COST_PER_1M_USD',
+    'OPENAI_DAILY_PLAN_PRO_INPUT_COST_PER_1M_USD',
+    'OPENAI_DAILY_PLAN_PRO_OUTPUT_COST_PER_1M_USD'
+  ];
+
+  modelKeys.forEach((key) => requireValue(environment, key));
+  priceKeys.forEach((key) => requirePositiveNumber(environment, key));
+
+  if (!parseBoolean(environment.SAFETY_AGENT_ENABLED, 'SAFETY_AGENT_ENABLED', false)) {
+    throw new Error('SAFETY_AGENT_ENABLED=true is required in production.');
+  }
+  if (readString(environment.SAFETY_AGENT_PROVIDER) !== 'openai') {
+    throw new Error('SAFETY_AGENT_PROVIDER=openai is required in production.');
+  }
+
+  if (
+    !parseBoolean(
+      environment.AI_COST_CEILING_ENFORCEMENT_ENABLED,
+      'AI_COST_CEILING_ENFORCEMENT_ENABLED',
+      false
+    )
+  ) {
+    throw new Error(
+      'AI_COST_CEILING_ENFORCEMENT_ENABLED=true is required in production.'
+    );
+  }
+
+  [
+    'AI_MONTHLY_COST_CEILING_FREE_USD',
+    'AI_MONTHLY_COST_CEILING_PLUS_USD',
+    'AI_MONTHLY_COST_CEILING_PRO_USD'
+  ].forEach((key) => requirePositiveNumber(environment, key));
 }
 
 export function parseCsv(value: unknown) {
@@ -120,6 +174,19 @@ function requireValue(environment: Record<string, unknown>, name: string) {
 
   if (!value) {
     throw new Error(`${name} is required in production.`);
+  }
+
+  return value;
+}
+
+function requirePositiveNumber(
+  environment: Record<string, unknown>,
+  name: string
+) {
+  const value = Number(requireValue(environment, name));
+
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be a positive number in production.`);
   }
 
   return value;
