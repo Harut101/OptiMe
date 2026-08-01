@@ -68,6 +68,11 @@ type NutritionAgentAttemptResult =
       repairFeedback?: FoodPlanRepairFeedback;
     };
 
+type NutritionAgentRetryFeedback = {
+  reasonCodes: string[];
+  repairFeedback?: FoodPlanRepairFeedback;
+};
+
 @Injectable()
 export class NutritionAgentService {
   private readonly logger = new Logger(NutritionAgentService.name);
@@ -180,7 +185,12 @@ export class NutritionAgentService {
     this.logger.warn(
       `nutrition agent validation failed; retrying=true; reasons=${firstAttempt.validationReasons.join(',') || firstAttempt.errorReason}; affectedMealCount=${firstAttempt.repairFeedback?.affectedMealIds.length ?? 0}; hasCalculatedDelta=${Boolean(firstAttempt.repairFeedback?.deltaFromTarget)}`
     );
-    const retryAttempt = await this.requestOpenAiFoodPlan(input, firstAttempt.repairFeedback);
+    const retryAttempt = await this.requestOpenAiFoodPlan(input, {
+      reasonCodes: firstAttempt.validationReasons.length
+        ? firstAttempt.validationReasons
+        : [firstAttempt.errorReason],
+      repairFeedback: firstAttempt.repairFeedback
+    });
 
     if (retryAttempt.ok) {
       this.logResult(input, retryAttempt.foodPlan, 1, retryAttempt.validationReasons);
@@ -348,9 +358,9 @@ export class NutritionAgentService {
 
   private async requestOpenAiFoodPlan(
     input: NutritionAgentInput,
-    previousRepairFeedback?: FoodPlanRepairFeedback
+    retryFeedback?: NutritionAgentRetryFeedback
   ): Promise<NutritionAgentAttemptResult> {
-    const previousValidationReasons = previousRepairFeedback?.reasonCodes ?? [];
+    const previousValidationReasons = retryFeedback?.reasonCodes ?? [];
     const selection = this.modelRouter.resolve({
       agent: AiRequestAgent.NUTRITION,
       planQualityMode: input.planQualityMode
@@ -405,7 +415,7 @@ export class NutritionAgentService {
         userId: input.userId,
         operation: this.getRequestOperation(input),
         selection,
-        retryAttempt: previousValidationReasons.length > 0,
+        retryAttempt: Boolean(retryFeedback),
         request: () =>
           this.getClient().responses.create(
             {
@@ -420,7 +430,7 @@ export class NutritionAgentService {
                 {
                   role: 'system',
                   content: this.buildSystemInstructions(
-                    previousRepairFeedback,
+                    retryFeedback,
                     input.safetyFeedback
                   )
                 },
@@ -429,7 +439,7 @@ export class NutritionAgentService {
                   content: JSON.stringify(
                     this.buildPlanningContext(
                       input,
-                      previousRepairFeedback,
+                      retryFeedback,
                       catalogSelection,
                       catalogFeasibility,
                       recipeTemplates
@@ -1021,9 +1031,11 @@ export class NutritionAgentService {
   }
 
   private buildSystemInstructions(
-    previousRepairFeedback?: FoodPlanRepairFeedback,
+    retryFeedback?: NutritionAgentRetryFeedback,
     safetyFeedback?: NutritionAgentInput['safetyFeedback']
   ) {
+    const repairFeedback = retryFeedback?.repairFeedback;
+
     return [
       'You are the OptiMe Specialized Nutrition Agent.',
       'Return only structured JSON matching the provided daily food plan content schema.',
@@ -1032,7 +1044,9 @@ export class NutritionAgentService {
       'Do not calculate a new daily target. Use the target calories, protein, carbs, and fat from the context.',
       'Use only catalogFoodSlug values supplied in allowedCatalogFoods. Never invent an ingredient or a slug.',
       'Every meal must use exactly one recipeTemplateId from recipeTemplates. Keep its meal type and ingredient role structure.',
-      'Use selectionRoles as meal-building guidance: choose proteins, carbohydrate bases, vegetables, fruit, and fats that fit each meal.',
+      'For each meal, return exactly the same number of ingredients as the selected recipe template ingredientRoles array.',
+      'Keep ingredients in the exact ingredientRoles order from the selected recipe template.',
+      'For every ingredient position, choose a catalog food whose selectionRoles contains the required recipe-template role. Do not use a food in a role it does not support.',
       'Every ingredient quantity must be in grams. Return only catalogFoodSlug, quantity, unit, and isOptional for ingredients.',
       'Do not return ingredient names, calories, protein, carbs, fat, meal totals, or daily totals. Backend owns and calculates all of those values.',
       'Respect the requested mealsPerDay exactly when provided.',
@@ -1046,11 +1060,11 @@ export class NutritionAgentService {
       'For minors, safeMode, pregnancy, postpartum, or breastfeeding context, keep meals balanced and conservative.',
       'For FULL_MENU_REGENERATION, replace the complete menu while preserving the fixed nutrition target.',
       'For MEAL_REGENERATION, regenerate the selected meal and return the complete adjusted food plan. Keep other meals stable unless small macro balancing changes are required.',
-      previousRepairFeedback
+      retryFeedback
         ? [
             'This is a correction attempt. Return a complete corrected food plan, not partial edits.',
-            `Validator reason codes: ${previousRepairFeedback.reasonCodes.join(', ')}.`,
-            ...previousRepairFeedback.instructions
+            `Previous attempt reason codes: ${retryFeedback.reasonCodes.join(', ')}.`,
+            ...(repairFeedback?.instructions ?? [])
           ].join(' ')
         : 'Create one complete daily food plan.',
       safetyFeedback
@@ -1096,7 +1110,7 @@ export class NutritionAgentService {
 
   private buildPlanningContext(
     input: NutritionAgentInput,
-    previousRepairFeedback: FoodPlanRepairFeedback | undefined,
+    retryFeedback: NutritionAgentRetryFeedback | undefined,
     catalogSelection: DailyFoodCatalogSelection,
     catalogFeasibility: FoodPlanCatalogFeasibilityResult,
     recipeTemplates: FoodPlanRecipeTemplate[]
@@ -1182,7 +1196,12 @@ export class NutritionAgentService {
             requiredChanges: input.safetyFeedback.requiredChanges
           }
         : null,
-      repairFeedback: previousRepairFeedback ?? null
+      retryFeedback: retryFeedback
+        ? {
+            reasonCodes: retryFeedback.reasonCodes,
+            calculatedRepair: retryFeedback.repairFeedback ?? null
+          }
+        : null
     };
   }
 
@@ -1199,6 +1218,7 @@ export class NutritionAgentService {
     for (const meal of plan.meals) {
       const template = templatesById.get(meal.recipeTemplateId);
       if (!template || template.mealType !== meal.mealType) return null;
+      if (meal.ingredients.length !== template.ingredients.length) return null;
       const ingredients: DailyFoodPlan['meals'][number]['ingredients'] = [];
       for (const [ingredientIndex, ingredient] of meal.ingredients.entries()) {
         if (!ingredient.catalogFoodSlug || ingredient.unit !== 'g') return null;

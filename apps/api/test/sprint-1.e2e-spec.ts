@@ -7716,6 +7716,13 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
     const mealType = typeof recipeTemplate?.mealType === 'string'
       ? recipeTemplate.mealType
       : mealTypes[index] ?? 'SNACK';
+    const templateIngredients = createMockTemplateIngredients(
+      context,
+      recipeTemplate,
+      catalogIngredients,
+      index,
+      requestedMealsPerDay
+    );
     return {
       id: `meal-${index + 1}`,
       recipeTemplateId,
@@ -7724,9 +7731,9 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
       shortDescription: 'A simple meal built around the fixed nutrition target.',
       prepTimeMinutes: 15,
       servingSummary: '1 balanced serving',
-      ingredients: catalogIngredients.map((ingredient) => ({
+      ingredients: templateIngredients.map((ingredient) => ({
         catalogFoodSlug: ingredient.slug,
-        quantity: splitMockQuantity(ingredient.quantity, index, requestedMealsPerDay),
+        quantity: ingredient.quantity,
         unit: 'g',
         isOptional: false
       })),
@@ -7752,6 +7759,59 @@ function createMockDailyFoodPlanContentResponse(input: Record<string, unknown>):
       meals
     })
   };
+}
+
+function createMockTemplateIngredients(
+  context: Record<string, unknown>,
+  recipeTemplate: Record<string, unknown> | undefined,
+  fallbackIngredients: Array<{ slug: string; quantity: number }>,
+  mealIndex: number,
+  mealCount: number
+) {
+  const roles = Array.isArray(recipeTemplate?.ingredientRoles)
+    ? recipeTemplate.ingredientRoles.filter((role): role is string => typeof role === 'string')
+    : [];
+  if (!roles.length) {
+    return fallbackIngredients.map((ingredient) => ({
+      ...ingredient,
+      quantity: splitMockQuantity(ingredient.quantity, mealIndex, mealCount)
+    }));
+  }
+
+  const foods = Array.isArray(context.allowedCatalogFoods)
+    ? context.allowedCatalogFoods.filter(isRecord)
+    : [];
+  const usedSlugs = new Set<string>();
+
+  return roles.map((role) => {
+    const matchingFood = foods.find((food) => {
+      const slug = typeof food.slug === 'string' ? food.slug : '';
+      const selectionRoles = Array.isArray(food.selectionRoles)
+        ? food.selectionRoles
+        : [];
+      return slug && !usedSlugs.has(slug) && selectionRoles.includes(role);
+    }) ?? foods.find((food) => (
+      Array.isArray(food.selectionRoles) && food.selectionRoles.includes(role)
+    ));
+    if (!matchingFood || typeof matchingFood.slug !== 'string') {
+      throw new Error(`OpenAI nutrition mock has no catalog candidate for role ${role}.`);
+    }
+    usedSlugs.add(matchingFood.slug);
+    return {
+      slug: matchingFood.slug,
+      quantity: mockQuantityForCatalogRole(role)
+    };
+  });
+}
+
+function mockQuantityForCatalogRole(role: string) {
+  if (role === 'FAT') return 12;
+  if (role === 'BREAKFAST_BASE') return 70;
+  if (role === 'FRUIT') return 120;
+  if (role === 'VEGETABLE') return 140;
+  if (role === 'CARBOHYDRATE') return 190;
+  if (role === 'DAIRY_OR_ALTERNATIVE') return 180;
+  return 180;
 }
 
 function createMockDailyFoodPlanCopyResponse(input: Record<string, unknown>): MockOpenAiResponse {

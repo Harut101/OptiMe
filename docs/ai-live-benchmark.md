@@ -56,7 +56,7 @@ $env:AI_BENCHMARK_REAL_CALLS_ENABLED='true'
 $env:AI_BENCHMARK_DATABASE_URL='postgresql://optime:optime@localhost:5432/optime_ai_benchmark?schema=public'
 $env:AI_BENCHMARK_MAX_COST_USD='10'
 $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
-$env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v1'
+$env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v2'
 $env:AI_BENCHMARK_REPORT_PATH='artifacts/ai-benchmark-current.json'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
@@ -214,6 +214,27 @@ The two runs consumed an estimated `$0.444263` in provider usage telemetry;
 their conservative budget accounting remained below `$0.67`, safely under the
 combined `$10` test ceiling. Temporary full JSON reports were kept outside the
 repository and contain no prompts, profiles, API keys, or raw model responses.
+
+### Nutrition contract optimization
+
+On August 1, 2026, Luna was rerun on the same six Free profiles after the
+Nutrition Agent prompt began enforcing exact recipe-template ingredient counts,
+role order, and catalog-role compatibility. The retry path now also receives
+safe validation reason codes and records correction calls as retries. This flow
+is labeled `nutrition-agent-authoritative-v2`.
+
+The optimized flow kept 6/6 READY plans, a 6/6 clean contract rate, and a
+100/100 overall quality score. Nutrition generation completed in exactly six
+requests with zero retries and zero deterministic fallbacks. Across the complete
+pipeline, request count fell from 22 to 18 and estimated cost per completed plan
+fell from `$0.047462` to `$0.032911`, a reduction of about 31%. Nutrition Agent
+cost fell from `$0.185986` to `$0.099984` for the six-plan run, a reduction of
+about 46%.
+
+This result keeps `gpt-5.6-luna` on the Free route. It improves first-pass
+contract precision rather than weakening validation or changing the model.
+The report remains outside the repository and the sample should be repeated
+periodically before changing production pricing assumptions.
 
 ## Paid-route comparison
 
