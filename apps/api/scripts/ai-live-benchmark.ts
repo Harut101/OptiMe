@@ -19,7 +19,7 @@ import {
 
 const HARD_MAX_COST_USD = 10;
 const REPORT_SCHEMA_VERSION = 'ai-live-benchmark.v2';
-const DEFAULT_FLOW_LABEL = 'nutrition-agent-authoritative-v2';
+const DEFAULT_FLOW_LABEL = 'nutrition-agent-authoritative-v3';
 const RUN_PREFIX = `ai-benchmark-${Date.now()}`;
 type Tier = 'FREE' | 'PLUS' | 'PRO';
 const ALL_TIERS: Tier[] = ['FREE', 'PLUS', 'PRO'];

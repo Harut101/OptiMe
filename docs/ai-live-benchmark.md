@@ -56,7 +56,7 @@ $env:AI_BENCHMARK_REAL_CALLS_ENABLED='true'
 $env:AI_BENCHMARK_DATABASE_URL='postgresql://optime:optime@localhost:5432/optime_ai_benchmark?schema=public'
 $env:AI_BENCHMARK_MAX_COST_USD='10'
 $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
-$env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v2'
+$env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v3'
 $env:AI_BENCHMARK_REPORT_PATH='artifacts/ai-benchmark-current.json'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
 ```
@@ -235,6 +235,26 @@ This result keeps `gpt-5.6-luna` on the Free route. It improves first-pass
 contract precision rather than weakening validation or changing the model.
 The report remains outside the repository and the sample should be repeated
 periodically before changing production pricing assumptions.
+
+### Compact Safety Agent context
+
+The next controlled Luna run kept the Safety Agent enabled for every plan but
+sent only user-facing semantic content. Debug metadata, timestamps, checkpoint
+facts, catalog IDs, protocol internals, and per-item calculated nutrition values
+are no longer duplicated into semantic review. Meal and ingredient wording,
+preparation, substitutions, nutrition guidance, exercise cues and safety notes,
+training-load messages, recovery guidance, and reminders remain included.
+
+The six-profile run again produced 6/6 READY plans, a 6/6 clean contract rate,
+and a 100/100 overall quality score. Safety input tokens fell from `29,387` to
+`19,839` (about 32.5%), while estimated Safety Agent cost fell from `$0.036707`
+to `$0.026961` (about 26.5%). Safety requests remained 6/6 with zero Safety
+Agent retries. One independent Nutrition Agent retry occurred in this sample,
+so total pipeline cost is not used to claim the isolated Safety savings.
+
+This flow is labeled `nutrition-agent-authoritative-v3`. It does not skip or
+paywall safety review; it removes only technical data that cannot improve a
+semantic safety decision.
 
 ## Paid-route comparison
 

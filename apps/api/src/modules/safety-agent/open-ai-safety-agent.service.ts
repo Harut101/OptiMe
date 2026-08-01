@@ -21,6 +21,7 @@ import {
   SafetyAgentReview,
   safetyAgentReviewSchema
 } from './safety-agent-review.schema';
+import { buildSafetyAgentSemanticPlan } from './safety-agent-review-context';
 
 @Injectable()
 export class OpenAiSafetyAgentService implements SafetyAgent {
@@ -200,7 +201,7 @@ export class OpenAiSafetyAgentService implements SafetyAgent {
 
   private buildReviewContext(input: ReviewDailyPlanInput) {
     return {
-      plan: input.plan,
+      plan: buildSafetyAgentSemanticPlan(input.plan),
       safeMode: input.safeMode,
       ageGroup: input.deterministicSafetyContext.isMinor ? 'under_18' : 'adult',
       goalSummary: input.goalSummary,
