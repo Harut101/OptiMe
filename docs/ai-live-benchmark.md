@@ -56,6 +56,7 @@ $env:AI_BENCHMARK_REAL_CALLS_ENABLED='true'
 $env:AI_BENCHMARK_DATABASE_URL='postgresql://optime:optime@localhost:5432/optime_ai_benchmark?schema=public'
 $env:AI_BENCHMARK_MAX_COST_USD='10'
 $env:AI_BENCHMARK_PROFILES_PER_TIER='2'
+$env:AI_BENCHMARK_LOCALES='en-US'
 $env:AI_BENCHMARK_FLOW_LABEL='nutrition-agent-authoritative-v3'
 $env:AI_BENCHMARK_REPORT_PATH='artifacts/ai-benchmark-current.json'
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api ai-release:live
@@ -65,6 +66,13 @@ $env:AI_BENCHMARK_REPORT_PATH='artifacts/ai-benchmark-current.json'
 already exist and the filename must end in `.json`. The saved report contains
 only the same safe aggregate metadata printed by the runner. Do not place
 reports in a committed directory unless they were reviewed for release notes.
+
+`AI_BENCHMARK_LOCALES` accepts `en-US`, `ru-RU`, `fr-FR`, and `zh-CN`. It
+defaults to `en-US`; supported locales are never added implicitly because each
+locale multiplies real provider calls and cost. `AI_BENCHMARK_PROFILES_PER_TIER`
+is applied per selected locale. For example, three tiers, four locales, and two
+profiles means 24 complete plan generations. Use dry-run mode first to verify
+`plannedPlanGenerations`, then choose a budget that can stop the run safely.
 
 To compare a candidate model for the Free route without spending on Plus or Pro,
 set `AI_BENCHMARK_TIERS=FREE`, give the run a safe label, and override only the
@@ -118,6 +126,7 @@ Report schema `ai-live-benchmark.v2` also includes:
 - request, retry, latency, token, and cost totals by AI agent and operation;
 - cost per completed daily plan;
 - tier-specific menu option contract checks (`1/2/3` for Free/Plus/Pro);
+- per-locale READY, fallback, quality, token, cost, and latency aggregates;
 - catalog, ingredient clarity, preparation, exercise prescription, and rest-day
   contract failures;
 - a planning-flow label so architecture results are not mixed accidentally.
@@ -292,8 +301,8 @@ for both provider routes; `SOL` remained the internal Pro telemetry route only.
 
 | Tier/context        | Provider model  | Plans | Clean READY | Quality | Retries | Fallbacks | Cost per plan | Average request latency | p95 request latency |
 | ------------------- | --------------- | ----: | ----------: | ------: | ------: | --------: | ------------: | ----------------------: | ------------------: |
-| Plus / Personalized | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |     `$0.09627` |                  11.4 s |              35.2 s |
-| Pro / Adaptive      | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |     `$0.09830` |                  11.7 s |              41.8 s |
+| Plus / Personalized | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |    `$0.09627` |                  11.4 s |              35.2 s |
+| Pro / Adaptive      | `gpt-5.6-terra` |     2 |         2/2 |   100.0 |       0 |         0 |    `$0.09830` |                  11.7 s |              41.8 s |
 
 All four plans passed the tier menu-option contract, catalog-food coverage,
 ingredient clarity, preparation coverage, exercise prescription, deterministic

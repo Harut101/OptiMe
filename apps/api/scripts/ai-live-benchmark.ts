@@ -12,6 +12,11 @@ import request from 'supertest';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import type { DailyPlanJson } from '../src/modules/daily-plans/daily-plan-json.schema';
 import {
+  benchmarkLocaleSlug,
+  configuredBenchmarkLocales,
+  type BenchmarkLocale
+} from './ai-live-benchmark-locales';
+import {
   evaluateBenchmarkPlanQuality,
   summarizePlanQuality,
   type BenchmarkPlanQuality
@@ -82,6 +87,7 @@ async function main() {
     positiveInteger('AI_BENCHMARK_PROFILES_PER_TIER', 2)
   );
   const tiers = configuredTiers();
+  const locales = configuredBenchmarkLocales();
   const label = process.env.AI_BENCHMARK_LABEL?.trim() || null;
   const flowLabel =
     process.env.AI_BENCHMARK_FLOW_LABEL?.trim() || DEFAULT_FLOW_LABEL;
@@ -93,8 +99,10 @@ async function main() {
       label,
       realCallsEnabled: false,
       tiers,
+      locales,
       profilesPerTier,
-      plannedPlanGenerations: profilesPerTier * tiers.length,
+      profilesPerTierPerLocale: profilesPerTier,
+      plannedPlanGenerations: profilesPerTier * tiers.length * locales.length,
       hardMaxCostUsd: HARD_MAX_COST_USD,
       configuredMaxCostUsd: maxCostUsd,
       message: 'No OpenAI calls were made.'
@@ -117,8 +125,10 @@ async function main() {
   const budget = ctx.app.get(budgetModule.AiBenchmarkBudgetService);
   const userIds: string[] = [];
   const tierByUserId = new Map<string, Tier>();
+  const localeByUserId = new Map<string, BenchmarkLocale>();
   const outcomes: Array<{
     tier: Tier;
+    locale: BenchmarkLocale;
     scenario: string;
     status: string;
     fallbackReason: string | null;
@@ -131,43 +141,49 @@ async function main() {
     await exerciseSeed.seedExerciseCatalog(ctx.prisma);
 
     benchmarkLoop: for (const tier of tiers) {
-      for (let index = 0; index < profilesPerTier; index += 1) {
-        if (budget.snapshot().exhausted) break benchmarkLoop;
-        const scenario = scenarios[index % scenarios.length];
-        const user = await registerUser(
-          ctx.app,
-          ctx.prisma,
-          `${RUN_PREFIX}-${tier.toLowerCase()}-${index}@example.test`
-        );
-        userIds.push(user.userId);
-        tierByUserId.set(user.userId, tier);
-        await configureProfile(ctx.app, user.accessToken, scenario, index);
-        await applyTier(ctx.prisma, user.userId, tier);
+      for (const locale of locales) {
+        for (let index = 0; index < profilesPerTier; index += 1) {
+          if (budget.snapshot().exhausted) break benchmarkLoop;
+          const scenario = scenarios[index % scenarios.length];
+          const user = await registerUser(
+            ctx.app,
+            ctx.prisma,
+            `${RUN_PREFIX}-${tier.toLowerCase()}-${benchmarkLocaleSlug(locale)}-${index}@example.test`,
+            locale
+          );
+          userIds.push(user.userId);
+          tierByUserId.set(user.userId, tier);
+          localeByUserId.set(user.userId, locale);
+          await configureProfile(ctx.app, user.accessToken, scenario, index);
+          await applyTier(ctx.prisma, user.userId, tier);
 
-        const response = await request(ctx.app.getHttpServer())
-          .post('/v1/daily-plans/generate')
-          .set('Authorization', `Bearer ${user.accessToken}`)
-          .send({ forceRegenerate: false });
-        const fallbackReason = response.body?.plan?.debug?.fallbackReason;
-        const plan = response.body?.plan as DailyPlanJson | undefined;
-        outcomes.push({
-          tier,
-          scenario: scenario.suffix,
-          status:
-            typeof response.body?.status === 'string'
-              ? response.body.status
-              : `HTTP_${response.status}`,
-          fallbackReason:
-            typeof fallbackReason === 'string' ? fallbackReason : null,
-          quality: plan
-            ? evaluateBenchmarkPlanQuality(plan, {
-                trainingExpected: scenario.appMode === 'NUTRITION_AND_TRAINING',
-                preferredFoods: scenario.preferredFoods,
-                expectedMealCount: 3,
-                expectedMenuOptionCount: expectedMenuOptionCount(tier)
-              })
-            : null
-        });
+          const response = await request(ctx.app.getHttpServer())
+            .post('/v1/daily-plans/generate')
+            .set('Authorization', `Bearer ${user.accessToken}`)
+            .send({ forceRegenerate: false });
+          const fallbackReason = response.body?.plan?.debug?.fallbackReason;
+          const plan = response.body?.plan as DailyPlanJson | undefined;
+          outcomes.push({
+            tier,
+            locale,
+            scenario: scenario.suffix,
+            status:
+              typeof response.body?.status === 'string'
+                ? response.body.status
+                : `HTTP_${response.status}`,
+            fallbackReason:
+              typeof fallbackReason === 'string' ? fallbackReason : null,
+            quality: plan
+              ? evaluateBenchmarkPlanQuality(plan, {
+                  trainingExpected:
+                    scenario.appMode === 'NUTRITION_AND_TRAINING',
+                  preferredFoods: scenario.preferredFoods,
+                  expectedMealCount: 3,
+                  expectedMenuOptionCount: expectedMenuOptionCount(tier)
+                })
+              : null
+          });
+        }
       }
     }
 
@@ -194,6 +210,8 @@ async function main() {
       flowLabel,
       label,
       tiers,
+      locales,
+      profilesPerTierPerLocale: profilesPerTier,
       hardMaxCostUsd: HARD_MAX_COST_USD,
       budget: budget.snapshot(),
       completedPlanGenerations: outcomes.length,
@@ -230,6 +248,32 @@ async function main() {
                 tierOutcomes.flatMap((outcome) => outcome.quality ?? [])
               ),
               telemetry: summarize(tierLogs, tierOutcomes.length)
+            }
+          ];
+        })
+      ),
+      byLocale: Object.fromEntries(
+        locales.map((locale) => {
+          const localeOutcomes = outcomes.filter(
+            (outcome) => outcome.locale === locale
+          );
+          const localeLogs = logs.filter(
+            (log) => localeByUserId.get(log.userId) === locale
+          );
+          return [
+            locale,
+            {
+              completedPlanGenerations: localeOutcomes.length,
+              readyPlans: localeOutcomes.filter(
+                (outcome) => outcome.status === 'READY'
+              ).length,
+              fallbackPlans: localeOutcomes.filter(
+                (outcome) => outcome.status === 'FALLBACK'
+              ).length,
+              quality: summarizePlanQuality(
+                localeOutcomes.flatMap((outcome) => outcome.quality ?? [])
+              ),
+              telemetry: summarize(localeLogs, localeOutcomes.length)
             }
           ];
         })
@@ -379,7 +423,8 @@ function expectedMenuOptionCount(tier: Tier) {
 async function registerUser(
   app: INestApplication,
   prisma: PrismaService,
-  email: string
+  email: string,
+  locale: BenchmarkLocale
 ) {
   await request(app.getHttpServer())
     .post('/v1/auth/register')
@@ -387,7 +432,7 @@ async function registerUser(
       email,
       password: 'benchmark-password-123',
       timezone: 'UTC',
-      locale: 'en-US',
+      locale,
       privacyConsentAccepted: true
     })
     .expect(201);
