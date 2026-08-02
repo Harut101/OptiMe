@@ -507,6 +507,9 @@ For minors:
    for safe single-instance deployment and later horizontal scaling.
    Server-owned request correlation and a safe global exception boundary are
    implemented without changing established mobile error response bodies.
+   The single-server forward-only migration, verified PostgreSQL backup, code
+   rollback, and new-database recovery runbook is implemented; provider backup
+   scheduling and a staging restore rehearsal remain external gates.
    Complete external privacy declarations, data-export policy, edge protection, and monitoring
    release readiness.
 11. Complete Android Health Connect development-build/device QA and Google Play

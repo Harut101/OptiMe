@@ -1,5 +1,9 @@
 # Deployment Notes
 
+For the single-server API/PostgreSQL deploy, migration, backup, and rollback
+sequence, follow
+[production-deployment-runbook.md](./production-deployment-runbook.md).
+
 ## Exercise Media
 
 Local development serves approved copied media from:

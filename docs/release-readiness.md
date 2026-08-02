@@ -144,6 +144,11 @@ upload, and smoke-test the provider-neutral artifact using
 
 Do not copy placeholder secrets from `.env.example`. Do not define `AUTH_DEV_CODE`.
 
+Before every production migration, create a verified custom-format PostgreSQL
+backup and follow the forward-only deploy/rollback process in
+[production-deployment-runbook.md](./production-deployment-runbook.md). A backup
+is not release-ready until a staging restore rehearsal has succeeded.
+
 ## Manual QA
 
 1. Register with a real inbox and verify the six-digit email code.
@@ -164,6 +169,7 @@ Do not copy placeholder secrets from `.env.example`. Do not define `AUTH_DEV_COD
 
 - Verify the Resend sender domain, SPF/DKIM, and delivery for all supported locales.
 - Confirm the reverse-proxy topology and matching `TRUST_PROXY_HOPS`.
+- Configure encrypted off-host PostgreSQL backups and complete a staging restore rehearsal.
 - Add edge/shared-store rate limiting before running multiple API instances.
 - Decide whether first release needs self-service data export or a documented support workflow.
 - Complete Android Health Connect device QA and Google Play Health declarations.
