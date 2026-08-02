@@ -21,6 +21,10 @@ This checklist protects the accepted OptiMe product baseline. It does not add pr
 - Security logs avoid email addresses, passwords, auth codes, API keys, and raw tokens.
 - Public liveness and database-readiness probes expose only bounded operational status.
 - Nest shutdown hooks allow Prisma to disconnect cleanly during process termination.
+- API runtime and migration container targets are separate; runtime startup never applies
+  database migrations automatically.
+- The post-deployment smoke gate checks liveness, database readiness, health contracts, and
+  request correlation without calling OpenAI.
 
 ## Runtime probes and shutdown
 
@@ -149,6 +153,12 @@ backup and follow the forward-only deploy/rollback process in
 [production-deployment-runbook.md](./production-deployment-runbook.md). A backup
 is not release-ready until a staging restore rehearsal has succeeded.
 
+Build both Docker targets from the same reviewed commit and deploy by immutable
+tag or digest. Run the matching `migrator` target once, then start the runtime
+image and require `deployment:smoke` to pass through the public HTTPS origin.
+The Nginx example logs path-only `$uri` and the upstream request ID; do not log
+query strings because provider callbacks may contain sensitive codes.
+
 ## Manual QA
 
 1. Register with a real inbox and verify the six-digit email code.
@@ -169,6 +179,8 @@ is not release-ready until a staging restore rehearsal has succeeded.
 
 - Verify the Resend sender domain, SPF/DKIM, and delivery for all supported locales.
 - Confirm the reverse-proxy topology and matching `TRUST_PROXY_HOPS`.
+- Replace the example domain/certificate paths, install TLS certificates, and verify the
+  runtime image under the selected server's kernel and storage limits.
 - Configure encrypted off-host PostgreSQL backups and complete a staging restore rehearsal.
 - Add edge/shared-store rate limiting before running multiple API instances.
 - Decide whether first release needs self-service data export or a documented support workflow.

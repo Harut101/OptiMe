@@ -1,0 +1,17 @@
+services:
+  api:
+    image: ${OPTIME_API_IMAGE:?Set OPTIME_API_IMAGE to an immutable image tag}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.production
+    ports:
+      - '127.0.0.1:3000:3000'
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s

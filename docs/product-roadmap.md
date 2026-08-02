@@ -510,6 +510,8 @@ For minors:
    The single-server forward-only migration, verified PostgreSQL backup, code
    rollback, and new-database recovery runbook is implemented; provider backup
    scheduling and a staging restore rehearsal remain external gates.
+   Immutable non-root API/migrator images, hardened single-server Compose/Nginx
+   examples, and a public post-deploy health smoke gate are implemented.
    Complete external privacy declarations, data-export policy, edge protection, and monitoring
    release readiness.
 11. Complete Android Health Connect development-build/device QA and Google Play

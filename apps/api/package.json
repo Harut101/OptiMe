@@ -19,6 +19,7 @@
     "prisma:studio": "prisma studio",
     "db:backup": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/database-backup.ts",
     "db:backup:verify": "node --env-file-if-exists=.env --env-file-if-exists=../../.env -r ts-node/register scripts/database-backup-verify.ts",
+    "deployment:smoke": "node --env-file-if-exists=.env --env-file-if-exists=../../.env scripts/deployment-smoke.cjs",
     "exercise:seed": "ts-node prisma/seeds/exercises/seed.ts",
     "exercise:validate": "ts-node prisma/seeds/exercises/validate.ts",
     "exercise:validate:db": "ts-node prisma/seeds/exercises/validate.ts --database",

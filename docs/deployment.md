@@ -3,6 +3,9 @@
 For the single-server API/PostgreSQL deploy, migration, backup, and rollback
 sequence, follow
 [production-deployment-runbook.md](./production-deployment-runbook.md).
+The repository includes a multi-stage API `Dockerfile`, an isolated `migrator`
+target, a public health smoke command, and hardened examples under `deploy/`.
+None of these examples contain or generate production secrets.
 
 ## Exercise Media
 

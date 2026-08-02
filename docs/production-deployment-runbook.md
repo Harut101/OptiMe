@@ -26,6 +26,28 @@ The backup command passes the password only through the child process
 `PGPASSWORD`; it does not place `DATABASE_URL` or credentials in process
 arguments or output.
 
+## Immutable API images
+
+Build the release and migration images from the exact reviewed commit:
+
+```powershell
+$commit = git rev-parse --short=12 HEAD
+docker build --target runtime -t "optime-api:$commit" .
+docker build --target migrator -t "optime-api-migrator:$commit" .
+```
+
+The runtime image uses Node 24 on Debian, runs as the unprivileged `node` user,
+contains production API dependencies and generated Prisma Client, and exposes a
+Docker liveness healthcheck. The separate migrator image contains the Prisma CLI
+and never starts the API. Local `.env` files, tests, mobile source, docs,
+artifacts, backups, and existing `node_modules` are excluded from the build
+context.
+
+Use immutable commit or digest references in production. Do not deploy `latest`
+without recording the corresponding digest. Example single-server Compose and
+Nginx files live under `deploy/`; copy them into private server configuration
+and replace all placeholders rather than editing secrets into the repository.
+
 ## Pre-deployment checklist
 
 1. Identify the exact Git commit and retain the previous deployable artifact.
@@ -61,7 +83,13 @@ off-host retention through the hosting provider.
 
 1. Build and validate the exact release artifact before changing production.
 2. Remove the API instance from traffic or enable a short maintenance window.
-3. Apply committed migrations only:
+3. Apply committed migrations once with the matching migrator image:
+
+```powershell
+docker run --rm --env-file C:\secure\optime-api.env "optime-api-migrator:$commit"
+```
+
+For a non-container deployment, the equivalent repository command remains:
 
 ```powershell
 & "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api prisma:migrate:deploy
@@ -78,12 +106,28 @@ GET /v1/system/health/ready -> 200
 ```
 
 5. Return the instance to traffic only after readiness passes.
-6. Smoke-test registration/login as appropriate, Today plan retrieval, one
+6. Run the public post-deployment smoke gate:
+
+```powershell
+$env:API_SMOKE_BASE_URL='https://api.example.com'
+& "$env:APPDATA\npm\pnpm.cmd" --filter @optime/api deployment:smoke
+```
+
+The smoke command checks liveness, database readiness, bounded JSON contracts,
+and server-owned request correlation. It does not authenticate, generate a plan,
+or call OpenAI.
+
+7. Smoke-test registration/login as appropriate, Today plan retrieval, one
    authenticated read endpoint, exercise media, and billing-disabled behavior.
-7. Run `ai-release:monitor`; `INSUFFICIENT_DATA` remains valid during an early
+8. Run `ai-release:monitor`; `INSUFFICIENT_DATA` remains valid during an early
    rollout, while `FAIL` requires investigation.
-8. Monitor request IDs, `5xx`, readiness, latency, PostgreSQL connections, disk,
+9. Monitor request IDs, `5xx`, readiness, latency, PostgreSQL connections, disk,
    and backup storage during the observation window.
+
+The example Nginx access log records `$uri`, not `$request_uri`, so OAuth codes
+and other query values are not written to access logs. Keep the API bound to
+loopback and expose only Nginx ports `80/443`. With one trusted Nginx proxy set
+`TRUST_PROXY_HOPS=1`; recalculate this value if the topology changes.
 
 ## Migration rules
 
@@ -105,7 +149,7 @@ stops using the old schema. Prisma has no automatic down migration guarantee.
 If health checks or smoke tests fail and the migration is backward compatible:
 
 1. remove the failed instance from traffic;
-2. redeploy the previously retained application artifact;
+2. redeploy the previously retained immutable runtime image;
 3. do not attempt to reverse the migration automatically;
 4. verify liveness/readiness and repeat the smoke checks;
 5. preserve request IDs and operational logs for investigation.
